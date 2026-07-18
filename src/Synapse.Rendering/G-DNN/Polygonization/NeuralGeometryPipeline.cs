@@ -18,6 +18,13 @@ public sealed class NeuralGeometryPipelineOptions
     /// N ticks (la ré-extraction finale a lieu dès que la file est vide).
     /// </summary>
     public int RebuildIntervalTicks { get; set; } = 8;
+
+    /// <summary>
+    /// Répertoire du cache disque des chaînes polygonisées (null = désactivé).
+    /// Un asset statique dont le réseau n'a pas changé recharge sa chaîne
+    /// depuis le disque au lieu de repolygoniser au démarrage.
+    /// </summary>
+    public string? CacheDirectory { get; set; }
 }
 
 /// <summary>Rapport d'un tick du pipeline — toutes les métriques d'une frame.</summary>
@@ -26,6 +33,9 @@ public sealed class PipelineFrameReport
     public required TrainingSliceReport Training { get; init; }
     public bool Rebuilt { get; init; }
     public double RebuildMs { get; init; }
+
+    /// <summary>La chaîne de ce tick provient-elle du cache disque ?</summary>
+    public bool LoadedFromCache { get; init; }
     public required ClusterCullStats Culling { get; init; }
     public required IReadOnlyList<NeuralMeshlet> VisibleClusters { get; init; }
     public long ExtractedGeometryVersion { get; init; }
@@ -51,15 +61,20 @@ public sealed class NeuralGeometryPipeline
     private readonly HashEncodedDeepMLP _network;
     private readonly AABB _bounds;
     private readonly NeuralGeometryPipelineOptions _options;
+    private readonly PolygonizationCache? _cache;
     private NeuralPolygonLodChain _chain;
     private NeuralClusterRenderer _renderer;
     private long _extractedVersion;
     private int _ticksSinceRebuild;
+    private bool _chainFromCache;
 
     public OnlineSdfTrainer Trainer { get; }
     public NeuralPolygonizer Polygonizer { get; }
     public SoftwareRasterizer Rasterizer { get; } = new();
     public NeuralPolygonLodChain Chain => _chain;
+
+    /// <summary>La chaîne initiale a-t-elle été rechargée depuis le cache disque ?</summary>
+    public bool InitialChainFromCache { get; }
 
     public NeuralGeometryPipeline(
         HashEncodedDeepMLP network, AABB bounds, NeuralGeometryPipelineOptions? options = null)
@@ -68,11 +83,26 @@ public sealed class NeuralGeometryPipeline
         _network = network;
         _bounds = bounds;
         _options = options ?? new NeuralGeometryPipelineOptions();
+        _cache = _options.CacheDirectory is { Length: > 0 } dir
+            ? new PolygonizationCache(dir)
+            : null;
 
         Trainer = new OnlineSdfTrainer(network, bounds);
         Polygonizer = new NeuralPolygonizer(); // épars par défaut
 
-        _chain = BuildChain();
+        if (_cache != null &&
+            _cache.TryLoad(ComputeCacheKey(), out var cachedChain))
+        {
+            _chain = cachedChain!;
+            InitialChainFromCache = true;
+            _chainFromCache = true;
+        }
+        else
+        {
+            _chain = BuildChain();
+            StoreChainInCache();
+        }
+
         _renderer = new NeuralClusterRenderer(_chain);
         _extractedVersion = Trainer.GeometryVersion;
     }
@@ -96,7 +126,13 @@ public sealed class NeuralGeometryPipeline
             _ticksSinceRebuild = 0;
             rebuilt = true;
             rebuildMs = sw.Elapsed.TotalMilliseconds;
+            _chainFromCache = false;
             Trainer.TryConsumeDirtyBounds(out _);
+
+            // Géométrie stabilisée (file d'édits vide) : la ré-extraction est
+            // définitive pour ces poids, on la persiste pour le prochain run.
+            if (Trainer.PendingCount == 0)
+                StoreChainInCache();
         }
 
         var visible = _renderer.SelectVisible(camera, out var stats, _options.PixelErrorBudget);
@@ -106,6 +142,7 @@ public sealed class NeuralGeometryPipeline
             Training = training,
             Rebuilt = rebuilt,
             RebuildMs = rebuildMs,
+            LoadedFromCache = _chainFromCache,
             Culling = stats,
             VisibleClusters = visible,
             ExtractedGeometryVersion = _extractedVersion
@@ -135,4 +172,22 @@ public sealed class NeuralGeometryPipeline
     private NeuralPolygonLodChain BuildChain()
         => NeuralPolygonLodChain.Build(
             _network, _bounds, _options.BaseResolution, _options.LevelCount, Polygonizer);
+
+    private string ComputeCacheKey()
+        => PolygonizationCache.ComputeKey(
+            _network, _bounds, _options.BaseResolution, _options.LevelCount);
+
+    private void StoreChainInCache()
+    {
+        if (_cache == null) return;
+
+        try
+        {
+            _cache.Store(ComputeCacheKey(), _chain);
+        }
+        catch (IOException)
+        {
+            // Cache disque indisponible : le pipeline reste fonctionnel sans lui.
+        }
+    }
 }

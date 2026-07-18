@@ -146,9 +146,13 @@ namespace GDNN.Rendering.Shaders
             b.Decorate(outDepth, Decoration.Location, 2);
             var outMaterial = b.Variable(ptrOutputVec4, StorageClass.Output, "gbuffer_material");
             b.Decorate(outMaterial, Decoration.Location, 3);
+            var outVelocity = b.Variable(ptrOutputVec4, StorageClass.Output, "gbuffer_velocity");
+            b.Decorate(outVelocity, Decoration.Location, 4);
 
             var one = b.Constant(floatT, 1.0f);
             var zero = b.Constant(floatT, 0.0f);
+            var half = b.Constant(floatT, 0.5f);
+            var materialId = b.Constant(floatT, 1.0f);
 
             var color = b.Load(vec3T, fragColor);
             b.Store(outAlbedo, b.CompositeConstruct(vec4T, color, one));
@@ -160,10 +164,11 @@ namespace GDNN.Rendering.Shaders
             var depthVal = b.CompositeExtract(floatT, wp, 2);
             b.Store(outDepth, b.CompositeConstruct(vec4T, depthVal, zero, zero, one));
 
-            b.Store(outMaterial, b.CompositeConstruct(vec4T,
-                b.Constant(floatT, 0.5f),
-                b.Constant(floatT, 0.0f),
-                zero, zero));
+            // Material: roughness, metallic, materialId, translucency
+            b.Store(outMaterial, b.CompositeConstruct(vec4T, half, zero, materialId, zero));
+
+            // Velocity: static geometry → zero motion vectors (XY in RG)
+            b.Store(outVelocity, b.CompositeConstruct(vec4T, zero, zero, zero, one));
 
             b.Return();
             b.FunctionEnd();

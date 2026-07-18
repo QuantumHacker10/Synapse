@@ -9,6 +9,7 @@ using GDNN.Core.NEAT;
 using GDNN.Llm;
 using GDNN.Rendering.Engine;
 using GDNN.Rendering.Quality;
+using GDNN.Scene;
 using GDNN.Sentience;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
@@ -341,6 +342,62 @@ namespace Synapse.Runtime
             var removed = _scene.Entities.RemoveAll(e => e.Id == id) > 0;
             _sentience?.RemoveEntity(id);
             return removed;
+        }
+
+        /// <summary>
+        /// Parses lighting / SDF hints from an LLM reply and applies them to the
+        /// renderer (when available) and the scene document.
+        /// </summary>
+        public string ApplyLlmSceneHints(string llmText)
+        {
+            if (string.IsNullOrWhiteSpace(llmText))
+                return "Empty reply — nothing to apply.";
+
+            InitializeModules();
+            var applied = new List<string>();
+
+            if (StructuredOutputParser.TryParseLightingParams(llmText, out LightingParams lighting))
+            {
+                _renderEngine?.SceneRenderer?.ApplyLlmLighting(lighting);
+
+                var lightId = CreateSceneEntity("LLM_DirectionalLight", "Light");
+                var lightEntity = _scene.Entities.FirstOrDefault(e => e.Id == lightId);
+                if (lightEntity != null && lighting.DirectionalDirection is { } dir)
+                {
+                    // Place the light entity opposite the light direction (sun-like).
+                    lightEntity.Position = new Vec3(-dir.X * 10f, -dir.Y * 10f, -dir.Z * 10f);
+                }
+
+                applied.Add(lighting.Intensity.HasValue
+                    ? $"lighting(intensity={lighting.Intensity.Value:F2})"
+                    : "lighting");
+            }
+
+            if (StructuredOutputParser.TryParseSdfHint(llmText, out SdfHint sdf))
+            {
+                string primitive = string.IsNullOrWhiteSpace(sdf.Primitive) ? "sphere" : sdf.Primitive;
+                var sdfId = CreateSceneEntity($"LLM_SDF_{primitive}", "Volume");
+                var sdfEntity = _scene.Entities.FirstOrDefault(e => e.Id == sdfId);
+                if (sdfEntity != null)
+                {
+                    if (sdf.Center is { } c)
+                        sdfEntity.Position = new Vec3(c.X, c.Y, c.Z);
+
+                    if (sdf.Size is { } size)
+                        sdfEntity.Scale = new Vec3(size.X, size.Y, size.Z);
+                    else if (sdf.Radius is { } radius)
+                        sdfEntity.Scale = new Vec3(radius, radius, radius);
+                }
+
+                applied.Add($"sdf:{primitive}");
+            }
+
+            if (applied.Count == 0)
+                return "No lighting/SDF parameters found in the reply.";
+
+            string summary = "Applied: " + string.Join(", ", applied);
+            _logger.Info("LLM", summary);
+            return summary;
         }
 
         private void ApplySceneToSimulation(SceneDocument scene)

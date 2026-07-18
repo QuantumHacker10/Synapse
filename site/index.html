@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Synapse — Le moteur qui apprend ses formes</title>
-  <meta name="description" content="Synapse OMNIA 1.1 — moteur de simulation et G-DNN Studio : les moteurs classiques assemblent ; Synapse apprend, réécrit et cultive. SDF neuronaux, lois vivantes, NEAT-G, Vulkan." />
+  <meta name="description" content="Synapse OMNIA 1.1 — G-DNN Studio : SDF neuronaux, illumination L-DNN, lois vivantes, NEAT-G, console LLM→scène, Vulkan. Les moteurs classiques assemblent ; Synapse apprend, réécrit et cultive." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -113,7 +113,7 @@
               distance suis-je de la surface&nbsp;?&nbsp;» La forme devient continue, organique, sans
               facettes, et zoomable à l'infini.
             </p>
-            <p class="card-detail">Réseaux de 216 à ≈&thinsp;4&thinsp;600 poids par forme · évaluation accélérée par le processeur (SIMD) et la carte graphique (Vulkan)</p>
+            <p class="card-detail">Broad-phase BVH · polygonisation LOD + cache disque · pipeline mesh→SDF (glTF) · export glTF/GLB · évaluation SIMD &amp; Vulkan</p>
           </article>
 
           <!-- Carte 2 : physique vivante -->
@@ -155,7 +155,7 @@
               espèces qui divergent, sélection des plus aptes. On ne modélise plus une forme, on la
               <em>cultive</em>, en jugeant chaque génération sur sa beauté, sa légèreté et sa vitesse.
             </p>
-            <p class="card-detail">18 opérateurs de mutation · spéciation par distance géométrique (Gromov-Hausdorff) · sélection multi-objectifs NSGA-II</p>
+            <p class="card-detail">18 opérateurs de mutation · fitness SDF + irradiance L-DNN · spéciation Gromov-Hausdorff · sélection multi-objectifs NSGA-II</p>
           </article>
 
           <!-- Carte 4 : routeur LLM -->
@@ -177,7 +177,7 @@
               l'une tombe, une autre prend le relais&nbsp;; les données sensibles, elles, ne quittent
               jamais l'ordinateur.
             </p>
-            <p class="card-detail">Local (ONNX, Ollama) et cloud (OpenAI, Anthropic, Gemini, Azure) · repli automatique · budget de coûts suivi en continu</p>
+            <p class="card-detail">Local (ONNX, Ollama) et cloud (OpenAI, Anthropic, Gemini, Azure) · parse lighting/SDF → scène · repli automatique · budget de coûts</p>
           </article>
 
           <!-- Carte 5 : moteur Vulkan -->
@@ -196,7 +196,7 @@
               illumination globale assistée par réseau de neurones — la lumière qui rebondit dans la
               scène est en partie <em>prédite</em> plutôt que calculée à la force brute.
             </p>
-            <p class="card-detail">Rendu différé Vulkan · ray tracing BLAS/TLAS · illumination globale neuronale L-DNN · matériaux SubstrateOmega · qualité adaptée aux performances en temps réel</p>
+            <p class="card-detail">G-Buffer étendu · GI hybride L-DNN (teacher PT, ombres &amp; spéculaire neuronaux, fog/nuages) · RT hybride · styles Cartoon/Noir · qualité adaptative</p>
           </article>
 
           <!-- Carte 6 : entités sentientes -->
@@ -284,10 +284,10 @@
             <div>
               <h3>Vulkan met tout en lumière</h3>
               <p>
-                Le moteur de rendu compose l'image finale&nbsp;: géométrie neuronale tracée rayon par
-                rayon, lumière rebondie prédite par le système L-DNN, matériaux physiques, qualité
-                ajustée en direct. <span class="mono">G-DNN Studio</span> orchestre le tout&nbsp;:
-                scène, lois, évolution, agents, console LLM et viewport Vulkan.
+                Le moteur compose l'image&nbsp;: SDF neuronaux accélérés par BVH, G-Buffer étendu,
+                GI L-DNN (avec teacher path tracing et ombres neuronales), fog et nuages volumétriques,
+                styles artistiques. <span class="mono">G-DNN Studio</span> orchestre scène, lois,
+                évolution, agents, console LLM→éclairage et viewport Vulkan.
               </p>
             </div>
           </li>
@@ -332,9 +332,10 @@
           <h3>Produit 1.1</h3>
           <p>
             SYNAPSE OMNIA&nbsp;1.1 livre <strong>G-DNN Studio</strong> (Avalonia), un runtime unifié
-            (physique, simulation, évolution, LLM, rendu Vulkan), des projets <span class="mono">.synapse</span>,
-            Vulkan multiplateforme via GLFW (HWND embarqué sous Windows), tests automatisés et une CI
-            qui compile, teste, publie Windows x64 et crée des releases. Licence MIT.
+            (physique, simulation, évolution NEAT-G, LLM→éclairage/SDF, rendu Vulkan G-DNN + L-DNN),
+            des projets <span class="mono">.synapse</span>, Vulkan multiplateforme via GLFW
+            (HWND embarqué sous Windows), tests automatisés et une CI qui compile, teste,
+            publie Windows&nbsp;x64 et déploie ce site. Licence MIT.
           </p>
         </aside>
       </div>

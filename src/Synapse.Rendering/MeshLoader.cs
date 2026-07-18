@@ -170,6 +170,59 @@ namespace GDNN.Rendering.MeshIO
         public int TotalIndexCount => Primitives.Sum(p => p.Indices.Count);
         public int TotalTriangleCount => Primitives.Sum(p => p.Indices.Count / 3);
         public VertexAttribute GlobalAttributes { get; set; }
+
+        /// <summary>Creates a simple axis-aligned cube mesh for tests and placeholder exports.</summary>
+        public static MeshAsset CreateUnitCube(float size = 1f, string name = "Cube")
+        {
+            float h = size * 0.5f;
+            var positions = new[]
+            {
+                new Vector3(-h, -h, -h), new Vector3(h, -h, -h), new Vector3(h, h, -h), new Vector3(-h, h, -h),
+                new Vector3(-h, -h, h), new Vector3(h, -h, h), new Vector3(h, h, h), new Vector3(-h, h, h)
+            };
+
+            var asset = new MeshAsset
+            {
+                Name = name,
+                SourceFormat = MeshFileType.Unknown,
+                Materials = { new MeshMaterial { Name = "Default", BaseColor = Vector3.One * 0.8f } }
+            };
+
+            var primitive = new MeshPrimitive
+            {
+                Name = name,
+                MaterialIndex = 0,
+                ActiveAttributes = VertexAttribute.Position | VertexAttribute.Normal
+            };
+
+            foreach (var position in positions)
+            {
+                primitive.Vertices.Add(new MeshVertex
+                {
+                    Position = position,
+                    Normal = Vector3.Normalize(position)
+                });
+            }
+
+            int[] faces =
+            {
+                0, 1, 2, 0, 2, 3,
+                4, 6, 5, 4, 7, 6,
+                0, 4, 5, 0, 5, 1,
+                2, 6, 7, 2, 7, 3,
+                0, 3, 7, 0, 7, 4,
+                1, 5, 6, 1, 6, 2
+            };
+
+            foreach (int index in faces)
+                primitive.Indices.Add((uint)index);
+
+            primitive.Bounds = new BoundingBox3D(new Vector3(-h), new Vector3(h));
+            asset.Primitives.Add(primitive);
+            asset.Bounds = primitive.Bounds;
+            asset.GlobalAttributes = primitive.ActiveAttributes;
+            return asset;
+        }
     }
 
     /// <summary>Material definition for mesh loading.</summary>
@@ -213,6 +266,22 @@ namespace GDNN.Rendering.MeshIO
         public int MaxBoneWeightsPerVertex { get; set; } = 4;
         public int MaxBones { get; set; } = 256;
         public float ImportDepth { get; set; } = -1;
+    }
+
+    /// <summary>Configuration for mesh export.</summary>
+    public class MeshExportConfig
+    {
+        public bool ExportMaterials { get; init; } = true;
+        public bool EmbedBinaryData { get; init; }
+    }
+
+    /// <summary>Result of a mesh export operation.</summary>
+    public class MeshExportResult
+    {
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; } = "";
+        public TimeSpan ExportTime { get; set; }
+        public string OutputPath { get; set; } = "";
     }
 
     // =========================================================================
@@ -894,6 +963,312 @@ namespace GDNN.Rendering.MeshIO
     }
 
     // =========================================================================
+    // glTF EXPORTER
+    // =========================================================================
+
+    /// <summary>
+    /// Exports a <see cref="MeshAsset"/> to glTF 2.0 JSON (.gltf) or binary (.glb).
+    /// </summary>
+    public class GlTFExporter
+    {
+        private const int ComponentTypeFloat = 5126;
+        private const int ComponentTypeUnsignedInt = 5125;
+        private const int ComponentTypeUnsignedShort = 5123;
+
+        public async Task<MeshExportResult> ExportAsync(
+            string filePath,
+            MeshAsset asset,
+            MeshExportConfig? config = null,
+            CancellationToken ct = default)
+        {
+            config ??= new MeshExportConfig();
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var result = new MeshExportResult { OutputPath = filePath };
+
+            try
+            {
+                if (asset == null)
+                {
+                    result.ErrorMessage = "Mesh asset is null.";
+                    return result;
+                }
+
+                if (asset.Primitives.Count == 0 || asset.TotalVertexCount == 0)
+                {
+                    result.ErrorMessage = "Mesh asset has no geometry.";
+                    return result;
+                }
+
+                var ext = Path.GetExtension(filePath).ToLowerInvariant();
+                if (ext is not (".gltf" or ".glb"))
+                {
+                    result.ErrorMessage = $"Unsupported export format: {ext}";
+                    return result;
+                }
+
+                byte[] binary = BuildBinaryPayload(asset, out int indexComponentType);
+
+                if (ext == ".glb")
+                {
+                    await WriteGlbAsync(filePath, asset, binary, indexComponentType, config, ct);
+                }
+                else
+                {
+                    await WriteGltfAsync(filePath, asset, binary, indexComponentType, config, ct);
+                }
+
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.ErrorMessage = $"glTF export error: {ex.Message}";
+            }
+
+            sw.Stop();
+            result.ExportTime = sw.Elapsed;
+            return result;
+        }
+
+        private static byte[] BuildBinaryPayload(MeshAsset asset, out int indexComponentType)
+        {
+            EnsureBounds(asset);
+
+            int vertexCount = asset.TotalVertexCount;
+            int indexCount = asset.TotalIndexCount;
+
+            var positions = new float[vertexCount * 3];
+            var normals = new float[vertexCount * 3];
+            var indices = new List<uint>(indexCount);
+
+            int vertexOffset = 0;
+            foreach (var primitive in asset.Primitives)
+            {
+                for (int i = 0; i < primitive.Vertices.Count; i++)
+                {
+                    var v = primitive.Vertices[i];
+                    int baseIdx = (vertexOffset + i) * 3;
+                    positions[baseIdx] = v.Position.X;
+                    positions[baseIdx + 1] = v.Position.Y;
+                    positions[baseIdx + 2] = v.Position.Z;
+
+                    var normal = v.Normal;
+                    if (normal.LengthSquared() < 1e-6f)
+                        normal = Vector3.UnitY;
+                    else
+                        normal = Vector3.Normalize(normal);
+
+                    normals[baseIdx] = normal.X;
+                    normals[baseIdx + 1] = normal.Y;
+                    normals[baseIdx + 2] = normal.Z;
+                }
+
+                foreach (uint index in primitive.Indices)
+                    indices.Add((uint)(vertexOffset + index));
+
+                vertexOffset += primitive.Vertices.Count;
+            }
+
+            byte[] positionBytes = MemoryMarshal.AsBytes(positions.AsSpan()).ToArray();
+            byte[] normalBytes = MemoryMarshal.AsBytes(normals.AsSpan()).ToArray();
+
+            bool useShortIndices = vertexCount <= ushort.MaxValue;
+            byte[] indexBytes;
+            if (useShortIndices)
+            {
+                indexComponentType = ComponentTypeUnsignedShort;
+                var shortIndices = indices.Select(i => (ushort)i).ToArray();
+                indexBytes = MemoryMarshal.AsBytes(shortIndices.AsSpan()).ToArray();
+            }
+            else
+            {
+                indexComponentType = ComponentTypeUnsignedInt;
+                indexBytes = MemoryMarshal.AsBytes(indices.ToArray().AsSpan()).ToArray();
+            }
+
+            int posOffset = 0;
+            int nrmOffset = Align4(posOffset + positionBytes.Length);
+            int idxOffset = Align4(nrmOffset + normalBytes.Length);
+
+            var binary = new byte[Align4(idxOffset + indexBytes.Length)];
+            positionBytes.CopyTo(binary, posOffset);
+            normalBytes.CopyTo(binary, nrmOffset);
+            indexBytes.CopyTo(binary, idxOffset);
+            return binary;
+        }
+
+        private static void EnsureBounds(MeshAsset asset)
+        {
+            if (asset.Bounds.Min.X <= asset.Bounds.Max.X)
+                return;
+
+            asset.Bounds = BoundingBox3D.Invalid;
+            foreach (var primitive in asset.Primitives)
+            {
+                if (primitive.Bounds.Min.X <= primitive.Bounds.Max.X)
+                {
+                    asset.Bounds.Encapsulate(primitive.Bounds);
+                    continue;
+                }
+
+                foreach (var vertex in primitive.Vertices)
+                    asset.Bounds.Encapsulate(vertex.Position);
+            }
+        }
+
+        private async Task WriteGltfAsync(
+            string filePath,
+            MeshAsset asset,
+            byte[] binary,
+            int indexComponentType,
+            MeshExportConfig config,
+            CancellationToken ct)
+        {
+            string binFileName = Path.GetFileNameWithoutExtension(filePath) + ".bin";
+            string binPath = Path.Combine(Path.GetDirectoryName(filePath)!, binFileName);
+            await File.WriteAllBytesAsync(binPath, binary, ct);
+
+            int posOffset = 0;
+            int posLength = asset.TotalVertexCount * 3 * sizeof(float);
+            int nrmOffset = Align4(posLength);
+            int nrmLength = asset.TotalVertexCount * 3 * sizeof(float);
+            int idxOffset = Align4(nrmOffset + nrmLength);
+            int idxLength = indexComponentType == ComponentTypeUnsignedShort
+                ? asset.TotalIndexCount * sizeof(ushort)
+                : asset.TotalIndexCount * sizeof(uint);
+
+            string json = BuildSceneJson(asset, binFileName, binary.Length, posOffset, posLength, nrmOffset, nrmLength, idxOffset, idxLength, indexComponentType, config);
+            await File.WriteAllTextAsync(filePath, json, ct);
+        }
+
+        private async Task WriteGlbAsync(
+            string filePath,
+            MeshAsset asset,
+            byte[] binary,
+            int indexComponentType,
+            MeshExportConfig config,
+            CancellationToken ct)
+        {
+            int posOffset = 0;
+            int posLength = asset.TotalVertexCount * 3 * sizeof(float);
+            int nrmOffset = Align4(posLength);
+            int nrmLength = asset.TotalVertexCount * 3 * sizeof(float);
+            int idxOffset = Align4(nrmOffset + nrmLength);
+            int idxLength = indexComponentType == ComponentTypeUnsignedShort
+                ? asset.TotalIndexCount * sizeof(ushort)
+                : asset.TotalIndexCount * sizeof(uint);
+
+            string json = BuildSceneJson(asset, null, binary.Length, posOffset, posLength, nrmOffset, nrmLength, idxOffset, idxLength, indexComponentType, config);
+            byte[] jsonBytes = Encoding.UTF8.GetBytes(json);
+            int jsonPadding = (4 - jsonBytes.Length % 4) % 4;
+            int jsonChunkLength = jsonBytes.Length + jsonPadding;
+            int binPadding = (4 - binary.Length % 4) % 4;
+            int totalLength = 12 + 8 + jsonChunkLength + 8 + binary.Length + binPadding;
+
+            await using var stream = File.Create(filePath);
+            await using var writer = new BinaryWriter(stream);
+            writer.Write(0x46546C67); // glTF
+            writer.Write(2u);
+            writer.Write((uint)totalLength);
+            writer.Write((uint)jsonChunkLength);
+            writer.Write(0x4E4F534Au); // JSON
+            writer.Write(jsonBytes);
+            for (int i = 0; i < jsonPadding; i++)
+                writer.Write((byte)' ');
+            writer.Write((uint)(binary.Length + binPadding));
+            writer.Write(0x004E4942u); // BIN
+            writer.Write(binary);
+            for (int i = 0; i < binPadding; i++)
+                writer.Write((byte)0);
+            await stream.FlushAsync(ct);
+        }
+
+        private static string BuildSceneJson(
+            MeshAsset asset,
+            string? externalBinUri,
+            int bufferLength,
+            int posOffset,
+            int posLength,
+            int nrmOffset,
+            int nrmLength,
+            int idxOffset,
+            int idxLength,
+            int indexComponentType,
+            MeshExportConfig config)
+        {
+            var root = new Dictionary<string, object?>
+            {
+                ["asset"] = new Dictionary<string, object?> { ["version"] = "2.0", ["generator"] = "Synapse MeshLoader" },
+                ["scene"] = 0,
+                ["scenes"] = new[] { new Dictionary<string, object?> { ["nodes"] = new[] { 0 } } },
+                ["nodes"] = new[] { new Dictionary<string, object?> { ["mesh"] = 0, ["name"] = asset.Name } },
+                ["meshes"] = new[] { BuildMeshJson(asset, config) },
+                ["buffers"] = new[]
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["byteLength"] = bufferLength,
+                        ["uri"] = externalBinUri
+                    }
+                },
+                ["bufferViews"] = new object[]
+                {
+                    new Dictionary<string, object?> { ["buffer"] = 0, ["byteOffset"] = posOffset, ["byteLength"] = posLength, ["target"] = 34962 },
+                    new Dictionary<string, object?> { ["buffer"] = 0, ["byteOffset"] = nrmOffset, ["byteLength"] = nrmLength, ["target"] = 34962 },
+                    new Dictionary<string, object?> { ["buffer"] = 0, ["byteOffset"] = idxOffset, ["byteLength"] = idxLength, ["target"] = 34963 }
+                },
+                ["accessors"] = new object[]
+                {
+                    new Dictionary<string, object?> { ["bufferView"] = 0, ["componentType"] = ComponentTypeFloat, ["count"] = asset.TotalVertexCount, ["type"] = "VEC3", ["max"] = new[] { asset.Bounds.Max.X, asset.Bounds.Max.Y, asset.Bounds.Max.Z }, ["min"] = new[] { asset.Bounds.Min.X, asset.Bounds.Min.Y, asset.Bounds.Min.Z } },
+                    new Dictionary<string, object?> { ["bufferView"] = 1, ["componentType"] = ComponentTypeFloat, ["count"] = asset.TotalVertexCount, ["type"] = "VEC3" },
+                    new Dictionary<string, object?> { ["bufferView"] = 2, ["componentType"] = indexComponentType, ["count"] = asset.TotalIndexCount, ["type"] = "SCALAR" }
+                }
+            };
+
+            if (config.ExportMaterials && asset.Materials.Count > 0)
+                root["materials"] = asset.Materials.Select(BuildMaterialJson).ToArray();
+
+            return JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
+        }
+
+        private static Dictionary<string, object?> BuildMeshJson(MeshAsset asset, MeshExportConfig config)
+        {
+            var primitive = new Dictionary<string, object?>
+            {
+                ["attributes"] = new Dictionary<string, int> { ["POSITION"] = 0, ["NORMAL"] = 1 },
+                ["indices"] = 2,
+                ["mode"] = 4
+            };
+
+            if (config.ExportMaterials && asset.Materials.Count > 0)
+                primitive["material"] = 0;
+
+            return new Dictionary<string, object?>
+            {
+                ["name"] = asset.Name,
+                ["primitives"] = new[] { primitive }
+            };
+        }
+
+        private static Dictionary<string, object?> BuildMaterialJson(MeshMaterial material)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["name"] = material.Name,
+                ["pbrMetallicRoughness"] = new Dictionary<string, object?>
+                {
+                    ["baseColorFactor"] = new[] { material.BaseColor.X, material.BaseColor.Y, material.BaseColor.Z, material.Opacity },
+                    ["metallicFactor"] = material.Metallic,
+                    ["roughnessFactor"] = material.Roughness
+                },
+                ["emissiveFactor"] = new[] { material.EmissiveColor.X, material.EmissiveColor.Y, material.EmissiveColor.Z },
+                ["doubleSided"] = material.DoubleSided
+            };
+        }
+
+        private static int Align4(int value) => (value + 3) & ~3;
+    }
+
+    // =========================================================================
     // UNIFIED MESH LOADER
     // =========================================================================
 
@@ -905,6 +1280,7 @@ namespace GDNN.Rendering.MeshIO
     {
         private readonly GlTFLoader _gltfLoader = new();
         private readonly ObjLoader _objLoader = new();
+        private readonly GlTFExporter _gltfExporter = new();
         private readonly Dictionary<string, MeshAsset> _cache = new();
         private readonly object _cacheLock = new();
 
@@ -958,6 +1334,20 @@ namespace GDNN.Rendering.MeshIO
         public MeshAsset? LoadSync(string filePath, MeshLoadConfig? config = null)
         {
             return LoadAsync(filePath, config).GetAwaiter().GetResult().Asset;
+        }
+
+        public async Task<MeshExportResult> ExportAsync(
+            string filePath,
+            MeshAsset asset,
+            MeshExportConfig? config = null,
+            CancellationToken ct = default)
+        {
+            var ext = Path.GetExtension(filePath).ToLowerInvariant();
+            return ext switch
+            {
+                ".gltf" or ".glb" => await _gltfExporter.ExportAsync(filePath, asset, config, ct),
+                _ => new MeshExportResult { ErrorMessage = $"Unsupported export format: {ext}" }
+            };
         }
     }
 

@@ -790,12 +790,39 @@ public sealed class NeuralAsset
     }
 
     /// <summary>
+    /// Stores a HashEncodedDeepMLP into this asset's uncompressed weights.
+    /// </summary>
+    public void FromHashEncodedDeepMLP(HashEncodedDeepMLP network)
+    {
+        ArgumentNullException.ThrowIfNull(network);
+        UncompressedWeights = network.Serialize();
+        Metadata.Tags = [.. Metadata.Tags, "HashEncodedDeepMLP"];
+        IsDirty = true;
+    }
+
+    /// <summary>
+    /// Reconstructs a HashEncodedDeepMLP when the asset stores hash-encoded weights.
+    /// </summary>
+    public HashEncodedDeepMLP ToHashEncodedDeepMLP()
+    {
+        int expected = HashEncodedDeepMLP.GetTotalWeightCount();
+        if (UncompressedWeights == null || UncompressedWeights.Length < expected)
+            throw new InvalidOperationException(
+                $"Asset weights ({UncompressedWeights?.Length ?? 0}) are too small for HashEncodedDeepMLP ({expected}).");
+        return HashEncodedDeepMLP.FromSerialized(UncompressedWeights.AsSpan(0, expected));
+    }
+
+    /// <summary>
     /// Returns the best matching ISdfNetwork based on weight count.
     /// </summary>
     public ISdfNetwork ToSdfNetwork()
     {
         if (UncompressedWeights == null || UncompressedWeights.Length == 0)
             return new MicroMLP();
+
+        int hashCount = HashEncodedDeepMLP.GetTotalWeightCount();
+        if (UncompressedWeights.Length >= hashCount)
+            return ToHashEncodedDeepMLP();
 
         int deepCount = DeepMicroMLP.GetTotalWeightCount();
         if (UncompressedWeights.Length >= deepCount)

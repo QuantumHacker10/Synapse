@@ -82,6 +82,7 @@ namespace GDNN.Studio.ViewModels
         [ObservableProperty] private bool sculptInvert;
         [ObservableProperty] private string megascansPath = "";
         [ObservableProperty] private string megascansStatus = "";
+        [ObservableProperty] private string llmApplyStatus = "Ask for lighting JSON or SDF hints, then Apply.";
 
         partial void OnSelectedEntityChanged(SceneEntity? value)
         {
@@ -178,13 +179,70 @@ namespace GDNN.Studio.ViewModels
             var prompt = ChatInput.Trim();
             ChatInput = "";
             ChatMessages.Add(new ChatMessageRecord { Role = "user", Content = prompt });
-            var response = await _host.ChatAsync(prompt);
+
+            // Steer the model toward structured lighting/SDF JSON when relevant.
+            string routedPrompt = LooksLikeSceneControlPrompt(prompt)
+                ? prompt + "\n\nRespond with a JSON object including any of: " +
+                  "directionalDirection [x,y,z], color (#RRGGBB), intensity, fogDensity, " +
+                  "enableClouds, and/or primitive/center/radius for an SDF hint."
+                : prompt;
+
+            var response = await _host.ChatAsync(routedPrompt);
+            string content = response?.Content ?? "(no response)";
             ChatMessages.Add(new ChatMessageRecord
             {
                 Role = "assistant",
-                Content = response?.Content ?? "(no response)",
+                Content = content,
                 Provider = response?.Provider ?? ""
             });
+
+            // Auto-apply when the reply contains parseable lighting/SDF params.
+            LlmApplyStatus = _host.ApplyLlmSceneHints(content);
+            if (LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+                RefreshEntities();
+        }
+
+        [RelayCommand]
+        private void ApplyLastLlmReply()
+        {
+            var last = ChatMessages.LastOrDefault(m =>
+                string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase));
+            if (last == null || string.IsNullOrWhiteSpace(last.Content))
+            {
+                LlmApplyStatus = "No assistant reply to apply.";
+                return;
+            }
+
+            LlmApplyStatus = _host.ApplyLlmSceneHints(last.Content);
+            if (LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+                RefreshEntities();
+        }
+
+        [RelayCommand]
+        private void InsertLightingPrompt()
+        {
+            ChatInput =
+                "Suggest warm sunset lighting for the scene as JSON with " +
+                "directionalDirection, color, intensity, fogDensity, enableClouds.";
+        }
+
+        [RelayCommand]
+        private void InsertSdfPrompt()
+        {
+            ChatInput =
+                "Propose a neural SDF primitive as JSON with primitive (sphere|box), " +
+                "center [x,y,z], and radius (or size [x,y,z] for a box).";
+        }
+
+        private static bool LooksLikeSceneControlPrompt(string prompt)
+        {
+            return prompt.Contains("light", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("fog", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("cloud", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("sdf", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("sun", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("éclair", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("éclairage", StringComparison.OrdinalIgnoreCase);
         }
 
         [RelayCommand]
@@ -288,8 +346,10 @@ namespace GDNN.Studio.ViewModels
         private void About()
         {
             LawStatus =
-                "SYNAPSE OMNIA 1.1 — G-DNN Studio. Formes apprises (SDF neuronaux), lois physiques vivantes, " +
-                "géométrie évolutive NEAT-G. Les moteurs classiques assemblent ; Synapse apprend, réécrit et cultive.";
+                "SYNAPSE OMNIA 1.1 — G-DNN Studio. SDF neuronaux (G-DNN), illumination L-DNN " +
+                "(teacher path tracing, ombres & reflets neuronaux, fog/nuages), NEAT-G, " +
+                "lois physiques vivantes, console LLM → éclairage/SDF. " +
+                "Les moteurs classiques assemblent ; Synapse apprend, réécrit et cultive.";
         }
 
         [RelayCommand]

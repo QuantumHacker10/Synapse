@@ -453,6 +453,18 @@ namespace GDNN.Lighting.LDNN
         public float NoiseSpeed { get; init; }
         /// <summary>Volumetric shadow intensity.</summary>
         public float ShadowIntensity { get; init; }
+        /// <summary>Enable procedural cloud layer on top of height fog.</summary>
+        public bool EnableClouds { get; init; }
+        /// <summary>World-space altitude of the cloud layer center.</summary>
+        public float CloudAltitude { get; init; } = 80.0f;
+        /// <summary>Half-thickness of the cloud slab.</summary>
+        public float CloudThickness { get; init; } = 40.0f;
+        /// <summary>Coverage in [0,1] — higher means denser cloud banks.</summary>
+        public float CloudCoverage { get; init; } = 0.45f;
+        /// <summary>Multiplier applied to cloud density relative to MaxDensity.</summary>
+        public float CloudDensityScale { get; init; } = 2.0f;
+        /// <summary>Horizontal noise frequency for cloud shapes.</summary>
+        public float CloudNoiseScale { get; init; } = 0.02f;
     }
 
     /// <summary>
@@ -1084,6 +1096,20 @@ namespace GDNN.Lighting.LDNN
     /// <summary>
     /// Global configuration for the L-DNN system.
     /// </summary>
+    /// <summary>
+    /// Taille du réseau de prédiction d'irradiance : les scènes simples peuvent
+    /// utiliser des variantes plus petites (moins de coût par pixel).
+    /// </summary>
+    public enum NeuralNetworkProfile
+    {
+        /// <summary>32 → 32 → 32 → 3 : scènes très simples, coût minimal.</summary>
+        Tiny,
+        /// <summary>32 → 64 → 64 → 3 : compromis qualité/perfs.</summary>
+        Small,
+        /// <summary>32 → 128 → 128 → 3 : architecture complète (défaut).</summary>
+        Full
+    }
+
     public class LDNNConfig
     {
         /// <summary>Quality mode for rendering.</summary>
@@ -1162,6 +1188,19 @@ namespace GDNN.Lighting.LDNN
         public float NeuralLearningRate { get; set; } = 0.001f;
         /// <summary>Batch size for neural training.</summary>
         public int NeuralBatchSize { get; set; } = 64;
+        /// <summary>Taille du réseau de prédiction d'irradiance.</summary>
+        public NeuralNetworkProfile NeuralNetworkProfile { get; set; } = NeuralNetworkProfile.Full;
+        /// <summary>
+        /// Sparse path-tracer teacher: sample pixels each frame and train
+        /// <see cref="NeuralPredictiveIrradiance"/> online (Hybrid / NeuralPredictive).
+        /// </summary>
+        public bool EnableOnlineTeacherTraining { get; set; }
+        /// <summary>Pixel stride for teacher sampling (16 = ~1/256 of the frame).</summary>
+        public int TeacherPixelStride { get; set; } = 16;
+        /// <summary>Path-tracer samples per teacher pixel (keep small for real-time).</summary>
+        public int TeacherSamplesPerPixel { get; set; } = 1;
+        /// <summary>Enable dedicated neural specular reflection/refraction pass.</summary>
+        public bool EnableNeuralSpecular { get; set; } = true;
     }
 
     /// <summary>
@@ -2958,14 +2997,14 @@ namespace GDNN.Lighting.LDNN
     public class NeuralPredictiveIrradiance
     {
         private const int INPUT_FEATURES = 32;
-        private const int HIDDEN_LAYER_1 = 128;
-        private const int HIDDEN_LAYER_2 = 128;
-        private const int HIDDEN_LAYER_3 = 64;
         private const int OUTPUT_FEATURES = 3;
         private const float LEARNING_RATE = 0.001f;
         private const float BETA1 = 0.9f;
         private const float BETA2 = 0.999f;
         private const float EPSILON_ADAM = 1e-8f;
+
+        private int _hidden1Size = 128;
+        private int _hidden2Size = 128;
 
         private float[,] _weights1;
         private float[,] _weights2;
@@ -2975,6 +3014,7 @@ namespace GDNN.Lighting.LDNN
         private float[] _bias3;
         private float[,] _m1, _v1, _m2, _v2, _m3, _v3;
         private float[] _mb1, _mb2, _mb3;
+        private float[] _vb1, _vb2, _vb3;
         private int _t;
         private bool _isInitialized;
 
@@ -2992,30 +3032,47 @@ namespace GDNN.Lighting.LDNN
         public float InferenceTime => _inferenceTime;
         /// <summary>Total training steps performed.</summary>
         public int TrainingStep => _trainingStep;
+        /// <summary>Active network size profile.</summary>
+        public NeuralNetworkProfile Profile { get; private set; } = NeuralNetworkProfile.Full;
+        /// <summary>Hidden layer 1 size.</summary>
+        public int HiddenLayer1Size => _hidden1Size;
+        /// <summary>Hidden layer 2 size.</summary>
+        public int HiddenLayer2Size => _hidden2Size;
 
         /// <summary>
-        /// Initializes the neural network architecture.
+        /// Initializes the neural network architecture for a given size profile.
         /// </summary>
-        public void Initialize()
+        public void Initialize(NeuralNetworkProfile profile = NeuralNetworkProfile.Full)
         {
+            Profile = profile;
+            (_hidden1Size, _hidden2Size) = profile switch
+            {
+                NeuralNetworkProfile.Tiny => (32, 32),
+                NeuralNetworkProfile.Small => (64, 64),
+                _ => (128, 128)
+            };
+
             var rng = new RandomNumberGenerator(42);
 
-            _weights1 = XavierInitialize(INPUT_FEATURES, HIDDEN_LAYER_1, ref rng);
-            _weights2 = XavierInitialize(HIDDEN_LAYER_1, HIDDEN_LAYER_2, ref rng);
-            _weights3 = XavierInitialize(HIDDEN_LAYER_2, OUTPUT_FEATURES, ref rng);
-            _bias1 = new float[HIDDEN_LAYER_1];
-            _bias2 = new float[HIDDEN_LAYER_2];
+            _weights1 = XavierInitialize(INPUT_FEATURES, _hidden1Size, ref rng);
+            _weights2 = XavierInitialize(_hidden1Size, _hidden2Size, ref rng);
+            _weights3 = XavierInitialize(_hidden2Size, OUTPUT_FEATURES, ref rng);
+            _bias1 = new float[_hidden1Size];
+            _bias2 = new float[_hidden2Size];
             _bias3 = new float[OUTPUT_FEATURES];
 
-            _m1 = new float[INPUT_FEATURES, HIDDEN_LAYER_1];
-            _v1 = new float[INPUT_FEATURES, HIDDEN_LAYER_1];
-            _m2 = new float[HIDDEN_LAYER_1, HIDDEN_LAYER_2];
-            _v2 = new float[HIDDEN_LAYER_1, HIDDEN_LAYER_2];
-            _m3 = new float[HIDDEN_LAYER_2, OUTPUT_FEATURES];
-            _v3 = new float[HIDDEN_LAYER_2, OUTPUT_FEATURES];
-            _mb1 = new float[HIDDEN_LAYER_1];
-            _mb2 = new float[HIDDEN_LAYER_2];
+            _m1 = new float[INPUT_FEATURES, _hidden1Size];
+            _v1 = new float[INPUT_FEATURES, _hidden1Size];
+            _m2 = new float[_hidden1Size, _hidden2Size];
+            _v2 = new float[_hidden1Size, _hidden2Size];
+            _m3 = new float[_hidden2Size, OUTPUT_FEATURES];
+            _v3 = new float[_hidden2Size, OUTPUT_FEATURES];
+            _mb1 = new float[_hidden1Size];
+            _mb2 = new float[_hidden2Size];
             _mb3 = new float[OUTPUT_FEATURES];
+            _vb1 = new float[_hidden1Size];
+            _vb2 = new float[_hidden2Size];
+            _vb3 = new float[OUTPUT_FEATURES];
             _t = 0;
 
             _trainingBuffer = new Queue<(Vector3[], Vector3)>();
@@ -3311,47 +3368,47 @@ namespace GDNN.Lighting.LDNN
             }
             _trainingLoss = _trainingLoss * 0.99f + loss * 0.01f;
 
-            float[,] dW3 = new float[HIDDEN_LAYER_2, OUTPUT_FEATURES];
+            float[,] dW3 = new float[_hidden2Size, OUTPUT_FEATURES];
             float[] dB3 = new float[OUTPUT_FEATURES];
-            float[] hidden2Grad = new float[HIDDEN_LAYER_2];
+            float[] hidden2Grad = new float[_hidden2Size];
 
             for (int j = 0; j < OUTPUT_FEATURES; j++)
             {
                 float outputDeriv = outputAct[j] * (1.0f - outputAct[j]);
                 float delta = outputGrad[j] * outputDeriv;
                 dB3[j] = delta;
-                for (int i = 0; i < HIDDEN_LAYER_2; i++)
+                for (int i = 0; i < _hidden2Size; i++)
                 {
                     dW3[i, j] = hidden2Act[i] * delta;
                     hidden2Grad[i] += _weights3[i, j] * delta;
                 }
             }
 
-            for (int i = 0; i < HIDDEN_LAYER_2; i++)
+            for (int i = 0; i < _hidden2Size; i++)
                 hidden2Grad[i] *= hidden2Act[i] > 0 ? 1.0f : 0.01f;
 
-            float[,] dW2 = new float[HIDDEN_LAYER_1, HIDDEN_LAYER_2];
-            float[] dB2 = new float[HIDDEN_LAYER_2];
-            float[] hidden1Grad = new float[HIDDEN_LAYER_1];
+            float[,] dW2 = new float[_hidden1Size, _hidden2Size];
+            float[] dB2 = new float[_hidden2Size];
+            float[] hidden1Grad = new float[_hidden1Size];
 
-            for (int j = 0; j < HIDDEN_LAYER_2; j++)
+            for (int j = 0; j < _hidden2Size; j++)
             {
                 float delta = hidden2Grad[j];
                 dB2[j] = delta;
-                for (int i = 0; i < HIDDEN_LAYER_1; i++)
+                for (int i = 0; i < _hidden1Size; i++)
                 {
                     dW2[i, j] = hidden1Act[i] * delta;
                     hidden1Grad[i] += _weights2[i, j] * delta;
                 }
             }
 
-            for (int i = 0; i < HIDDEN_LAYER_1; i++)
+            for (int i = 0; i < _hidden1Size; i++)
                 hidden1Grad[i] *= hidden1Act[i] > 0 ? 1.0f : 0.01f;
 
-            float[,] dW1 = new float[INPUT_FEATURES, HIDDEN_LAYER_1];
-            float[] dB1 = new float[HIDDEN_LAYER_1];
+            float[,] dW1 = new float[INPUT_FEATURES, _hidden1Size];
+            float[] dB1 = new float[_hidden1Size];
 
-            for (int j = 0; j < HIDDEN_LAYER_1; j++)
+            for (int j = 0; j < _hidden1Size; j++)
             {
                 float delta = hidden1Grad[j];
                 dB1[j] = delta;
@@ -3363,13 +3420,13 @@ namespace GDNN.Lighting.LDNN
             float beta1PowT = MathF.Pow(BETA1, _t);
             float beta2PowT = MathF.Pow(BETA2, _t);
 
-            UpdateAdamWeights(_weights1, _m1, _v1, dW1, learningRate, beta1PowT, beta2PowT, INPUT_FEATURES, HIDDEN_LAYER_1);
-            UpdateAdamWeights(_weights2, _m2, _v2, dW2, learningRate, beta1PowT, beta2PowT, HIDDEN_LAYER_1, HIDDEN_LAYER_2);
-            UpdateAdamWeights(_weights3, _m3, _v3, dW3, learningRate, beta1PowT, beta2PowT, HIDDEN_LAYER_2, OUTPUT_FEATURES);
+            UpdateAdamWeights(_weights1, _m1, _v1, dW1, learningRate, beta1PowT, beta2PowT, INPUT_FEATURES, _hidden1Size);
+            UpdateAdamWeights(_weights2, _m2, _v2, dW2, learningRate, beta1PowT, beta2PowT, _hidden1Size, _hidden2Size);
+            UpdateAdamWeights(_weights3, _m3, _v3, dW3, learningRate, beta1PowT, beta2PowT, _hidden2Size, OUTPUT_FEATURES);
 
-            UpdateAdamBias(_bias1, _mb1, dB1, learningRate, beta1PowT, beta2PowT);
-            UpdateAdamBias(_bias2, _mb2, dB2, learningRate, beta1PowT, beta2PowT);
-            UpdateAdamBias(_bias3, _mb3, dB3, learningRate, beta1PowT, beta2PowT);
+            UpdateAdamBias(_bias1, _mb1, _vb1, dB1, learningRate, beta1PowT, beta2PowT);
+            UpdateAdamBias(_bias2, _mb2, _vb2, dB2, learningRate, beta1PowT, beta2PowT);
+            UpdateAdamBias(_bias3, _mb3, _vb3, dB3, learningRate, beta1PowT, beta2PowT);
 
             _trainingStep++;
         }
@@ -3391,16 +3448,16 @@ namespace GDNN.Lighting.LDNN
             }
         }
 
-        private void UpdateAdamBias(float[] bias, float[] m, float[] grads,
+        private void UpdateAdamBias(float[] bias, float[] m, float[] v, float[] grads,
             float lr, float beta1PowT, float beta2PowT)
         {
             float lrCorrected = lr * MathF.Sqrt(1.0f - beta2PowT) / (1.0f - beta1PowT);
             for (int i = 0; i < bias.Length; i++)
             {
                 m[i] = BETA1 * m[i] + (1.0f - BETA1) * grads[i];
-                float v = BETA2 * 0 + (1.0f - BETA2) * grads[i] * grads[i];
+                v[i] = BETA2 * v[i] + (1.0f - BETA2) * grads[i] * grads[i];
                 float mHat = m[i] / (1.0f - beta1PowT);
-                float vHat = v / (1.0f - beta2PowT);
+                float vHat = v[i] / (1.0f - beta2PowT);
                 bias[i] -= lrCorrected * mHat / (MathF.Sqrt(vHat) + EPSILON_ADAM);
             }
         }
@@ -3474,20 +3531,20 @@ namespace GDNN.Lighting.LDNN
             using var ms = new System.IO.MemoryStream();
             using var bw = new System.IO.BinaryWriter(ms);
             bw.Write(INPUT_FEATURES);
-            bw.Write(HIDDEN_LAYER_1);
-            bw.Write(HIDDEN_LAYER_2);
+            bw.Write(_hidden1Size);
+            bw.Write(_hidden2Size);
             bw.Write(OUTPUT_FEATURES);
             bw.Write(_t);
 
             for (int i = 0; i < INPUT_FEATURES; i++)
-                for (int j = 0; j < HIDDEN_LAYER_1; j++)
+                for (int j = 0; j < _hidden1Size; j++)
                     bw.Write(_weights1[i, j]);
 
-            for (int i = 0; i < HIDDEN_LAYER_1; i++)
-                for (int j = 0; j < HIDDEN_LAYER_2; j++)
+            for (int i = 0; i < _hidden1Size; i++)
+                for (int j = 0; j < _hidden2Size; j++)
                     bw.Write(_weights2[i, j]);
 
-            for (int i = 0; i < HIDDEN_LAYER_2; i++)
+            for (int i = 0; i < _hidden2Size; i++)
                 for (int j = 0; j < OUTPUT_FEATURES; j++)
                     bw.Write(_weights3[i, j]);
 
@@ -3511,6 +3568,15 @@ namespace GDNN.Lighting.LDNN
             int hidden2 = br.ReadInt32();
             int outputFeat = br.ReadInt32();
             _t = br.ReadInt32();
+
+            _hidden1Size = hidden1;
+            _hidden2Size = hidden2;
+            Profile = (hidden1, hidden2) switch
+            {
+                (32, 32) => NeuralNetworkProfile.Tiny,
+                (64, 64) => NeuralNetworkProfile.Small,
+                _ => NeuralNetworkProfile.Full
+            };
 
             _weights1 = new float[inputFeat, hidden1];
             for (int i = 0; i < inputFeat; i++)
@@ -3574,6 +3640,109 @@ namespace GDNN.Lighting.LDNN
             for (int i = 0; i < _weights3.GetLength(0); i++)
                 for (int j = 0; j < _weights3.GetLength(1); j++)
                     _weights3[i, j] = MathF.Round(_weights3[i, j] * scale) * invScale;
+        }
+    }
+
+    #endregion
+
+    // =========================================================================
+    #region NeuralSpecularPredictor
+
+    /// <summary>
+    /// Lightweight MLP predicting specular reflection / refraction radiance from
+    /// G-Buffer features (view, normal, roughness, metallic, F0).
+    /// </summary>
+    public sealed class NeuralSpecularPredictor
+    {
+        private const int InputSize = 16;
+        private const int HiddenSize = 32;
+        private const int OutputSize = 3;
+
+        private float[,] _w1 = null!;
+        private float[,] _w2 = null!;
+        private float[] _b1 = null!;
+        private float[] _b2 = null!;
+        private bool _initialized;
+
+        public bool IsInitialized => _initialized;
+
+        public void Initialize()
+        {
+            var rng = new RandomNumberGenerator(1337);
+            _w1 = Xavier(InputSize, HiddenSize, ref rng);
+            _w2 = Xavier(HiddenSize, OutputSize, ref rng);
+            _b1 = new float[HiddenSize];
+            _b2 = new float[OutputSize];
+            _initialized = true;
+        }
+
+        public Vector3 Predict(GBufferSample sample, CameraState camera)
+        {
+            if (!_initialized) return Vector3.Zero;
+
+            Vector3 viewDir = Vector3.Normalize(camera.Position - sample.WorldPosition);
+            float NdotV = MathF.Max(0, Vector3.Dot(sample.Normal, viewDir));
+            // Schlick F0 approximation from metallic/albedo.
+            Vector3 f0 = Vector3.Lerp(new Vector3(0.04f), sample.Albedo, sample.Metallic);
+
+            float[] input =
+            [
+                sample.Normal.X, sample.Normal.Y, sample.Normal.Z,
+                viewDir.X, viewDir.Y, viewDir.Z,
+                NdotV,
+                sample.Roughness,
+                sample.Metallic,
+                f0.X, f0.Y, f0.Z,
+                sample.Specular.X, sample.Specular.Y, sample.Specular.Z,
+                sample.IsTranslucent ? 1f : 0f
+            ];
+
+            float[] h = Linear(input, _w1, _b1);
+            for (int i = 0; i < h.Length; i++)
+                h[i] = h[i] > 0 ? h[i] : h[i] * 0.01f;
+            float[] o = Linear(h, _w2, _b2);
+            for (int i = 0; i < o.Length; i++)
+                o[i] = 1f / (1f + MathF.Exp(-o[i]));
+
+            // Scale by Fresnel × (1-roughness) so glossy metals get stronger reflections.
+            float gloss = (1f - sample.Roughness) * (0.2f + 0.8f * (1f - NdotV));
+            return new Vector3(o[0], o[1], o[2]) * gloss * f0;
+        }
+
+        /// <summary>
+        /// Approximates refraction tint for translucent pixels (IOR-agnostic).
+        /// </summary>
+        public Vector3 PredictRefraction(GBufferSample sample, CameraState camera)
+        {
+            if (!sample.IsTranslucent) return Vector3.Zero;
+            Vector3 reflection = Predict(sample, camera);
+            // Simple transmission remainder: albedo-tinted, inverse of reflection strength.
+            float reflectStrength = Math.Clamp(reflection.Length(), 0, 1);
+            return sample.Albedo * (1f - reflectStrength) * (1f - sample.Roughness * 0.5f);
+        }
+
+        private static float[,] Xavier(int fanIn, int fanOut, ref RandomNumberGenerator rng)
+        {
+            float limit = MathF.Sqrt(6f / (fanIn + fanOut));
+            var w = new float[fanIn, fanOut];
+            for (int i = 0; i < fanIn; i++)
+                for (int j = 0; j < fanOut; j++)
+                    w[i, j] = rng.NextFloat(-limit, limit);
+            return w;
+        }
+
+        private static float[] Linear(float[] input, float[,] weights, float[] bias)
+        {
+            int outs = weights.GetLength(1);
+            var output = new float[outs];
+            for (int j = 0; j < outs; j++)
+            {
+                float sum = bias[j];
+                for (int i = 0; i < input.Length; i++)
+                    sum += input[i] * weights[i, j];
+                output[j] = sum;
+            }
+            return output;
         }
     }
 
@@ -5396,12 +5565,12 @@ namespace GDNN.Lighting.LDNN
         }
 
         /// <summary>
-        /// Computes fog density at a world position.
+        /// Computes fog density at a world position (height fog + optional cloud slab).
         /// </summary>
         public float ComputeFogDensity(Vector3 worldPos)
         {
-            float heightDensity = MathF.Exp(-worldPos.Y * _config.HeightFalloff);
-            float baseDensity = _config.MaxDensity * heightDensity;
+            float heightDensity = MathF.Exp(-(worldPos.Y - _config.ReferenceHeight) * _config.HeightFalloff);
+            float baseDensity = _config.MaxDensity * MathF.Max(0f, heightDensity);
 
             if (_config.NoiseScale > 0)
             {
@@ -5409,7 +5578,35 @@ namespace GDNN.Lighting.LDNN
                 baseDensity *= 0.5f + noise * 0.5f;
             }
 
+            if (_config.EnableClouds)
+                baseDensity += ComputeCloudDensity(worldPos);
+
             return baseDensity;
+        }
+
+        /// <summary>
+        /// Procedural cloud density in a horizontal slab around CloudAltitude.
+        /// </summary>
+        public float ComputeCloudDensity(Vector3 worldPos)
+        {
+            float halfThickness = MathF.Max(1e-3f, _config.CloudThickness);
+            float vertical = 1.0f - MathF.Abs(worldPos.Y - _config.CloudAltitude) / halfThickness;
+            if (vertical <= 0f) return 0f;
+
+            // Soft vertical falloff inside the slab.
+            vertical = vertical * vertical * (3f - 2f * vertical);
+
+            float scale = _config.CloudNoiseScale > 0 ? _config.CloudNoiseScale : 0.02f;
+            float n1 = PerlinNoise3D(worldPos * scale);
+            float n2 = PerlinNoise3D(worldPos * (scale * 2.3f) + new Vector3(17.1f, 0, 9.3f));
+            float shape = n1 * 0.65f + n2 * 0.35f;
+
+            // Remap coverage: higher coverage lowers the threshold for "cloud".
+            float threshold = 1.0f - Math.Clamp(_config.CloudCoverage, 0f, 1f);
+            float cloud = MathF.Max(0f, shape - threshold) / MathF.Max(1e-3f, 1f - threshold);
+            cloud = cloud * cloud;
+
+            return _config.MaxDensity * _config.CloudDensityScale * vertical * cloud;
         }
 
         /// <summary>
@@ -5944,6 +6141,7 @@ namespace GDNN.Lighting.LDNN
         private LDNNConfig _config;
         private RadianceCascadesManager _cascadesManager;
         private NeuralPredictiveIrradiance _neuralPredictor;
+        private NeuralSpecularPredictor _specularPredictor;
         private ReferencePathTracer _referencePathTracer;
         private ScreenSpaceIrradiance _screenSpaceGI;
         private IrradianceCacheManager _probeCache;
@@ -5976,6 +6174,12 @@ namespace GDNN.Lighting.LDNN
         public int FrameIndex => _frameIndex;
         /// <summary>Is the renderer initialized.</summary>
         public bool IsInitialized => _isInitialized;
+        /// <summary>Neural irradiance predictor (for tests / online training).</summary>
+        public NeuralPredictiveIrradiance NeuralPredictor => _neuralPredictor;
+        /// <summary>Neural specular reflection/refraction predictor.</summary>
+        public NeuralSpecularPredictor SpecularPredictor => _specularPredictor;
+        /// <summary>Volumetric fog / cloud system.</summary>
+        public VolumetricLighting Volumetrics => _volumetricLighting;
 
         /// <summary>
         /// Initializes the L-DNN renderer with the specified configuration.
@@ -5990,7 +6194,10 @@ namespace GDNN.Lighting.LDNN
             _cascadesManager.Initialize(config.CascadeConfig);
 
             _neuralPredictor = new NeuralPredictiveIrradiance();
-            _neuralPredictor.Initialize();
+            _neuralPredictor.Initialize(config.NeuralNetworkProfile);
+
+            _specularPredictor = new NeuralSpecularPredictor();
+            _specularPredictor.Initialize();
 
             _referencePathTracer = new ReferencePathTracer();
             _referencePathTracer.Initialize(screenWidth, screenHeight);
@@ -6035,6 +6242,7 @@ namespace GDNN.Lighting.LDNN
             if (!_isInitialized) return;
             _cascadesManager = null;
             _neuralPredictor = null;
+            _specularPredictor = null;
             _referencePathTracer = null;
             _screenSpaceGI = null;
             _probeCache = null;
@@ -6097,9 +6305,67 @@ namespace GDNN.Lighting.LDNN
 
             RenderTranslucentSurfaces(gbuffer, camera, lights);
 
+            bool runTeacher = _config.EnableOnlineTeacherTraining
+                || _config.QualityMode == LDNNQualityMode.FullPathTraceTeacher;
+            if (runTeacher
+                && (_config.GIComputationMode == GIComputationMode.Hybrid
+                    || _config.GIComputationMode == GIComputationMode.NeuralPredictive))
+            {
+                _telemetry.ReferencePathTraceTimeMs = MeasureTime(() =>
+                    TrainFromPathTracerTeacher(gbuffer, camera, lights));
+            }
+
             _telemetry.TotalFrameTimeMs = _telemetry.Timestamp.ElapsedMilliseconds;
             _analytics.RecordFrame(_telemetry);
             _previousGBuffer = CloneGBuffer(gbuffer);
+        }
+
+        /// <summary>
+        /// Sparse path-tracer teacher: samples a grid of pixels, collects
+        /// (features, ground-truth radiance) pairs, then runs one Adam batch.
+        /// </summary>
+        public int TrainFromPathTracerTeacher(GBuffer gbuffer, CameraState camera, List<LightConfig> lights)
+        {
+            if (_neuralPredictor == null || _referencePathTracer == null) return 0;
+
+            int stride = Math.Max(4, _config.TeacherPixelStride);
+            int spp = Math.Max(1, _config.TeacherSamplesPerPixel);
+            int maxDepth = Math.Max(1, Math.Min(_config.MaxPathDepth, 4));
+            int collected = 0;
+
+            for (int y = 0; y < gbuffer.Height; y += stride)
+            {
+                for (int x = 0; x < gbuffer.Width; x += stride)
+                {
+                    GBufferSample sample = gbuffer.GetSample(x, y);
+                    if (sample.Depth <= 0) continue;
+
+                    sample = sample with
+                    {
+                        WorldPosition = ReconstructWorldPosition(x, y, sample.Depth, gbuffer, camera)
+                    };
+
+                    Vector3 gt = Vector3.Zero;
+                    var rng = new RandomNumberGenerator((uint)(_frameIndex * 9973 + x * 131 + y));
+                    for (int s = 0; s < spp; s++)
+                    {
+                        float u = (x + 0.5f) / gbuffer.Width;
+                        float v = (y + 0.5f) / gbuffer.Height;
+                        var ray = _referencePathTracer.GenerateCameraRay(u, v, camera, ref rng);
+                        gt += _referencePathTracer.EstimateRadiance(ray, gbuffer, lights, maxDepth, ref rng);
+                    }
+                    gt /= spp;
+
+                    var features = _neuralPredictor.ExtractFeatures(sample, gbuffer, x, y, camera);
+                    _neuralPredictor.CollectTrainingData(features, gt);
+                    collected++;
+                }
+            }
+
+            if (collected > 0)
+                _neuralPredictor.TrainOnCollectedData(_config.NeuralBatchSize, _config.NeuralLearningRate);
+
+            return collected;
         }
         /// <summary>
         /// Renders all cascade levels.
@@ -6420,7 +6686,30 @@ namespace GDNN.Lighting.LDNN
                     NumLevels = Math.Max(2, _config.CascadeConfig.NumLevels - 1)
                 };
                 _config.CascadeConfig = currentConfig;
+
+                // Sous pression de budget, rétrograder aussi la taille du réseau
+                // de prédiction d'irradiance (Full → Small → Tiny).
+                var downgraded = _neuralPredictor.Profile switch
+                {
+                    NeuralNetworkProfile.Full => NeuralNetworkProfile.Small,
+                    _ => NeuralNetworkProfile.Tiny
+                };
+                SetNeuralNetworkProfile(downgraded);
             }
+        }
+
+        /// <summary>
+        /// Change la taille du réseau de prédiction d'irradiance. Le réseau est
+        /// réinitialisé (poids neufs) : l'apprentissage online repart de zéro,
+        /// comme pour la qualité adaptative des cascades.
+        /// </summary>
+        public void SetNeuralNetworkProfile(NeuralNetworkProfile profile)
+        {
+            if (_neuralPredictor == null || _neuralPredictor.Profile == profile)
+                return;
+
+            _config.NeuralNetworkProfile = profile;
+            _neuralPredictor.Initialize(profile);
         }
         /// <summary>
         /// Computes shadow mask for a light.
@@ -6504,23 +6793,39 @@ namespace GDNN.Lighting.LDNN
         }
 
         /// <summary>
-        /// Neural predictive shadow computation.
+        /// Soft neural shadow: network predicts occlusion, blended with a cheap
+        /// variance soft-shadow baseline so untrained weights still look plausible.
         /// </summary>
         public float NeuralPredictiveShadow(LightConfig light, Vector3 worldPos, Vector3 normal,
             GBuffer gbuffer, CameraState camera)
         {
-            var features = new Vector3[8];
-            features[0] = worldPos;
-            features[1] = normal;
-            features[2] = light.Position;
-            features[3] = light.Direction;
-            features[4] = new Vector3(light.Intensity, light.Range, 0);
-            features[5] = new Vector3(light.InnerConeAngle, light.OuterConeAngle, 0);
-            features[6] = camera.Position;
-            features[7] = Vector3.Zero;
+            float softBaseline = FilterShadowMapVSM(light, worldPos, gbuffer, camera);
 
-            Vector3 prediction = _neuralPredictor.ForwardPass(features);
-            return Math.Clamp(prediction.X, 0, 1);
+            Vector3 screen = camera.ProjectToScreen(worldPos);
+            int px = Math.Clamp((int)(screen.X * gbuffer.Width), 0, Math.Max(0, gbuffer.Width - 1));
+            int py = Math.Clamp((int)(screen.Y * gbuffer.Height), 0, Math.Max(0, gbuffer.Height - 1));
+            GBufferSample sample = gbuffer.GetSample(px, py) with
+            {
+                WorldPosition = worldPos,
+                Normal = normal
+            };
+
+            var features = _neuralPredictor.ExtractFeatures(sample, gbuffer, px, py, camera);
+            // Encode light direction / intensity into unused feature slots.
+            Vector3 lightDir = light.Type == LightType.Directional
+                ? -light.Direction
+                : Vector3.Normalize(light.Position - worldPos);
+            if (features.Length > 28)
+            {
+                features[28] = new Vector3(lightDir.X, 0, 0);
+                features[29] = new Vector3(lightDir.Y, 0, 0);
+                features[30] = new Vector3(lightDir.Z, 0, 0);
+                features[31] = new Vector3(Math.Clamp(light.Intensity / 10f, 0, 1), 0, 0);
+            }
+
+            float neural = Math.Clamp(_neuralPredictor.ForwardPass(features).X, 0, 1);
+            // 65% neural + 35% soft VSM until the online teacher converges.
+            return neural * 0.65f + softBaseline * 0.35f;
         }
 
         /// <summary>
@@ -6638,6 +6943,7 @@ namespace GDNN.Lighting.LDNN
 
             _telemetry.NeuralPredictionTimeMs = MeasureTime(() =>
             {
+                bool useSpecular = _config.EnableNeuralSpecular && _specularPredictor != null;
                 Parallel.For(0, gbuffer.Height, y =>
                 {
                     for (int x = 0; x < gbuffer.Width; x++)
@@ -6647,9 +6953,24 @@ namespace GDNN.Lighting.LDNN
                         if (sample.Depth <= 0) continue;
                         Vector3 ssgi = _screenSpaceGI.Result[idx];
                         Vector3 worldPos = ReconstructWorldPosition(x, y, sample.Depth, gbuffer, camera);
+                        sample = sample with { WorldPosition = worldPos };
                         Vector3 cascadeIrradiance = ComputeIrradianceFromProbes(worldPos, sample.Normal);
                         float ssgiConfidence = _screenSpaceGI.Confidence[idx];
-                        _previousGIResult[idx] = Vector3.Lerp(cascadeIrradiance, ssgi, ssgiConfidence);
+                        Vector3 diffuse = Vector3.Lerp(cascadeIrradiance, ssgi, ssgiConfidence);
+
+                        // Neural GI refine: blend a fraction of the MLP prediction.
+                        var features = _neuralPredictor.ExtractFeatures(sample, gbuffer, x, y, camera);
+                        Vector3 neuralGi = _neuralPredictor.ForwardPass(features);
+                        diffuse = Vector3.Lerp(diffuse, neuralGi, 0.35f);
+
+                        if (useSpecular)
+                        {
+                            Vector3 specular = _specularPredictor.Predict(sample, camera);
+                            Vector3 refraction = _specularPredictor.PredictRefraction(sample, camera);
+                            diffuse += specular + refraction;
+                        }
+
+                        _previousGIResult[idx] = diffuse;
                     }
                 });
             });

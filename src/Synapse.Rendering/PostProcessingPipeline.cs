@@ -58,6 +58,15 @@ namespace GDNN.Rendering.PostProcess
         Ultra
     }
 
+    /// <summary>Final-screen artistic look presets.</summary>
+    public enum ArtisticStyle
+    {
+        None,
+        Cartoon,
+        Grayscale,
+        Noir
+    }
+
     // =========================================================================
     // CONFIGURATION RECORDS
     // =========================================================================
@@ -117,6 +126,17 @@ namespace GDNN.Rendering.PostProcess
         public float MaxExposure { get; init; } = 10.0f;
     }
 
+    /// <summary>Artistic post-process configuration.</summary>
+    public record ArtisticStyleConfig
+    {
+        public bool Enabled { get; init; }
+        public ArtisticStyle Style { get; init; } = ArtisticStyle.None;
+        public int CartoonColorLevels { get; init; } = 6;
+        public float CartoonEdgeStrength { get; init; } = 0.35f;
+        public float NoirContrast { get; init; } = 1.8f;
+        public float NoirCrush { get; init; } = 0.15f;
+    }
+
     /// <summary>Global post-processing configuration.</summary>
     public record PostProcessConfig
     {
@@ -126,6 +146,7 @@ namespace GDNN.Rendering.PostProcess
         public TonemapConfig Tonemap { get; init; } = new();
         public TAAConfig TAA { get; init; } = new();
         public SSRConfig SSR { get; init; } = new();
+        public ArtisticStyleConfig ArtisticStyle { get; init; } = new();
     }
 
     // =========================================================================
@@ -1075,6 +1096,93 @@ namespace GDNN.Rendering.PostProcess
         public static void ResetHistory() { _prevFrame = null; }
     }
 
+    /// <summary>
+    /// Applies optional final-screen artistic looks after tonemapping.
+    /// </summary>
+    public static class ArtisticStylePass
+    {
+        public static void Apply(HDRFrameBuffer input, HDRFrameBuffer output, ArtisticStyleConfig config)
+        {
+            if (!config.Enabled || config.Style == ArtisticStyle.None)
+            {
+                if (!ReferenceEquals(input, output))
+                    input.CopyTo(output);
+                return;
+            }
+
+            int width = input.Width;
+            int height = input.Height;
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    Vector4 pixel = input.GetPixel(x, y);
+                    Vector3 color = new(pixel.X, pixel.Y, pixel.Z);
+
+                    color = config.Style switch
+                    {
+                        ArtisticStyle.Grayscale => ApplyGrayscale(color),
+                        ArtisticStyle.Cartoon => ApplyCartoon(color, input, x, y, width, height, config),
+                        ArtisticStyle.Noir => ApplyNoir(color, config),
+                        _ => color
+                    };
+
+                    output.SetPixel(x, y, new Vector4(color, pixel.W));
+                }
+            }
+        }
+
+        public static Vector3 ApplyGrayscale(Vector3 color)
+        {
+            float lum = Luminance(color);
+            return new Vector3(lum);
+        }
+
+        public static Vector3 ApplyCartoon(
+            Vector3 color,
+            HDRFrameBuffer input,
+            int x,
+            int y,
+            int width,
+            int height,
+            ArtisticStyleConfig config)
+        {
+            int levels = Math.Max(2, config.CartoonColorLevels);
+            float step = 1.0f / (levels - 1);
+            color = new Vector3(
+                MathF.Round(color.X / step) * step,
+                MathF.Round(color.Y / step) * step,
+                MathF.Round(color.Z / step) * step);
+
+            if (config.CartoonEdgeStrength <= 0f)
+                return color;
+
+            float center = Luminance(input.GetPixel(x, y));
+            float right = Luminance(input.GetPixel(Math.Min(x + 1, width - 1), y));
+            float down = Luminance(input.GetPixel(x, Math.Min(y + 1, height - 1)));
+            float edge = MathF.Abs(center - right) + MathF.Abs(center - down);
+            float edgeFactor = Math.Clamp(1.0f - edge * config.CartoonEdgeStrength * 4.0f, 0.35f, 1.0f);
+            return color * edgeFactor;
+        }
+
+        public static Vector3 ApplyNoir(Vector3 color, ArtisticStyleConfig config)
+        {
+            float lum = Luminance(color);
+            lum = (lum - 0.5f) * config.NoirContrast + 0.5f;
+            lum = MathF.Max(lum, config.NoirCrush);
+            lum = Math.Clamp(lum, 0.0f, 1.0f);
+            return new Vector3(lum);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Luminance(Vector4 pixel) => Luminance(new Vector3(pixel.X, pixel.Y, pixel.Z));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Luminance(Vector3 color) =>
+            0.2126f * color.X + 0.7152f * color.Y + 0.0722f * color.Z;
+    }
+
     // =========================================================================
     // POST-PROCESSING PIPELINE
     // =========================================================================
@@ -1155,7 +1263,12 @@ namespace GDNN.Rendering.PostProcess
                     Swap(ref current, ref _tempBuffer0!);
                 }
 
-                TonemapPass.Apply(current, outputBuffer, _config.Tonemap);
+                TonemapPass.Apply(current, _tempBuffer0!, _config.Tonemap);
+
+                if (_config.ArtisticStyle.Enabled && _config.ArtisticStyle.Style != ArtisticStyle.None)
+                    ArtisticStylePass.Apply(_tempBuffer0!, outputBuffer, _config.ArtisticStyle);
+                else
+                    _tempBuffer0!.CopyTo(outputBuffer);
             }
         }
 

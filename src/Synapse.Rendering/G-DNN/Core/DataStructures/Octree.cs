@@ -1186,8 +1186,8 @@ public struct AABB : IEquatable<AABB>
         );
 
         Vector3 localOrigin = ray.Position - box.Center;
-        Vector3 r0 = (localOrigin - box.HalfExtents) * invDir;
-        Vector3 r1 = (localOrigin + box.HalfExtents) * invDir;
+        Vector3 r0 = (-box.HalfExtents - localOrigin) * invDir;
+        Vector3 r1 = (box.HalfExtents - localOrigin) * invDir;
 
         Vector3 tminV = Vector3.Min(r0, r1);
         Vector3 tmaxV = Vector3.Max(r0, r1);

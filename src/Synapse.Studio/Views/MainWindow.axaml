@@ -138,8 +138,14 @@
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>
-            <TextBox Text="{Binding ChatInput}" Watermark="Ask Synapse…" AcceptsReturn="True" Height="60" />
+            <TextBox Text="{Binding ChatInput}" Watermark="Ask Synapse… (lighting / SDF JSON)" AcceptsReturn="True" Height="60" />
+            <Grid ColumnDefinitions="*,*" Margin="0,0,0,0">
+              <Button Grid.Column="0" Content="Lighting prompt" Command="{Binding InsertLightingPromptCommand}" Margin="0,0,4,0" HorizontalAlignment="Stretch" />
+              <Button Grid.Column="1" Content="SDF prompt" Command="{Binding InsertSdfPromptCommand}" Margin="4,0,0,0" HorizontalAlignment="Stretch" />
+            </Grid>
             <Button Content="Send" Command="{Binding SendChatCommand}" HorizontalAlignment="Stretch" />
+            <Button Content="Apply last reply → scene" Command="{Binding ApplyLastLlmReplyCommand}" HorizontalAlignment="Stretch" />
+            <TextBlock Text="{Binding LlmApplyStatus}" Foreground="#45E0B8" TextWrapping="Wrap" FontSize="11" />
 
             <TextBlock Text="Performance" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,8,0,0" />
             <TextBlock Text="{Binding PerformanceReport}" Foreground="#8B9BB4" TextWrapping="Wrap" />

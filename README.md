@@ -16,7 +16,7 @@ le monde simulé — formes neuronales (SDF), lois physiques vivantes, géométr
 | Physique câblée une fois pour toutes | 100 lois en texte sur 18 domaines, compilées, versionnées, rechargées à chaud |
 | L’artiste modélise chaque objet à la main | Populations de formes évoluées (NEAT-G) puis sélectionnées |
 | IA générative souvent = un service cloud unique | Aiguilleur LLM local (Ollama / ONNX) + cloud, selon coût et confidentialité |
-| Rendu et IA dans des outils séparés | Vulkan différé + ray tracing BLAS/TLAS + illumination neuronale L-DNN dans le même runtime |
+| Rendu et IA dans des outils séparés | Vulkan différé + ray tracing + illumination neuronale L-DNN dans le même runtime |
 | PNJ scriptés | Agents sentients : perception, behavior trees, ordonnanceur actif/dormant sous budget frame |
 
 Six idées rares réunies dans **un seul runtime** .NET, pas comme des outils séparés.
@@ -59,14 +59,23 @@ Dix projets sous `src/`, tests sous `tests/` (solution `Synapse.slnx`), scène d
 |---|---|
 | `Synapse.Core` | Fondations mathématiques / physiques (`PhysicsState` 256 octets, algèbre, octree, kd-tree, sécurité) |
 | `Synapse.Physics` | `LivingLawCompiler` — 100 lois texte sur 18 domaines, hot-reload ; solveurs Maxwell, SPH, Lattice-Boltzmann, Schrödinger, N-corps, champs stochastiques |
-| `Synapse.AI` | `NeatGEvolutionEngine` — évolution NEAT-G, sélection NSGA-II, kernels neuronaux |
+| `Synapse.AI` | `NeatGEvolutionEngine` — évolution NEAT-G, sélection NSGA-II, fitness SDF + irradiance L-DNN |
 | `Synapse.Genomics` | `GeoGenome` — génomes de formes (builder, validation, registry, pool) |
-| `Synapse.Rendering` | Vulkan RHI, G-DNN (SDF neuronaux), ray tracing BLAS/TLAS, L-DNN, polygonisation neuronale, matériaux Substrate, streaming assets |
-| `Synapse.LLM` | `HybridLlmRouter` — ONNX / Ollama / OpenAI / Anthropic / Gemini / Azure |
+| `Synapse.Rendering` | Vulkan RHI, G-DNN (SDF), L-DNN (GI neuronale), polygonisation LOD, mesh→SDF, export glTF, styles artistiques |
+| `Synapse.LLM` | `HybridLlmRouter` — ONNX / Ollama / OpenAI / Anthropic / Gemini / Azure + parse lighting/SDF |
 | `Synapse.Simulation` | `SentienceManager` — entités, behavior trees, perception, jumeaux numériques |
 | `Synapse.Infrastructure` | Qualité adaptative, benchmarks, **logging** et **config** |
-| `Synapse.Runtime` | `EngineHost` + `FrameOrchestrator` + projets `.synapse`, blueprints, sculpt |
+| `Synapse.Runtime` | `EngineHost` + `FrameOrchestrator` + projets `.synapse`, application des hints LLM→scène |
 | `Synapse.Studio` | **G-DNN Studio** Avalonia + mode `--engine` GLFW |
+
+## Pipeline G-DNN + L-DNN
+
+| Domaine | Capacités |
+|---|---|
+| **G-DNN (géométrie)** | SDF neuronaux, broad-phase BVH (`AABBTree`) pour le ray marching, polygonisation LOD adaptative, cache disque des chaînes polygonisées, pipeline mesh→SDF (`MeshToSdfPipeline`), export glTF/GLB |
+| **L-DNN (éclairage)** | GI hybride (SSGI + cascades + MLP), teacher path tracing online, ombres neuronales, reflets/réfractions neuronaux, brouillard froxel + nuages procéduraux, profils Tiny/Small/Full, cache GI scènes statiques |
+| **Intégration** | G-Buffer étendu (velocity + material ID), shadow pass dans la frame, RT hybride branché, styles post (Cartoon / Grayscale / Noir) |
+| **Studio / LLM** | Console LLM → parse JSON lighting/SDF → lumières L-DNN, fog/nuages, entités scène (`ApplyLlmSceneHints`) |
 
 ## Fonctionnalités Studio
 
@@ -74,7 +83,7 @@ Dix projets sous `src/`, tests sous `tests/` (solution `Synapse.slnx`), scène d
 - Scene explorer / inspector, projets `.synapse` (New / Open / Save)
 - Éditeur de living laws avec hot-reload
 - Évolution NEAT-G, spawn d’agents, play/pause simulation
-- Console LLM (Ollama local ; le routeur `HybridLlmRouter` gère aussi les fournisseurs cloud si clés présentes)
+- Console LLM avec application auto des paramètres d’éclairage / hints SDF
 - Blueprint editor, sculpt strokes, import Megascans
 - HUD performances (FPS, budgets physique / sim, qualité adaptative)
 
@@ -92,7 +101,7 @@ Les tags `v*` déclenchent [`.github/workflows/release.yml`](.github/workflows/r
 dotnet test
 ```
 
-Suite xUnit + FluentAssertions (~130 tests) sous [`tests/Synapse.Tests`](tests/Synapse.Tests) : Core, Physics, AI, Genomics, Rendering/G-DNN, LLM, Simulation, Runtime.
+Suite xUnit + FluentAssertions sous [`tests/Synapse.Tests`](tests/Synapse.Tests) : Core, Physics, AI, Genomics, Rendering/G-DNN, L-DNN, LLM, Simulation, Runtime.
 
 - `build.yml` — Ubuntu tests + Coverlet ; Windows publish artefact
 - `analysis.yml` — analyseurs + `dotnet format --verify-no-changes`

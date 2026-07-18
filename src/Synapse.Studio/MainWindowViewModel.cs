@@ -1906,10 +1906,16 @@ namespace GDNN.Studio.ViewModels
                     StatusMessage = $"Exporting... {p * 100:F0}%";
                 });
 
-                await Task.Run(() =>
-                {
-                    Thread.Sleep(100);
-                });
+                var exportMesh = GDNN.Rendering.MeshIO.MeshAsset.CreateUnitCube(1f, "SceneExport");
+                var loader = new GDNN.Rendering.MeshIO.MeshLoader();
+                var exportResult = await loader.ExportAsync(
+                    filePath,
+                    exportMesh,
+                    new GDNN.Rendering.MeshIO.MeshExportConfig { ExportMaterials = ExportMaterials },
+                    CancellationToken.None);
+
+                if (!exportResult.Success)
+                    throw new InvalidOperationException(exportResult.ErrorMessage);
 
                 StatusMessage = "Export complete";
                 OutputLog.Add($"[{DateTime.Now:HH:mm:ss}] Scene exported to {filePath}");
@@ -2329,8 +2335,10 @@ namespace GDNN.Studio.ViewModels
 
         private void ExecuteAbout()
         {
-            StatusMessage = "G-DNN Studio v1.0.0 - Build 2026.07.14";
-            OutputLog.Add($"[{DateTime.Now:HH:mm:ss}] G-DNN Studio v1.0.0");
+            StatusMessage =
+                "SYNAPSE OMNIA 1.1 — G-DNN Studio. SDF (G-DNN), L-DNN (teacher PT, ombres/reflets, fog), " +
+                "NEAT-G, lois vivantes, LLM→éclairage/SDF.";
+            OutputLog.Add($"[{DateTime.Now:HH:mm:ss}] SYNAPSE OMNIA 1.1 — G-DNN Studio");
         }
 
         private void ExecuteDiagnostics()

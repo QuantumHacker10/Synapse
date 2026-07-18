@@ -283,6 +283,11 @@ namespace GDNN.Core.NEAT
         /// <summary>SDF error metric for geometric accuracy.</summary>
         SDFError,
 
+        /// <summary>
+        /// Irradiance prediction error for L-DNN proxy heads evolved via NEAT-G.
+        /// </summary>
+        IrradianceError,
+
         /// <summary>Topological novelty.</summary>
         TopologicalNovelty,
 
@@ -513,6 +518,12 @@ namespace GDNN.Core.NEAT
 
         /// <summary>Random seed for reproducibility. Null for random seed.</summary>
         public int? RandomSeed { get; set; }
+
+        /// <summary>Include IrradianceError in multi-objective fitness when enabled.</summary>
+        public bool EnableIrradianceFitness { get; set; }
+
+        /// <summary>Weight for IrradianceError when EnableIrradianceFitness is true.</summary>
+        public double IrradianceFitnessWeight { get; set; } = 0.1;
 
         /// <summary>Objective for fitness optimization.</summary>
         public FitnessObjective Objective { get; set; } = FitnessObjective.Maximize;
@@ -1010,6 +1021,40 @@ namespace GDNN.Core.NEAT
 
         /// <summary>Empty evaluation context for lightweight sync evaluation.</summary>
         public static EvaluationContext Empty { get; } = new();
+
+        /// <summary>
+        /// Merges evolution-config flags into component weights (e.g. L-DNN irradiance fitness).
+        /// </summary>
+        public EvaluationContext ApplyEvolutionConfig(EvolutionConfig config)
+        {
+            if (!config.EnableIrradianceFitness)
+                return this;
+
+            var weights = ComponentWeights.Count > 0
+                ? ComponentWeights
+                : CreateDefault().ComponentWeights;
+
+            if (weights.ContainsKey(FitnessComponent.IrradianceError))
+                return this;
+
+            return new EvaluationContext
+            {
+                Id = Id,
+                TargetOutput = TargetOutput,
+                InputData = InputData,
+                ReferenceImageData = ReferenceImageData,
+                ReferenceImageDimensions = ReferenceImageDimensions,
+                MaxLatencyMs = MaxLatencyMs,
+                MaxMemoryBytes = MaxMemoryBytes,
+                SceneParameters = SceneParameters,
+                ContextData = ContextData,
+                ComponentWeights = weights.Add(FitnessComponent.IrradianceError, config.IrradianceFitnessWeight),
+                SampleCount = SampleCount,
+                IsRegression = IsRegression,
+                ExpectedOutputSize = ExpectedOutputSize,
+                ExpectedInputSize = ExpectedInputSize
+            };
+        }
     }
 
     #endregion
@@ -4623,6 +4668,10 @@ namespace GDNN.Core.NEAT
                 .ConfigureAwait(false);
             components[FitnessComponent.SDFError] = sdfError;
 
+            double irradianceError = await Task.Run(() => ComputeIrradianceError(genome, context), ct)
+                .ConfigureAwait(false);
+            components[FitnessComponent.IrradianceError] = irradianceError;
+
             double topoNovelty = ComputeTopologicalNovelty(genome);
             components[FitnessComponent.TopologicalNovelty] = topoNovelty;
 
@@ -4858,6 +4907,31 @@ namespace GDNN.Core.NEAT
             double chamferScore = Math.Exp(-chamferDistance * 3.0);
 
             return 0.4 * maxErrorScore + 0.3 * mseScore + 0.3 * chamferScore;
+        }
+
+        /// <summary>
+        /// Computes mean-squared irradiance error between the genome forward pass and
+        /// <see cref="EvaluationContext.TargetOutput"/>. GeoGenome does not embed L-DNN
+        /// weights directly; NEAT-G evolves a proxy irradiance predictor head whose outputs
+        /// are compared against reference irradiance samples.
+        /// </summary>
+        private double ComputeIrradianceError(GeoGenome genome, EvaluationContext context)
+        {
+            if (context.TargetOutput.Length == 0) return 0.5;
+
+            double[] output = ForwardPass(genome, context.InputData);
+            if (output.Length == 0) return 0;
+
+            int length = Math.Min(output.Length, context.TargetOutput.Length);
+            double mse = 0;
+            for (int i = 0; i < length; i++)
+            {
+                double diff = output[i] - context.TargetOutput[i];
+                mse += diff * diff;
+            }
+
+            mse /= length;
+            return Math.Exp(-mse * 10.0);
         }
 
         /// <summary>
@@ -7241,9 +7315,10 @@ namespace GDNN.Core.NEAT
 
             if (unevaluated.Count == 0) return;
 
-            var evaluator = new FitnessEvaluator(context);
+            var resolvedContext = context.ApplyEvolutionConfig(_config);
+            var evaluator = new FitnessEvaluator(resolvedContext);
             var results = await _parallelScheduler.EvaluatePopulationParallelAsync(
-                unevaluated, evaluator, context, ct).ConfigureAwait(false);
+                unevaluated, evaluator, resolvedContext, ct).ConfigureAwait(false);
 
             var genomeMap = _currentPopulation.Genomes.ToDictionary(g => g.Id);
             foreach (var evaluated in results)
@@ -7281,9 +7356,10 @@ namespace GDNN.Core.NEAT
             var unevaluated = genomes.Where(g => !g.IsFitnessValid).ToList();
             if (unevaluated.Count == 0) return;
 
-            var evaluator = new FitnessEvaluator(context);
+            var resolvedContext = context.ApplyEvolutionConfig(_config);
+            var evaluator = new FitnessEvaluator(resolvedContext);
             var results = await _parallelScheduler.EvaluatePopulationParallelAsync(
-                unevaluated, evaluator, context, ct).ConfigureAwait(false);
+                unevaluated, evaluator, resolvedContext, ct).ConfigureAwait(false);
 
             var genomeMap = genomes.ToDictionary(g => g.Id);
             foreach (var evaluated in results)

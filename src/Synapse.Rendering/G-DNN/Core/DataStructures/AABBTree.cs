@@ -665,21 +665,12 @@ public sealed class AABBTree<T> : IDisposable
         {
             if (_nodes[nodeIndex].Item != null)
             {
-                // Test ray against item bounds
-                Vector3 toItem = _nodes[nodeIndex].Bounds.Center - ray.Position;
-                float t = Vector3.Dot(toItem, ray.Direction);
-
-                if (t >= 0 && t <= maxDistance)
-                {
-                    Vector3 closest = ray.Position + ray.Direction * t;
-                    float distSq = Vector3.DistanceSquared(closest, _nodes[nodeIndex].Bounds.Center);
-
-                    if (distSq <= _nodes[nodeIndex].Bounds.HalfExtents.LengthSquared())
-                    {
-                        results.Add(new RayHit<T>(_nodes[nodeIndex].Item!, t, closest));
-                        count++;
-                    }
-                }
+                // The node-level slab test already proved the ray enters this
+                // leaf's bounds within range; report the exact entry distance
+                // (clamped to 0 when the ray starts inside the box).
+                float entry = MathF.Max(tmin, 0.0f);
+                results.Add(new RayHit<T>(_nodes[nodeIndex].Item!, entry, ray.GetPoint(entry)));
+                count++;
             }
         }
         else

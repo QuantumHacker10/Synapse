@@ -84,6 +84,8 @@ namespace GDNN.Rendering.Engine
         public float TotalTime => _totalTime;
         public float FPS => _fps;
         public string SceneName => _sceneName;
+        /// <summary>Deferred renderer (G-Buffer, L-DNN, shadows) when initialized.</summary>
+        public SceneRenderer? SceneRenderer => _sceneRenderer;
 
         public unsafe void Initialize(int width = 1280, int height = 720, bool enableValidation = true)
         {
@@ -685,7 +687,10 @@ namespace GDNN.Rendering.Engine
             if (_sceneRenderer != null && _sceneRenderer.IsInitialized)
             {
                 _sceneRenderer.UpdateUniforms((int)_currentFrame, view, proj, _cameraPos, _totalTime);
+                // GPU: shadow → G-Buffer → lighting. CPU GI/post overlap the submit.
                 _sceneRenderer.RecordCommandBuffer(_commandBuffers[_currentFrame], imageIndex, (int)_currentFrame);
+                _sceneRenderer.RenderGI();
+                _sceneRenderer.RenderPostProcess((float)fbW / fbH);
             }
             else
             {

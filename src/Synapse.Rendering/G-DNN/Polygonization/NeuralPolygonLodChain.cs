@@ -81,6 +81,24 @@ public sealed class NeuralPolygonLodChain
     }
 
     /// <summary>
+    /// Reconstruit une chaîne depuis des niveaux déjà extraits (ex : cache disque).
+    /// Les niveaux sont ordonnés par <see cref="NeuralPolygonLod.Level"/> croissant.
+    /// </summary>
+    public static NeuralPolygonLodChain FromLevels(AABB bounds, IEnumerable<NeuralPolygonLod> levels)
+    {
+        ArgumentNullException.ThrowIfNull(levels);
+
+        var chain = new NeuralPolygonLodChain { Bounds = bounds };
+        chain._levels.AddRange(levels);
+        chain._levels.Sort((a, b) => a.Level.CompareTo(b.Level));
+
+        if (chain._levels.Count == 0)
+            throw new ArgumentException("At least one LOD level is required.", nameof(levels));
+
+        return chain;
+    }
+
+    /// <summary>
     /// Sélectionne le LOD le plus grossier dont l'erreur projetée à l'écran
     /// reste sous <paramref name="pixelErrorThreshold"/>.
     /// </summary>

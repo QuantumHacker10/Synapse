@@ -6,20 +6,24 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using GDNN.Lighting.LDNN;
 using GDNN.Materials.SubstrateOmega;
+using GDNN.Rendering;
 using GDNN.Rendering.Compat;
 using GDNN.Rendering.Bridge;
 using GDNN.Rendering.LOD;
 using GDNN.Rendering.MeshIO;
+using GDNN.Rendering.RayTracing;
 using GDNN.Rendering.Shaders;
 using GDNN.RHI.Vulkan;
 using GDNN.Scene;
+using LightingParams = GDNN.Scene.LightingParams;
 
 namespace GDNN.Rendering.Engine
 {
     public class SceneRenderer : IDisposable
     {
         private const int MAX_FRAMES_IN_FLIGHT = 2;
-        private const int GBUFFER_ATTACHMENT_COUNT = 4;
+        /// <summary>Albedo, normals, depth, material, velocity.</summary>
+        private const int GBUFFER_ATTACHMENT_COUNT = 5;
         private const int SHADOW_MAP_SIZE = 2048;
 
         private VulkanRhiDevice _rhi;
@@ -38,7 +42,9 @@ namespace GDNN.Rendering.Engine
         private VulkanTexture[] _gbufferNormals;
         private VulkanTexture[] _gbufferDepth;
         private VulkanTexture[] _gbufferMaterial;
+        private VulkanTexture[] _gbufferVelocity;
         private VulkanTexture[] _depthImages;
+        private RayTracingPipeline? _rtPipeline;
         private VulkanFramebuffer[] _gbufferFramebuffers;
         private DescriptorSetLayout _gbufferDescriptorSetLayout;
         private DescriptorPool _gbufferDescriptorPool;
@@ -101,6 +107,10 @@ namespace GDNN.Rendering.Engine
         public LodManager LOD => _lodManager;
         public int MeshCount => _sceneMeshes.Count;
         public int TriangleCount => (int)(_indexCount / 3);
+        /// <summary>Hardware / CPU hybrid ray tracing pipeline (null until Initialize).</summary>
+        public RayTracingPipeline? RayTracing => _rtPipeline;
+        /// <summary>Whether VK_KHR_ray_tracing_pipeline was detected.</summary>
+        public bool IsHardwareRayTracingSupported => _rtPipeline?.IsSupported ?? false;
 
         public SceneRenderer(VulkanRhiDevice rhi)
         {
@@ -147,6 +157,10 @@ namespace GDNN.Rendering.Engine
 
             CreatePostProcessResources();
             CreateUniformBuffers();
+
+            _rtPipeline = new RayTracingPipeline(_rhi);
+            if (_rtPipeline.IsSupported)
+                _rtPipeline.CreateDenoiser(width, height);
 
             _initialized = true;
         }
@@ -233,49 +247,16 @@ namespace GDNN.Rendering.Engine
             _gbufferNormals = new VulkanTexture[count];
             _gbufferDepth = new VulkanTexture[count];
             _gbufferMaterial = new VulkanTexture[count];
+            _gbufferVelocity = new VulkanTexture[count];
             _depthImages = new VulkanTexture[count];
 
             for (int i = 0; i < count; i++)
             {
-                _gbufferAlbedo[i] = _rhi.CreateTexture(new TextureDescription
-                {
-                    Width = extent.Width, Height = extent.Height,
-                    Format = VulkanFormat.R16G16B16A16Sfloat,
-                    Usage = ImageUsageFlag.ColorAttachment | ImageUsageFlag.Sampled,
-                    Tiling = ImageTiling.Optimal,
-                    InitialLayout = ImageLayout.Undefined,
-                    Samples = SampleCountFlag.Count1,
-                });
-
-                _gbufferNormals[i] = _rhi.CreateTexture(new TextureDescription
-                {
-                    Width = extent.Width, Height = extent.Height,
-                    Format = VulkanFormat.R16G16B16A16Sfloat,
-                    Usage = ImageUsageFlag.ColorAttachment | ImageUsageFlag.Sampled,
-                    Tiling = ImageTiling.Optimal,
-                    InitialLayout = ImageLayout.Undefined,
-                    Samples = SampleCountFlag.Count1,
-                });
-
-                _gbufferDepth[i] = _rhi.CreateTexture(new TextureDescription
-                {
-                    Width = extent.Width, Height = extent.Height,
-                    Format = VulkanFormat.R16G16B16A16Sfloat,
-                    Usage = ImageUsageFlag.ColorAttachment | ImageUsageFlag.Sampled,
-                    Tiling = ImageTiling.Optimal,
-                    InitialLayout = ImageLayout.Undefined,
-                    Samples = SampleCountFlag.Count1,
-                });
-
-                _gbufferMaterial[i] = _rhi.CreateTexture(new TextureDescription
-                {
-                    Width = extent.Width, Height = extent.Height,
-                    Format = VulkanFormat.R16G16B16A16Sfloat,
-                    Usage = ImageUsageFlag.ColorAttachment | ImageUsageFlag.Sampled,
-                    Tiling = ImageTiling.Optimal,
-                    InitialLayout = ImageLayout.Undefined,
-                    Samples = SampleCountFlag.Count1,
-                });
+                _gbufferAlbedo[i] = CreateGBufferColorTarget(extent);
+                _gbufferNormals[i] = CreateGBufferColorTarget(extent);
+                _gbufferDepth[i] = CreateGBufferColorTarget(extent);
+                _gbufferMaterial[i] = CreateGBufferColorTarget(extent);
+                _gbufferVelocity[i] = CreateGBufferColorTarget(extent);
 
                 _depthImages[i] = _rhi.CreateTexture(new TextureDescription
                 {
@@ -288,6 +269,17 @@ namespace GDNN.Rendering.Engine
                 });
             }
         }
+
+        private VulkanTexture CreateGBufferColorTarget(Extent2D extent)
+            => _rhi.CreateTexture(new TextureDescription
+            {
+                Width = extent.Width, Height = extent.Height,
+                Format = VulkanFormat.R16G16B16A16Sfloat,
+                Usage = ImageUsageFlag.ColorAttachment | ImageUsageFlag.Sampled,
+                Tiling = ImageTiling.Optimal,
+                InitialLayout = ImageLayout.Undefined,
+                Samples = SampleCountFlag.Count1,
+            });
 
         private void CreateGBufferFramebuffers()
         {
@@ -302,7 +294,8 @@ namespace GDNN.Rendering.Engine
                 attachments[1] = _gbufferNormals[i].GetImageView();
                 attachments[2] = _gbufferDepth[i].GetImageView();
                 attachments[3] = _gbufferMaterial[i].GetImageView();
-                attachments[4] = _depthImages[i].GetImageView();
+                attachments[4] = _gbufferVelocity[i].GetImageView();
+                attachments[5] = _depthImages[i].GetImageView();
 
                 _gbufferFramebuffers[i] = _rhi.CreateFramebuffer(new FramebufferDescription
                 {
@@ -826,6 +819,30 @@ namespace GDNN.Rendering.Engine
             return _sceneLights.Count - 1;
         }
 
+        /// <summary>
+        /// Applies LLM lighting params to the deferred scene lights and L-DNN bridge.
+        /// </summary>
+        public void ApplyLlmLighting(LightingParams parameters)
+        {
+            ArgumentNullException.ThrowIfNull(parameters);
+            if (!_initialized) return;
+
+            var lights = LlmSceneApplicator.ApplyLighting(parameters);
+            foreach (var light in lights)
+            {
+                if (light.Type == LightType.Directional)
+                {
+                    AddLight(
+                        position: -light.Direction * 20f,
+                        direction: light.Direction,
+                        color: light.Color,
+                        intensity: light.Intensity);
+                }
+            }
+
+            _ldnnBridge.ApplyLlmLighting(parameters);
+        }
+
         public bool LoadMeshFromFile(string filePath, int materialIndex = 0, Matrix4x4? worldMatrix = null)
         {
             if (!File.Exists(filePath)) return false;
@@ -1016,8 +1033,12 @@ namespace GDNN.Rendering.Engine
             cmd.Begin(CommandBufferUsageFlag.OneTimeSubmit);
             var extent = _rhi.Swapchain.Extent;
 
+            // Shadow pass first so lighting can sample up-to-date occlusion.
+            RenderShadowPass(cmd, frameIndex);
+
             var gbufferClear = new ClearValue[]
             {
+                ClearValue.ColorClear(0, 0, 0, 0),
                 ClearValue.ColorClear(0, 0, 0, 0),
                 ClearValue.ColorClear(0, 0, 0, 0),
                 ClearValue.ColorClear(0, 0, 0, 0),
@@ -1095,7 +1116,58 @@ namespace GDNN.Rendering.Engine
             }
 
             _ldnnBridge.FillGBufferFromConstants(10.0f, Vector3.UnitY, new Vector3(0.5f, 0.5f, 0.5f));
+
+            // Hybrid path: when RT extensions are present, run the CPU/GPU RT
+            // fallback as a teacher signal before the neural GI pass.
+            if (_rtPipeline != null && _rtPipeline.IsSupported)
+                RenderHybridRayTracingTeacher();
+
             _ldnnBridge.RenderGI();
+        }
+
+        /// <summary>
+        /// Runs <see cref="RayTracingPipeline.TraceRays"/> on synthetic G-Buffer
+        /// proxies so HybridRT quality mode has a wired RT path even without
+        /// full GPU readback of Vulkan attachments.
+        /// </summary>
+        public void RenderHybridRayTracingTeacher()
+        {
+            if (_rtPipeline == null || !_rtPipeline.IsSupported) return;
+
+            int pixelCount = _width * _height;
+            var color = new float[pixelCount * 4];
+            var normals = new float[pixelCount * 4];
+            var depth = new float[pixelCount];
+            var velocity = new float[pixelCount * 2];
+
+            for (int i = 0; i < pixelCount; i++)
+            {
+                color[i * 4] = 0.5f;
+                color[i * 4 + 1] = 0.5f;
+                color[i * 4 + 2] = 0.5f;
+                color[i * 4 + 3] = 1f;
+                normals[i * 4 + 1] = 1f;
+                depth[i] = 10f;
+            }
+
+            int lightCount = Math.Max(1, _sceneLights.Count);
+            var lightPos = new float[lightCount * 3];
+            var lightCol = new float[lightCount * 3];
+            var lightInt = new float[lightCount];
+            for (int l = 0; l < lightCount; l++)
+            {
+                var light = l < _sceneLights.Count ? _sceneLights[l] : null;
+                lightPos[l * 3 + 1] = light?.Position.Y ?? 5f;
+                lightCol[l * 3] = lightCol[l * 3 + 1] = lightCol[l * 3 + 2] = 1f;
+                lightInt[l] = light?.Intensity ?? 1f;
+            }
+
+            _rtPipeline.TraceRays(
+                color, normals, depth, velocity,
+                _width, _height,
+                Matrix4x4.Identity, Matrix4x4.Identity, Vector3.Zero,
+                lightPos, lightCol, lightInt, lightCount,
+                maxBounces: 2, samplesPerPixel: 1);
         }
 
         public void RenderPostProcess(float aspectRatio)
@@ -1275,8 +1347,10 @@ namespace GDNN.Rendering.Engine
             if (_gbufferNormals != null) foreach (var t in _gbufferNormals) t?.Dispose();
             if (_gbufferDepth != null) foreach (var t in _gbufferDepth) t?.Dispose();
             if (_gbufferMaterial != null) foreach (var t in _gbufferMaterial) t?.Dispose();
+            if (_gbufferVelocity != null) foreach (var t in _gbufferVelocity) t?.Dispose();
             if (_depthImages != null) foreach (var t in _depthImages) t?.Dispose();
             if (_shadowDepthImages != null) foreach (var t in _shadowDepthImages) t?.Dispose();
+            _rtPipeline?.Dispose();
 
             _materialBridge?.Dispose();
             _ldnnBridge?.Dispose();

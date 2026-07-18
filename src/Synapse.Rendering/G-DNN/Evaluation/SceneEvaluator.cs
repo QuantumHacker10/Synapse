@@ -30,6 +30,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using GDNN.Core.DataStructures;
 using GDNN.Core.NeuralNetwork;
 
 namespace GDNN.Evaluation
@@ -130,6 +131,9 @@ namespace GDNN.Evaluation
 
         /// <summary>Enable frustum culling.</summary>
         public bool EnableFrustumCulling { get; set; } = true;
+
+        /// <summary>Enable BVH broad-phase culling for ray and point queries.</summary>
+        public bool EnableBroadPhase { get; set; } = true;
 
         /// <summary>Enable priority-based ordering.</summary>
         public bool EnablePriorityOrdering { get; set; } = true;
@@ -317,6 +321,9 @@ namespace GDNN.Evaluation
         /// <summary>Total surface evaluations.</summary>
         public int TotalEvaluations { get; set; }
 
+        /// <summary>Asset queries skipped by the BVH broad-phase this frame.</summary>
+        public int BroadPhaseCulled { get; set; }
+
         /// <summary>Total hits.</summary>
         public int TotalHits { get; set; }
 
@@ -351,12 +358,17 @@ namespace GDNN.Evaluation
         private readonly ConcurrentBag<FrameStats> _frameStats;
         private readonly SurfaceEvaluator _surfaceEvaluator;
         private readonly RayMarcher _rayMarcher;
+        private readonly AABBTree<SceneNeuralAsset> _broadPhase;
+        private readonly System.Collections.Generic.List<SceneNeuralAsset> _unboundedAssets;
+        private readonly object _broadPhaseLock = new();
 
         private long _frameNumber;
         private bool _disposed;
         private Frustum _currentFrustum;
         private int _totalFrames;
         private long _totalEvalTicks;
+        private bool _broadPhaseDirty = true;
+        private int _broadPhaseCulledThisFrame;
 
         /// <summary>Gets the configuration.</summary>
         public SceneEvaluatorConfig Config => _config;
@@ -404,6 +416,8 @@ namespace GDNN.Evaluation
             _frameStats = new ConcurrentBag<FrameStats>();
             _surfaceEvaluator = new SurfaceEvaluator();
             _rayMarcher = new RayMarcher();
+            _broadPhase = new AABBTree<SceneNeuralAsset>();
+            _unboundedAssets = new System.Collections.Generic.List<SceneNeuralAsset>();
         }
 
         /// <summary>
@@ -420,6 +434,7 @@ namespace GDNN.Evaluation
                 int index = _assets.Count;
                 asset.Id = index;
                 _assets.Add(asset);
+                _broadPhaseDirty = true;
                 return index;
             }
             finally { _assetLock.ExitWriteLock(); }
@@ -435,7 +450,10 @@ namespace GDNN.Evaluation
             try
             {
                 if (index >= 0 && index < _assets.Count)
+                {
                     _assets.RemoveAt(index);
+                    _broadPhaseDirty = true;
+                }
             }
             finally { _assetLock.ExitWriteLock(); }
         }
@@ -456,7 +474,11 @@ namespace GDNN.Evaluation
         public void ClearAssets()
         {
             _assetLock.EnterWriteLock();
-            try { _assets.Clear(); }
+            try
+            {
+                _assets.Clear();
+                _broadPhaseDirty = true;
+            }
             finally { _assetLock.ExitWriteLock(); }
         }
 
@@ -566,6 +588,25 @@ namespace GDNN.Evaluation
         }
 
         /// <summary>
+        /// Computes the distance from a point to an asset's broad-phase bounds
+        /// (0 when inside). This is a conservative lower bound of the asset's SDF.
+        /// </summary>
+        private static float DistanceToAssetBounds(Vector3 point, SceneNeuralAsset asset)
+        {
+            var box = asset.WorldBounds;
+            if (box.Size.LengthSquared() > 1e-12f)
+            {
+                Vector3 d = Vector3.Max(Vector3.Abs(point - box.Center) - box.HalfExtents, Vector3.Zero);
+                return d.Length();
+            }
+
+            if (asset.BoundingRadius > 0)
+                return MathF.Max(0, Vector3.Distance(point, asset.BoundingCenter) - asset.BoundingRadius);
+
+            return 0; // No usable bounds: never skip this asset.
+        }
+
+        /// <summary>
         /// Evaluates a single point against all visible assets.
         /// </summary>
         /// <param name="point">World-space point.</param>
@@ -573,6 +614,7 @@ namespace GDNN.Evaluation
         public SurfaceHit EvaluatePoint(Vector3 point)
         {
             var bestHit = new SurfaceHit { DidHit = false, Distance = float.MaxValue };
+            bool broadPhase = _config.EnableBroadPhase;
 
             _assetLock.EnterReadLock();
             try
@@ -581,6 +623,14 @@ namespace GDNN.Evaluation
                 {
                     var asset = _assets[i];
                     if (!asset.IsVisible) continue;
+
+                    if (broadPhase && bestHit.DidHit &&
+                        DistanceToAssetBounds(point, asset) > bestHit.SdfValue)
+                    {
+                        // The asset's surface cannot be closer than its bounds.
+                        Interlocked.Increment(ref _broadPhaseCulledThisFrame);
+                        continue;
+                    }
 
                     Vector3 localPoint = asset.WorldToLocal(point);
                     float sdf = asset.Network.Evaluate(localPoint);
@@ -622,10 +672,18 @@ namespace GDNN.Evaluation
         {
             var bestHit = new SurfaceHit { DidHit = false, Distance = float.MaxValue };
 
-            var visibleAssets = GetAssetsByPriority();
+            IReadOnlyList<(SceneNeuralAsset Asset, float Entry)> candidates =
+                _config.EnableBroadPhase
+                    ? GatherRayCandidates(ray)
+                    : GatherAllVisible();
 
-            foreach (var asset in visibleAssets)
+            foreach (var (asset, entry) in candidates)
             {
+                // Assets are sorted by AABB entry distance: once the best hit is
+                // closer than the next box entry, no remaining asset can win.
+                if (bestHit.DidHit && bestHit.Distance < entry)
+                    break;
+
                 // Transform ray to local space
                 Vector3 localOrigin = asset.WorldToLocal(ray.Origin);
                 Vector3 localDir = Vector3.TransformNormal(ray.Direction, asset.InverseTransform);
@@ -650,6 +708,98 @@ namespace GDNN.Evaluation
             }
 
             return bestHit;
+        }
+
+        /// <summary>
+        /// Broad-phase: queries the BVH for visible assets whose bounds the ray
+        /// enters, sorted by entry distance. Assets without usable bounds are
+        /// always included (entry 0).
+        /// </summary>
+        private System.Collections.Generic.List<(SceneNeuralAsset Asset, float Entry)> GatherRayCandidates(TracingRay ray)
+        {
+            var candidates = new System.Collections.Generic.List<(SceneNeuralAsset Asset, float Entry)>();
+            int visibleTotal = 0;
+
+            lock (_broadPhaseLock)
+            {
+                EnsureBroadPhaseLocked();
+
+                _assetLock.EnterReadLock();
+                try
+                {
+                    for (int i = 0; i < _assets.Count; i++)
+                        if (_assets[i].IsVisible) visibleTotal++;
+                }
+                finally { _assetLock.ExitReadLock(); }
+
+                var rayHits = new System.Collections.Generic.List<RayHit<SceneNeuralAsset>>();
+                _broadPhase.QueryRay(
+                    new Ray(ray.Origin, ray.Direction), ray.MaxDistance, rayHits);
+
+                foreach (var rayHit in rayHits)
+                {
+                    if (rayHit.Item.IsVisible)
+                        candidates.Add((rayHit.Item, rayHit.Distance));
+                }
+
+                foreach (var asset in _unboundedAssets)
+                {
+                    if (asset.IsVisible)
+                        candidates.Add((asset, 0f));
+                }
+            }
+
+            candidates.Sort((a, b) => a.Item2.CompareTo(b.Item2));
+            Interlocked.Add(ref _broadPhaseCulledThisFrame,
+                Math.Max(0, visibleTotal - candidates.Count));
+            return candidates;
+        }
+
+        /// <summary>Fallback path: all visible assets by priority, entry 0.</summary>
+        private System.Collections.Generic.List<(SceneNeuralAsset Asset, float Entry)> GatherAllVisible()
+        {
+            var visibleAssets = GetAssetsByPriority();
+            var candidates = new System.Collections.Generic.List<(SceneNeuralAsset Asset, float Entry)>(visibleAssets.Count);
+            foreach (var asset in visibleAssets)
+                candidates.Add((asset, 0f));
+            return candidates;
+        }
+
+        /// <summary>
+        /// Rebuilds the broad-phase BVH from asset bounds if it is out of date.
+        /// Must be called while holding <see cref="_broadPhaseLock"/>.
+        /// </summary>
+        private void EnsureBroadPhaseLocked()
+        {
+            if (!_broadPhaseDirty) return;
+
+            _assetLock.EnterReadLock();
+            try
+            {
+                _unboundedAssets.Clear();
+                var items = new System.Collections.Generic.List<(SceneNeuralAsset Item, AABB Bounds)>(_assets.Count);
+
+                for (int i = 0; i < _assets.Count; i++)
+                {
+                    var asset = _assets[i];
+                    if (asset.WorldBounds.Size.LengthSquared() > 1e-12f)
+                    {
+                        items.Add((asset, new AABB(asset.WorldBounds.Center, asset.WorldBounds.HalfExtents)));
+                    }
+                    else if (asset.BoundingRadius > 0)
+                    {
+                        items.Add((asset, new AABB(asset.BoundingCenter, new Vector3(asset.BoundingRadius))));
+                    }
+                    else
+                    {
+                        _unboundedAssets.Add(asset);
+                    }
+                }
+
+                _broadPhase.Rebuild(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(items));
+                _broadPhaseDirty = false;
+            }
+            finally { _assetLock.ExitReadLock(); }
         }
 
         /// <summary>
@@ -688,6 +838,7 @@ namespace GDNN.Evaluation
         public void BeginFrame(Matrix4x4 viewProjection, Vector3 cameraPosition, Vector3 cameraForward)
         {
             Interlocked.Increment(ref _frameNumber);
+            Interlocked.Exchange(ref _broadPhaseCulledThisFrame, 0);
 
             _currentFrustum = Frustum.FromViewProjection(viewProjection);
             _currentFrustum.CameraPosition = cameraPosition;
@@ -720,7 +871,8 @@ namespace GDNN.Evaluation
             {
                 FrameNumber = FrameNumber,
                 TotalEvalTimeMs = totalEvalTimeMs,
-                WithinBudget = totalEvalTimeMs <= _config.FrameBudgetMs
+                WithinBudget = totalEvalTimeMs <= _config.FrameBudgetMs,
+                BroadPhaseCulled = Interlocked.CompareExchange(ref _broadPhaseCulledThisFrame, 0, 0)
             };
 
             _assetLock.EnterReadLock();
@@ -860,6 +1012,8 @@ namespace GDNN.Evaluation
             if (points.Length != results.Length)
                 throw new ArgumentException("Points and results must have the same length.");
 
+            bool broadPhase = _config.EnableBroadPhase;
+
             _assetLock.EnterReadLock();
             try
             {
@@ -871,6 +1025,20 @@ namespace GDNN.Evaluation
                     {
                         var asset = _assets[a];
                         if (!asset.IsVisible) continue;
+
+                        if (broadPhase)
+                        {
+                            // The bounds distance is a lower bound of this
+                            // asset's SDF: skip evaluation when it cannot
+                            // improve the running minimum, but keep it as a
+                            // conservative far-field estimate.
+                            float boundsDist = DistanceToAssetBounds(points[p], asset);
+                            if (boundsDist > 0 && boundsDist >= minSdf)
+                            {
+                                Interlocked.Increment(ref _broadPhaseCulledThisFrame);
+                                continue;
+                            }
+                        }
 
                         Vector3 localPoint = asset.WorldToLocal(points[p]);
                         float sdf = asset.Network.Evaluate(localPoint);
@@ -966,6 +1134,8 @@ namespace GDNN.Evaluation
                 }
             }
             finally { _assetLock.ExitReadLock(); }
+
+            _broadPhaseDirty = true;
         }
 
         /// <summary>
@@ -990,6 +1160,7 @@ namespace GDNN.Evaluation
             _assetLock.Dispose();
             _surfaceEvaluator.Dispose();
             _rayMarcher.Dispose();
+            _broadPhase.Dispose();
             GC.SuppressFinalize(this);
         }
     }

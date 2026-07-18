@@ -41,6 +41,7 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
+using GDNN.Scene;
 
 #nullable enable
 
@@ -7383,6 +7384,282 @@ namespace GDNN.Llm
 
             return StructuredOutput<MaterialProperties>.Ok(material, 0.7f, text);
         }
+
+        /// <summary>
+        /// Parses lighting parameters from JSON or key=value LLM text.
+        /// </summary>
+        public static bool TryParseLightingParams(string llmText, out LightingParams parameters)
+        {
+            parameters = new LightingParams();
+            if (string.IsNullOrWhiteSpace(llmText))
+                return false;
+
+            var json = ExtractJson(llmText);
+            if (!string.IsNullOrEmpty(json))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    parameters = ReadLightingParamsFromJson(root);
+                    return HasLightingSignal(parameters);
+                }
+                catch (JsonException)
+                {
+                    // Fall through to regex parsing.
+                }
+            }
+
+            parameters = ParseLightingParamsFromText(llmText);
+            return HasLightingSignal(parameters);
+        }
+
+        /// <summary>
+        /// Parses a simple SDF primitive hint (sphere/box) from LLM text.
+        /// </summary>
+        public static bool TryParseSdfHint(string llmText, out SdfHint hint)
+        {
+            hint = new SdfHint();
+            if (string.IsNullOrWhiteSpace(llmText))
+                return false;
+
+            var json = ExtractJson(llmText);
+            if (!string.IsNullOrEmpty(json))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    hint = ReadSdfHintFromJson(doc.RootElement);
+                    return HasSdfSignal(hint);
+                }
+                catch (JsonException)
+                {
+                    // Fall through to regex parsing.
+                }
+            }
+
+            hint = ParseSdfHintFromText(llmText);
+            return HasSdfSignal(hint);
+        }
+
+        private static LightingParams ReadLightingParamsFromJson(JsonElement root)
+        {
+            var direction = TryReadVector3(root, "directionalDirection", "direction", "sunDirection");
+            var color = TryReadString(root, "color", "lightColor", "sunColor");
+            var intensity = TryReadFloat(root, "intensity", "lightIntensity", "sunIntensity");
+            var fogDensity = TryReadFloat(root, "fogDensity", "fog", "volumeFogDensity");
+            var enableClouds = TryReadBool(root, "enableClouds", "clouds");
+
+            return new LightingParams
+            {
+                DirectionalDirection = direction,
+                Color = color,
+                Intensity = intensity,
+                FogDensity = fogDensity,
+                EnableClouds = enableClouds
+            };
+        }
+
+        private static LightingParams ParseLightingParamsFromText(string text)
+        {
+            var direction = TryParseDirectionVector(text);
+            var colorMatch = Regex.Match(text, @"(?:color|lightColor|sunColor)[:\s]+#?([0-9a-fA-F]{6})", RegexOptions.IgnoreCase);
+            var intensityMatch = Regex.Match(text, @"(?:intensity|lightIntensity|sunIntensity)[:\s]+([\d.]+)", RegexOptions.IgnoreCase);
+            var fogMatch = Regex.Match(text, @"(?:fogDensity|fog|volumeFogDensity)[:\s]+([\d.]+)", RegexOptions.IgnoreCase);
+            var cloudsMatch = Regex.Match(text, @"(?:enableClouds|clouds)[:\s]+(true|false|yes|no|on|off)", RegexOptions.IgnoreCase);
+
+            float? intensity = null;
+            if (intensityMatch.Success &&
+                float.TryParse(intensityMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedIntensity))
+            {
+                intensity = parsedIntensity;
+            }
+
+            float? fogDensity = null;
+            if (fogMatch.Success &&
+                float.TryParse(fogMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedFog))
+            {
+                fogDensity = parsedFog;
+            }
+
+            bool? enableClouds = null;
+            if (cloudsMatch.Success)
+            {
+                enableClouds = ParseBoolToken(cloudsMatch.Groups[1].Value);
+            }
+
+            return new LightingParams
+            {
+                DirectionalDirection = direction,
+                Color = colorMatch.Success ? "#" + colorMatch.Groups[1].Value : null,
+                Intensity = intensity,
+                FogDensity = fogDensity,
+                EnableClouds = enableClouds
+            };
+        }
+
+        private static SdfHint ReadSdfHintFromJson(JsonElement root)
+        {
+            var primitive = TryReadString(root, "primitive", "type", "sdfPrimitive") ?? "sphere";
+            var center = TryReadVector3(root, "center", "position");
+            var radius = TryReadFloat(root, "radius", "size");
+            var size = TryReadVector3(root, "size", "halfExtents", "extents");
+
+            return new SdfHint
+            {
+                Primitive = primitive,
+                Center = center,
+                Radius = radius,
+                Size = size
+            };
+        }
+
+        private static SdfHint ParseSdfHintFromText(string text)
+        {
+            var primitiveMatch = Regex.Match(text, @"(?:primitive|type|sdf)[:\s]+(sphere|box|cuboid)", RegexOptions.IgnoreCase);
+            var centerMatch = Regex.Match(text, @"(?:center|position)[:\s]+\[?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]?", RegexOptions.IgnoreCase);
+            var radiusMatch = Regex.Match(text, @"(?:radius|size)[:\s]+([\d.]+)", RegexOptions.IgnoreCase);
+
+            (float X, float Y, float Z)? center = null;
+            if (centerMatch.Success &&
+                float.TryParse(centerMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var cx) &&
+                float.TryParse(centerMatch.Groups[2].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var cy) &&
+                float.TryParse(centerMatch.Groups[3].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var cz))
+            {
+                center = (cx, cy, cz);
+            }
+
+            float? radius = null;
+            if (radiusMatch.Success &&
+                float.TryParse(radiusMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedRadius))
+            {
+                radius = parsedRadius;
+            }
+
+            return new SdfHint
+            {
+                Primitive = primitiveMatch.Success ? primitiveMatch.Groups[1].Value.ToLowerInvariant() : "",
+                Center = center,
+                Radius = radius
+            };
+        }
+
+        private static bool HasLightingSignal(LightingParams parameters) =>
+            parameters.DirectionalDirection.HasValue ||
+            !string.IsNullOrWhiteSpace(parameters.Color) ||
+            parameters.Intensity.HasValue ||
+            parameters.FogDensity.HasValue ||
+            parameters.EnableClouds.HasValue;
+
+        /// <summary>
+        /// Requires a geometric cue (center/radius/size). A bare default
+        /// "sphere" primitive without measurements is not a signal.
+        /// </summary>
+        private static bool HasSdfSignal(SdfHint hint) =>
+            hint.Center.HasValue ||
+            hint.Radius.HasValue ||
+            hint.Size.HasValue;
+
+        private static (float X, float Y, float Z)? TryParseDirectionVector(string text)
+        {
+            var bracketMatch = Regex.Match(
+                text,
+                @"(?:direction|directionalDirection|sunDirection)[:\s]+\[?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]?",
+                RegexOptions.IgnoreCase);
+            if (bracketMatch.Success &&
+                float.TryParse(bracketMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var x) &&
+                float.TryParse(bracketMatch.Groups[2].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var y) &&
+                float.TryParse(bracketMatch.Groups[3].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
+            {
+                return (x, y, z);
+            }
+
+            return null;
+        }
+
+        private static (float X, float Y, float Z)? TryReadVector3(JsonElement root, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (!root.TryGetProperty(name, out var element))
+                    continue;
+
+                if (element.ValueKind == JsonValueKind.Array && element.GetArrayLength() >= 3)
+                {
+                    return (
+                        (float)element[0].GetDouble(),
+                        (float)element[1].GetDouble(),
+                        (float)element[2].GetDouble());
+                }
+
+                if (element.ValueKind == JsonValueKind.Object)
+                {
+                    if (element.TryGetProperty("x", out var x) &&
+                        element.TryGetProperty("y", out var y) &&
+                        element.TryGetProperty("z", out var z))
+                    {
+                        return ((float)x.GetDouble(), (float)y.GetDouble(), (float)z.GetDouble());
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static string? TryReadString(JsonElement root, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (root.TryGetProperty(name, out var element) && element.ValueKind == JsonValueKind.String)
+                    return element.GetString();
+            }
+
+            return null;
+        }
+
+        private static float? TryReadFloat(JsonElement root, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (!root.TryGetProperty(name, out var element))
+                    continue;
+
+                if (element.ValueKind == JsonValueKind.Number)
+                    return (float)element.GetDouble();
+
+                if (element.ValueKind == JsonValueKind.String &&
+                    float.TryParse(element.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
+                {
+                    return parsed;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool? TryReadBool(JsonElement root, params string[] names)
+        {
+            foreach (var name in names)
+            {
+                if (!root.TryGetProperty(name, out var element))
+                    continue;
+
+                if (element.ValueKind == JsonValueKind.True) return true;
+                if (element.ValueKind == JsonValueKind.False) return false;
+
+                if (element.ValueKind == JsonValueKind.String)
+                    return ParseBoolToken(element.GetString());
+            }
+
+            return null;
+        }
+
+        private static bool? ParseBoolToken(string? token) => token?.Trim().ToLowerInvariant() switch
+        {
+            "true" or "yes" or "on" or "1" => true,
+            "false" or "no" or "off" or "0" => false,
+            _ => null
+        };
 
         /// <summary>
         /// Extracts entities and their types from text using pattern matching.

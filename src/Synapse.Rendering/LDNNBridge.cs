@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using GDNN.Lighting.LDNN;
+using GDNN.Rendering;
 using GDNN.RHI.Vulkan;
+using GDNN.Scene;
 
 namespace GDNN.Rendering.Bridge
 {
@@ -18,8 +20,21 @@ namespace GDNN.Rendering.Bridge
         private List<LightConfig> _lights;
         private bool _disposed;
 
+        private int _gbufferVersion;
+        private int? _lastStateHash;
+        private Vector3[,]? _cachedIrradiance;
+
         public int FrameIndex => _ldnn?.FrameIndex ?? 0;
         public bool IsInitialized => _initialized;
+
+        /// <summary>
+        /// Réutilise le résultat GI de la frame précédente quand caméra, lumières
+        /// et G-Buffer n'ont pas changé (scène statique).
+        /// </summary>
+        public bool EnableStaticSceneCache { get; set; } = true;
+
+        /// <summary>Nombre de frames servies depuis le cache statique.</summary>
+        public long StaticCacheHits { get; private set; }
 
         public LDNNBridge(int width, int height)
         {
@@ -40,6 +55,7 @@ namespace GDNN.Rendering.Bridge
 
         public void Resize(int width, int height)
         {
+            InvalidateGICache();
             _width = width;
             _height = height;
             _gbuffer.Width = width;
@@ -90,7 +106,7 @@ namespace GDNN.Rendering.Bridge
                 Direction = Vector3.Normalize(direction),
                 Color = color,
                 Intensity = intensity,
-                ShadowMethod = ShadowMethod.ShadowMap,
+                ShadowMethod = ShadowMethod.NeuralPredictive,
                 ShadowBias = 0.005f,
                 ShadowSamples = 16,
                 Importance = 1.0f
@@ -106,7 +122,7 @@ namespace GDNN.Rendering.Bridge
                 Color = color,
                 Intensity = intensity,
                 Range = range,
-                ShadowMethod = ShadowMethod.ShadowMap,
+                ShadowMethod = ShadowMethod.NeuralPredictive,
                 ShadowBias = 0.005f,
                 ShadowSamples = 8,
                 Importance = 0.8f
@@ -119,6 +135,7 @@ namespace GDNN.Rendering.Bridge
             Vector3[] albedoData,
             Vector3[] emissiveData)
         {
+            _gbufferVersion++;
             if (depthData != null && depthData.Length == _gbuffer.Depth.Length)
                 Array.Copy(depthData, _gbuffer.Depth, depthData.Length);
             if (normalData != null && normalData.Length == _gbuffer.Normals.Length)
@@ -132,6 +149,7 @@ namespace GDNN.Rendering.Bridge
         public void FillGBufferFromConstants(
             float fillDepth, Vector3 fillNormal, Vector3 fillAlbedo)
         {
+            _gbufferVersion++;
             int count = _width * _height;
             for (int i = 0; i < count; i++)
             {
@@ -145,10 +163,76 @@ namespace GDNN.Rendering.Bridge
             }
         }
 
+        /// <summary>
+        /// Invalide le cache de résultats GI (à appeler quand la scène change
+        /// par un canal non suivi par le bridge).
+        /// </summary>
+        public void InvalidateGICache()
+        {
+            _lastStateHash = null;
+            _cachedIrradiance = null;
+        }
+
+        /// <summary>
+        /// Applies LLM-parsed lighting/fog parameters to the L-DNN light list
+        /// and volumetric config, then invalidates the GI cache.
+        /// </summary>
+        public void ApplyLlmLighting(LightingParams parameters)
+        {
+            ArgumentNullException.ThrowIfNull(parameters);
+            if (!_initialized || _ldnn == null || _config == null) return;
+
+            SetLights(LlmSceneApplicator.ApplyLighting(parameters));
+            _config.VolumeFogConfig = LlmSceneApplicator.ApplyFog(parameters, _config.VolumeFogConfig);
+            _ldnn.Config.VolumeFogConfig = _config.VolumeFogConfig;
+            _ldnn.Volumetrics?.Initialize(_config.VolumeFogConfig, _width, _height);
+            InvalidateGICache();
+        }
+
+        /// <summary>
+        /// Hash de l'état influençant le rendu GI : caméra, lumières,
+        /// contenu du G-Buffer (par version) et dimensions.
+        /// </summary>
+        private int ComputeStateHash()
+        {
+            var hash = new HashCode();
+            hash.Add(_width);
+            hash.Add(_height);
+            hash.Add(_gbufferVersion);
+            hash.Add(_cameraState.ViewMatrix);
+            hash.Add(_cameraState.ProjectionMatrix);
+            hash.Add(_cameraState.Position);
+
+            hash.Add(_lights.Count);
+            foreach (var light in _lights)
+            {
+                hash.Add(light.Type);
+                hash.Add(light.Position);
+                hash.Add(light.Direction);
+                hash.Add(light.Color);
+                hash.Add(light.Intensity);
+                hash.Add(light.Range);
+                hash.Add(light.ShadowMethod);
+            }
+
+            return hash.ToHashCode();
+        }
+
         public Vector3[,] RenderGI()
         {
             if (!_initialized || _ldnn == null)
                 return new Vector3[_width, _height];
+
+            if (EnableStaticSceneCache)
+            {
+                int stateHash = ComputeStateHash();
+                if (_cachedIrradiance != null && _lastStateHash == stateHash)
+                {
+                    StaticCacheHits++;
+                    return _cachedIrradiance;
+                }
+                _lastStateHash = stateHash;
+            }
 
             var context = new RenderContext
             {
@@ -169,6 +253,7 @@ namespace GDNN.Rendering.Bridge
                         irradiance[x, y] = _gbuffer.Albedo[y * _width + x] * 0.3f;
             }
 
+            _cachedIrradiance = irradiance;
             return irradiance;
         }
 
@@ -235,16 +320,30 @@ namespace GDNN.Rendering.Bridge
                     TemporalReprojectionStrength = 0.8f,
                     NoiseScale = 0.05f,
                     NoiseSpeed = 0.1f,
-                    ShadowIntensity = 0.5f
+                    ShadowIntensity = 0.5f,
+                    EnableClouds = true,
+                    CloudAltitude = 80.0f,
+                    CloudThickness = 40.0f,
+                    CloudCoverage = 0.45f,
+                    CloudDensityScale = 2.0f,
+                    CloudNoiseScale = 0.02f
                 },
                 SamplingMode = HemisphereSamplingMode.CosineWeighted,
                 MaxPathDepth = 4,
                 ReferenceSamplesPerPixel = 64,
                 EnableNeuralTemporal = false,
                 NeuralLearningRate = 0.001f,
-                NeuralBatchSize = 32
+                NeuralBatchSize = 32,
+                NeuralNetworkProfile = NeuralNetworkProfile.Full,
+                EnableOnlineTeacherTraining = true,
+                TeacherPixelStride = 16,
+                TeacherSamplesPerPixel = 1,
+                EnableNeuralSpecular = true
             };
         }
+
+        /// <summary>Accès au renderer L-DNN (tests / outils).</summary>
+        public LDNNRenderer Renderer => _ldnn;
 
         public void Dispose()
         {

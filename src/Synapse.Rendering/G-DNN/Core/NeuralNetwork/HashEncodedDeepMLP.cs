@@ -42,6 +42,24 @@ public sealed class HashEncodedDeepMLP : ISdfNetwork, IDisposable
         OutputWeights = CreateXavierRandom(HiddenSize, 1, random);
     }
 
+    private HashEncodedDeepMLP(
+        MultiResolutionHashEncoder encoder,
+        float[] layer1Weights,
+        float[] layer1Bias,
+        float[] layer2Weights,
+        float[] layer2Bias,
+        float[] outputWeights,
+        float outputBias)
+    {
+        _encoder = encoder;
+        Layer1Weights = layer1Weights;
+        Layer1Bias = layer1Bias;
+        Layer2Weights = layer2Weights;
+        Layer2Bias = layer2Bias;
+        OutputWeights = outputWeights;
+        OutputBias = outputBias;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float Evaluate(Vector3 point)
     {
@@ -119,6 +137,66 @@ public sealed class HashEncodedDeepMLP : ISdfNetwork, IDisposable
                        + HiddenSize * HiddenSize + HiddenSize
                        + HiddenSize + 1;
         return MultiResolutionHashEncoder.GetTotalParameterCount() + mlpWeights;
+    }
+
+    /// <summary>Serializes hash tables and MLP weights to a flat float array.</summary>
+    public float[] Serialize()
+    {
+        float[] result = new float[GetTotalWeightCount()];
+        int offset = 0;
+
+        float[] hashTables = _encoder.Serialize();
+        hashTables.CopyTo(result, offset);
+        offset += hashTables.Length;
+
+        Layer1Weights.CopyTo(result, offset);
+        offset += Layer1Weights.Length;
+        Layer1Bias.CopyTo(result, offset);
+        offset += Layer1Bias.Length;
+        Layer2Weights.CopyTo(result, offset);
+        offset += Layer2Weights.Length;
+        Layer2Bias.CopyTo(result, offset);
+        offset += Layer2Bias.Length;
+        OutputWeights.CopyTo(result, offset);
+        offset += OutputWeights.Length;
+        result[offset] = OutputBias;
+
+        return result;
+    }
+
+    /// <summary>Reconstructs a network from <see cref="Serialize"/> output.</summary>
+    public static HashEncodedDeepMLP FromSerialized(ReadOnlySpan<float> weights)
+    {
+        int expected = GetTotalWeightCount();
+        if (weights.Length < expected)
+            throw new ArgumentException($"Expected at least {expected} weights, got {weights.Length}.");
+
+        int hashCount = MultiResolutionHashEncoder.GetTotalParameterCount();
+        var encoder = new MultiResolutionHashEncoder(weights[..hashCount]);
+
+        int offset = hashCount;
+        int encDim = EncodedDimensionStatic();
+
+        var layer1Weights = weights.Slice(offset, encDim * HiddenSize).ToArray();
+        offset += encDim * HiddenSize;
+        var layer1Bias = weights.Slice(offset, HiddenSize).ToArray();
+        offset += HiddenSize;
+        var layer2Weights = weights.Slice(offset, HiddenSize * HiddenSize).ToArray();
+        offset += HiddenSize * HiddenSize;
+        var layer2Bias = weights.Slice(offset, HiddenSize).ToArray();
+        offset += HiddenSize;
+        var outputWeights = weights.Slice(offset, HiddenSize).ToArray();
+        offset += HiddenSize;
+        float outputBias = weights[offset];
+
+        return new HashEncodedDeepMLP(
+            encoder,
+            layer1Weights,
+            layer1Bias,
+            layer2Weights,
+            layer2Bias,
+            outputWeights,
+            outputBias);
     }
 
     private static int EncodedDimensionStatic() =>
