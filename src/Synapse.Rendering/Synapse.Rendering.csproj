@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>14</LangVersion>
+    <RootNamespace>GDNN.Rendering</RootNamespace>
+    <NoWarn>$(NoWarn);SYSLIB5003</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Synapse.Core\Synapse.Core.csproj" />
+    <ProjectReference Include="..\Synapse.Genomics\Synapse.Genomics.csproj" />
+  </ItemGroup>
+</Project>

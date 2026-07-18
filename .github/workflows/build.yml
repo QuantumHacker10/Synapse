@@ -1,0 +1,59 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore Synapse.slnx
+
+    - name: Build
+      run: dotnet build Synapse.slnx --no-restore --configuration Release
+
+    - name: Test
+      run: dotnet test Synapse.slnx --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+
+    - name: Upload coverage
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-report
+        path: '**/coverage.cobertura.xml'
+
+  publish-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Build Studio
+      run: dotnet build src/Synapse.Studio/Synapse.Studio.csproj -c Release
+
+    - name: Publish win-x64
+      run: >
+        dotnet publish src/Synapse.Studio/Synapse.Studio.csproj
+        -c Release -r win-x64 --self-contained true
+        -o artifacts/Synapse-win-x64
+
+    - name: Upload publish artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: synapse-win-x64
+        path: artifacts/Synapse-win-x64

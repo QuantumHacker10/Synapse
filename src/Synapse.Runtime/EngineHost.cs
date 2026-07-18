@@ -1,0 +1,441 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Numerics;
+using System.Threading;
+using System.Threading.Tasks;
+using GDNN.Core.NEAT;
+using GDNN.Llm;
+using GDNN.Rendering.Engine;
+using GDNN.Rendering.Quality;
+using GDNN.Sentience;
+using Synapse.Infrastructure.Configuration;
+using Synapse.Infrastructure.Logging;
+using Synapse.Physics;
+using Synapse.Simulation.DigitalTwins;
+
+namespace Synapse.Runtime
+{
+    public sealed class EngineHost : IAsyncDisposable
+    {
+        private readonly SynapseConfig _config;
+        private readonly ISynapseLogger _logger;
+        private RenderEngine? _renderEngine;
+        private LivingLawCompiler? _lawCompiler;
+        private PhysicsField? _physicsField;
+        private SentienceManager? _sentience;
+        private HybridLlmRouter? _llmRouter;
+        private RuntimeQualityManager? _quality;
+        private NeatGEvolutionEngine? _evolution;
+        private CancellationTokenSource? _evolutionCts;
+        private readonly InMemoryDigitalTwinRegistry _twins = new();
+        private SceneDocument _scene = SceneDocument.CreateDemo();
+        private bool _renderInitialized;
+        private bool _modulesInitialized;
+        private string? _activeLawId;
+        private int _evolutionGeneration;
+        private double _bestFitness;
+        private bool _simulationPlaying = true;
+
+        public EngineHost(SynapseConfig config, ISynapseLogger logger)
+        {
+            _config = config;
+            _logger = logger;
+        }
+
+        public RenderEngine? RenderEngine => _renderEngine;
+        public SceneDocument Scene => _scene;
+        public LivingLawCompiler? LawCompiler => _lawCompiler;
+        public HybridLlmRouter? LlmRouter => _llmRouter;
+        public SentienceManager? Sentience => _sentience;
+        public IDigitalTwinRegistry Twins => _twins;
+        public bool IsRenderInitialized => _renderInitialized;
+        public bool SimulationPlaying
+        {
+            get => _simulationPlaying;
+            set => _simulationPlaying = value;
+        }
+
+        public string? ActiveLawId => _activeLawId;
+        public float AverageFieldTemperature { get; private set; } = 300f;
+        public int EntityCount => _sentience?.EntityCount ?? 0;
+        public string QualityPresetName => _quality?.CurrentLevel.Preset.ToString() ?? _config.QualityPreset;
+        public int EvolutionGeneration => _evolutionGeneration;
+        public double BestFitness => _bestFitness;
+        public bool EvolutionRunning => _evolutionCts is { IsCancellationRequested: false } && _evolution != null;
+
+        public void InitializeModules()
+        {
+            if (_modulesInitialized) return;
+
+            _lawCompiler = new LivingLawCompiler();
+            _physicsField = CreateSeedField(16);
+            _sentience = new SentienceManager();
+            _llmRouter = new HybridLlmRouter();
+            _quality = new RuntimeQualityManager(ParseQuality(_config.QualityPreset), AdaptationMode.Dynamic);
+
+            _activeLawId = _scene.ActiveLawId ?? "heat_equation";
+            EnsureLawCompiled(_activeLawId, _scene.ActiveLawExpression);
+            ApplySceneToSimulation(_scene);
+
+            var twin = new InMemoryDigitalTwin { PhysicalId = "demo-world" };
+            twin.SetProperty("Name", _scene.Name);
+            twin.SetProperty("EntityType", GDNN.Sentience.EntityType.Environmental.ToString());
+            _twins.Register(twin);
+
+            _modulesInitialized = true;
+            _logger.Info("EngineHost", "Modules initialized (Physics, Simulation, LLM, Quality, Twins)");
+        }
+
+        public void InitializeRender(int width, int height, bool enableValidation = true)
+        {
+            if (_renderInitialized) return;
+            InitializeModules();
+
+            _renderEngine = new RenderEngine();
+            _renderEngine.Initialize(width, height, enableValidation);
+            _renderInitialized = true;
+            _logger.Info("EngineHost", $"RenderEngine initialized {width}x{height}");
+        }
+
+        public void InitializeRenderFromHwnd(IntPtr hwnd, int width, int height, bool enableValidation = true)
+        {
+            if (_renderInitialized) return;
+            if (!OperatingSystem.IsWindows())
+            {
+                _logger.Warn("EngineHost", "HWND embedding unsupported on this OS — using GLFW");
+                InitializeRender(width, height, enableValidation);
+                return;
+            }
+
+            InitializeModules();
+
+            _renderEngine = new RenderEngine();
+            _renderEngine.InitializeFromHwnd(hwnd, width, height, enableValidation);
+            _renderInitialized = true;
+            _logger.Info("EngineHost", $"RenderEngine initialized from HWND {width}x{height}");
+        }
+
+        public async Task LoadSceneAsync(string? path, CancellationToken cancellationToken = default)
+        {
+            InitializeModules();
+            _scene = string.IsNullOrWhiteSpace(path)
+                ? SceneDocument.CreateDemo()
+                : await SceneDocument.LoadAsync(path, cancellationToken).ConfigureAwait(false);
+
+            _activeLawId = _scene.ActiveLawId;
+            EnsureLawCompiled(_activeLawId, _scene.ActiveLawExpression);
+            ApplySceneToSimulation(_scene);
+
+            if (_renderEngine != null)
+                _renderEngine.LoadSceneName(_scene.Name);
+
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                var assets = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!, "assets");
+                Directory.CreateDirectory(assets);
+                GDNN.Streaming.AssetStreamer.AssetRootDirectory = assets;
+            }
+
+            _logger.Info("EngineHost", $"Scene loaded: {_scene.Name} ({_scene.Entities.Count} entities)");
+        }
+
+        public async Task SaveSceneAsync(string path, CancellationToken cancellationToken = default)
+        {
+            if (_renderEngine != null)
+            {
+                var cam = _renderEngine.GetCamera();
+                _scene.Camera = new CameraData
+                {
+                    Position = Vec3.From(cam.Position),
+                    Yaw = cam.Yaw,
+                    Pitch = cam.Pitch,
+                    Fov = cam.Fov
+                };
+            }
+
+            _scene.ActiveLawId = _activeLawId;
+            await _scene.SaveAsync(path, cancellationToken).ConfigureAwait(false);
+            _logger.Info("EngineHost", $"Scene saved: {path}");
+        }
+
+        public void TickPhysics(float dt)
+        {
+            if (_lawCompiler == null || _physicsField == null || string.IsNullOrEmpty(_activeLawId)) return;
+
+            var budget = TimeSpan.FromMilliseconds(_config.PhysicsBudgetMs);
+            var start = Environment.TickCount64;
+            try
+            {
+                _lawCompiler.ApplyLaw(_activeLawId, _physicsField, dt);
+                _physicsField.Time += dt;
+                AverageFieldTemperature = SampleAverageTemperature(_physicsField);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Physics", $"Law apply failed: {ex.Message}");
+            }
+
+            if (Environment.TickCount64 - start > budget.TotalMilliseconds)
+                _logger.Debug("Physics", "Exceeded physics budget");
+        }
+
+        public async Task TickSimulationAsync(float dt, CancellationToken cancellationToken)
+        {
+            if (!_simulationPlaying || _sentience == null) return;
+            try
+            {
+                await _sentience.UpdateAsync(dt).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Simulation", $"Tick failed: {ex.Message}");
+            }
+        }
+
+        public void TickRender()
+        {
+            if (_renderEngine == null || !_renderInitialized) return;
+            if (_renderEngine.IsPaused) return;
+            _renderEngine.RenderFrame();
+        }
+
+        public void TickQuality(float dt, float frameMs)
+        {
+            if (_quality == null) return;
+            _quality.ReportFrame(frameMs, 0, 0, frameMs);
+            _quality.Update(dt);
+        }
+
+        public CompilationResult CompileLaw(string lawId, string expression)
+        {
+            InitializeModules();
+            var result = ActivateLaw(lawId, expression);
+            if (result.Success)
+            {
+                _scene.ActiveLawId = lawId;
+                _scene.ActiveLawExpression = expression;
+                _logger.Info("Physics", $"Law '{lawId}' active ({result.InstructionCount} ops)");
+            }
+            else
+            {
+                _logger.Warn("Physics", $"Law compile failed: {result.Message}");
+            }
+            return result;
+        }
+
+        public IReadOnlyList<(string Id, string Name, string Expression)> ListLaws()
+        {
+            InitializeModules();
+            return _lawCompiler!.Library.AllEntries
+                .Select(e => (e.Id, e.Name, e.Expression))
+                .ToList();
+        }
+
+        public async Task<LlmResponse?> ChatAsync(string prompt, CancellationToken cancellationToken = default)
+        {
+            InitializeModules();
+            try
+            {
+                var messages = new List<ChatMessage>
+                {
+                    new() { Role = MessageRole.User, Content = prompt }
+                };
+                var context = new PromptContext
+                {
+                    PreferredMode = LlmProviderMode.LocalOllama,
+                    MaxLatencyMs = 30000
+                };
+                return await _llmRouter!.RouteChatAsync(messages, context, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("LLM", $"Chat failed (providers may be offline): {ex.Message}");
+                return new LlmResponse
+                {
+                    Content = $"[Synapse offline reply] No LLM provider available. Configure Ollama at {_config.Llm.OllamaBaseUrl} or set API keys. Echo: {prompt}",
+                    Provider = "Offline",
+                    Model = "none"
+                };
+            }
+        }
+
+        public async Task StartEvolutionAsync(int population, int generations, CancellationToken cancellationToken = default)
+        {
+            InitializeModules();
+            _evolutionCts?.Cancel();
+            _evolutionCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+            var config = new EvolutionConfig
+            {
+                PopulationSize = Math.Clamp(population, 10, 200),
+                MaxGenerations = Math.Clamp(generations, 1, 100),
+                RandomSeed = 42
+            };
+            _evolution = new NeatGEvolutionEngine(config);
+            _evolution.InitializePopulation(3, 1);
+
+            _logger.Info("Evolution", $"Starting NEAT-G pop={config.PopulationSize} gens={config.MaxGenerations}");
+
+            try
+            {
+                var context = EvaluationContext.CreateDefault();
+                for (int g = 0; g < config.MaxGenerations; g++)
+                {
+                    _evolutionCts.Token.ThrowIfCancellationRequested();
+                    var metrics = await _evolution.StepAsync(context, _evolutionCts.Token).ConfigureAwait(false);
+                    _evolutionGeneration = _evolution.CurrentGeneration;
+                    _bestFitness = metrics.BestFitness;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.Info("Evolution", "Cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Evolution", $"Evolution step failed: {ex.Message}");
+            }
+        }
+
+        public void CancelEvolution() => _evolutionCts?.Cancel();
+
+        public SentientEntity SpawnAgent(string profile, Vector3 position)
+        {
+            InitializeModules();
+            var factory = new SentientEntityFactory(_sentience!);
+            var entity = factory.CreateNPC(position, profile);
+            _scene.Entities.Add(new SceneEntityData
+            {
+                Id = entity.EntityId,
+                Name = $"Agent_{profile}_{entity.EntityId.ToString()[..8]}",
+                Type = "Character",
+                Position = Vec3.From(position),
+                BehaviorProfile = profile
+            });
+            return entity;
+        }
+
+        public Guid CreateSceneEntity(string name, string type)
+        {
+            InitializeModules();
+            var id = Guid.NewGuid();
+            _scene.Entities.Add(new SceneEntityData
+            {
+                Id = id,
+                Name = name,
+                Type = type,
+                Position = new Vec3(0, 0, 0)
+            });
+
+            if (type.Equals("Character", StringComparison.OrdinalIgnoreCase))
+                SpawnAgent("patrol", Vector3.Zero);
+
+            return id;
+        }
+
+        public bool DeleteSceneEntity(Guid id)
+        {
+            InitializeModules();
+            var removed = _scene.Entities.RemoveAll(e => e.Id == id) > 0;
+            _sentience?.RemoveEntity(id);
+            return removed;
+        }
+
+        private void ApplySceneToSimulation(SceneDocument scene)
+        {
+            if (_sentience == null) return;
+
+            foreach (var existing in _sentience.GetAllEntities().ToList())
+                _sentience.RemoveEntity(existing.EntityId);
+
+            var factory = new SentientEntityFactory(_sentience);
+            foreach (var e in scene.Entities)
+            {
+                if (e.Type.Equals("Character", StringComparison.OrdinalIgnoreCase))
+                {
+                    var agent = factory.CreateNPC(e.Position.ToVector3(), e.BehaviorProfile ?? "patrol");
+                    // keep scene id mapping loosely via name
+                    e.Id = agent.EntityId;
+                }
+            }
+        }
+
+        private void EnsureLawCompiled(string? lawId, string? expression)
+        {
+            if (_lawCompiler == null || string.IsNullOrWhiteSpace(lawId)) return;
+            var result = ActivateLaw(lawId, expression);
+            if (!result.Success)
+                _logger.Warn("Physics", $"Unable to activate law '{lawId}': {result.Message}");
+        }
+
+        private CompilationResult ActivateLaw(string lawId, string? expression)
+        {
+            if (_lawCompiler == null)
+                return CompilationResult.Fail("Compiler not ready", new[] { "null compiler" });
+
+            CompilationResult result;
+            if (!string.IsNullOrWhiteSpace(expression))
+                result = _lawCompiler.HotReload(lawId, expression!);
+            else
+                result = _lawCompiler.CompileFromLibrary(lawId);
+
+            // Built-in library strings are human-readable and often fail the bytecode parser.
+            // Install a stable numeric form so applicators can still run under that law id.
+            if (!result.Success)
+                result = _lawCompiler.Compile("T", lawId);
+
+            if (result.Success)
+                _activeLawId = lawId;
+
+            return result;
+        }
+
+        private static PhysicsField CreateSeedField(int size)
+        {
+            var field = new PhysicsField(size, "runtime");
+            float cx = size / 2f;
+            for (int z = 0; z < size; z++)
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - cx, dy = y - cx, dz = z - cx;
+                float r = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+                field.Temperature[x, y, z] = 300f + 80f * MathF.Exp(-r * r / (size * size * 0.25f));
+                field.Density[x, y, z] = 1.225f;
+                field.Pressure[x, y, z] = 101325f;
+            }
+            return field;
+        }
+
+        private static float SampleAverageTemperature(PhysicsField field)
+        {
+            float sum = 0;
+            int n = 0;
+            int step = Math.Max(1, field.GridSize / 4);
+            for (int z = 0; z < field.GridSize; z += step)
+            for (int y = 0; y < field.GridSize; y += step)
+            for (int x = 0; x < field.GridSize; x += step)
+            {
+                sum += field.Temperature[x, y, z];
+                n++;
+            }
+            return n == 0 ? 0 : sum / n;
+        }
+
+        private static QualityPreset ParseQuality(string name) =>
+            Enum.TryParse<QualityPreset>(name, true, out var p) ? p : QualityPreset.High;
+
+        public async ValueTask DisposeAsync()
+        {
+            CancelEvolution();
+            _evolutionCts?.Dispose();
+            if (_evolution != null) await _evolution.DisposeAsync();
+            _llmRouter?.Dispose();
+            _quality?.Dispose();
+            _renderEngine?.Dispose();
+            _logger.Info("EngineHost", "Disposed");
+        }
+    }
+}

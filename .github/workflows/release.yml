@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish Studio win-x64
+        run: |
+          dotnet publish src/Synapse.Studio/Synapse.Studio.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishReadyToRun=true `
+            -o artifacts/Synapse-win-x64
+
+      - name: Stage notes
+        shell: pwsh
+        run: |
+          Copy-Item README.md artifacts/Synapse-win-x64/
+          Copy-Item LICENSE artifacts/Synapse-win-x64/
+          @"
+          SYNAPSE OMNIA 1.0 — Windows x64
+          Prerequisites: Vulkan-capable GPU + drivers.
+          Place glfw3.dll next to Synapse.Studio.exe if not already present
+          (see src/Synapse.Studio/native/README.md).
+          Launch: Synapse.Studio.exe
+          Engine-only: Synapse.Studio.exe --engine
+          "@ | Set-Content artifacts/Synapse-win-x64/RELEASE_NOTES.txt
+
+      - name: Zip artifact
+        shell: pwsh
+        run: Compress-Archive -Path artifacts/Synapse-win-x64/* -DestinationPath artifacts/Synapse-win-x64.zip -Force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/Synapse-win-x64.zip
+          generate_release_notes: true
+          body: |
+            ## SYNAPSE OMNIA ${{ github.ref_name }}
+
+            ### Windows x64
+            - Self-contained .NET 10 publish of **G-DNN Studio**
+            - Requires a Vulkan-capable GPU
+            - Optional: `glfw3.dll` beside the exe (see native README)
+
+            ### Launch
+            - `Synapse.Studio.exe` — Avalonia studio
+            - `Synapse.Studio.exe --engine` — GLFW engine loop only

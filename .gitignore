@@ -1,0 +1,56 @@
+## Build
+bin/
+obj/
+artifacts/
+out/
+publish/
+*.user
+*.suo
+*.user.user
+*.rsuser
+*.DotSettings.user
+
+## NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+
+## IDE / OS
+.vs/
+.idea/
+.vscode/
+*.swp
+*~
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+## Logs & local runtime
+*.log
+logs/
+*.usercache
+*.tmp
+
+## Secrets / local overrides (never commit keys)
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+**/secrets.json
+**/credentials.json
+
+## Native binaries dropped next to the app (keep repo copies under native/ if tracked intentionally)
+**/glfw3.dll
+!src/Synapse.Studio/native/glfw3.dll
+
+## Test / coverage
+TestResults/
+coverage/
+coverage*.json
+coverage*.xml
+*.cobertura.xml
+
+## Publish / release staging
+*.zip
+*.tar.gz

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>14</LangVersion>
+    <RootNamespace>Synapse.Simulation</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Synapse.Core\Synapse.Core.csproj" />
+    <ProjectReference Include="..\Synapse.Rendering\Synapse.Rendering.csproj" />
+    <ProjectReference Include="..\Synapse.Physics\Synapse.Physics.csproj" />
+    <ProjectReference Include="..\Synapse.AI\Synapse.AI.csproj" />
+  </ItemGroup>
+</Project>

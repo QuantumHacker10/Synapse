@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>14</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
+    <PackageReference Include="xunit" Version="2.*" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.*" />
+    <PackageReference Include="FluentAssertions" Version="6.*" />
+    <PackageReference Include="coverlet.collector" Version="6.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Synapse.Core\Synapse.Core.csproj" />
+    <ProjectReference Include="..\..\src\Synapse.AI\Synapse.AI.csproj" />
+    <ProjectReference Include="..\..\src\Synapse.Physics\Synapse.Physics.csproj" />
+    <ProjectReference Include="..\..\src\Synapse.Rendering\Synapse.Rendering.csproj" />
+    <ProjectReference Include="..\..\src\Synapse.Genomics\Synapse.Genomics.csproj" />
+    <ProjectReference Include="..\..\src\Synapse.LLM\Synapse.LLM.csproj" />
+    <ProjectReference Include="..\..\src\Synapse.Simulation\Synapse.Simulation.csproj" />
+    <ProjectReference Include="..\..\src\Synapse.Infrastructure\Synapse.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Synapse.Runtime\Synapse.Runtime.csproj" />
+  </ItemGroup>
+</Project>

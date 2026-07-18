@@ -1,0 +1,27 @@
+<Project>
+  <PropertyGroup>
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <InformationalVersion>1.1.0</InformationalVersion>
+    <Company>Synapse</Company>
+    <Product>SYNAPSE OMNIA</Product>
+    <Authors>Synapse</Authors>
+    <Copyright>Copyright (c) Synapse Contributors</Copyright>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>Default</AnalysisMode>
+    <Nullable>enable</Nullable>
+    <LangVersion>14</LangVersion>
+    <!-- High-volume style/legacy noise across the research codebase; keep real errors. -->
+    <NoWarn>$(NoWarn);CA1062;CA1305;CA1707;CA1716;CA1720;CA1725;CA1805;CA1819;CA1822;CA1848;CA1859;CA1861;CA2007;CA2201;CA2211;IDE0005;IDE0007;IDE0011;IDE0040;IDE0055;IDE0060;IDE0078;IDE0090;IDE0130;IDE0290;IDE1006</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

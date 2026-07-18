@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Synapse.AI/Synapse.AI.csproj" />
+    <Project Path="src/Synapse.Core/Synapse.Core.csproj" />
+    <Project Path="src/Synapse.Genomics/Synapse.Genomics.csproj" />
+    <Project Path="src/Synapse.Infrastructure/Synapse.Infrastructure.csproj" />
+    <Project Path="src/Synapse.LLM/Synapse.LLM.csproj" />
+    <Project Path="src/Synapse.Physics/Synapse.Physics.csproj" />
+    <Project Path="src/Synapse.Rendering/Synapse.Rendering.csproj" />
+    <Project Path="src/Synapse.Runtime/Synapse.Runtime.csproj" />
+    <Project Path="src/Synapse.Simulation/Synapse.Simulation.csproj" />
+    <Project Path="src/Synapse.Studio/Synapse.Studio.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Synapse.Tests/Synapse.Tests.csproj" />
+  </Folder>
+</Solution>

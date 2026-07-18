@@ -1,0 +1,11 @@
+global using System;
+global using System.Collections.Generic;
+global using System.ComponentModel;
+global using System.Linq;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using Synapse.Core;
+global using Synapse.Physics;
+global using GDNN.Rendering.Engine;
+global using GDNN.Llm;
+global using GDNN.Sentience;
