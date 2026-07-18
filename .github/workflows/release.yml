@@ -34,7 +34,7 @@ jobs:
           Copy-Item README.md artifacts/Synapse-win-x64/
           Copy-Item LICENSE artifacts/Synapse-win-x64/
           @"
-          SYNAPSE OMNIA 1.0 — Windows x64
+          SYNAPSE OMNIA 1.1 — Windows x64
           Prerequisites: Vulkan-capable GPU + drivers.
           Place glfw3.dll next to Synapse.Studio.exe if not already present
           (see src/Synapse.Studio/native/README.md).

@@ -1294,21 +1294,36 @@ public readonly struct Frustum
         return FrustumTest.Inside;
     }
 
-    /// <summary>Tests an AABB against the frustum.</summary>
+    /// <summary>
+    /// Tests an AABB against the frustum. The box is outside as soon as it lies
+    /// entirely on the negative side of any single plane; it is inside only when
+    /// it lies entirely on the positive side of all six planes.
+    /// </summary>
     public FrustumTest TestAABB(AABB box)
     {
-        int insideCount = 0;
+        bool intersecting = false;
 
-        if (TestPlaneAABB(Left, box) >= 0) insideCount++;
-        if (TestPlaneAABB(Right, box) >= 0) insideCount++;
-        if (TestPlaneAABB(Bottom, box) >= 0) insideCount++;
-        if (TestPlaneAABB(Top, box) >= 0) insideCount++;
-        if (TestPlaneAABB(Near, box) >= 0) insideCount++;
-        if (TestPlaneAABB(Far, box) >= 0) insideCount++;
+        if (!ClassifyPlane(Left, box, ref intersecting)) return FrustumTest.Outside;
+        if (!ClassifyPlane(Right, box, ref intersecting)) return FrustumTest.Outside;
+        if (!ClassifyPlane(Bottom, box, ref intersecting)) return FrustumTest.Outside;
+        if (!ClassifyPlane(Top, box, ref intersecting)) return FrustumTest.Outside;
+        if (!ClassifyPlane(Near, box, ref intersecting)) return FrustumTest.Outside;
+        if (!ClassifyPlane(Far, box, ref intersecting)) return FrustumTest.Outside;
 
-        if (insideCount == 0) return FrustumTest.Outside;
-        if (insideCount == 6) return FrustumTest.Inside;
-        return FrustumTest.Intersecting;
+        return intersecting ? FrustumTest.Intersecting : FrustumTest.Inside;
+    }
+
+    private static bool ClassifyPlane(Plane plane, AABB box, ref bool intersecting)
+    {
+        // Sommet le plus favorable entièrement dehors ⇒ boîte entièrement dehors.
+        if (TestPlaneAABB(plane, box) < 0)
+            return false;
+
+        // Sommet le plus défavorable dehors ⇒ la boîte chevauche ce plan.
+        if (TestPlaneAABBNegative(plane, box) < 0)
+            intersecting = true;
+
+        return true;
     }
 
     private static float TestPlane(Plane plane, Vector3 point)
@@ -1330,6 +1345,22 @@ public readonly struct Frustum
         else positiveVertex.Z -= box.HalfExtents.Z;
 
         return TestPlane(plane, positiveVertex);
+    }
+
+    private static float TestPlaneAABBNegative(Plane plane, AABB box)
+    {
+        Vector3 negativeVertex = box.Center;
+
+        if (plane.X >= 0) negativeVertex.X -= box.HalfExtents.X;
+        else negativeVertex.X += box.HalfExtents.X;
+
+        if (plane.Y >= 0) negativeVertex.Y -= box.HalfExtents.Y;
+        else negativeVertex.Y += box.HalfExtents.Y;
+
+        if (plane.Z >= 0) negativeVertex.Z -= box.HalfExtents.Z;
+        else negativeVertex.Z += box.HalfExtents.Z;
+
+        return TestPlane(plane, negativeVertex);
     }
 }
 
