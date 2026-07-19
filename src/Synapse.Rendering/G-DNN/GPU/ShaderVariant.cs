@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: ShaderVariant.cs
 // PATH: GPU/ShaderVariant.cs
@@ -24,12 +6,28 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Numerics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.GPU;
 
@@ -251,9 +249,11 @@ public readonly struct ShaderVariantKey : IEquatable<ShaderVariantKey>, ICompara
     public int CompareTo(ShaderVariantKey other)
     {
         int cmp = Features.CompareTo(other.Features);
-        if (cmp != 0) return cmp;
+        if (cmp != 0)
+            return cmp;
         cmp = Quality.CompareTo(other.Quality);
-        if (cmp != 0) return cmp;
+        if (cmp != 0)
+            return cmp;
         return ParameterHash.CompareTo(other.ParameterHash);
     }
 
@@ -418,7 +418,8 @@ public sealed class ShaderVariantManager
     /// </summary>
     public bool HasVariant(ShaderVariantKey key)
     {
-        lock (_lock) return _variants.ContainsKey(key);
+        lock (_lock)
+            return _variants.ContainsKey(key);
     }
 
     /// <summary>
@@ -428,7 +429,8 @@ public sealed class ShaderVariantManager
     {
         lock (_lock)
         {
-            if (!_variants.ContainsKey(key)) return false;
+            if (!_variants.ContainsKey(key))
+                return false;
             if (!_activeVariants.Contains(key))
                 _activeVariants.Add(key);
 
@@ -632,7 +634,8 @@ public sealed class ShaderVariantManager
     {
         lock (_lock)
         {
-            if (_variants.Count <= maxVariants) return 0;
+            if (_variants.Count <= maxVariants)
+                return 0;
 
             var toRemove = _variants
                 .Where(kv => !keepActive || !_activeVariants.Contains(kv.Key))
@@ -690,7 +693,8 @@ public sealed class ShaderVariantManager
             sb.AppendLine("By Feature:");
             foreach (ShaderVariantFeature feature in Enum.GetValues<ShaderVariantFeature>())
             {
-                if (feature == ShaderVariantFeature.None || (uint)feature > 0x10000) continue;
+                if (feature == ShaderVariantFeature.None || (uint)feature > 0x10000)
+                    continue;
                 int count = _variants.Keys.Count(k => k.HasFeature(feature));
                 if (count > 0)
                     sb.AppendLine($"  {feature}: {count} variants");
@@ -979,19 +983,32 @@ public static class ShaderVariantExtensions
         cost += (int)key.Quality * 0.15f;
 
         // Feature costs
-        if (key.HasFeature(ShaderVariantFeature.Shadows)) cost += 0.10f;
-        if (key.HasFeature(ShaderVariantFeature.Reflections)) cost += 0.15f;
-        if (key.HasFeature(ShaderVariantFeature.Refractions)) cost += 0.12f;
-        if (key.HasFeature(ShaderVariantFeature.AmbientOcclusion)) cost += 0.08f;
-        if (key.HasFeature(ShaderVariantFeature.HierarchicalTracing)) cost += 0.05f;
-        if (key.HasFeature(ShaderVariantFeature.BinarySearch)) cost += 0.03f;
-        if (key.HasFeature(ShaderVariantFeature.NormalMapping)) cost += 0.04f;
-        if (key.HasFeature(ShaderVariantFeature.ParallaxOcclusion)) cost += 0.08f;
-        if (key.HasFeature(ShaderVariantFeature.TemporalReprojection)) cost += 0.06f;
-        if (key.HasFeature(ShaderVariantFeature.SSAO)) cost += 0.10f;
-        if (key.HasFeature(ShaderVariantFeature.SubsurfaceScattering)) cost += 0.07f;
-        if (key.HasFeature(ShaderVariantFeature.VolumetricFog)) cost += 0.12f;
-        if (key.HasFeature(ShaderVariantFeature.AdaptiveStepping)) cost += 0.02f;
+        if (key.HasFeature(ShaderVariantFeature.Shadows))
+            cost += 0.10f;
+        if (key.HasFeature(ShaderVariantFeature.Reflections))
+            cost += 0.15f;
+        if (key.HasFeature(ShaderVariantFeature.Refractions))
+            cost += 0.12f;
+        if (key.HasFeature(ShaderVariantFeature.AmbientOcclusion))
+            cost += 0.08f;
+        if (key.HasFeature(ShaderVariantFeature.HierarchicalTracing))
+            cost += 0.05f;
+        if (key.HasFeature(ShaderVariantFeature.BinarySearch))
+            cost += 0.03f;
+        if (key.HasFeature(ShaderVariantFeature.NormalMapping))
+            cost += 0.04f;
+        if (key.HasFeature(ShaderVariantFeature.ParallaxOcclusion))
+            cost += 0.08f;
+        if (key.HasFeature(ShaderVariantFeature.TemporalReprojection))
+            cost += 0.06f;
+        if (key.HasFeature(ShaderVariantFeature.SSAO))
+            cost += 0.10f;
+        if (key.HasFeature(ShaderVariantFeature.SubsurfaceScattering))
+            cost += 0.07f;
+        if (key.HasFeature(ShaderVariantFeature.VolumetricFog))
+            cost += 0.12f;
+        if (key.HasFeature(ShaderVariantFeature.AdaptiveStepping))
+            cost += 0.02f;
 
         return Math.Clamp(cost, 0f, 1f);
     }

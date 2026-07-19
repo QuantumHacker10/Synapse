@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using GDNN.Rendering.Compat;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: JointTransform.cs
 // PATH: Animation/JointTransform.cs
@@ -24,10 +6,26 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using GDNN.Rendering.Compat;
 
 namespace GDNN.Animation
 {
@@ -416,17 +414,36 @@ namespace GDNN.Animation
 
             int largestIndex = 0;
             float largestValue = absX;
-            if (absY > largestValue) { largestIndex = 1; largestValue = absY; }
-            if (absZ > largestValue) { largestIndex = 2; largestValue = absZ; }
-            if (absW > largestValue) { largestIndex = 3; largestValue = absW; }
+            if (absY > largestValue)
+            { largestIndex = 1; largestValue = absY; }
+            if (absZ > largestValue)
+            { largestIndex = 2; largestValue = absZ; }
+            if (absW > largestValue)
+            { largestIndex = 3; largestValue = absW; }
 
             float a, b, c;
             switch (largestIndex)
             {
-                case 0: a = q.Y; b = q.Z; c = q.W; break;
-                case 1: a = q.X; b = q.Z; c = q.W; break;
-                case 2: a = q.X; b = q.Y; c = q.W; break;
-                default: a = q.X; b = q.Y; c = q.Z; break;
+                case 0:
+                    a = q.Y;
+                    b = q.Z;
+                    c = q.W;
+                    break;
+                case 1:
+                    a = q.X;
+                    b = q.Z;
+                    c = q.W;
+                    break;
+                case 2:
+                    a = q.X;
+                    b = q.Y;
+                    c = q.W;
+                    break;
+                default:
+                    a = q.X;
+                    b = q.Y;
+                    c = q.Z;
+                    break;
             }
 
             float sqrt2Over2 = 0.70710678f;

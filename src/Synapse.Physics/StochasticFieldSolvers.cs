@@ -220,13 +220,16 @@ public sealed class StochasticPath
     /// <summary>Maximum drawdown.</summary>
     public float MaxDrawdown()
     {
-        if (Values.Length < 2) return 0.0f;
+        if (Values.Length < 2)
+            return 0.0f;
         float peak = Values[0], maxDD = 0.0f;
         for (int i = 1; i < Values.Length; i++)
         {
-            if (Values[i] > peak) peak = Values[i];
+            if (Values[i] > peak)
+                peak = Values[i];
             float dd = (peak - Values[i]) / (MathF.Abs(peak) + 1e-10f);
-            if (dd > maxDD) maxDD = dd;
+            if (dd > maxDD)
+                maxDD = dd;
         }
         return maxDD;
     }
@@ -234,7 +237,8 @@ public sealed class StochasticPath
     /// <summary>Realized volatility.</summary>
     public float RealizedVolatility()
     {
-        if (Values.Length < 2) return 0.0f;
+        if (Values.Length < 2)
+            return 0.0f;
         float sumSq = 0.0f;
         for (int i = 1; i < Values.Length; i++)
         {
@@ -247,13 +251,15 @@ public sealed class StochasticPath
     /// <summary>Sharpe ratio.</summary>
     public float SharpeRatio(float riskFreeRate = 0.02f)
     {
-        if (Values.Length < 2) return 0.0f;
+        if (Values.Length < 2)
+            return 0.0f;
         float sumR = 0.0f, sumSq = 0.0f;
         int n = Values.Length - 1;
         for (int i = 1; i < Values.Length; i++)
         {
             float r = MathF.Log(Values[i] / (MathF.Abs(Values[i - 1]) + 1e-10f) + 1e-10f);
-            sumR += r; sumSq += r * r;
+            sumR += r;
+            sumSq += r * r;
         }
         float mean = sumR / n;
         float std = MathF.Sqrt(MathF.Max(sumSq / n - mean * mean, 1e-12f));
@@ -263,10 +269,14 @@ public sealed class StochasticPath
     /// <summary>Interpolated value at time t.</summary>
     public float InterpolateAt(float t)
     {
-        if (Values.Length == 0) return 0.0f;
-        if (Values.Length == 1) return Values[0];
-        if (t <= Times[0]) return Values[0];
-        if (t >= Times[^1]) return Values[^1];
+        if (Values.Length == 0)
+            return 0.0f;
+        if (Values.Length == 1)
+            return Values[0];
+        if (t <= Times[0])
+            return Values[0];
+        if (t >= Times[^1])
+            return Values[^1];
         for (int i = 0; i < Values.Length - 1; i++)
         {
             if (t >= Times[i] && t <= Times[i + 1])
@@ -446,10 +456,16 @@ public struct SEIRState
     public void Normalize()
     {
         float total = S + E + I + R + V + Q + D;
-        if (total < 1e-12f) return;
+        if (total < 1e-12f)
+            return;
         float inv = 1.0f / total;
-        S *= inv; E *= inv; I *= inv; R *= inv;
-        V *= inv; Q *= inv; D *= inv;
+        S *= inv;
+        E *= inv;
+        I *= inv;
+        R *= inv;
+        V *= inv;
+        Q *= inv;
+        D *= inv;
     }
 }
 
@@ -525,7 +541,8 @@ public struct FinancialFieldState
     private static float NormalCDF(float x)
     {
         float a1 = 0.254829592f, a2 = -0.284496736f, a3 = 1.421413741f, a4 = -1.453152027f, a5 = 1.061405429f, p = 0.3275911f;
-        float sign = x < 0 ? -1.0f : 1.0f; x = MathF.Abs(x) / MathF.Sqrt(2.0f);
+        float sign = x < 0 ? -1.0f : 1.0f;
+        x = MathF.Abs(x) / MathF.Sqrt(2.0f);
         float t = 1.0f / (1.0f + p * x);
         float y = 1.0f - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * MathF.Exp(-x * x);
         return 0.5f * (1.0f + sign * y);
@@ -554,10 +571,12 @@ public sealed unsafe class PerlinNoiseGenerator : IDisposable
         _tableSize = 256;
         _permutation = (int*)NativeMemory.AlignedAlloc((nuint)(_tableSize * 2 * sizeof(int)), 64);
         var rng = new Random(seed);
-        for (int i = 0; i < _tableSize; i++) _permutation[i] = i;
+        for (int i = 0; i < _tableSize; i++)
+            _permutation[i] = i;
         for (int i = _tableSize - 1; i > 0; i--)
         { int j = rng.Next(i + 1); (_permutation[i], _permutation[j]) = (_permutation[j], _permutation[i]); }
-        for (int i = 0; i < _tableSize; i++) _permutation[_tableSize + i] = _permutation[i];
+        for (int i = 0; i < _tableSize; i++)
+            _permutation[_tableSize + i] = _permutation[i];
     }
 
     /// <summary>Evaluates 3D Perlin noise at (x,y,z). Returns [-1,1].</summary>
@@ -619,7 +638,8 @@ public sealed unsafe class PerlinNoiseGenerator : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float Grad(int hash, float x, float y, float z)
     {
-        int h = hash & 15; float u = h < 8 ? x : y, v = h < 4 ? y : (h == 12 || h == 14 ? x : z);
+        int h = hash & 15;
+        float u = h < 8 ? x : y, v = h < 4 ? y : (h == 12 || h == 14 ? x : z);
         return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
     }
     /// <summary>Frees unmanaged memory.</summary>
@@ -674,10 +694,17 @@ public sealed unsafe class StochasticField : IDisposable
         float spacingX, float spacingY, float spacingZ, float timeStep = 0.01f,
         float originX = 0.0f, float originY = 0.0f, float originZ = 0.0f, int seed = 42)
     {
-        _resX = resX; _resY = resY; _resZ = resZ;
-        _spacingX = spacingX; _spacingY = spacingY; _spacingZ = spacingZ;
-        _originX = originX; _originY = originY; _originZ = originZ;
-        _processType = processType; _timeStep = timeStep;
+        _resX = resX;
+        _resY = resY;
+        _resZ = resZ;
+        _spacingX = spacingX;
+        _spacingY = spacingY;
+        _spacingZ = spacingZ;
+        _originX = originX;
+        _originY = originY;
+        _originZ = originZ;
+        _processType = processType;
+        _timeStep = timeStep;
         _rng = new Random(seed);
         int total = resX * resY * resZ;
         int byteSize = total * sizeof(StochasticFieldState);
@@ -774,17 +801,19 @@ public sealed unsafe class StochasticField : IDisposable
     public void InitializePerlin(float amplitude = 1.0f, float frequency = 1.0f, int octaves = 4, int seed = 42)
     {
         using var perlin = new PerlinNoiseGenerator(seed);
-        for (int z = 0; z < _resZ; z++) for (int y = 0; y < _resY; y++) for (int x = 0; x < _resX; x++)
-        {
-            float nx = x * frequency / _resX, ny = y * frequency / _resY, nz = z * frequency / _resZ;
-            float noise = perlin.FractalBrownianMotion(nx, ny, nz, octaves) * amplitude;
-            float gx = perlin.FractalBrownianMotion(nx + 0.01f, ny, nz, octaves) * amplitude;
-            float gy = perlin.FractalBrownianMotion(nx, ny + 0.01f, nz, octaves) * amplitude;
-            float gz = perlin.FractalBrownianMotion(nx, ny, nz + 0.01f, octaves) * amplitude;
-            float gradientMag = MathF.Sqrt((gx - noise) * (gx - noise) + (gy - noise) * (gy - noise) + (gz - noise) * (gz - noise));
-            int idx = Index(x, y, z);
-            _data[idx] = new StochasticFieldState { CurrentValue = noise, Mean = noise, Variance = amplitude * amplitude * 0.01f * (1.0f + gradientMag), PreviousValue = noise, Drift = 0.05f * (1.0f + gradientMag), Diffusion = 0.2f * (1.0f + 0.5f * MathF.Abs(noise)), ProcessType = _processType, HurstExponent = 0.5f };
-        }
+        for (int z = 0; z < _resZ; z++)
+            for (int y = 0; y < _resY; y++)
+                for (int x = 0; x < _resX; x++)
+                {
+                    float nx = x * frequency / _resX, ny = y * frequency / _resY, nz = z * frequency / _resZ;
+                    float noise = perlin.FractalBrownianMotion(nx, ny, nz, octaves) * amplitude;
+                    float gx = perlin.FractalBrownianMotion(nx + 0.01f, ny, nz, octaves) * amplitude;
+                    float gy = perlin.FractalBrownianMotion(nx, ny + 0.01f, nz, octaves) * amplitude;
+                    float gz = perlin.FractalBrownianMotion(nx, ny, nz + 0.01f, octaves) * amplitude;
+                    float gradientMag = MathF.Sqrt((gx - noise) * (gx - noise) + (gy - noise) * (gy - noise) + (gz - noise) * (gz - noise));
+                    int idx = Index(x, y, z);
+                    _data[idx] = new StochasticFieldState { CurrentValue = noise, Mean = noise, Variance = amplitude * amplitude * 0.01f * (1.0f + gradientMag), PreviousValue = noise, Drift = 0.05f * (1.0f + gradientMag), Diffusion = 0.2f * (1.0f + 0.5f * MathF.Abs(noise)), ProcessType = _processType, HurstExponent = 0.5f };
+                }
     }
 
     /// <summary>Initializes with spatially varying drift and diffusion.</summary>
@@ -793,17 +822,24 @@ public sealed unsafe class StochasticField : IDisposable
         using var perlinValue = new PerlinNoiseGenerator(seed);
         using var perlinDrift = new PerlinNoiseGenerator(seed + 1);
         using var perlinDiff = new PerlinNoiseGenerator(seed + 2);
-        for (int z = 0; z < _resZ; z++) for (int y = 0; y < _resY; y++) for (int x = 0; x < _resX; x++)
-        {
-            float nx = x * frequency / _resX, ny = y * frequency / _resY, nz = z * frequency / _resZ;
-            float value = perlinValue.FractalBrownianMotion(nx, ny, nz, octaves) * valueAmplitude;
-            float drift = perlinDrift.FractalBrownianMotion(nx, ny, nz, octaves) * driftScale;
-            float diffusion = MathF.Abs(perlinDiff.FractalBrownianMotion(nx, ny, nz, octaves)) * diffusionScale + 0.05f;
-            int idx = Index(x, y, z);
-            _data[idx].CurrentValue = value; _data[idx].Mean = value; _data[idx].PreviousValue = value;
-            _data[idx].Drift = drift; _data[idx].Diffusion = diffusion; _data[idx].ProcessType = _processType;
-            _data[idx].Variance = diffusion * diffusion * 0.1f; _data[idx].Entropy = MathF.Log(1.0f + _data[idx].Variance);
-        }
+        for (int z = 0; z < _resZ; z++)
+            for (int y = 0; y < _resY; y++)
+                for (int x = 0; x < _resX; x++)
+                {
+                    float nx = x * frequency / _resX, ny = y * frequency / _resY, nz = z * frequency / _resZ;
+                    float value = perlinValue.FractalBrownianMotion(nx, ny, nz, octaves) * valueAmplitude;
+                    float drift = perlinDrift.FractalBrownianMotion(nx, ny, nz, octaves) * driftScale;
+                    float diffusion = MathF.Abs(perlinDiff.FractalBrownianMotion(nx, ny, nz, octaves)) * diffusionScale + 0.05f;
+                    int idx = Index(x, y, z);
+                    _data[idx].CurrentValue = value;
+                    _data[idx].Mean = value;
+                    _data[idx].PreviousValue = value;
+                    _data[idx].Drift = drift;
+                    _data[idx].Diffusion = diffusion;
+                    _data[idx].ProcessType = _processType;
+                    _data[idx].Variance = diffusion * diffusion * 0.1f;
+                    _data[idx].Entropy = MathF.Log(1.0f + _data[idx].Variance);
+                }
     }
 
     // ── Euler-Maruyama ────────────────────────────────────────────────────
@@ -811,24 +847,39 @@ public sealed unsafe class StochasticField : IDisposable
     /// <summary>Advances field by one step using Euler-Maruyama: dX = a dt + b dW.</summary>
     public void StepEulerMaruyama(float dt, float? globalDrift = null, float? globalDiffusion = null)
     {
-        _timeStep = dt; int total = TotalCells; float sqrtDt = MathF.Sqrt(dt);
+        _timeStep = dt;
+        int total = TotalCells;
+        float sqrtDt = MathF.Sqrt(dt);
         for (int i = 0; i < total; i++)
         {
-            ref StochasticFieldState s = ref _data[i]; s.PreviousValue = s.CurrentValue;
+            ref StochasticFieldState s = ref _data[i];
+            s.PreviousValue = s.CurrentValue;
             float mu = globalDrift ?? s.Drift, sigma = globalDiffusion ?? s.Diffusion;
             float dW = NextGaussian() * sqrtDt;
             switch (s.ProcessType)
             {
-                case StochasticProcessType.GeometricBrownian: s.CurrentValue = GBMEuler(s.CurrentValue, mu, sigma, dt, dW); break;
-                case StochasticProcessType.OrnsteinUhlenbeck: s.CurrentValue = OUEuler(s.CurrentValue, s.Mean, s.MeanReversionSpeed > 0 ? s.MeanReversionSpeed : mu, sigma, dt, dW); break;
-                case StochasticProcessType.Poisson: float lambda = MathF.Max(0.0001f, mu * s.CurrentValue * dt); s.CurrentValue += NextPoisson(lambda); break;
-                case StochasticProcessType.JumpDiffusion: s.CurrentValue = JumpDiffEuler(s.CurrentValue, mu, sigma, s.JumpIntensity > 0 ? s.JumpIntensity : 0.1f, dt, dW); break;
-                case StochasticProcessType.FractionalBrownian: s.CurrentValue = FBMEuler(s.CurrentValue, mu, sigma, s.HurstExponent > 0 ? s.HurstExponent : 0.5f, dt, dW, ref s.FractionalMemory); break;
+                case StochasticProcessType.GeometricBrownian:
+                    s.CurrentValue = GBMEuler(s.CurrentValue, mu, sigma, dt, dW);
+                    break;
+                case StochasticProcessType.OrnsteinUhlenbeck:
+                    s.CurrentValue = OUEuler(s.CurrentValue, s.Mean, s.MeanReversionSpeed > 0 ? s.MeanReversionSpeed : mu, sigma, dt, dW);
+                    break;
+                case StochasticProcessType.Poisson:
+                    float lambda = MathF.Max(0.0001f, mu * s.CurrentValue * dt);
+                    s.CurrentValue += NextPoisson(lambda);
+                    break;
+                case StochasticProcessType.JumpDiffusion:
+                    s.CurrentValue = JumpDiffEuler(s.CurrentValue, mu, sigma, s.JumpIntensity > 0 ? s.JumpIntensity : 0.1f, dt, dW);
+                    break;
+                case StochasticProcessType.FractionalBrownian:
+                    s.CurrentValue = FBMEuler(s.CurrentValue, mu, sigma, s.HurstExponent > 0 ? s.HurstExponent : 0.5f, dt, dW, ref s.FractionalMemory);
+                    break;
             }
             s.Variance = 0.99f * s.Variance + 0.01f * sigma * sigma * dt;
             s.Entropy = MathF.Log(1.0f + s.Variance);
         }
-        _currentTime += dt; _stepCount++;
+        _currentTime += dt;
+        _stepCount++;
     }
 
     // ── Milstein ──────────────────────────────────────────────────────────
@@ -836,24 +887,40 @@ public sealed unsafe class StochasticField : IDisposable
     /// <summary>Advances field by one Milstein step (higher strong order).</summary>
     public void StepMilstein(float dt, float? globalDrift = null, float? globalDiffusion = null)
     {
-        _timeStep = dt; int total = TotalCells; float sqrtDt = MathF.Sqrt(dt);
+        _timeStep = dt;
+        int total = TotalCells;
+        float sqrtDt = MathF.Sqrt(dt);
         for (int i = 0; i < total; i++)
         {
-            ref StochasticFieldState s = ref _data[i]; s.PreviousValue = s.CurrentValue;
+            ref StochasticFieldState s = ref _data[i];
+            s.PreviousValue = s.CurrentValue;
             float mu = globalDrift ?? s.Drift, sigma = globalDiffusion ?? s.Diffusion;
             float dW = NextGaussian() * sqrtDt, dW2 = dW * dW;
             switch (s.ProcessType)
             {
-                case StochasticProcessType.GeometricBrownian: s.CurrentValue = GBMMilstein(s.CurrentValue, mu, sigma, dt, dW, dW2); break;
-                case StochasticProcessType.OrnsteinUhlenbeck: float theta = s.MeanReversionSpeed > 0 ? s.MeanReversionSpeed : mu; s.CurrentValue = OUEuler(s.CurrentValue, s.Mean, theta, sigma, dt, dW); break;
-                case StochasticProcessType.Poisson: float lambda = MathF.Max(0.0001f, mu * s.CurrentValue * dt); s.CurrentValue += NextPoisson(lambda); break;
-                case StochasticProcessType.JumpDiffusion: s.CurrentValue = JumpDiffMilstein(s.CurrentValue, mu, sigma, s.JumpIntensity > 0 ? s.JumpIntensity : 0.1f, dt, dW, dW2); break;
-                case StochasticProcessType.FractionalBrownian: s.CurrentValue = FBMEuler(s.CurrentValue, mu, sigma, s.HurstExponent > 0 ? s.HurstExponent : 0.5f, dt, dW, ref s.FractionalMemory); break;
+                case StochasticProcessType.GeometricBrownian:
+                    s.CurrentValue = GBMMilstein(s.CurrentValue, mu, sigma, dt, dW, dW2);
+                    break;
+                case StochasticProcessType.OrnsteinUhlenbeck:
+                    float theta = s.MeanReversionSpeed > 0 ? s.MeanReversionSpeed : mu;
+                    s.CurrentValue = OUEuler(s.CurrentValue, s.Mean, theta, sigma, dt, dW);
+                    break;
+                case StochasticProcessType.Poisson:
+                    float lambda = MathF.Max(0.0001f, mu * s.CurrentValue * dt);
+                    s.CurrentValue += NextPoisson(lambda);
+                    break;
+                case StochasticProcessType.JumpDiffusion:
+                    s.CurrentValue = JumpDiffMilstein(s.CurrentValue, mu, sigma, s.JumpIntensity > 0 ? s.JumpIntensity : 0.1f, dt, dW, dW2);
+                    break;
+                case StochasticProcessType.FractionalBrownian:
+                    s.CurrentValue = FBMEuler(s.CurrentValue, mu, sigma, s.HurstExponent > 0 ? s.HurstExponent : 0.5f, dt, dW, ref s.FractionalMemory);
+                    break;
             }
             s.Variance = 0.99f * s.Variance + 0.01f * sigma * sigma * dt;
             s.Entropy = MathF.Log(1.0f + s.Variance);
         }
-        _currentTime += dt; _stepCount++;
+        _currentTime += dt;
+        _stepCount++;
     }
 
     // ── Runge-Kutta-Maruyama ──────────────────────────────────────────────
@@ -861,10 +928,13 @@ public sealed unsafe class StochasticField : IDisposable
     /// <summary>Advances field by 2-stage Runge-Kutta-Maruyama step.</summary>
     public void StepRungeKuttaMaruyama(float dt, float? globalDrift = null, float? globalDiffusion = null)
     {
-        _timeStep = dt; int total = TotalCells; float sqrtDt = MathF.Sqrt(dt);
+        _timeStep = dt;
+        int total = TotalCells;
+        float sqrtDt = MathF.Sqrt(dt);
         for (int i = 0; i < total; i++)
         {
-            ref StochasticFieldState s = ref _data[i]; s.PreviousValue = s.CurrentValue;
+            ref StochasticFieldState s = ref _data[i];
+            s.PreviousValue = s.CurrentValue;
             float mu = globalDrift ?? s.Drift, sigma = globalDiffusion ?? s.Diffusion;
             float dW1 = NextGaussian() * sqrtDt, dW2 = NextGaussian() * sqrtDt;
             float avgDW = 0.5f * (dW1 + dW2), x = s.CurrentValue;
@@ -880,7 +950,9 @@ public sealed unsafe class StochasticField : IDisposable
                     float d1 = theta * (s.Mean - x), xM = x + d1 * dt + sigma * dW1, d2 = theta * (s.Mean - xM);
                     s.CurrentValue = x + 0.5f * (d1 + d2) * dt + sigma * avgDW;
                     break;
-                case StochasticProcessType.Poisson: s.CurrentValue += NextPoisson(MathF.Max(0.0001f, mu * x * dt)); break;
+                case StochasticProcessType.Poisson:
+                    s.CurrentValue += NextPoisson(MathF.Max(0.0001f, mu * x * dt));
+                    break;
                 case StochasticProcessType.JumpDiffusion:
                     float jd1 = mu * x, js1 = sigma * x, xJ = x + jd1 * dt + js1 * dW1;
                     float jd2 = mu * xJ, js2 = sigma * xJ;
@@ -888,12 +960,15 @@ public sealed unsafe class StochasticField : IDisposable
                     if (NextPoisson((s.JumpIntensity > 0 ? s.JumpIntensity : 0.1f) * dt) > 0)
                         s.CurrentValue += NextGaussian() * sigma * MathF.Abs(s.CurrentValue);
                     break;
-                default: s.CurrentValue = x + mu * dt + sigma * avgDW; break;
+                default:
+                    s.CurrentValue = x + mu * dt + sigma * avgDW;
+                    break;
             }
             s.Variance = 0.99f * s.Variance + 0.01f * sigma * sigma * dt;
             s.Entropy = MathF.Log(1.0f + s.Variance);
         }
-        _currentTime += dt; _stepCount++;
+        _currentTime += dt;
+        _stepCount++;
     }
 
     // ── Stratonovich ──────────────────────────────────────────────────────
@@ -901,10 +976,13 @@ public sealed unsafe class StochasticField : IDisposable
     /// <summary>Advances field using Stratonovich interpretation (corrected drift).</summary>
     public void StepStratonovich(float dt, float? globalDrift = null, float? globalDiffusion = null)
     {
-        _timeStep = dt; int total = TotalCells; float sqrtDt = MathF.Sqrt(dt);
+        _timeStep = dt;
+        int total = TotalCells;
+        float sqrtDt = MathF.Sqrt(dt);
         for (int i = 0; i < total; i++)
         {
-            ref StochasticFieldState s = ref _data[i]; s.PreviousValue = s.CurrentValue;
+            ref StochasticFieldState s = ref _data[i];
+            s.PreviousValue = s.CurrentValue;
             float mu = globalDrift ?? s.Drift, sigma = globalDiffusion ?? s.Diffusion;
             float dW = NextGaussian() * sqrtDt;
             switch (s.ProcessType)
@@ -922,14 +1000,18 @@ public sealed unsafe class StochasticField : IDisposable
                 case StochasticProcessType.JumpDiffusion:
                     float itoD = mu + 0.5f * sigma * sigma;
                     s.CurrentValue = MathF.Max(s.CurrentValue * MathF.Exp((itoD - 0.5f * sigma * sigma) * dt + sigma * dW), 1e-10f);
-                    if (NextPoisson(0.1f * dt) > 0) s.CurrentValue += NextGaussian() * sigma * MathF.Abs(s.CurrentValue);
+                    if (NextPoisson(0.1f * dt) > 0)
+                        s.CurrentValue += NextGaussian() * sigma * MathF.Abs(s.CurrentValue);
                     break;
-                default: s.CurrentValue += mu * dt + sigma * dW; break;
+                default:
+                    s.CurrentValue += mu * dt + sigma * dW;
+                    break;
             }
             s.Variance = 0.99f * s.Variance + 0.01f * sigma * sigma * dt;
             s.Entropy = MathF.Log(1.0f + s.Variance);
         }
-        _currentTime += dt; _stepCount++;
+        _currentTime += dt;
+        _stepCount++;
     }
 
     // ── Unified Step ──────────────────────────────────────────────────────
@@ -939,11 +1021,21 @@ public sealed unsafe class StochasticField : IDisposable
     {
         switch (scheme)
         {
-            case SDEScheme.EulerMaruyama: StepEulerMaruyama(dt, globalDrift, globalDiffusion); break;
-            case SDEScheme.Milstein: StepMilstein(dt, globalDrift, globalDiffusion); break;
-            case SDEScheme.RungeKuttaMaruyama: StepRungeKuttaMaruyama(dt, globalDrift, globalDiffusion); break;
-            case SDEScheme.Stratonovich: StepStratonovich(dt, globalDrift, globalDiffusion); break;
-            default: StepEulerMaruyama(dt, globalDrift, globalDiffusion); break;
+            case SDEScheme.EulerMaruyama:
+                StepEulerMaruyama(dt, globalDrift, globalDiffusion);
+                break;
+            case SDEScheme.Milstein:
+                StepMilstein(dt, globalDrift, globalDiffusion);
+                break;
+            case SDEScheme.RungeKuttaMaruyama:
+                StepRungeKuttaMaruyama(dt, globalDrift, globalDiffusion);
+                break;
+            case SDEScheme.Stratonovich:
+                StepStratonovich(dt, globalDrift, globalDiffusion);
+                break;
+            default:
+                StepEulerMaruyama(dt, globalDrift, globalDiffusion);
+                break;
         }
     }
 
@@ -953,29 +1045,35 @@ public sealed unsafe class StochasticField : IDisposable
     public void PropagateCorrelation(float couplingStrength)
     {
         int total = TotalCells;
-        for (int i = 0; i < total; i++) _scratchBuffer[i] = _data[i].CurrentValue;
-        for (int z = 1; z < _resZ - 1; z++) for (int y = 1; y < _resY - 1; y++) for (int x = 1; x < _resX - 1; x++)
-        {
-            int idx = (z * _resY + y) * _resX + x;
-            float c = _scratchBuffer[idx];
-            float avg = (_scratchBuffer[idx - 1] + _scratchBuffer[idx + 1] + _scratchBuffer[idx - _resX] + _scratchBuffer[idx + _resX] + _scratchBuffer[idx - _resX * _resY] + _scratchBuffer[idx + _resX * _resY]) / 6.0f;
-            _data[idx].CurrentValue = c + couplingStrength * (avg - c);
-            _data[idx].Correlation = 1.0f - MathF.Abs(c - avg) / (MathF.Abs(c) + 1e-6f);
-        }
+        for (int i = 0; i < total; i++)
+            _scratchBuffer[i] = _data[i].CurrentValue;
+        for (int z = 1; z < _resZ - 1; z++)
+            for (int y = 1; y < _resY - 1; y++)
+                for (int x = 1; x < _resX - 1; x++)
+                {
+                    int idx = (z * _resY + y) * _resX + x;
+                    float c = _scratchBuffer[idx];
+                    float avg = (_scratchBuffer[idx - 1] + _scratchBuffer[idx + 1] + _scratchBuffer[idx - _resX] + _scratchBuffer[idx + _resX] + _scratchBuffer[idx - _resX * _resY] + _scratchBuffer[idx + _resX * _resY]) / 6.0f;
+                    _data[idx].CurrentValue = c + couplingStrength * (avg - c);
+                    _data[idx].Correlation = 1.0f - MathF.Abs(c - avg) / (MathF.Abs(c) + 1e-6f);
+                }
     }
 
     /// <summary>Anisotropic Laplacian coupling with different rates per axis.</summary>
     public void PropagateAnisotropicCorrelation(float couplingX, float couplingY, float couplingZ)
     {
         int total = TotalCells;
-        for (int i = 0; i < total; i++) _scratchBuffer[i] = _data[i].CurrentValue;
-        for (int z = 1; z < _resZ - 1; z++) for (int y = 1; y < _resY - 1; y++) for (int x = 1; x < _resX - 1; x++)
-        {
-            int idx = (z * _resY + y) * _resX + x;
-            float c = _scratchBuffer[idx];
-            float lap = couplingX * (_scratchBuffer[idx - 1] + _scratchBuffer[idx + 1] - 2 * c) + couplingY * (_scratchBuffer[idx - _resX] + _scratchBuffer[idx + _resX] - 2 * c) + couplingZ * (_scratchBuffer[idx - _resX * _resY] + _scratchBuffer[idx + _resX * _resY] - 2 * c);
-            _data[idx].CurrentValue = c + 0.5f * lap;
-        }
+        for (int i = 0; i < total; i++)
+            _scratchBuffer[i] = _data[i].CurrentValue;
+        for (int z = 1; z < _resZ - 1; z++)
+            for (int y = 1; y < _resY - 1; y++)
+                for (int x = 1; x < _resX - 1; x++)
+                {
+                    int idx = (z * _resY + y) * _resX + x;
+                    float c = _scratchBuffer[idx];
+                    float lap = couplingX * (_scratchBuffer[idx - 1] + _scratchBuffer[idx + 1] - 2 * c) + couplingY * (_scratchBuffer[idx - _resX] + _scratchBuffer[idx + _resX] - 2 * c) + couplingZ * (_scratchBuffer[idx - _resX * _resY] + _scratchBuffer[idx + _resX * _resY] - 2 * c);
+                    _data[idx].CurrentValue = c + 0.5f * lap;
+                }
     }
 
     /// <summary>Gaussian-weighted spatial correlation.</summary>
@@ -983,21 +1081,26 @@ public sealed unsafe class StochasticField : IDisposable
     {
         int total = TotalCells, radius = (int)MathF.Ceiling(correlationLength * 2.0f);
         float sigma2 = 2.0f * correlationLength * correlationLength;
-        for (int i = 0; i < total; i++) _scratchBuffer[i] = _data[i].CurrentValue;
-        for (int z = radius; z < _resZ - radius; z++) for (int y = radius; y < _resY - radius; y++) for (int x = radius; x < _resX - radius; x++)
-        {
-            int idx = (z * _resY + y) * _resX + x;
-            float centerVal = _scratchBuffer[idx], weightedSum = 0, weightSum = 0;
-            for (int dz = -radius; dz <= radius; dz++) for (int dy = -radius; dy <= radius; dy++) for (int dx = -radius; dx <= radius; dx++)
-            {
-                float dist2 = (float)(dx * dx + dy * dy + dz * dz);
-                float w = MathF.Exp(-dist2 / sigma2);
-                weightedSum += w * _scratchBuffer[((z + dz) * _resY + (y + dy)) * _resX + (x + dx)];
-                weightSum += w;
-            }
-            _data[idx].CurrentValue = weightedSum / (weightSum + 1e-10f);
-            _data[idx].Correlation = 1.0f - MathF.Abs(centerVal - _data[idx].CurrentValue) / (MathF.Abs(centerVal) + 1e-6f);
-        }
+        for (int i = 0; i < total; i++)
+            _scratchBuffer[i] = _data[i].CurrentValue;
+        for (int z = radius; z < _resZ - radius; z++)
+            for (int y = radius; y < _resY - radius; y++)
+                for (int x = radius; x < _resX - radius; x++)
+                {
+                    int idx = (z * _resY + y) * _resX + x;
+                    float centerVal = _scratchBuffer[idx], weightedSum = 0, weightSum = 0;
+                    for (int dz = -radius; dz <= radius; dz++)
+                        for (int dy = -radius; dy <= radius; dy++)
+                            for (int dx = -radius; dx <= radius; dx++)
+                            {
+                                float dist2 = (float)(dx * dx + dy * dy + dz * dz);
+                                float w = MathF.Exp(-dist2 / sigma2);
+                                weightedSum += w * _scratchBuffer[((z + dz) * _resY + (y + dy)) * _resX + (x + dx)];
+                                weightSum += w;
+                            }
+                    _data[idx].CurrentValue = weightedSum / (weightSum + 1e-10f);
+                    _data[idx].Correlation = 1.0f - MathF.Abs(centerVal - _data[idx].CurrentValue) / (MathF.Abs(centerVal) + 1e-6f);
+                }
     }
 
     // ── Statistics ────────────────────────────────────────────────────────
@@ -1011,12 +1114,17 @@ public sealed unsafe class StochasticField : IDisposable
         { float v = _data[i].CurrentValue; minVal = MathF.Min(minVal, v); maxVal = MathF.Max(maxVal, v); sum += v; sumSq += v * v; sum4th += v * v * v * v; }
         float mean = sum / total, variance = sumSq / total - mean * mean, stdDev = MathF.Sqrt(MathF.Max(variance, 0));
         float skewness = 0, kurtosis = 0;
-        if (stdDev > 1e-10f) { float invStd = 1 / stdDev, sumSkew = 0; for (int i = 0; i < total; i++) { float z = (_data[i].CurrentValue - mean) * invStd; sumSkew += z * z * z; } skewness = sumSkew / total; kurtosis = sum4th / (variance * variance + 1e-20f) - 3.0f; }
-        float entropy = 0; for (int i = 0; i < total; i++) { float p = MathF.Abs(_data[i].CurrentValue) / (sum + 1e-10f); if (p > 1e-10f) entropy -= p * MathF.Log(p); }
+        if (stdDev > 1e-10f)
+        { float invStd = 1 / stdDev, sumSkew = 0; for (int i = 0; i < total; i++) { float z = (_data[i].CurrentValue - mean) * invStd; sumSkew += z * z * z; } skewness = sumSkew / total; kurtosis = sum4th / (variance * variance + 1e-20f) - 3.0f; }
+        float entropy = 0;
+        for (int i = 0; i < total; i++)
+        { float p = MathF.Abs(_data[i].CurrentValue) / (sum + 1e-10f); if (p > 1e-10f) entropy -= p * MathF.Log(p); }
         Span<float> values = stackalloc float[Math.Min(total, 10000)];
         int sampleCount = Math.Min(total, 10000), step = Math.Max(1, total / sampleCount);
-        for (int i = 0; i < sampleCount; i++) values[i] = _data[i * step].CurrentValue;
-        values.Sort(); float median = values[values.Length / 2], q1 = values[values.Length / 4], q3 = values[3 * values.Length / 4];
+        for (int i = 0; i < sampleCount; i++)
+            values[i] = _data[i * step].CurrentValue;
+        values.Sort();
+        float median = values[values.Length / 2], q1 = values[values.Length / 4], q3 = values[3 * values.Length / 4];
         return new StochasticFieldStats { ProcessType = _processType, TotalCells = total, MinValue = minVal, MaxValue = maxVal, Mean = mean, Variance = variance, StdDev = stdDev, Skewness = skewness, Kurtosis = kurtosis, Entropy = entropy, TimeStep = _currentTime, Sum = sum, SumOfSquares = sumSq, Median = median, IQR = q3 - q1 };
     }
 
@@ -1024,9 +1132,12 @@ public sealed unsafe class StochasticField : IDisposable
     public (float Gx, float Gy, float Gz) ComputeGradient(int x, int y, int z)
     {
         float gx = 0, gy = 0, gz = 0;
-        if (x > 0 && x < _resX - 1) gx = (_data[Index(x + 1, y, z)].CurrentValue - _data[Index(x - 1, y, z)].CurrentValue) / (2 * _spacingX);
-        if (y > 0 && y < _resY - 1) gy = (_data[Index(x, y + 1, z)].CurrentValue - _data[Index(x, y - 1, z)].CurrentValue) / (2 * _spacingY);
-        if (z > 0 && z < _resZ - 1) gz = (_data[Index(x, y, z + 1)].CurrentValue - _data[Index(x, y, z - 1)].CurrentValue) / (2 * _spacingZ);
+        if (x > 0 && x < _resX - 1)
+            gx = (_data[Index(x + 1, y, z)].CurrentValue - _data[Index(x - 1, y, z)].CurrentValue) / (2 * _spacingX);
+        if (y > 0 && y < _resY - 1)
+            gy = (_data[Index(x, y + 1, z)].CurrentValue - _data[Index(x, y - 1, z)].CurrentValue) / (2 * _spacingY);
+        if (z > 0 && z < _resZ - 1)
+            gz = (_data[Index(x, y, z + 1)].CurrentValue - _data[Index(x, y, z - 1)].CurrentValue) / (2 * _spacingZ);
         return (gx, gy, gz);
     }
 
@@ -1034,9 +1145,12 @@ public sealed unsafe class StochasticField : IDisposable
     public float ComputeLaplacian(int x, int y, int z)
     {
         float c = _data[Index(x, y, z)].CurrentValue, lapX = 0, lapY = 0, lapZ = 0;
-        if (x > 0 && x < _resX - 1) lapX = (_data[Index(x + 1, y, z)].CurrentValue + _data[Index(x - 1, y, z)].CurrentValue - 2 * c) / (_spacingX * _spacingX);
-        if (y > 0 && y < _resY - 1) lapY = (_data[Index(x, y + 1, z)].CurrentValue + _data[Index(x, y - 1, z)].CurrentValue - 2 * c) / (_spacingY * _spacingY);
-        if (z > 0 && z < _resZ - 1) lapZ = (_data[Index(x, y, z + 1)].CurrentValue + _data[Index(x, y, z - 1)].CurrentValue - 2 * c) / (_spacingZ * _spacingZ);
+        if (x > 0 && x < _resX - 1)
+            lapX = (_data[Index(x + 1, y, z)].CurrentValue + _data[Index(x - 1, y, z)].CurrentValue - 2 * c) / (_spacingX * _spacingX);
+        if (y > 0 && y < _resY - 1)
+            lapY = (_data[Index(x, y + 1, z)].CurrentValue + _data[Index(x, y - 1, z)].CurrentValue - 2 * c) / (_spacingY * _spacingY);
+        if (z > 0 && z < _resZ - 1)
+            lapZ = (_data[Index(x, y, z + 1)].CurrentValue + _data[Index(x, y, z - 1)].CurrentValue - 2 * c) / (_spacingZ * _spacingZ);
         return lapX + lapY + lapZ;
     }
 
@@ -1047,11 +1161,13 @@ public sealed unsafe class StochasticField : IDisposable
     /// <summary>Computes divergence of vector field.</summary>
     public void ComputeDivergence(float* vx, float* vy, float* vz, float* output)
     {
-        for (int z = 1; z < _resZ - 1; z++) for (int y = 1; y < _resY - 1; y++) for (int x = 1; x < _resX - 1; x++)
-        {
-            int idx = Index(x, y, z);
-            output[idx] = (vx[Index(x + 1, y, z)] - vx[Index(x - 1, y, z)]) / (2 * _spacingX) + (vy[Index(x, y + 1, z)] - vy[Index(x, y - 1, z)]) / (2 * _spacingY) + (vz[Index(x, y, z + 1)] - vz[Index(x, y, z - 1)]) / (2 * _spacingZ);
-        }
+        for (int z = 1; z < _resZ - 1; z++)
+            for (int y = 1; y < _resY - 1; y++)
+                for (int x = 1; x < _resX - 1; x++)
+                {
+                    int idx = Index(x, y, z);
+                    output[idx] = (vx[Index(x + 1, y, z)] - vx[Index(x - 1, y, z)]) / (2 * _spacingX) + (vy[Index(x, y + 1, z)] - vy[Index(x, y - 1, z)]) / (2 * _spacingY) + (vz[Index(x, y, z + 1)] - vz[Index(x, y, z - 1)]) / (2 * _spacingZ);
+                }
     }
 
     // ── Markov Chain Step ─────────────────────────────────────────────────
@@ -1062,13 +1178,20 @@ public sealed unsafe class StochasticField : IDisposable
         int total = TotalCells;
         for (int i = 0; i < total; i++)
         {
-            ref StochasticFieldState s = ref _data[i]; s.PreviousValue = s.CurrentValue;
+            ref StochasticFieldState s = ref _data[i];
+            s.PreviousValue = s.CurrentValue;
             int currentState = Math.Clamp(s.MarkovState, 0, numStates - 1);
-            float u = (float)_rng.NextDouble(), cumProb = 0; int newState = currentState;
-            for (int j = 0; j < numStates; j++) { cumProb += transitionMatrix[currentState * numStates + j]; if (u <= cumProb) { newState = j; break; } }
-            s.MarkovState = newState; s.CurrentValue = (float)newState / (numStates - 1); s.Mean = s.CurrentValue; s.Variance = 0;
+            float u = (float)_rng.NextDouble(), cumProb = 0;
+            int newState = currentState;
+            for (int j = 0; j < numStates; j++)
+            { cumProb += transitionMatrix[currentState * numStates + j]; if (u <= cumProb) { newState = j; break; } }
+            s.MarkovState = newState;
+            s.CurrentValue = (float)newState / (numStates - 1);
+            s.Mean = s.CurrentValue;
+            s.Variance = 0;
         }
-        _currentTime += _timeStep; _stepCount++;
+        _currentTime += _timeStep;
+        _stepCount++;
     }
 
     // ── Internal Helpers ──────────────────────────────────────────────────
@@ -1080,28 +1203,40 @@ public sealed unsafe class StochasticField : IDisposable
     {
         float result = x * MathF.Exp((mu - 0.5f * sigma * sigma) * dt + sigma * dW);
         int jumps = NextPoisson(jumpLambda * dt);
-        for (int j = 0; j < jumps; j++) result += NextGaussian() * sigma * MathF.Abs(x) * 0.5f;
+        for (int j = 0; j < jumps; j++)
+            result += NextGaussian() * sigma * MathF.Abs(x) * 0.5f;
         return MathF.Max(result, 1e-10f);
     }
     private float JumpDiffMilstein(float x, float mu, float sigma, float jumpLambda, float dt, float dW, float dW2)
     {
         float result = x * MathF.Exp((mu - 0.5f * sigma * sigma) * dt + sigma * dW);
         int jumps = NextPoisson(jumpLambda * dt);
-        for (int j = 0; j < jumps; j++) result += NextGaussian() * sigma * MathF.Abs(x) * 0.5f;
+        for (int j = 0; j < jumps; j++)
+            result += NextGaussian() * sigma * MathF.Abs(x) * 0.5f;
         return MathF.Max(result, 1e-10f);
     }
     private static float FBMEuler(float x, float mu, float sigma, float H, float dt, float dW, ref float memory)
     {
-        float inc = dW * MathF.Pow(dt, H - 0.5f); memory = 0.5f * memory + 0.5f * inc;
+        float inc = dW * MathF.Pow(dt, H - 0.5f);
+        memory = 0.5f * memory + 0.5f * inc;
         return x + mu * x * dt + sigma * (0.7f * dW + 0.3f * memory);
     }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] private float NextGaussian()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private float NextGaussian()
     { float u1 = 1f - (float)_rng.NextDouble(), u2 = 1f - (float)_rng.NextDouble(); return MathF.Sqrt(-2f * MathF.Log(u1)) * MathF.Sin(2f * MathF.PI * u2); }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] private int NextPoisson(float lambda)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int NextPoisson(float lambda)
     {
-        if (lambda <= 0) return 0;
-        if (lambda > 30) { float n = NextGaussian(); return Math.Max(0, (int)(lambda + MathF.Sqrt(lambda) * n + 0.5f)); }
-        float L = MathF.Exp(-lambda); int k = 0; float p = 1; do { k++; p *= (float)_rng.NextDouble(); } while (p > L); return k - 1;
+        if (lambda <= 0)
+            return 0;
+        if (lambda > 30)
+        { float n = NextGaussian(); return Math.Max(0, (int)(lambda + MathF.Sqrt(lambda) * n + 0.5f)); }
+        float L = MathF.Exp(-lambda);
+        int k = 0;
+        float p = 1;
+        do
+        { k++; p *= (float)_rng.NextDouble(); } while (p > L);
+        return k - 1;
     }
     private static StochasticFieldState LerpTrilinear(StochasticFieldState s000, StochasticFieldState s100, StochasticFieldState s010, StochasticFieldState s110, StochasticFieldState s001, StochasticFieldState s101, StochasticFieldState s011, StochasticFieldState s111, float tx, float ty, float tz)
     {
@@ -1115,11 +1250,18 @@ public sealed unsafe class StochasticField : IDisposable
     /// <summary>Frees all unmanaged memory.</summary>
     public void Dispose()
     {
-        if (_disposed) return;
-        if (_data != null) NativeMemory.AlignedFree(_data);
-        if (_scratchBuffer != null) NativeMemory.AlignedFree(_scratchBuffer);
-        if (_correlationBuffer != null) NativeMemory.AlignedFree(_correlationBuffer);
-        _data = null; _scratchBuffer = null; _correlationBuffer = null; _disposed = true;
+        if (_disposed)
+            return;
+        if (_data != null)
+            NativeMemory.AlignedFree(_data);
+        if (_scratchBuffer != null)
+            NativeMemory.AlignedFree(_scratchBuffer);
+        if (_correlationBuffer != null)
+            NativeMemory.AlignedFree(_correlationBuffer);
+        _data = null;
+        _scratchBuffer = null;
+        _correlationBuffer = null;
+        _disposed = true;
     }
 }
 
@@ -1168,8 +1310,11 @@ public sealed class GeometricBrownianMotion : IStochasticProcess
     /// <summary>Generates an exact path from 0 to T.</summary>
     public StochasticPath GeneratePath(float T, int steps, Random rng)
     {
-        var path = new StochasticPath(steps + 1); float dt = T / steps;
-        path.Times[0] = 0; path.Values[0] = _x0; float x = _x0;
+        var path = new StochasticPath(steps + 1);
+        float dt = T / steps;
+        path.Times[0] = 0;
+        path.Values[0] = _x0;
+        float x = _x0;
         for (int i = 1; i <= steps; i++)
         { float dW = MathF.Sqrt(dt) * NormalSample(rng); x = x * MathF.Exp((_mu - 0.5f * _sigma * _sigma) * dt + _sigma * dW); path.Times[i] = i * dt; path.Values[i] = MathF.Max(x, 1e-10f); }
         return path;
@@ -1210,15 +1355,19 @@ public sealed class OrnsteinUhlenbeckProcess : IStochasticProcess
     /// <summary>Generates exact path using stationary transition kernel.</summary>
     public StochasticPath GeneratePath(float T, int steps, Random rng)
     {
-        var path = new StochasticPath(steps + 1); float dt = T / steps;
-        path.Times[0] = 0; path.Values[0] = _x0; float x = _x0;
+        var path = new StochasticPath(steps + 1);
+        float dt = T / steps;
+        path.Times[0] = 0;
+        path.Values[0] = _x0;
+        float x = _x0;
         for (int i = 1; i <= steps; i++)
         {
             float expThetaDt = MathF.Exp(-_theta * dt);
             float mean = _mu + (x - _mu) * expThetaDt;
             float variance = _sigma * _sigma / (2 * _theta) * (1 - expThetaDt * expThetaDt);
             x = mean + MathF.Sqrt(MathF.Max(variance, 0)) * NormalSample(rng);
-            path.Times[i] = i * dt; path.Values[i] = x;
+            path.Times[i] = i * dt;
+            path.Values[i] = x;
         }
         return path;
     }
@@ -1250,17 +1399,23 @@ public sealed class PoissonArrivalProcess : IStochasticProcess
 
     public float StepEulerMaruyama(float dt, float dW)
     {
-        int count = 0; _timeToNextEvent -= dt;
-        while (_timeToNextEvent <= 0) { count++; _timeToNextEvent += SampleExp(); }
-        _x += count; _totalTime += dt; return _x;
+        int count = 0;
+        _timeToNextEvent -= dt;
+        while (_timeToNextEvent <= 0)
+        { count++; _timeToNextEvent += SampleExp(); }
+        _x += count;
+        _totalTime += dt;
+        return _x;
     }
 
     public float StepMilstein(float dt, float dW, float dW2) => StepEulerMaruyama(dt, dW);
 
     public StochasticPath GeneratePath(float T, int steps, Random rng)
     {
-        var path = new StochasticPath(steps + 1); float dt = T / steps, x = 0, timeToNext = SampleExp(rng);
-        path.Times[0] = 0; path.Values[0] = 0;
+        var path = new StochasticPath(steps + 1);
+        float dt = T / steps, x = 0, timeToNext = SampleExp(rng);
+        path.Times[0] = 0;
+        path.Values[0] = 0;
         for (int i = 1; i <= steps; i++)
         { float t = i * dt; while (timeToNext <= t) { x += 1; timeToNext += SampleExp(rng); } path.Times[i] = t; path.Values[i] = x; }
         return path;
@@ -1296,23 +1451,30 @@ public sealed class JumpDiffusionProcess : IStochasticProcess
     {
         _x = _x * MathF.Exp((_mu - 0.5f * _sigma * _sigma) * dt + _sigma * dW);
         int numJumps = PoissonSample(_jumpIntensity * dt);
-        for (int i = 0; i < numJumps; i++) _x *= MathF.Exp(_jumpMean + _jumpStdDev * NormalSample());
-        _x = MathF.Max(_x, 1e-10f); return _x;
+        for (int i = 0; i < numJumps; i++)
+            _x *= MathF.Exp(_jumpMean + _jumpStdDev * NormalSample());
+        _x = MathF.Max(_x, 1e-10f);
+        return _x;
     }
 
     public float StepMilstein(float dt, float dW, float dW2) => StepEulerMaruyama(dt, dW);
 
     public StochasticPath GeneratePath(float T, int steps, Random rng)
     {
-        var path = new StochasticPath(steps + 1); float dt = T / steps;
-        path.Times[0] = 0; path.Values[0] = _x0; float x = _x0;
+        var path = new StochasticPath(steps + 1);
+        float dt = T / steps;
+        path.Times[0] = 0;
+        path.Values[0] = _x0;
+        float x = _x0;
         for (int i = 1; i <= steps; i++)
         {
             float dW = MathF.Sqrt(dt) * NormalSample(rng);
             x = x * MathF.Exp((_mu - 0.5f * _sigma * _sigma) * dt + _sigma * dW);
             int jumps = PoissonSample(_jumpIntensity * dt, rng);
-            for (int j = 0; j < jumps; j++) x *= MathF.Exp(_jumpMean + _jumpStdDev * NormalSample(rng));
-            path.Times[i] = i * dt; path.Values[i] = MathF.Max(x, 1e-10f);
+            for (int j = 0; j < jumps; j++)
+                x *= MathF.Exp(_jumpMean + _jumpStdDev * NormalSample(rng));
+            path.Times[i] = i * dt;
+            path.Values[i] = MathF.Max(x, 1e-10f);
         }
         return path;
     }
@@ -1346,17 +1508,23 @@ public sealed unsafe class MarkovChainProcess : IStochasticProcess
 
     public float StepEulerMaruyama(float dt, float dW)
     {
-        float u = (float)_rng.NextDouble(), cumProb = 0; int rowOffset = _currentState * _numStates;
-        for (int j = 0; j < _numStates; j++) { cumProb += _transitionMatrix[rowOffset + j]; if (u <= cumProb) { _currentState = j; return CurrentValue; } }
-        _currentState = _numStates - 1; return CurrentValue;
+        float u = (float)_rng.NextDouble(), cumProb = 0;
+        int rowOffset = _currentState * _numStates;
+        for (int j = 0; j < _numStates; j++)
+        { cumProb += _transitionMatrix[rowOffset + j]; if (u <= cumProb) { _currentState = j; return CurrentValue; } }
+        _currentState = _numStates - 1;
+        return CurrentValue;
     }
 
     public float StepMilstein(float dt, float dW, float dW2) => StepEulerMaruyama(dt, dW);
 
     public StochasticPath GeneratePath(float T, int steps, Random rng)
     {
-        var path = new StochasticPath(steps + 1); float dt = T / steps; int state = _initialState;
-        path.Times[0] = 0; path.Values[0] = state;
+        var path = new StochasticPath(steps + 1);
+        float dt = T / steps;
+        int state = _initialState;
+        path.Times[0] = 0;
+        path.Values[0] = state;
         for (int i = 1; i <= steps; i++)
         { float u = (float)rng.NextDouble(), cumProb = 0; int newState = state; for (int j = 0; j < _numStates; j++) { cumProb += _transitionMatrix[state * _numStates + j]; if (u <= cumProb) { newState = j; break; } } state = newState; path.Times[i] = i * dt; path.Values[i] = state; }
         return path;
@@ -1365,12 +1533,17 @@ public sealed unsafe class MarkovChainProcess : IStochasticProcess
     /// <summary>Stationary distribution via power iteration.</summary>
     public float[] StationaryDistribution(int maxIter = 1000, float tolerance = 1e-8f)
     {
-        float[] pi = new float[_numStates], piNew = new float[_numStates]; pi[0] = 1;
+        float[] pi = new float[_numStates], piNew = new float[_numStates];
+        pi[0] = 1;
         for (int iter = 0; iter < maxIter; iter++)
         {
-            for (int j = 0; j < _numStates; j++) { float sum = 0; for (int i = 0; i < _numStates; i++) sum += pi[i] * _transitionMatrix[i * _numStates + j]; piNew[j] = sum; }
-            float diff = 0; for (int j = 0; j < _numStates; j++) { diff += MathF.Abs(piNew[j] - pi[j]); pi[j] = piNew[j]; }
-            if (diff < tolerance) break;
+            for (int j = 0; j < _numStates; j++)
+            { float sum = 0; for (int i = 0; i < _numStates; i++) sum += pi[i] * _transitionMatrix[i * _numStates + j]; piNew[j] = sum; }
+            float diff = 0;
+            for (int j = 0; j < _numStates; j++)
+            { diff += MathF.Abs(piNew[j] - pi[j]); pi[j] = piNew[j]; }
+            if (diff < tolerance)
+                break;
         }
         return pi;
     }
@@ -1401,10 +1574,13 @@ public sealed class FractionalBrownianMotionProcess : IStochasticProcess
     {
         float H = _hurst, memoryWeight = MathF.Pow(dt, H - 0.5f), memoryContrib = 0;
         int count = Math.Min(_incrementIndex, _maxMemory);
-        for (int i = 0; i < count; i++) { float lag = count - i; memoryContrib += _pastIncrements[i] * MathF.Pow(lag, 2 * H - 2); }
+        for (int i = 0; i < count; i++)
+        { float lag = count - i; memoryContrib += _pastIncrements[i] * MathF.Pow(lag, 2 * H - 2); }
         float increment = dW * memoryWeight + 0.1f * memoryContrib * dt;
-        _pastIncrements[_incrementIndex % _maxMemory] = dW; _incrementIndex++;
-        _x += _sigma * increment; return _x;
+        _pastIncrements[_incrementIndex % _maxMemory] = dW;
+        _incrementIndex++;
+        _x += _sigma * increment;
+        return _x;
     }
 
     public float StepMilstein(float dt, float dW, float dW2) => StepEulerMaruyama(dt, dW);
@@ -1413,20 +1589,26 @@ public sealed class FractionalBrownianMotionProcess : IStochasticProcess
     public StochasticPath GeneratePath(float T, int steps, Random rng)
     {
         float dt = T / steps;
-        var path = new StochasticPath(steps + 1); path.Times[0] = 0; path.Values[0] = 0;
+        var path = new StochasticPath(steps + 1);
+        path.Times[0] = 0;
+        path.Values[0] = 0;
         float[] z = new float[steps];
         for (int i = 0; i < steps; i++)
         { float u1 = 1f - (float)rng.NextDouble(), u2 = 1f - (float)rng.NextDouble(); z[i] = MathF.Sqrt(-2f * MathF.Log(u1)) * MathF.Sin(2f * MathF.PI * u2); }
         float[] rho = new float[steps + 1];
-        for (int k = 0; k <= steps; k++) rho[k] = 0.5f * (MathF.Pow(k + 1, 2 * _hurst) - 2 * MathF.Pow(k, 2 * _hurst) + MathF.Pow(MathF.Max(k - 1, 0), 2 * _hurst));
+        for (int k = 0; k <= steps; k++)
+            rho[k] = 0.5f * (MathF.Pow(k + 1, 2 * _hurst) - 2 * MathF.Pow(k, 2 * _hurst) + MathF.Pow(MathF.Max(k - 1, 0), 2 * _hurst));
         float x = 0;
         for (int n = 0; n < steps; n++)
         {
             float condMean = 0, condVar = 1;
-            if (n > 0) for (int j = 0; j < n; j++) { float phi = rho[n - j] / MathF.Max(rho[0], 1e-10f); condMean += phi * z[j]; condVar -= phi * phi; }
+            if (n > 0)
+                for (int j = 0; j < n; j++)
+                { float phi = rho[n - j] / MathF.Max(rho[0], 1e-10f); condMean += phi * z[j]; condVar -= phi * phi; }
             condVar = MathF.Sqrt(MathF.Max(condVar, 1e-10f));
             x = _sigma * (condMean + condVar * z[n]);
-            path.Values[n + 1] = x; path.Times[n + 1] = (n + 1) * dt;
+            path.Values[n + 1] = x;
+            path.Times[n + 1] = (n + 1) * dt;
         }
         return path;
     }
@@ -1462,8 +1644,11 @@ public sealed class StochasticDifferentialSolver
     /// <summary>Solves SDE and returns full path.</summary>
     public StochasticPath SolveEulerMaruyamaPath(DriftFunction drift, DiffusionFunction diffusion, float x0, float T, int N)
     {
-        var path = new StochasticPath(N + 1); float dt = T / N;
-        path.Times[0] = 0; path.Values[0] = x0; float x = x0;
+        var path = new StochasticPath(N + 1);
+        float dt = T / N;
+        path.Times[0] = 0;
+        path.Values[0] = x0;
+        float x = x0;
         for (int i = 0; i < N; i++)
         { float t = i * dt; x += drift(x, t) * dt + diffusion(x, t) * MathF.Sqrt(dt) * NormalSample(); path.Times[i + 1] = (i + 1) * dt; path.Values[i + 1] = x; }
         return path;
@@ -1481,8 +1666,11 @@ public sealed class StochasticDifferentialSolver
     /// <summary>Solves via Milstein, returns full path.</summary>
     public StochasticPath SolveMilsteinPath(DriftFunction drift, DiffusionFunction diffusion, DiffusionDerivative diffDeriv, float x0, float T, int N)
     {
-        var path = new StochasticPath(N + 1); float dt = T / N, sqrtDt = MathF.Sqrt(dt);
-        path.Times[0] = 0; path.Values[0] = x0; float x = x0;
+        var path = new StochasticPath(N + 1);
+        float dt = T / N, sqrtDt = MathF.Sqrt(dt);
+        path.Times[0] = 0;
+        path.Values[0] = x0;
+        float x = x0;
         for (int i = 0; i < N; i++)
         { float t = i * dt, dW = sqrtDt * NormalSample(); x += drift(x, t) * dt + diffusion(x, t) * dW + 0.5f * diffusion(x, t) * diffDeriv(x, t) * (dW * dW - dt); path.Times[i + 1] = (i + 1) * dt; path.Values[i + 1] = x; }
         return path;
@@ -1515,7 +1703,8 @@ public sealed class StochasticDifferentialSolver
             refTerminals[p] = scheme switch { SDEScheme.Milstein when diffDeriv != null => SolveMilstein(drift, diffusion, diffDeriv, x0, T, fineN), SDEScheme.RungeKuttaMaruyama => SolveRungeKuttaMaruyama(drift, diffusion, x0, T, fineN), _ => SolveEulerMaruyama(drift, diffusion, x0, T, fineN) };
         for (int s = 0; s < numStepsArray.Length; s++)
         {
-            int N = numStepsArray[s]; dtValues[s] = T / N;
+            int N = numStepsArray[s];
+            dtValues[s] = T / N;
             float sumError = 0;
             for (int p = 0; p < numMCPaths; p++)
             { float approx = scheme switch { SDEScheme.Milstein when diffDeriv != null => SolveMilstein(drift, diffusion, diffDeriv, x0, T, N), SDEScheme.RungeKuttaMaruyama => SolveRungeKuttaMaruyama(drift, diffusion, x0, T, N), _ => SolveEulerMaruyama(drift, diffusion, x0, T, N) }; sumError += MathF.Abs(approx - refTerminals[p]); }
@@ -1537,11 +1726,17 @@ public sealed class StochasticDifferentialSolver
         float[] refTerminals = new float[numMCPaths];
         for (int p = 0; p < numMCPaths; p++)
             refTerminals[p] = SolveEulerMaruyama(drift, diffusion, x0, T, fineN);
-        float refMean = 0; for (int p = 0; p < numMCPaths; p++) refMean += refTerminals[p]; refMean /= numMCPaths;
+        float refMean = 0;
+        for (int p = 0; p < numMCPaths; p++)
+            refMean += refTerminals[p];
+        refMean /= numMCPaths;
         for (int s = 0; s < numStepsArray.Length; s++)
         {
-            int N = numStepsArray[s]; dtValues[s] = T / N;
-            float sum = 0; for (int p = 0; p < numMCPaths; p++) sum += SolveEulerMaruyama(drift, diffusion, x0, T, N);
+            int N = numStepsArray[s];
+            dtValues[s] = T / N;
+            float sum = 0;
+            for (int p = 0; p < numMCPaths; p++)
+                sum += SolveEulerMaruyama(drift, diffusion, x0, T, N);
             errors[s] = MathF.Abs(sum / numMCPaths - refMean);
         }
         float order = 0;
@@ -1558,7 +1753,9 @@ public sealed class StochasticDifferentialSolver
         for (int p = 0; p < numPaths; p++)
         {
             float exact = x0 * MathF.Exp((mu - 0.5f * sigma * sigma) * T + sigma * MathF.Sqrt(T) * NormalSample());
-            float em = x0; float mil = x0; float rkm = x0;
+            float em = x0;
+            float mil = x0;
+            float rkm = x0;
             for (int i = 0; i < N; i++)
             {
                 float dW = MathF.Sqrt(dt) * NormalSample(), dW2 = dW * dW;
@@ -1570,7 +1767,9 @@ public sealed class StochasticDifferentialSolver
                 rkm += 0.5f * (k1a + k2a) * dt + 0.5f * (k1b * dW1 + k2b * dW1b);
                 rkm = MathF.Max(rkm, 1e-10f);
             }
-            emSum += MathF.Abs(em - exact); milSum += MathF.Abs(mil - exact); rkmSum += MathF.Abs(rkm - exact);
+            emSum += MathF.Abs(em - exact);
+            milSum += MathF.Abs(mil - exact);
+            rkmSum += MathF.Abs(rkm - exact);
         }
         return ((float)(emSum / numPaths), (float)(milSum / numPaths), (float)(rkmSum / numPaths));
     }
@@ -1604,8 +1803,12 @@ public sealed unsafe class StochasticCorrelationModel
     public StochasticCorrelationModel(CovarianceKernelType kernelType, float lengthScale = 1.0f,
         float signalVariance = 1.0f, float noiseVariance = 1e-6f, float maternNu = 1.5f, int seed = 42)
     {
-        _kernelType = kernelType; _lengthScale = lengthScale; _signalVariance = signalVariance;
-        _noiseVariance = noiseVariance; _maternNu = maternNu; _rng = new Random(seed);
+        _kernelType = kernelType;
+        _lengthScale = lengthScale;
+        _signalVariance = signalVariance;
+        _noiseVariance = noiseVariance;
+        _maternNu = maternNu;
+        _rng = new Random(seed);
     }
 
     /// <summary>Evaluates the covariance kernel between two points.</summary>
@@ -1628,7 +1831,8 @@ public sealed unsafe class StochasticCorrelationModel
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float MaternKernel(float h)
     {
-        if (h < 1e-10f) return _signalVariance;
+        if (h < 1e-10f)
+            return _signalVariance;
         float sqrt2nu = MathF.Sqrt(2 * _maternNu);
         if (MathF.Abs(_maternNu - 0.5f) < 0.01f)
             return MathF.Exp(-sqrt2nu * h);
@@ -1652,7 +1856,8 @@ public sealed unsafe class StochasticCorrelationModel
             {
                 float dx = pointsX[i] - pointsX[j], dy = pointsY[i] - pointsY[j], dz = pointsZ[i] - pointsZ[j];
                 float cov = Evaluate(dx, dy, dz);
-                if (i == j) cov += _noiseVariance;
+                if (i == j)
+                    cov += _noiseVariance;
                 matrix[i * numPoints + j] = cov;
                 matrix[j * numPoints + i] = cov;
             }
@@ -1670,7 +1875,8 @@ public sealed unsafe class StochasticCorrelationModel
             for (int j = 0; j <= i; j++)
             {
                 float sum = 0;
-                for (int k = 0; k < j; k++) sum += L[i * n + k] * L[j * n + k];
+                for (int k = 0; k < j; k++)
+                    sum += L[i * n + k] * L[j * n + k];
                 if (i == j)
                 {
                     float diag = matrix[i * n + i] - sum;
@@ -1694,7 +1900,8 @@ public sealed unsafe class StochasticCorrelationModel
         for (int i = 0; i < n; i++)
         {
             float sum = 0;
-            for (int j = 0; j <= i; j++) sum += L[i * n + j] * z[j];
+            for (int j = 0; j <= i; j++)
+                sum += L[i * n + j] * z[j];
             output[i] = sum;
         }
     }
@@ -1712,7 +1919,8 @@ public sealed unsafe class StochasticCorrelationModel
                 int jz = j / (resY * resX), jy = (j / resX) % resY, jx = j % resX;
                 float dx = (ix - jx) * spacingX, dy = (iy - jy) * spacingY, dz = (iz - jz) * spacingZ;
                 float cov = Evaluate(dx, dy, dz);
-                if (i == j) cov += _noiseVariance;
+                if (i == j)
+                    cov += _noiseVariance;
                 matrix[i * total + j] = cov;
                 matrix[j * total + i] = cov;
             }
@@ -1724,36 +1932,47 @@ public sealed unsafe class StochasticCorrelationModel
     public void ApproximateInverse(float* matrix, float* inverse, int n, int maxIter = 100, float tolerance = 1e-6f)
     {
         NativeMemory.Clear(inverse, (nuint)(n * n * sizeof(float)));
-        for (int i = 0; i < n; i++) inverse[i * n + i] = 1.0f;
+        for (int i = 0; i < n; i++)
+            inverse[i * n + i] = 1.0f;
         for (int iter = 0; iter < maxIter; iter++)
         {
             float maxDiff = 0;
-            for (int i = 0; i < n; i++) for (int j = 0; j < n; j++)
-            {
-                float sum = 0; for (int k = 0; k < n; k++) if (k != i) sum += matrix[i * n + k] * inverse[k * n + j];
-                float newVal = (j == i ? 1.0f : 0.0f - sum) / (matrix[i * n + i] + 1e-10f);
-                maxDiff = MathF.Max(maxDiff, MathF.Abs(newVal - inverse[i * n + j]));
-                inverse[i * n + j] = newVal;
-            }
-            if (maxDiff < tolerance) break;
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n; j++)
+                {
+                    float sum = 0;
+                    for (int k = 0; k < n; k++)
+                        if (k != i)
+                            sum += matrix[i * n + k] * inverse[k * n + j];
+                    float newVal = (j == i ? 1.0f : 0.0f - sum) / (matrix[i * n + i] + 1e-10f);
+                    maxDiff = MathF.Max(maxDiff, MathF.Abs(newVal - inverse[i * n + j]));
+                    inverse[i * n + j] = newVal;
+                }
+            if (maxDiff < tolerance)
+                break;
         }
     }
 
     private static float Gamma(float z)
     {
-        if (z < 0.5f) return MathF.PI / (MathF.Sin(MathF.PI * z) * Gamma(1 - z));
+        if (z < 0.5f)
+            return MathF.PI / (MathF.Sin(MathF.PI * z) * Gamma(1 - z));
         z -= 1;
         float g = 7;
         float[] c = new float[] { 0.99999999999980993f, 676.5203681218851f, -1259.1392167224028f, 771.32342877765313f, -176.61502916214059f, 12.507343278686905f, -0.13857109526572012f, 9.9843695780195716e-6f, 1.5056327351493116e-7f };
-        float x = c[0]; for (int i = 1; i < g + 2; i++) x += c[i] / (z + i);
+        float x = c[0];
+        for (int i = 1; i < g + 2; i++)
+            x += c[i] / (z + i);
         float t = z + g + 0.5f;
         return MathF.Sqrt(2 * MathF.PI) * MathF.Pow(t, z + 0.5f) * MathF.Exp(-t) * x;
     }
 
     private static float BesselK(float nu, float x)
     {
-        if (x < 1e-10f) return 1e10f;
-        if (x > 2.0f) return MathF.Exp(-x) / MathF.Sqrt(x) * (1 + (4 * nu * nu - 1) / (8 * x));
+        if (x < 1e-10f)
+            return 1e10f;
+        if (x > 2.0f)
+            return MathF.Exp(-x) / MathF.Sqrt(x) * (1 + (4 * nu * nu - 1) / (8 * x));
         return MathF.Exp(-x) * MathF.Sqrt(MathF.PI / (2 * x)) * MathF.Pow(0.5f * x, nu) / Gamma(nu + 0.5f);
     }
 }
@@ -1804,7 +2023,8 @@ public sealed unsafe class StochasticFieldSampler : IDisposable
             StochasticFieldState s = _field.Sample(worldX, worldY, worldZ);
             float sample = s.CurrentValue + s.Diffusion * NormalSample();
             samples[i] = sample;
-            sum += sample; sumSq += sample * sample;
+            sum += sample;
+            sumSq += sample * sample;
         }
         float mean = sum / n, variance = sumSq / n - mean * mean;
         samples.Sort();
@@ -1826,7 +2046,9 @@ public sealed unsafe class StochasticFieldSampler : IDisposable
             paths[p].Values[0] = _field.Sample(x, y, z).CurrentValue;
             for (int i = 1; i <= numSteps; i++)
             {
-                x += directionX * stepSize; y += directionY * stepSize; z += directionZ * stepSize;
+                x += directionX * stepSize;
+                y += directionY * stepSize;
+                z += directionZ * stepSize;
                 StochasticFieldState s = _field.Sample(x, y, z);
                 paths[p].Times[i] = i * stepSize;
                 paths[p].Values[i] = s.CurrentValue + s.Diffusion * NormalSample() * MathF.Sqrt(stepSize);
@@ -1849,7 +2071,8 @@ public sealed unsafe class StochasticFieldSampler : IDisposable
             var antiPath = GenerateAntitheticPath(path);
             float antiPv = payoff(antiPath);
             float avg = 0.5f * (pv + antiPv);
-            sumPayoff += avg; sumPayoffSq += avg * avg;
+            sumPayoff += avg;
+            sumPayoffSq += avg * avg;
         }
         float mean = sumPayoff / halfPaths;
         float variance = sumPayoffSq / halfPaths - mean * mean;
@@ -1866,7 +2089,10 @@ public sealed unsafe class StochasticFieldSampler : IDisposable
         {
             var path = GenerateSinglePath(startX, startY, startZ, pathLength, numSteps);
             float pv = payoff(path), cv = control(path);
-            sumP += pv; sumC += cv; sumPC += pv * cv; sumC2 += cv * cv;
+            sumP += pv;
+            sumC += cv;
+            sumPC += pv * cv;
+            sumC2 += cv * cv;
         }
         float meanP = sumP / numPaths, meanC = sumC / numPaths;
         float covPC = sumPC / numPaths - meanP * meanC;
@@ -1903,7 +2129,8 @@ public sealed unsafe class StochasticFieldSampler : IDisposable
                 logLikelihood += -driftBias * dr + 0.5f * driftBias * driftBias * dt;
             }
             float likelihood = MathF.Exp(logLikelihood);
-            sumPayoff += pv * likelihood; sumLikelihood += likelihood;
+            sumPayoff += pv * likelihood;
+            sumLikelihood += likelihood;
         }
         float mean = sumPayoff / numPaths;
         float variance = 0;
@@ -1925,10 +2152,12 @@ public sealed unsafe class StochasticFieldSampler : IDisposable
     {
         var path = new StochasticPath(numSteps + 1);
         float dt = pathLength / numSteps;
-        path.Times[0] = 0; path.Values[0] = _field.Sample(startX, startY, startZ).CurrentValue;
+        path.Times[0] = 0;
+        path.Values[0] = _field.Sample(startX, startY, startZ).CurrentValue;
         for (int i = 1; i <= numSteps; i++)
         {
-            float t = i * dt; StochasticFieldState s = _field.Sample(startX + t, startY, startZ);
+            float t = i * dt;
+            StochasticFieldState s = _field.Sample(startX + t, startY, startZ);
             path.Times[i] = t;
             path.Values[i] = s.CurrentValue + s.Diffusion * NormalSample() * MathF.Sqrt(dt);
         }
@@ -1947,10 +2176,12 @@ public sealed unsafe class StochasticFieldSampler : IDisposable
     {
         var path = new StochasticPath(numSteps + 1);
         float dt = pathLength / numSteps;
-        path.Times[0] = 0; path.Values[0] = _field.Sample(startX, startY, startZ).CurrentValue;
+        path.Times[0] = 0;
+        path.Values[0] = _field.Sample(startX, startY, startZ).CurrentValue;
         for (int i = 1; i <= numSteps; i++)
         {
-            float t = i * dt; StochasticFieldState s = _field.Sample(startX + t, startY, startZ);
+            float t = i * dt;
+            StochasticFieldState s = _field.Sample(startX + t, startY, startZ);
             path.Times[i] = t;
             path.Values[i] = path.Values[i - 1] * MathF.Exp((s.Drift + driftBias) * dt + s.Diffusion * MathF.Sqrt(dt) * NormalSample());
             path.Values[i] = MathF.Max(path.Values[i], 1e-10f);
@@ -1968,7 +2199,8 @@ public sealed unsafe class StochasticFieldSampler : IDisposable
             float dy = (float)(_rng.NextDouble() * 2 - 1) * radius;
             float dz = (float)(_rng.NextDouble() * 2 - 1) * radius;
             float w = _correlationModel.Evaluate(dx, dy, dz);
-            sum += w * NormalSample(); weight += w;
+            sum += w * NormalSample();
+            weight += w;
         }
         return sum / (weight + 1e-10f);
     }
@@ -2036,16 +2268,20 @@ public sealed unsafe class FinancialFieldModel : IDisposable
             for (int ti = 0; ti < maturitySteps; ti++)
             {
                 float maturity = minMaturity + (maxMaturity - minMaturity) * ti / (maturitySteps - 1);
-                float avgVol = 0; int count = 0;
-                for (int z = 0; z < _field.ResZ; z++) for (int y = 0; y < _field.ResY; y++) for (int x = 0; x < _field.ResX; x++)
-                {
-                    ref StochasticFieldState s = ref _field.UncheckedAt(x, y, z);
-                    float spot = MathF.Max(s.CurrentValue, 0.01f);
-                    float vol = s.Diffusion;
-                    float bs = BSPrice(spot, strike, s.Drift, 0.02f, maturity, vol, OptionType.Call);
-                    float iv = ImpliedVolNewton(bs, spot, strike, s.Drift, maturity, OptionType.Call);
-                    avgVol += iv; count++;
-                }
+                float avgVol = 0;
+                int count = 0;
+                for (int z = 0; z < _field.ResZ; z++)
+                    for (int y = 0; y < _field.ResY; y++)
+                        for (int x = 0; x < _field.ResX; x++)
+                        {
+                            ref StochasticFieldState s = ref _field.UncheckedAt(x, y, z);
+                            float spot = MathF.Max(s.CurrentValue, 0.01f);
+                            float vol = s.Diffusion;
+                            float bs = BSPrice(spot, strike, s.Drift, 0.02f, maturity, vol, OptionType.Call);
+                            float iv = ImpliedVolNewton(bs, spot, strike, s.Drift, maturity, OptionType.Call);
+                            avgVol += iv;
+                            count++;
+                        }
                 surface[si * maturitySteps + ti] = count > 0 ? avgVol / count : 0.2f;
             }
         }
@@ -2057,7 +2293,8 @@ public sealed unsafe class FinancialFieldModel : IDisposable
     {
         float sqrtT = MathF.Sqrt(MathF.Max(maturity, 1e-10f));
         float d1 = (MathF.Log(spot / strike) + (rate - dividend + 0.5f * vol * vol) * maturity) / (vol * sqrtT);
-        if (type == OptionType.Call) return MathF.Exp(-dividend * maturity) * NormalCDF(d1);
+        if (type == OptionType.Call)
+            return MathF.Exp(-dividend * maturity) * NormalCDF(d1);
         return -MathF.Exp(-dividend * maturity) * NormalCDF(-d1);
     }
 
@@ -2099,7 +2336,8 @@ public sealed unsafe class FinancialFieldModel : IDisposable
             float terminal = spot * MathF.Exp((rate - 0.5f * vol * vol) * maturity + vol * MathF.Sqrt(maturity) * NormalSample());
             float payoff = type == OptionType.Call ? MathF.Max(terminal - strike, 0) : MathF.Max(strike - terminal, 0);
             float discounted = MathF.Exp(-rate * maturity) * payoff;
-            sumPayoff += discounted; sumPayoffSq += discounted * discounted;
+            sumPayoff += discounted;
+            sumPayoffSq += discounted * discounted;
         }
         float mean = sumPayoff / numPaths;
         float variance = sumPayoffSq / numPaths - mean * mean;
@@ -2109,9 +2347,11 @@ public sealed unsafe class FinancialFieldModel : IDisposable
 
     private static float BSPrice(float S, float K, float r, float q, float T, float sigma, OptionType type)
     {
-        if (S <= 0 || K <= 0 || T <= 0 || sigma <= 0) return 0;
+        if (S <= 0 || K <= 0 || T <= 0 || sigma <= 0)
+            return 0;
         float sqrtT = MathF.Sqrt(T), d1 = (MathF.Log(S / K) + (r - q + 0.5f * sigma * sigma) * T) / (sigma * sqrtT), d2 = d1 - sigma * sqrtT;
-        if (type == OptionType.Call) return S * MathF.Exp(-q * T) * NormalCDF(d1) - K * MathF.Exp(-r * T) * NormalCDF(d2);
+        if (type == OptionType.Call)
+            return S * MathF.Exp(-q * T) * NormalCDF(d1) - K * MathF.Exp(-r * T) * NormalCDF(d2);
         return K * MathF.Exp(-r * T) * NormalCDF(-d2) - S * MathF.Exp(-q * T) * NormalCDF(-d1);
     }
 
@@ -2125,7 +2365,8 @@ public sealed unsafe class FinancialFieldModel : IDisposable
             float sqrtT = MathF.Sqrt(MathF.Max(T, 1e-10f));
             float d1 = (MathF.Log(S / K) + (r + 0.5f * vol * vol) * T) / (vol * sqrtT);
             float vega = S * NormalPDF(d1) * sqrtT;
-            if (MathF.Abs(vega) < 1e-10f) break;
+            if (MathF.Abs(vega) < 1e-10f)
+                break;
             vol -= diff / vega;
             vol = MathF.Max(vol, 0.001f);
         }
@@ -2136,7 +2377,8 @@ public sealed unsafe class FinancialFieldModel : IDisposable
     private static float NormalCDF(float x)
     {
         float a1 = 0.254829592f, a2 = -0.284496736f, a3 = 1.421413741f, a4 = -1.453152027f, a5 = 1.061405429f, p = 0.3275911f;
-        float sign = x < 0 ? -1 : 1; x = MathF.Abs(x) / MathF.Sqrt(2);
+        float sign = x < 0 ? -1 : 1;
+        x = MathF.Abs(x) / MathF.Sqrt(2);
         float t = 1 / (1 + p * x);
         float y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * MathF.Exp(-x * x);
         return 0.5f * (1 + sign * y);
@@ -2187,17 +2429,29 @@ public sealed unsafe class EpidemiologicalFieldModel : IDisposable
     /// <summary>Initializes the SEIR field with uniform parameters.</summary>
     public void InitializeUniform(float susceptible = 0.99f, float infectious = 0.01f, float beta = 0.3f, float gamma = 0.1f, float sigma = 0.2f)
     {
-        _globalBeta = beta; _globalGamma = gamma; _globalSigma = sigma;
+        _globalBeta = beta;
+        _globalGamma = gamma;
+        _globalSigma = sigma;
         _globalR0 = beta / gamma;
         for (int i = 0; i < _totalCells; i++)
         {
             _seirData[i] = new SEIRState
             {
-                S = susceptible, E = 0, I = infectious, R = 0, V = 0, Q = 0, D = 0,
-                Beta = beta, Gamma = gamma, Sigma = sigma,
+                S = susceptible,
+                E = 0,
+                I = infectious,
+                R = 0,
+                V = 0,
+                Q = 0,
+                D = 0,
+                Beta = beta,
+                Gamma = gamma,
+                Sigma = sigma,
                 R0Effective = beta / gamma * susceptible,
-                VaccinationRate = 0, QuarantineRate = 0,
-                PopulationDensity = 1.0f, DiffusionCoeff = 0.01f
+                VaccinationRate = 0,
+                QuarantineRate = 0,
+                PopulationDensity = 1.0f,
+                DiffusionCoeff = 0.01f
             };
             _field.DataPointer[i].CurrentValue = infectious;
             _field.DataPointer[i].Drift = beta;
@@ -2210,94 +2464,102 @@ public sealed unsafe class EpidemiologicalFieldModel : IDisposable
     {
         using var perlinBeta = new PerlinNoiseGenerator(seed);
         using var perlinGamma = new PerlinNoiseGenerator(seed + 1);
-        for (int z = 0; z < _field.ResZ; z++) for (int y = 0; y < _field.ResY; y++) for (int x = 0; x < _field.ResX; x++)
-        {
-            int idx = z * _field.ResY * _field.ResX + y * _field.ResX + x;
-            float nx = (float)x / _field.ResX, ny = (float)y / _field.ResY, nz = (float)z / _field.ResZ;
-            float beta = baseBeta * (1 + heterogeneity * perlinBeta.FractalBrownianMotion(nx, ny, nz, 3));
-            float gamma = baseGamma * (1 + heterogeneity * perlinGamma.FractalBrownianMotion(nx, ny, nz, 3));
-            float susceptible = 0.99f, infectious = 0.01f;
-            _seirData[idx] = new SEIRState { S = susceptible, I = infectious, Beta = beta, Gamma = gamma, Sigma = baseSigma, R0Effective = beta / gamma * susceptible, PopulationDensity = 1.0f, DiffusionCoeff = 0.01f };
-            _field.DataPointer[idx].CurrentValue = infectious;
-        }
+        for (int z = 0; z < _field.ResZ; z++)
+            for (int y = 0; y < _field.ResY; y++)
+                for (int x = 0; x < _field.ResX; x++)
+                {
+                    int idx = z * _field.ResY * _field.ResX + y * _field.ResX + x;
+                    float nx = (float)x / _field.ResX, ny = (float)y / _field.ResY, nz = (float)z / _field.ResZ;
+                    float beta = baseBeta * (1 + heterogeneity * perlinBeta.FractalBrownianMotion(nx, ny, nz, 3));
+                    float gamma = baseGamma * (1 + heterogeneity * perlinGamma.FractalBrownianMotion(nx, ny, nz, 3));
+                    float susceptible = 0.99f, infectious = 0.01f;
+                    _seirData[idx] = new SEIRState { S = susceptible, I = infectious, Beta = beta, Gamma = gamma, Sigma = baseSigma, R0Effective = beta / gamma * susceptible, PopulationDensity = 1.0f, DiffusionCoeff = 0.01f };
+                    _field.DataPointer[idx].CurrentValue = infectious;
+                }
     }
 
     /// <summary>Advances the SEIR model by one time-step using a stochastic SIR scheme.</summary>
     public void StepSEIR(float dt)
     {
         int rx = _field.ResX, ry = _field.ResY, rz = _field.ResZ;
-        for (int z = 1; z < rz - 1; z++) for (int y = 1; y < ry - 1; y++) for (int x = 1; x < rx - 1; x++)
-        {
-            int idx = (z * ry + y) * rx + x;
-            ref SEIRState seir = ref _seirData[idx];
+        for (int z = 1; z < rz - 1; z++)
+            for (int y = 1; y < ry - 1; y++)
+                for (int x = 1; x < rx - 1; x++)
+                {
+                    int idx = (z * ry + y) * rx + x;
+                    ref SEIRState seir = ref _seirData[idx];
 
-            // Spatial diffusion of infected
-            float avgI = (_seirData[idx - 1].I + _seirData[idx + 1].I + _seirData[idx - rx].I + _seirData[idx + rx].I + _seirData[idx - rx * ry].I + _seirData[idx + rx * ry].I) / 6.0f;
-            float diffusion = seir.DiffusionCoeff * (avgI - seir.I) * dt;
+                    // Spatial diffusion of infected
+                    float avgI = (_seirData[idx - 1].I + _seirData[idx + 1].I + _seirData[idx - rx].I + _seirData[idx + rx].I + _seirData[idx - rx * ry].I + _seirData[idx + rx * ry].I) / 6.0f;
+                    float diffusion = seir.DiffusionCoeff * (avgI - seir.I) * dt;
 
-            // SEIR transitions (stochastic)
-            float N = seir.S + seir.E + seir.I + seir.R + seir.V + seir.Q + seir.D;
-            if (N < 1e-10f) continue;
-            float effectiveN = N;
+                    // SEIR transitions (stochastic)
+                    float N = seir.S + seir.E + seir.I + seir.R + seir.V + seir.Q + seir.D;
+                    if (N < 1e-10f)
+                        continue;
+                    float effectiveN = N;
 
-            // New infections: β * S * I / N
-            float newInfections = seir.Beta * seir.S * seir.I / effectiveN * dt;
-            newInfections *= (1 + 0.1f * NormalSample()); // stochastic noise
+                    // New infections: β * S * I / N
+                    float newInfections = seir.Beta * seir.S * seir.I / effectiveN * dt;
+                    newInfections *= (1 + 0.1f * NormalSample()); // stochastic noise
 
-            // Exposed to Infectious: σ * E
-            float exposedToInfectious = seir.Sigma * seir.E * dt;
+                    // Exposed to Infectious: σ * E
+                    float exposedToInfectious = seir.Sigma * seir.E * dt;
 
-            // Recovery: γ * I
-            float recoveries = seir.Gamma * seir.I * dt;
+                    // Recovery: γ * I
+                    float recoveries = seir.Gamma * seir.I * dt;
 
-            // Vaccination
-            float vaccinations = seir.VaccinationRate * seir.S * dt;
+                    // Vaccination
+                    float vaccinations = seir.VaccinationRate * seir.S * dt;
 
-            // Quarantine
-            float quarantines = seir.QuarantineRate * seir.I * dt;
+                    // Quarantine
+                    float quarantines = seir.QuarantineRate * seir.I * dt;
 
-            // Update compartments
-            seir.S = MathF.Max(seir.S - newInfections - vaccinations, 0);
-            seir.E = MathF.Max(seir.E + newInfections - exposedToInfectious, 0) + diffusion;
-            seir.I = MathF.Max(seir.I + exposedToInfectious - recoveries - quarantines, 0) - diffusion;
-            seir.R = MathF.Max(seir.R + recoveries, 0);
-            seir.V = MathF.Max(seir.V + vaccinations, 0);
-            seir.Q = MathF.Max(seir.Q + quarantines, 0);
+                    // Update compartments
+                    seir.S = MathF.Max(seir.S - newInfections - vaccinations, 0);
+                    seir.E = MathF.Max(seir.E + newInfections - exposedToInfectious, 0) + diffusion;
+                    seir.I = MathF.Max(seir.I + exposedToInfectious - recoveries - quarantines, 0) - diffusion;
+                    seir.R = MathF.Max(seir.R + recoveries, 0);
+                    seir.V = MathF.Max(seir.V + vaccinations, 0);
+                    seir.Q = MathF.Max(seir.Q + quarantines, 0);
 
-            // Effective R
-            seir.R0Effective = seir.ComputeReffective();
-            seir.Normalize();
+                    // Effective R
+                    seir.R0Effective = seir.ComputeReffective();
+                    seir.Normalize();
 
-            // Update field
-            _field.DataPointer[idx].CurrentValue = seir.I;
-            _field.DataPointer[idx].Mean = seir.S;
-            _field.DataPointer[idx].Variance = seir.R0Effective;
-            _field.DataPointer[idx].Diffusion = seir.I;
-        }
+                    // Update field
+                    _field.DataPointer[idx].CurrentValue = seir.I;
+                    _field.DataPointer[idx].Mean = seir.S;
+                    _field.DataPointer[idx].Variance = seir.R0Effective;
+                    _field.DataPointer[idx].Diffusion = seir.I;
+                }
     }
 
     /// <summary>Advances using simple SIR without exposed compartment.</summary>
     public void StepSIR(float dt)
     {
         int rx = _field.ResX, ry = _field.ResY, rz = _field.ResZ;
-        for (int z = 1; z < rz - 1; z++) for (int y = 1; y < ry - 1; y++) for (int x = 1; x < rx - 1; x++)
-        {
-            int idx = (z * ry + y) * rx + x;
-            ref SEIRState seir = ref _seirData[idx];
-            float N = seir.S + seir.I + seir.R + seir.V + seir.Q + seir.D;
-            if (N < 1e-10f) continue;
-            float newInfections = seir.Beta * seir.S * seir.I / N * dt * (1 + 0.05f * NormalSample());
-            float recoveries = seir.Gamma * seir.I * dt;
-            float vaccinations = seir.VaccinationRate * seir.S * dt;
-            seir.S = MathF.Max(seir.S - newInfections - vaccinations, 0);
-            seir.I = MathF.Max(seir.I + newInfections - recoveries, 0);
-            seir.R = MathF.Max(seir.R + recoveries, 0);
-            seir.V = MathF.Max(seir.V + vaccinations, 0);
-            seir.R0Effective = seir.ComputeReffective();
-            seir.Normalize();
-            _field.DataPointer[idx].CurrentValue = seir.I;
-            _field.DataPointer[idx].Mean = seir.S;
-        }
+        for (int z = 1; z < rz - 1; z++)
+            for (int y = 1; y < ry - 1; y++)
+                for (int x = 1; x < rx - 1; x++)
+                {
+                    int idx = (z * ry + y) * rx + x;
+                    ref SEIRState seir = ref _seirData[idx];
+                    float N = seir.S + seir.I + seir.R + seir.V + seir.Q + seir.D;
+                    if (N < 1e-10f)
+                        continue;
+                    float newInfections = seir.Beta * seir.S * seir.I / N * dt * (1 + 0.05f * NormalSample());
+                    float recoveries = seir.Gamma * seir.I * dt;
+                    float vaccinations = seir.VaccinationRate * seir.S * dt;
+                    seir.S = MathF.Max(seir.S - newInfections - vaccinations, 0);
+                    seir.I = MathF.Max(seir.I + newInfections - recoveries, 0);
+                    seir.R = MathF.Max(seir.R + recoveries, 0);
+                    seir.V = MathF.Max(seir.V + vaccinations, 0);
+                    seir.R0Effective = seir.ComputeReffective();
+                    seir.Normalize();
+                    _field.DataPointer[idx].CurrentValue = seir.I;
+                    _field.DataPointer[idx].Mean = seir.S;
+                }
     }
 
     /// <summary>Computes R0 at each cell and stores in field Variance.</summary>
@@ -2313,27 +2575,31 @@ public sealed unsafe class EpidemiologicalFieldModel : IDisposable
     /// <summary>Sets quarantine zones in rectangular regions.</summary>
     public void SetQuarantineZone(int x0, int y0, int z0, int x1, int y1, int z1, float complianceRate = 0.8f)
     {
-        for (int z = z0; z <= z1; z++) for (int y = y0; y <= y1; y++) for (int x = x0; x <= x1; x++)
-        {
-            if (_field.InBounds(x, y, z))
-            {
-                int idx = (z * _field.ResY + y) * _field.ResX + x;
-                _seirData[idx].QuarantineRate = complianceRate;
-            }
-        }
+        for (int z = z0; z <= z1; z++)
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++)
+                {
+                    if (_field.InBounds(x, y, z))
+                    {
+                        int idx = (z * _field.ResY + y) * _field.ResX + x;
+                        _seirData[idx].QuarantineRate = complianceRate;
+                    }
+                }
     }
 
     /// <summary>Sets vaccination rates in rectangular regions.</summary>
     public void SetVaccinationZone(int x0, int y0, int z0, int x1, int y1, int z1, float vaccinationRate = 0.05f)
     {
-        for (int z = z0; z <= z1; z++) for (int y = y0; y <= y1; y++) for (int x = x0; x <= x1; x++)
-        {
-            if (_field.InBounds(x, y, z))
-            {
-                int idx = (z * _field.ResY + y) * _field.ResX + x;
-                _seirData[idx].VaccinationRate = vaccinationRate;
-            }
-        }
+        for (int z = z0; z <= z1; z++)
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++)
+                {
+                    if (_field.InBounds(x, y, z))
+                    {
+                        int idx = (z * _field.ResY + y) * _field.ResX + x;
+                        _seirData[idx].VaccinationRate = vaccinationRate;
+                    }
+                }
     }
 
     /// <summary>Returns epidemic statistics.</summary>
@@ -2342,8 +2608,11 @@ public sealed unsafe class EpidemiologicalFieldModel : IDisposable
         float totalI = 0, totalR = 0, totalS = 0, peakI = 0;
         for (int i = 0; i < _totalCells; i++)
         {
-            totalI += _seirData[i].I; totalR += _seirData[i].R; totalS += _seirData[i].S;
-            if (_seirData[i].I > peakI) peakI = _seirData[i].I;
+            totalI += _seirData[i].I;
+            totalR += _seirData[i].R;
+            totalS += _seirData[i].S;
+            if (_seirData[i].I > peakI)
+                peakI = _seirData[i].I;
         }
         float avg = _globalR0 > 1 ? 1 - 1 / _globalR0 : 0;
         return (totalI / _totalCells, totalR / _totalCells, totalS / _totalCells, peakI, avg);
@@ -2355,7 +2624,8 @@ public sealed unsafe class EpidemiologicalFieldModel : IDisposable
 
     public void Dispose()
     {
-        if (_seirData != null) { NativeMemory.AlignedFree(_seirData); _seirData = null; }
+        if (_seirData != null)
+        { NativeMemory.AlignedFree(_seirData); _seirData = null; }
     }
 }
 
@@ -2403,7 +2673,8 @@ public sealed unsafe class SocialDiffusionModel : IDisposable
     public void StepBassDiffusion(float p, float q, float dt)
     {
         float totalAdoption = 0;
-        for (int i = 0; i < _totalCells; i++) totalAdoption += MathF.Max(_field.DataPointer[i].CurrentValue, 0);
+        for (int i = 0; i < _totalCells; i++)
+            totalAdoption += MathF.Max(_field.DataPointer[i].CurrentValue, 0);
         float F = totalAdoption / _totalCells;
         float newAdopters = (p + q * F) * (1 - F) * dt;
         ViralCoefficient = q / (p + 1e-10f);
@@ -2424,31 +2695,34 @@ public sealed unsafe class SocialDiffusionModel : IDisposable
     public void StepBoundedConfidence(float confidenceBound, float convergenceRate, float dt)
     {
         int rx = _field.ResX, ry = _field.ResY, rz = _field.ResZ;
-        for (int z = 1; z < rz - 1; z++) for (int y = 1; y < ry - 1; y++) for (int x = 1; x < rx - 1; x++)
-        {
-            int idx = (z * ry + y) * rx + x;
-            float ownOpinion = _opinionState[idx];
-            float avgNeighborOpinion = 0; int neighbors = 0;
-            // 6-connected neighbors
-            int[] offsets = { -1, 1, -rx, rx, -rx * ry, rx * ry };
-            foreach (int off in offsets)
-            {
-                int nIdx = idx + off;
-                if (nIdx >= 0 && nIdx < _totalCells)
+        for (int z = 1; z < rz - 1; z++)
+            for (int y = 1; y < ry - 1; y++)
+                for (int x = 1; x < rx - 1; x++)
                 {
-                    float diff = MathF.Abs(ownOpinion - _opinionState[nIdx]);
-                    if (diff < confidenceBound)
-                    { avgNeighborOpinion += _opinionState[nIdx]; neighbors++; }
+                    int idx = (z * ry + y) * rx + x;
+                    float ownOpinion = _opinionState[idx];
+                    float avgNeighborOpinion = 0;
+                    int neighbors = 0;
+                    // 6-connected neighbors
+                    int[] offsets = { -1, 1, -rx, rx, -rx * ry, rx * ry };
+                    foreach (int off in offsets)
+                    {
+                        int nIdx = idx + off;
+                        if (nIdx >= 0 && nIdx < _totalCells)
+                        {
+                            float diff = MathF.Abs(ownOpinion - _opinionState[nIdx]);
+                            if (diff < confidenceBound)
+                            { avgNeighborOpinion += _opinionState[nIdx]; neighbors++; }
+                        }
+                    }
+                    if (neighbors > 0)
+                    {
+                        avgNeighborOpinion /= neighbors;
+                        _opinionState[idx] = ownOpinion + convergenceRate * (avgNeighborOpinion - ownOpinion) * dt;
+                        _opinionState[idx] = Math.Clamp(_opinionState[idx], -1, 1);
+                    }
+                    _field.DataPointer[idx].CurrentValue = _opinionState[idx];
                 }
-            }
-            if (neighbors > 0)
-            {
-                avgNeighborOpinion /= neighbors;
-                _opinionState[idx] = ownOpinion + convergenceRate * (avgNeighborOpinion - ownOpinion) * dt;
-                _opinionState[idx] = Math.Clamp(_opinionState[idx], -1, 1);
-            }
-            _field.DataPointer[idx].CurrentValue = _opinionState[idx];
-        }
     }
 
     /// <summary>
@@ -2457,23 +2731,25 @@ public sealed unsafe class SocialDiffusionModel : IDisposable
     public void StepNetworkEffects(float adoptionThreshold, float networkStrength, float dt)
     {
         int rx = _field.ResX, ry = _field.ResY, rz = _field.ResZ;
-        for (int z = 1; z < rz - 1; z++) for (int y = 1; y < ry - 1; y++) for (int x = 1; x < rx - 1; x++)
-        {
-            int idx = (z * ry + y) * rx + x;
-            float adopterCount = 0;
-            int[] offsets = { -1, 1, -rx, rx, -rx * ry, rx * ry };
-            foreach (int off in offsets)
-            {
-                int nIdx = idx + off;
-                if (nIdx >= 0 && nIdx < _totalCells && _opinionState[nIdx] > 0.5f)
-                    adopterCount++;
-            }
-            float networkEffect = adopterCount / 6.0f;
-            float adoptionProb = networkStrength * networkEffect * dt;
-            if (networkEffect > adoptionThreshold && (float)_rng.NextDouble() < adoptionProb)
-                _opinionState[idx] = MathF.Min(_opinionState[idx] + 0.1f * dt, 1.0f);
-            _field.DataPointer[idx].CurrentValue = _opinionState[idx];
-        }
+        for (int z = 1; z < rz - 1; z++)
+            for (int y = 1; y < ry - 1; y++)
+                for (int x = 1; x < rx - 1; x++)
+                {
+                    int idx = (z * ry + y) * rx + x;
+                    float adopterCount = 0;
+                    int[] offsets = { -1, 1, -rx, rx, -rx * ry, rx * ry };
+                    foreach (int off in offsets)
+                    {
+                        int nIdx = idx + off;
+                        if (nIdx >= 0 && nIdx < _totalCells && _opinionState[nIdx] > 0.5f)
+                            adopterCount++;
+                    }
+                    float networkEffect = adopterCount / 6.0f;
+                    float adoptionProb = networkStrength * networkEffect * dt;
+                    if (networkEffect > adoptionThreshold && (float)_rng.NextDouble() < adoptionProb)
+                        _opinionState[idx] = MathF.Min(_opinionState[idx] + 0.1f * dt, 1.0f);
+                    _field.DataPointer[idx].CurrentValue = _opinionState[idx];
+                }
     }
 
     /// <summary>Computes information cascade probability across the field.</summary>
@@ -2481,12 +2757,14 @@ public sealed unsafe class SocialDiffusionModel : IDisposable
     {
         _field.WorldToGrid(sourceX, sourceY, sourceZ, out int sx, out int sy, out int sz);
         int sourceIdx = (sz * _field.ResY + sy) * _field.ResX + sx;
-        if (sourceIdx < 0 || sourceIdx >= _totalCells) return 0;
+        if (sourceIdx < 0 || sourceIdx >= _totalCells)
+            return 0;
         float cascade = 0;
         int visited = 0;
         for (int i = 0; i < _totalCells; i++)
         {
-            if (_opinionState[i] > threshold) { cascade++; visited++; }
+            if (_opinionState[i] > threshold)
+            { cascade++; visited++; }
         }
         return visited > 0 ? cascade / _totalCells : 0;
     }
@@ -2504,8 +2782,10 @@ public sealed unsafe class SocialDiffusionModel : IDisposable
 
     public void Dispose()
     {
-        if (_opinionState != null) { NativeMemory.AlignedFree(_opinionState); _opinionState = null; }
-        if (_influenceMatrix != null) { NativeMemory.AlignedFree(_influenceMatrix); _influenceMatrix = null; }
+        if (_opinionState != null)
+        { NativeMemory.AlignedFree(_opinionState); _opinionState = null; }
+        if (_influenceMatrix != null)
+        { NativeMemory.AlignedFree(_influenceMatrix); _influenceMatrix = null; }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2545,11 +2825,13 @@ public sealed class StochasticOptimizer
         float momentum = 0.9f, float noiseScale = 0.001f, int maxIter = 10000, float tolerance = 1e-8f)
     {
         int dim = initialParams.Length;
-        float[] x = new float[dim]; Array.Copy(initialParams, x, dim);
+        float[] x = new float[dim];
+        Array.Copy(initialParams, x, dim);
         float[] velocity = new float[dim];
         float[] gradient = new float[dim];
         float bestCost = objective(x);
-        float[] bestParams = new float[dim]; Array.Copy(x, bestParams, dim);
+        float[] bestParams = new float[dim];
+        Array.Copy(x, bestParams, dim);
         float epsilon = 1e-5f;
 
         for (int iter = 0; iter < maxIter; iter++)
@@ -2557,16 +2839,22 @@ public sealed class StochasticOptimizer
             // Numerical gradient estimation
             for (int d = 0; d < dim; d++)
             {
-                Span<float> xPlus = new float[dim]; x.CopyTo(xPlus);
-                Span<float> xMinus = new float[dim]; x.CopyTo(xMinus);
-                xPlus[d] += epsilon; xMinus[d] -= epsilon;
+                Span<float> xPlus = new float[dim];
+                x.CopyTo(xPlus);
+                Span<float> xMinus = new float[dim];
+                x.CopyTo(xMinus);
+                xPlus[d] += epsilon;
+                xMinus[d] -= epsilon;
                 gradient[d] = (objective(xPlus) - objective(xMinus)) / (2 * epsilon);
             }
 
             // Gradient norm check
-            float gradNorm = 0; for (int d = 0; d < dim; d++) gradNorm += gradient[d] * gradient[d];
+            float gradNorm = 0;
+            for (int d = 0; d < dim; d++)
+                gradNorm += gradient[d] * gradient[d];
             gradNorm = MathF.Sqrt(gradNorm);
-            if (gradNorm < tolerance) return (bestParams, bestCost, iter);
+            if (gradNorm < tolerance)
+                return (bestParams, bestCost, iter);
 
             // Update with momentum and noise
             for (int d = 0; d < dim; d++)
@@ -2577,7 +2865,8 @@ public sealed class StochasticOptimizer
             }
 
             float cost = objective(x);
-            if (cost < bestCost) { bestCost = cost; Array.Copy(x, bestParams, dim); }
+            if (cost < bestCost)
+            { bestCost = cost; Array.Copy(x, bestParams, dim); }
 
             // Learning rate decay
             learningRate *= 0.9999f;
@@ -2593,8 +2882,10 @@ public sealed class StochasticOptimizer
         float coolingRate = 0.995f, float perturbationScale = 0.1f, int maxIter = 50000)
     {
         int dim = initialParams.Length;
-        float[] x = new float[dim]; Array.Copy(initialParams, x, dim);
-        float[] bestX = new float[dim]; Array.Copy(x, bestX, dim);
+        float[] x = new float[dim];
+        Array.Copy(initialParams, x, dim);
+        float[] bestX = new float[dim];
+        Array.Copy(x, bestX, dim);
         float currentCost = objective(x);
         float bestCost = currentCost;
         float temp = initialTemp;
@@ -2614,7 +2905,8 @@ public sealed class StochasticOptimizer
             {
                 Array.Copy(xNew, x, dim);
                 currentCost = newCost;
-                if (currentCost < bestCost) { bestCost = currentCost; Array.Copy(x, bestX, dim); }
+                if (currentCost < bestCost)
+                { bestCost = currentCost; Array.Copy(x, bestX, dim); }
             }
 
             temp *= coolingRate;
@@ -2633,7 +2925,8 @@ public sealed class StochasticOptimizer
         float[] mean = new float[dim], stdDev = new float[dim];
         for (int d = 0; d < dim; d++)
         { mean[d] = 0.5f * (paramLower[d] + paramUpper[d]); stdDev[d] = 0.25f * (paramUpper[d] - paramLower[d]); }
-        float[] bestParams = new float[dim]; float bestCost = float.MaxValue;
+        float[] bestParams = new float[dim];
+        float bestCost = float.MaxValue;
         int eliteCount = Math.Max(populationSize * eliteFraction / 100, 1);
 
         for (int iter = 0; iter < maxIter; iter++)
@@ -2654,7 +2947,8 @@ public sealed class StochasticOptimizer
 
             // Sort by cost and select elite
             int[] indices = new int[populationSize];
-            for (int i = 0; i < populationSize; i++) indices[i] = i;
+            for (int i = 0; i < populationSize; i++)
+                indices[i] = i;
             Array.Sort(indices, (a, b) => costs[a].CompareTo(costs[b]));
 
             if (costs[indices[0]] < bestCost)
@@ -2664,7 +2958,8 @@ public sealed class StochasticOptimizer
             for (int d = 0; d < dim; d++)
             {
                 float sum = 0, sumSq = 0;
-                for (int e = 0; e < eliteCount; e++) { float val = population[indices[e]][d]; sum += val; sumSq += val * val; }
+                for (int e = 0; e < eliteCount; e++)
+                { float val = population[indices[e]][d]; sum += val; sumSq += val * val; }
                 mean[d] = sum / eliteCount;
                 float variance = sumSq / eliteCount - mean[d] * mean[d];
                 stdDev[d] = MathF.Sqrt(MathF.Max(variance, 1e-10f));
@@ -2709,15 +3004,18 @@ public sealed class StochasticOptimizer
                 for (int d = 0; d < dim; d++)
                     candidate[d] = paramLower[d] + (float)_rng.NextDouble() * (paramUpper[d] - paramLower[d]);
                 float ei = ExpectedImprovement(candidate, observedX, observedY, bestCost);
-                if (ei > bestEI) { bestEI = ei; nextX = candidate; }
+                if (ei > bestEI)
+                { bestEI = ei; nextX = candidate; }
             }
 
-            if (nextX == null) break;
+            if (nextX == null)
+                break;
             float nextY = objective(nextX);
             observedX.Add(nextX);
             observedY.Add(nextY);
 
-            if (nextY < bestCost) { bestCost = nextY; bestParams = (float[])nextX.Clone(); }
+            if (nextY < bestCost)
+            { bestCost = nextY; bestParams = (float[])nextX.Clone(); }
         }
         return (bestParams, bestCost, observedX.Count);
     }
@@ -2730,11 +3028,14 @@ public sealed class StochasticOptimizer
         for (int i = 0; i < observedX.Count; i++)
         {
             float dist2 = 0;
-            for (int d = 0; d < x.Length; d++) { float diff = x[d] - observedX[i][d]; dist2 += diff * diff; }
+            for (int d = 0; d < x.Length; d++)
+            { float diff = x[d] - observedX[i][d]; dist2 += diff * diff; }
             float w = MathF.Exp(-dist2 / (2 * lengthScale * lengthScale));
-            predMean += w * observedY[i]; totalWeight += w;
+            predMean += w * observedY[i];
+            totalWeight += w;
         }
-        if (totalWeight > 1e-10f) predMean /= totalWeight;
+        if (totalWeight > 1e-10f)
+            predMean /= totalWeight;
         predVar = MathF.Max(1.0f / (totalWeight + 1), 1e-6f);
 
         float stdDev = MathF.Sqrt(predVar);
@@ -2782,9 +3083,11 @@ public sealed class MonteCarloEngine
         Span<float> x = stackalloc float[dim];
         for (int i = 0; i < numSamples; i++)
         {
-            for (int d = 0; d < dim; d++) x[d] = (float)_rng.NextDouble();
+            for (int d = 0; d < dim; d++)
+                x[d] = (float)_rng.NextDouble();
             float val = func(x);
-            sum += val; sumSq += val * val;
+            sum += val;
+            sumSq += val * val;
         }
         float mean = sum / numSamples;
         float variance = sumSq / numSamples - mean * mean;
@@ -2806,7 +3109,8 @@ public sealed class MonteCarloEngine
                 x[d] = HaltonSequence(i + 1, base_val);
             }
             float val = func(x);
-            sum += val; sumSq += val * val;
+            sum += val;
+            sumSq += val * val;
         }
         float mean = sum / numSamples;
         float variance = sumSq / numSamples - mean * mean;
@@ -2825,7 +3129,8 @@ public sealed class MonteCarloEngine
             for (int d = 0; d < dim; d++)
                 x[d] = SobolPoint(i, d, directions);
             float val = func(x);
-            sum += val; sumSq += val * val;
+            sum += val;
+            sumSq += val * val;
         }
         float mean = sum / numSamples;
         float variance = sumSq / numSamples - mean * mean;
@@ -2836,7 +3141,9 @@ public sealed class MonteCarloEngine
     /// <summary>Stratified sampling integration.</summary>
     public MonteCarloResult IntegrateStratified(Func<ReadOnlySpan<float>, float> func, int dim, int numStrataPerDim, int samplesPerStratum)
     {
-        int totalStrata = 1; for (int d = 0; d < dim; d++) totalStrata *= numStrataPerDim;
+        int totalStrata = 1;
+        for (int d = 0; d < dim; d++)
+            totalStrata *= numStrataPerDim;
         float stratumSize = 1.0f / numStrataPerDim;
         float sum = 0, sumSq = 0;
         Span<float> x = stackalloc float[dim];
@@ -2884,7 +3191,8 @@ public sealed class MonteCarloEngine
             float f = target(x);
             float q = proposalPDF(x);
             float weight = q > 1e-10f ? f / q : 0;
-            sum += weight; sumSq += weight * weight;
+            sum += weight;
+            sumSq += weight * weight;
         }
         float mean = sum / numSamples;
         float variance = sumSq / numSamples - mean * mean;
@@ -2904,7 +3212,8 @@ public sealed class MonteCarloEngine
             for (int d = 0; d < dim; d++)
             { x[d] = (float)_rng.NextDouble(); xAnti[d] = 1.0f - x[d]; }
             float val = 0.5f * (func(x) + func(xAnti));
-            sum += val; sumSq += val * val;
+            sum += val;
+            sumSq += val * val;
         }
         float mean = sum / halfPaths;
         float variance = sumSq / halfPaths - mean * mean;
@@ -2920,9 +3229,13 @@ public sealed class MonteCarloEngine
         Span<float> x = stackalloc float[dim];
         for (int i = 0; i < numSamples; i++)
         {
-            for (int d = 0; d < dim; d++) x[d] = (float)_rng.NextDouble();
+            for (int d = 0; d < dim; d++)
+                x[d] = (float)_rng.NextDouble();
             float f = func(x), c = control(x);
-            sumF += f; sumC += c; sumFC += f * c; sumC2 += c * c;
+            sumF += f;
+            sumC += c;
+            sumFC += f * c;
+            sumC2 += c * c;
         }
         float meanF = sumF / numSamples, meanC = sumC / numSamples;
         float covFC = sumFC / numSamples - meanF * meanC;
@@ -2941,13 +3254,15 @@ public sealed class MonteCarloEngine
     {
         float result = 0, f = 1.0f / b;
         int i = index;
-        while (i > 0) { result += f * (i % b); i /= b; f /= b; }
+        while (i > 0)
+        { result += f * (i % b); i /= b; f /= b; }
         return result;
     }
 
     private static int NextPrime(int start)
     {
-        for (int n = start; ; n++) { bool prime = true; for (int d = 2; d * d <= n; d++) { if (n % d == 0) { prime = false; break; } } if (prime) return n; }
+        for (int n = start; ; n++)
+        { bool prime = true; for (int d = 2; d * d <= n; d++) { if (n % d == 0) { prime = false; break; } } if (prime) return n; }
     }
 
     private static int[] GenerateSobolDirections(int dim)
@@ -2966,8 +3281,10 @@ public sealed class MonteCarloEngine
         int i = index;
         while (i > 0)
         {
-            if ((i & 1) == 1) result ^= (d % (1 << 30));
-            d >>= 1; i >>= 1;
+            if ((i & 1) == 1)
+                result ^= (d % (1 << 30));
+            d >>= 1;
+            i >>= 1;
         }
         return (float)(result & 0x7FFFFFFF) / 0x80000000;
     }
@@ -3016,9 +3333,11 @@ public sealed unsafe class StochasticFieldSerializer
         using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096);
         using var br = new BinaryReader(fs, Encoding.UTF8, leaveOpen: true);
         uint magic = br.ReadUInt32();
-        if (magic != Magic) throw new InvalidDataException($"Invalid file format: expected 0x{Magic:X8}, got 0x{magic:X8}");
+        if (magic != Magic)
+            throw new InvalidDataException($"Invalid file format: expected 0x{Magic:X8}, got 0x{magic:X8}");
         uint version = br.ReadUInt32();
-        if (version > Version) throw new InvalidDataException($"Unsupported version: {version}");
+        if (version > Version)
+            throw new InvalidDataException($"Unsupported version: {version}");
         int resX = br.ReadInt32(), resY = br.ReadInt32(), resZ = br.ReadInt32();
         var processType = (StochasticProcessType)br.ReadInt32();
         float timeStep = br.ReadSingle();
@@ -3071,16 +3390,17 @@ public sealed unsafe class StochasticFieldSerializer
         // Write binary float data (big-endian for VTK)
         byte[] buffer = new byte[field.TotalCells * sizeof(float)];
         for (int z = 0; z < field.ResZ; z++)
-        for (int y = 0; y < field.ResY; y++)
-        for (int x = 0; x < field.ResX; x++)
-        {
-            int idx = (z * field.ResY + y) * field.ResX + x;
-            float val = field.DataPointer[idx].CurrentValue;
-            byte[] bytes = BitConverter.GetBytes(val);
-            if (BitConverter.IsLittleEndian) Array.Reverse(bytes);
-            int flatIdx = (z * field.ResY + y) * field.ResX + x;
-            Buffer.BlockCopy(bytes, 0, buffer, flatIdx * sizeof(float), sizeof(float));
-        }
+            for (int y = 0; y < field.ResY; y++)
+                for (int x = 0; x < field.ResX; x++)
+                {
+                    int idx = (z * field.ResY + y) * field.ResX + x;
+                    float val = field.DataPointer[idx].CurrentValue;
+                    byte[] bytes = BitConverter.GetBytes(val);
+                    if (BitConverter.IsLittleEndian)
+                        Array.Reverse(bytes);
+                    int flatIdx = (z * field.ResY + y) * field.ResX + x;
+                    Buffer.BlockCopy(bytes, 0, buffer, flatIdx * sizeof(float), sizeof(float));
+                }
         writer.BaseStream.Write(buffer, 0, buffer.Length);
     }
 
@@ -3117,7 +3437,8 @@ public sealed unsafe class StochasticFieldSerializer
                     _ => 0
                 };
                 byte[] bytes = BitConverter.GetBytes(val);
-                if (BitConverter.IsLittleEndian) Array.Reverse(bytes);
+                if (BitConverter.IsLittleEndian)
+                    Array.Reverse(bytes);
                 Buffer.BlockCopy(bytes, 0, buffer, i * sizeof(float), sizeof(float));
             }
             writer.BaseStream.Write(buffer, 0, buffer.Length);
@@ -3157,7 +3478,8 @@ public sealed unsafe class StochasticFieldSerializer
     {
         using var writer = new StreamWriter(filePath, false, Encoding.UTF8);
         writer.Write("Time");
-        for (int p = 0; p < paths.Length; p++) writer.Write($"{delimiter}Path{p}");
+        for (int p = 0; p < paths.Length; p++)
+            writer.Write($"{delimiter}Path{p}");
         writer.WriteLine();
         int maxLen = paths.Length > 0 ? paths.Max(p => p.Length) : 0;
         for (int i = 0; i < maxLen; i++)
@@ -3202,11 +3524,15 @@ public sealed unsafe class StochasticFieldSerializer
     {
         using var writer = new StreamWriter(filePath, false, Encoding.UTF8);
         float minVal = float.MaxValue, maxVal = float.MinValue;
-        for (int y = 0; y < field.ResY; y++) for (int x = 0; x < field.ResX; x++)
-        {
-            float v = field.At(x, y, zLayer).CurrentValue;
-            if (v < minVal) minVal = v; if (v > maxVal) maxVal = v;
-        }
+        for (int y = 0; y < field.ResY; y++)
+            for (int x = 0; x < field.ResX; x++)
+            {
+                float v = field.At(x, y, zLayer).CurrentValue;
+                if (v < minVal)
+                    minVal = v;
+                if (v > maxVal)
+                    maxVal = v;
+            }
         float range = maxVal - minVal + 1e-10f;
         char[] ascii = { '.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@' };
         for (int row = 0; row < height; row++)
@@ -3243,13 +3569,15 @@ public static unsafe class StochasticFieldExtensions
     {
         if (a.ResX != b.ResX || a.ResY != b.ResY || a.ResZ != b.ResZ)
             throw new ArgumentException("Field dimensions must match for addition.");
-        for (int z = 0; z < a.ResZ; z++) for (int y = 0; y < a.ResY; y++) for (int x = 0; x < a.ResX; x++)
-        {
-            int idx = (z * a.ResY + y) * a.ResX + x;
-            result.DataPointer[idx].CurrentValue = a.DataPointer[idx].CurrentValue + b.DataPointer[idx].CurrentValue;
-            result.DataPointer[idx].Mean = a.DataPointer[idx].Mean + b.DataPointer[idx].Mean;
-            result.DataPointer[idx].Variance = a.DataPointer[idx].Variance + b.DataPointer[idx].Variance;
-        }
+        for (int z = 0; z < a.ResZ; z++)
+            for (int y = 0; y < a.ResY; y++)
+                for (int x = 0; x < a.ResX; x++)
+                {
+                    int idx = (z * a.ResY + y) * a.ResX + x;
+                    result.DataPointer[idx].CurrentValue = a.DataPointer[idx].CurrentValue + b.DataPointer[idx].CurrentValue;
+                    result.DataPointer[idx].Mean = a.DataPointer[idx].Mean + b.DataPointer[idx].Mean;
+                    result.DataPointer[idx].Variance = a.DataPointer[idx].Variance + b.DataPointer[idx].Variance;
+                }
     }
 
     /// <summary>Computes element-wise multiplication (Hadamard product) of two fields.</summary>
@@ -3257,18 +3585,21 @@ public static unsafe class StochasticFieldExtensions
     {
         if (a.ResX != b.ResX || a.ResY != b.ResY || a.ResZ != b.ResZ)
             throw new ArgumentException("Field dimensions must match for multiplication.");
-        for (int z = 0; z < a.ResZ; z++) for (int y = 0; y < a.ResY; y++) for (int x = 0; x < a.ResX; x++)
-        {
-            int idx = (z * a.ResY + y) * a.ResX + x;
-            result.DataPointer[idx].CurrentValue = a.DataPointer[idx].CurrentValue * b.DataPointer[idx].CurrentValue;
-        }
+        for (int z = 0; z < a.ResZ; z++)
+            for (int y = 0; y < a.ResY; y++)
+                for (int x = 0; x < a.ResX; x++)
+                {
+                    int idx = (z * a.ResY + y) * a.ResX + x;
+                    result.DataPointer[idx].CurrentValue = a.DataPointer[idx].CurrentValue * b.DataPointer[idx].CurrentValue;
+                }
     }
 
     /// <summary>Scales all field values by a constant factor.</summary>
     public static void Scale(StochasticField field, float scalar)
     {
         int total = field.TotalCells;
-        for (int i = 0; i < total; i++) field.DataPointer[i].CurrentValue *= scalar;
+        for (int i = 0; i < total; i++)
+            field.DataPointer[i].CurrentValue *= scalar;
     }
 
     /// <summary>Computes the L2 norm of the field values.</summary>
@@ -3276,7 +3607,8 @@ public static unsafe class StochasticFieldExtensions
     {
         float sum = 0;
         int total = field.TotalCells;
-        for (int i = 0; i < total; i++) { float v = field.DataPointer[i].CurrentValue; sum += v * v; }
+        for (int i = 0; i < total; i++)
+        { float v = field.DataPointer[i].CurrentValue; sum += v * v; }
         return MathF.Sqrt(sum);
     }
 
@@ -3285,7 +3617,8 @@ public static unsafe class StochasticFieldExtensions
     {
         float max = 0;
         int total = field.TotalCells;
-        for (int i = 0; i < total; i++) { float v = MathF.Abs(field.DataPointer[i].CurrentValue); if (v > max) max = v; }
+        for (int i = 0; i < total; i++)
+        { float v = MathF.Abs(field.DataPointer[i].CurrentValue); if (v > max) max = v; }
         return max;
     }
 
@@ -3294,25 +3627,29 @@ public static unsafe class StochasticFieldExtensions
     {
         float sum = 0, dV = 1.0f;
         int total = field.TotalCells;
-        for (int i = 0; i < total; i++) { float v = field.DataPointer[i].CurrentValue; sum += v * v; }
+        for (int i = 0; i < total; i++)
+        { float v = field.DataPointer[i].CurrentValue; sum += v * v; }
         return MathF.Sqrt(sum * dV);
     }
 
     /// <summary>Computes the pointwise maximum of two fields.</summary>
     public static void PointwiseMax(StochasticField a, StochasticField b, StochasticField result)
     {
-        for (int z = 0; z < a.ResZ; z++) for (int y = 0; y < a.ResY; y++) for (int x = 0; x < a.ResX; x++)
-        {
-            int idx = (z * a.ResY + y) * a.ResX + x;
-            result.DataPointer[idx].CurrentValue = MathF.Max(a.DataPointer[idx].CurrentValue, b.DataPointer[idx].CurrentValue);
-        }
+        for (int z = 0; z < a.ResZ; z++)
+            for (int y = 0; y < a.ResY; y++)
+                for (int x = 0; x < a.ResX; x++)
+                {
+                    int idx = (z * a.ResY + y) * a.ResX + x;
+                    result.DataPointer[idx].CurrentValue = MathF.Max(a.DataPointer[idx].CurrentValue, b.DataPointer[idx].CurrentValue);
+                }
     }
 
     /// <summary>Computes the absolute value of each field cell.</summary>
     public static void Abs(StochasticField field)
     {
         int total = field.TotalCells;
-        for (int i = 0; i < total; i++) field.DataPointer[i].CurrentValue = MathF.Abs(field.DataPointer[i].CurrentValue);
+        for (int i = 0; i < total; i++)
+            field.DataPointer[i].CurrentValue = MathF.Abs(field.DataPointer[i].CurrentValue);
     }
 
     /// <summary>Clamps all field values to [min, max].</summary>
@@ -3336,39 +3673,46 @@ public static unsafe class StochasticFieldExtensions
     {
         int half = kernelSize / 2;
         for (int z = half; z < field.ResZ - half; z++)
-        for (int y = half; y < field.ResY - half; y++)
-        for (int x = half; x < field.ResX - half; x++)
-        {
-            float sum = 0;
-            for (int kz = 0; kz < kernelSize; kz++) for (int ky = 0; ky < kernelSize; ky++) for (int kx = 0; kx < kernelSize; kx++)
-            {
-                int fx = x + kx - half, fy = y + ky - half, fz = z + kz - half;
-                sum += field.At(fx, fy, fz).CurrentValue * kernel[kz * kernelSize * kernelSize + ky * kernelSize + kx];
-            }
-            output.At(x, y, z).CurrentValue = sum;
-        }
+            for (int y = half; y < field.ResY - half; y++)
+                for (int x = half; x < field.ResX - half; x++)
+                {
+                    float sum = 0;
+                    for (int kz = 0; kz < kernelSize; kz++)
+                        for (int ky = 0; ky < kernelSize; ky++)
+                            for (int kx = 0; kx < kernelSize; kx++)
+                            {
+                                int fx = x + kx - half, fy = y + ky - half, fz = z + kz - half;
+                                sum += field.At(fx, fy, fz).CurrentValue * kernel[kz * kernelSize * kernelSize + ky * kernelSize + kx];
+                            }
+                    output.At(x, y, z).CurrentValue = sum;
+                }
     }
 
     /// <summary>Applies a Gaussian blur with given sigma to the field.</summary>
     public static void GaussianBlur(StochasticField field, float sigma)
     {
         int kernelSize = (int)(6 * sigma) | 1;
-        if (kernelSize < 3) kernelSize = 3;
+        if (kernelSize < 3)
+            kernelSize = 3;
         int half = kernelSize / 2;
         float* kernel = (float*)NativeMemory.AlignedAlloc((nuint)(kernelSize * kernelSize * kernelSize * sizeof(float)), 64);
         float sigma2 = sigma * sigma, norm = 0;
-        for (int kz = 0; kz < kernelSize; kz++) for (int ky = 0; ky < kernelSize; ky++) for (int kx = 0; kx < kernelSize; kx++)
-        {
-            float dz = kz - half, dy = ky - half, dx = kx - half;
-            float val = MathF.Exp(-(dx * dx + dy * dy + dz * dz) / (2 * sigma2));
-            kernel[kz * kernelSize * kernelSize + ky * kernelSize + kx] = val;
-            norm += val;
-        }
-        for (int i = 0; i < kernelSize * kernelSize * kernelSize; i++) kernel[i] /= norm;
+        for (int kz = 0; kz < kernelSize; kz++)
+            for (int ky = 0; ky < kernelSize; ky++)
+                for (int kx = 0; kx < kernelSize; kx++)
+                {
+                    float dz = kz - half, dy = ky - half, dx = kx - half;
+                    float val = MathF.Exp(-(dx * dx + dy * dy + dz * dz) / (2 * sigma2));
+                    kernel[kz * kernelSize * kernelSize + ky * kernelSize + kx] = val;
+                    norm += val;
+                }
+        for (int i = 0; i < kernelSize * kernelSize * kernelSize; i++)
+            kernel[i] /= norm;
         var output = new StochasticField(field.ResX, field.ResY, field.ResZ, field.ProcessType, 1.0f, 1.0f, 1.0f);
         Convolve3D(field, kernel, kernelSize, output);
         int total = field.TotalCells;
-        for (int i = 0; i < total; i++) field.DataPointer[i].CurrentValue = output.DataPointer[i].CurrentValue;
+        for (int i = 0; i < total; i++)
+            field.DataPointer[i].CurrentValue = output.DataPointer[i].CurrentValue;
         NativeMemory.AlignedFree(kernel);
         output.Dispose();
     }
@@ -3378,15 +3722,21 @@ public static unsafe class StochasticFieldExtensions
     {
         int N = field.ResX;
         float[] re = new float[N], im = new float[N];
-        for (int x = 0; x < N; x++) re[x] = field.At(x, sliceY, sliceZ).CurrentValue;
+        for (int x = 0; x < N; x++)
+            re[x] = field.At(x, sliceY, sliceZ).CurrentValue;
         // Radix-2 DIT FFT (simplified)
-        int logN = 0; int temp = N; while (temp > 1) { logN++; temp >>= 1; }
+        int logN = 0;
+        int temp = N;
+        while (temp > 1)
+        { logN++; temp >>= 1; }
         // Bit-reversal permutation
         for (int i = 0; i < N; i++)
         {
             int j = 0, x = i;
-            for (int k = 0; k < logN; k++) { j = (j << 1) | (x & 1); x >>= 1; }
-            if (j > i) { (re[i], re[j]) = (re[j], re[i]); (im[i], im[j]) = (im[j], im[i]); }
+            for (int k = 0; k < logN; k++)
+            { j = (j << 1) | (x & 1); x >>= 1; }
+            if (j > i)
+            { (re[i], re[j]) = (re[j], re[i]); (im[i], im[j]) = (im[j], im[i]); }
         }
         // Butterfly operations
         for (int size = 2; size <= N; size *= 2)
@@ -3402,8 +3752,10 @@ public static unsafe class StochasticFieldExtensions
                     int a = i + j, b = i + j + half;
                     float tRe = curRe * re[b] - curIm * im[b];
                     float tIm = curRe * im[b] + curIm * re[b];
-                    re[b] = re[a] - tRe; im[b] = im[a] - tIm;
-                    re[a] += tRe; im[a] += tIm;
+                    re[b] = re[a] - tRe;
+                    im[b] = im[a] - tIm;
+                    re[a] += tRe;
+                    im[a] += tIm;
                     float newCurRe = curRe * wRe - curIm * wIm;
                     curIm = curRe * wIm + curIm * wRe;
                     curRe = newCurRe;
@@ -3421,7 +3773,8 @@ public static unsafe class StochasticFieldExtensions
     {
         var (_, mags) = FFT1D(field, sliceY, sliceZ);
         float[] psd = new float[mags.Length];
-        for (int i = 0; i < mags.Length; i++) psd[i] = mags[i] * mags[i];
+        for (int i = 0; i < mags.Length; i++)
+            psd[i] = mags[i] * mags[i];
         return psd;
     }
 
@@ -3430,10 +3783,12 @@ public static unsafe class StochasticFieldExtensions
     {
         int N = field.ResX;
         float mean = 0;
-        for (int x = 0; x < N; x++) mean += field.At(x, sliceY, sliceZ).CurrentValue;
+        for (int x = 0; x < N; x++)
+            mean += field.At(x, sliceY, sliceZ).CurrentValue;
         mean /= N;
         float variance = 0;
-        for (int x = 0; x < N; x++) { float v = field.At(x, sliceY, sliceZ).CurrentValue - mean; variance += v * v; }
+        for (int x = 0; x < N; x++)
+        { float v = field.At(x, sliceY, sliceZ).CurrentValue - mean; variance += v * v; }
         variance /= N;
         float[] acf = new float[maxLag + 1];
         for (int lag = 0; lag <= maxLag; lag++)
@@ -3453,28 +3808,36 @@ public static unsafe class StochasticFieldExtensions
     /// <summary>Computes the gradient magnitude field.</summary>
     public static void GradientMagnitude(StochasticField field, StochasticField output)
     {
-        for (int z = 1; z < field.ResZ - 1; z++) for (int y = 1; y < field.ResY - 1; y++) for (int x = 1; x < field.ResX - 1; x++)
-        {
-            float gx = (field.At(x + 1, y, z).CurrentValue - field.At(x - 1, y, z).CurrentValue) * 0.5f;
-            float gy = (field.At(x, y + 1, z).CurrentValue - field.At(x, y - 1, z).CurrentValue) * 0.5f;
-            float gz = (field.At(x, y, z + 1).CurrentValue - field.At(x, y, z - 1).CurrentValue) * 0.5f;
-            output.At(x, y, z).CurrentValue = MathF.Sqrt(gx * gx + gy * gy + gz * gz);
-        }
+        for (int z = 1; z < field.ResZ - 1; z++)
+            for (int y = 1; y < field.ResY - 1; y++)
+                for (int x = 1; x < field.ResX - 1; x++)
+                {
+                    float gx = (field.At(x + 1, y, z).CurrentValue - field.At(x - 1, y, z).CurrentValue) * 0.5f;
+                    float gy = (field.At(x, y + 1, z).CurrentValue - field.At(x, y - 1, z).CurrentValue) * 0.5f;
+                    float gz = (field.At(x, y, z + 1).CurrentValue - field.At(x, y, z - 1).CurrentValue) * 0.5f;
+                    output.At(x, y, z).CurrentValue = MathF.Sqrt(gx * gx + gy * gy + gz * gz);
+                }
     }
 
     /// <summary>Finds local maxima (peaks) in the field.</summary>
     public static List<(int X, int Y, int Z, float Value)> FindLocalMaxima(StochasticField field, float threshold = float.MinValue)
     {
         var maxima = new List<(int, int, int, float)>();
-        for (int z = 1; z < field.ResZ - 1; z++) for (int y = 1; y < field.ResY - 1; y++) for (int x = 1; x < field.ResX - 1; x++)
-        {
-            float v = field.At(x, y, z).CurrentValue;
-            if (v < threshold) continue;
-            bool isMax = true;
-            for (int dz = -1; dz <= 1 && isMax; dz++) for (int dy = -1; dy <= 1 && isMax; dy++) for (int dx = -1; dx <= 1 && isMax; dx++)
-            { if (dx == 0 && dy == 0 && dz == 0) continue; if (field.At(x + dx, y + dy, z + dz).CurrentValue >= v) isMax = false; }
-            if (isMax) maxima.Add((x, y, z, v));
-        }
+        for (int z = 1; z < field.ResZ - 1; z++)
+            for (int y = 1; y < field.ResY - 1; y++)
+                for (int x = 1; x < field.ResX - 1; x++)
+                {
+                    float v = field.At(x, y, z).CurrentValue;
+                    if (v < threshold)
+                        continue;
+                    bool isMax = true;
+                    for (int dz = -1; dz <= 1 && isMax; dz++)
+                        for (int dy = -1; dy <= 1 && isMax; dy++)
+                            for (int dx = -1; dx <= 1 && isMax; dx++)
+                            { if (dx == 0 && dy == 0 && dz == 0) continue; if (field.At(x + dx, y + dy, z + dz).CurrentValue >= v) isMax = false; }
+                    if (isMax)
+                        maxima.Add((x, y, z, v));
+                }
         return maxima;
     }
 
@@ -3482,15 +3845,21 @@ public static unsafe class StochasticFieldExtensions
     public static List<(int X, int Y, int Z, float Value)> FindLocalMinima(StochasticField field, float threshold = float.MaxValue)
     {
         var minima = new List<(int, int, int, float)>();
-        for (int z = 1; z < field.ResZ - 1; z++) for (int y = 1; y < field.ResY - 1; y++) for (int x = 1; x < field.ResX - 1; x++)
-        {
-            float v = field.At(x, y, z).CurrentValue;
-            if (v > threshold) continue;
-            bool isMin = true;
-            for (int dz = -1; dz <= 1 && isMin; dz++) for (int dy = -1; dy <= 1 && isMin; dy++) for (int dx = -1; dx <= 1 && isMin; dx++)
-            { if (dx == 0 && dy == 0 && dz == 0) continue; if (field.At(x + dx, y + dy, z + dz).CurrentValue <= v) isMin = false; }
-            if (isMin) minima.Add((x, y, z, v));
-        }
+        for (int z = 1; z < field.ResZ - 1; z++)
+            for (int y = 1; y < field.ResY - 1; y++)
+                for (int x = 1; x < field.ResX - 1; x++)
+                {
+                    float v = field.At(x, y, z).CurrentValue;
+                    if (v > threshold)
+                        continue;
+                    bool isMin = true;
+                    for (int dz = -1; dz <= 1 && isMin; dz++)
+                        for (int dy = -1; dy <= 1 && isMin; dy++)
+                            for (int dx = -1; dx <= 1 && isMin; dx++)
+                            { if (dx == 0 && dy == 0 && dz == 0) continue; if (field.At(x + dx, y + dy, z + dz).CurrentValue <= v) isMin = false; }
+                    if (isMin)
+                        minima.Add((x, y, z, v));
+                }
         return minima;
     }
 
@@ -3504,7 +3873,8 @@ public static unsafe class StochasticFieldExtensions
         float binWidth = (maxVal - minVal) / numBins + 1e-10f;
         float[] edges = new float[numBins + 1];
         int[] counts = new int[numBins];
-        for (int b = 0; b <= numBins; b++) edges[b] = minVal + b * binWidth;
+        for (int b = 0; b <= numBins; b++)
+            edges[b] = minVal + b * binWidth;
         for (int i = 0; i < total; i++)
         {
             float v = field.DataPointer[i].CurrentValue;
@@ -3520,7 +3890,8 @@ public static unsafe class StochasticFieldExtensions
         int total = field.TotalCells;
         Span<float> values = stackalloc float[Math.Min(total, 50000)];
         int sampleCount = Math.Min(total, 50000), step = Math.Max(1, total / sampleCount);
-        for (int i = 0; i < sampleCount; i++) values[i] = field.DataPointer[i * step].CurrentValue;
+        for (int i = 0; i < sampleCount; i++)
+            values[i] = field.DataPointer[i * step].CurrentValue;
         values.Sort();
         int idx = (int)(percentile * (sampleCount - 1));
         return values[idx];
@@ -3547,11 +3918,14 @@ public static unsafe class StochasticFieldExtensions
     {
         int total = field.TotalCells;
         float maxVal = float.MinValue;
-        for (int i = 0; i < total; i++) { float v = field.DataPointer[i].CurrentValue; if (v > maxVal) maxVal = v; }
+        for (int i = 0; i < total; i++)
+        { float v = field.DataPointer[i].CurrentValue; if (v > maxVal) maxVal = v; }
         float sumExp = 0;
-        for (int i = 0; i < total; i++) { field.DataPointer[i].CurrentValue = MathF.Exp(field.DataPointer[i].CurrentValue - maxVal); sumExp += field.DataPointer[i].CurrentValue; }
+        for (int i = 0; i < total; i++)
+        { field.DataPointer[i].CurrentValue = MathF.Exp(field.DataPointer[i].CurrentValue - maxVal); sumExp += field.DataPointer[i].CurrentValue; }
         float invSum = 1.0f / (sumExp + 1e-10f);
-        for (int i = 0; i < total; i++) field.DataPointer[i].CurrentValue *= invSum;
+        for (int i = 0; i < total; i++)
+            field.DataPointer[i].CurrentValue *= invSum;
     }
 
     /// <summary>Normalizes field values to [0,1] range.</summary>
@@ -3571,7 +3945,8 @@ public static unsafe class StochasticFieldExtensions
     {
         int total = field.TotalCells;
         float sum = 0, sumSq = 0;
-        for (int i = 0; i < total; i++) { float v = field.DataPointer[i].CurrentValue; sum += v; sumSq += v * v; }
+        for (int i = 0; i < total; i++)
+        { float v = field.DataPointer[i].CurrentValue; sum += v; sumSq += v * v; }
         float mean = sum / total, variance = sumSq / total - mean * mean, std = MathF.Sqrt(MathF.Max(variance, 1e-10f));
         for (int i = 0; i < total; i++)
             field.DataPointer[i].CurrentValue = (field.DataPointer[i].CurrentValue - mean) / std;
@@ -3582,19 +3957,22 @@ public static unsafe class StochasticFieldExtensions
     {
         var clone = new StochasticField(field.ResX, field.ResY, field.ResZ, field.ProcessType, 1.0f, 1.0f, 1.0f, field.TimeStep);
         int total = field.TotalCells;
-        for (int i = 0; i < total; i++) clone.DataPointer[i] = field.DataPointer[i];
+        for (int i = 0; i < total; i++)
+            clone.DataPointer[i] = field.DataPointer[i];
         return clone;
     }
 
     /// <summary>Merges two fields by averaging their values.</summary>
     public static void Average(StochasticField a, StochasticField b, StochasticField result)
     {
-        for (int z = 0; z < a.ResZ; z++) for (int y = 0; y < a.ResY; y++) for (int x = 0; x < a.ResX; x++)
-        {
-            int idx = (z * a.ResY + y) * a.ResX + x;
-            result.DataPointer[idx].CurrentValue = 0.5f * (a.DataPointer[idx].CurrentValue + b.DataPointer[idx].CurrentValue);
-            result.DataPointer[idx].Mean = 0.5f * (a.DataPointer[idx].Mean + b.DataPointer[idx].Mean);
-        }
+        for (int z = 0; z < a.ResZ; z++)
+            for (int y = 0; y < a.ResY; y++)
+                for (int x = 0; x < a.ResX; x++)
+                {
+                    int idx = (z * a.ResY + y) * a.ResX + x;
+                    result.DataPointer[idx].CurrentValue = 0.5f * (a.DataPointer[idx].CurrentValue + b.DataPointer[idx].CurrentValue);
+                    result.DataPointer[idx].Mean = 0.5f * (a.DataPointer[idx].Mean + b.DataPointer[idx].Mean);
+                }
     }
 
     /// <summary>Computes the root mean square error between two fields.</summary>
@@ -3625,7 +4003,9 @@ public static unsafe class StochasticFieldExtensions
         for (int i = 0; i < total; i++)
         {
             float va = a.DataPointer[i].CurrentValue, vb = b.DataPointer[i].CurrentValue;
-            dot += va * vb; magA += va * va; magB += vb * vb;
+            dot += va * vb;
+            magA += va * va;
+            magB += vb * vb;
         }
         return dot / (MathF.Sqrt(magA) * MathF.Sqrt(magB) + 1e-10f);
     }
@@ -3656,7 +4036,8 @@ public sealed unsafe class StochasticFieldAnalytics
         int total = _field.TotalCells;
         Span<float> values = stackalloc float[Math.Min(total, 50000)];
         int n = Math.Min(total, 50000), step = Math.Max(1, total / n);
-        for (int i = 0; i < n; i++) values[i] = _field.DataPointer[i * step].CurrentValue;
+        for (int i = 0; i < n; i++)
+            values[i] = _field.DataPointer[i * step].CurrentValue;
         values.Sort();
         int idx = (int)((1 - confidenceLevel) * (n - 1));
         return values[idx];
@@ -3668,12 +4049,15 @@ public sealed unsafe class StochasticFieldAnalytics
         int total = _field.TotalCells;
         Span<float> values = stackalloc float[Math.Min(total, 50000)];
         int n = Math.Min(total, 50000), step = Math.Max(1, total / n);
-        for (int i = 0; i < n; i++) values[i] = _field.DataPointer[i * step].CurrentValue;
+        for (int i = 0; i < n; i++)
+            values[i] = _field.DataPointer[i * step].CurrentValue;
         values.Sort();
         int cutoff = (int)((1 - confidenceLevel) * (n - 1));
-        if (cutoff <= 0) return values[0];
+        if (cutoff <= 0)
+            return values[0];
         float sum = 0;
-        for (int i = 0; i <= cutoff; i++) sum += values[i];
+        for (int i = 0; i <= cutoff; i++)
+            sum += values[i];
         return sum / (cutoff + 1);
     }
 
@@ -3685,9 +4069,11 @@ public sealed unsafe class StochasticFieldAnalytics
         for (int i = 0; i < total; i++)
         {
             float v = _field.DataPointer[i].CurrentValue;
-            if (v > peak) peak = v;
+            if (v > peak)
+                peak = v;
             float dd = (peak - v) / (MathF.Abs(peak) + 1e-10f);
-            if (dd > maxDD) maxDD = dd;
+            if (dd > maxDD)
+                maxDD = dd;
         }
         return maxDD;
     }
@@ -3730,7 +4116,8 @@ public sealed unsafe class StochasticFieldAnalytics
         for (int b = 0; b < numBins; b++)
         {
             float p = (float)counts[b] / total;
-            if (p > 1e-10f) entropy -= p * MathF.Log2(p);
+            if (p > 1e-10f)
+                entropy -= p * MathF.Log2(p);
         }
         return entropy;
     }
@@ -3773,7 +4160,8 @@ public sealed unsafe class StochasticFieldAnalytics
         int total = _field.TotalCells;
         float[] sensitivities = new float[total];
         float baseMean = 0;
-        for (int i = 0; i < total; i++) baseMean += _field.DataPointer[i].CurrentValue;
+        for (int i = 0; i < total; i++)
+            baseMean += _field.DataPointer[i].CurrentValue;
         baseMean /= total;
 
         for (int i = 0; i < total; i++)
@@ -3784,7 +4172,8 @@ public sealed unsafe class StochasticFieldAnalytics
             float localBase = _field.DataPointer[i].CurrentValue;
             _field.DataPointer[i].CurrentValue = localBase * (1 + origDrift * perturbation);
             float newMean = 0;
-            for (int j = 0; j < total; j++) newMean += _field.DataPointer[j].CurrentValue;
+            for (int j = 0; j < total; j++)
+                newMean += _field.DataPointer[j].CurrentValue;
             newMean /= total;
             sensitivities[i] = (newMean - baseMean) / (perturbation * origDrift + 1e-10f);
             _field.DataPointer[i].Drift = origDrift;
@@ -3801,22 +4190,26 @@ public sealed unsafe class StochasticFieldAnalytics
         // Sample cell values
         Span<float> values = stackalloc float[n];
         int step = Math.Max(1, _field.TotalCells / n);
-        for (int i = 0; i < n; i++) values[i] = _field.DataPointer[i * step].CurrentValue;
+        for (int i = 0; i < n; i++)
+            values[i] = _field.DataPointer[i * step].CurrentValue;
         // Compute means
         float mean = 0;
-        for (int i = 0; i < n; i++) mean += values[i];
+        for (int i = 0; i < n; i++)
+            mean += values[i];
         mean /= n;
         // Compute variance
         float variance = 0;
-        for (int i = 0; i < n; i++) { float d = values[i] - mean; variance += d * d; }
+        for (int i = 0; i < n; i++)
+        { float d = values[i] - mean; variance += d * d; }
         variance /= n;
         float invStd = 1.0f / (MathF.Sqrt(variance) + 1e-10f);
         // Compute correlation
-        for (int i = 0; i < n; i++) for (int j = 0; j < n; j++)
-        {
-            float ci = values[i] - mean, cj = values[j] - mean;
-            matrix[i * n + j] = ci * cj * invStd * invStd;
-        }
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++)
+            {
+                float ci = values[i] - mean, cj = values[j] - mean;
+                matrix[i * n + j] = ci * cj * invStd * invStd;
+            }
         return matrix;
     }
 
@@ -3825,7 +4218,8 @@ public sealed unsafe class StochasticFieldAnalytics
     {
         int total = _field.TotalCells;
         Span<float> values = stackalloc float[total];
-        for (int i = 0; i < total; i++) values[i] = _field.DataPointer[i].CurrentValue;
+        for (int i = 0; i < total; i++)
+            values[i] = _field.DataPointer[i].CurrentValue;
         var logRS = new List<float>();
         var logN = new List<float>();
         for (int n = 10; n <= Math.Min(maxLag, total / 2); n *= 2)
@@ -3835,14 +4229,17 @@ public sealed unsafe class StochasticFieldAnalytics
             for (int seg = 0; seg < numSegments; seg++)
             {
                 float segMean = 0;
-                for (int i = seg * n; i < (seg + 1) * n; i++) segMean += values[i];
+                for (int i = seg * n; i < (seg + 1) * n; i++)
+                    segMean += values[i];
                 segMean /= n;
                 float maxR = 0, minR = 0, cumR = 0;
                 for (int i = seg * n; i < (seg + 1) * n; i++)
                 {
                     cumR += values[i] - segMean;
-                    if (cumR > maxR) maxR = cumR;
-                    if (cumR < minR) minR = cumR;
+                    if (cumR > maxR)
+                        maxR = cumR;
+                    if (cumR < minR)
+                        minR = cumR;
                 }
                 rsSum += (maxR - minR);
             }
@@ -3850,11 +4247,13 @@ public sealed unsafe class StochasticFieldAnalytics
             if (rs > 1e-10f)
             { logRS.Add(MathF.Log(rs)); logN.Add(MathF.Log(n)); }
         }
-        if (logRS.Count < 2) return 0.5f;
+        if (logRS.Count < 2)
+            return 0.5f;
         // Linear regression for slope (Hurst exponent)
         float sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
         int count = logRS.Count;
-        for (int i = 0; i < count; i++) { sumX += logN[i]; sumY += logRS[i]; sumXY += logN[i] * logRS[i]; sumX2 += logN[i] * logN[i]; }
+        for (int i = 0; i < count; i++)
+        { sumX += logN[i]; sumY += logRS[i]; sumXY += logN[i] * logRS[i]; sumX2 += logN[i] * logN[i]; }
         float slope = (count * sumXY - sumX * sumY) / (count * sumX2 - sumX * sumX + 1e-10f);
         return Math.Clamp(slope, 0.01f, 0.99f);
     }
@@ -3869,18 +4268,22 @@ public sealed unsafe class StochasticFieldAnalytics
         for (int boxSize = 2; boxSize <= Math.Min(maxBoxSize, Math.Min(_field.ResX, Math.Min(_field.ResY, _field.ResZ))); boxSize *= 2)
         {
             HashSet<(int, int, int)> occupied = new();
-            for (int z = 0; z < _field.ResZ; z += boxSize) for (int y = 0; y < _field.ResY; y += boxSize) for (int x = 0; x < _field.ResX; x += boxSize)
-            {
-                if (_field.At(x, y, z).CurrentValue > threshold)
-                    occupied.Add((x / boxSize, y / boxSize, z / boxSize));
-            }
+            for (int z = 0; z < _field.ResZ; z += boxSize)
+                for (int y = 0; y < _field.ResY; y += boxSize)
+                    for (int x = 0; x < _field.ResX; x += boxSize)
+                    {
+                        if (_field.At(x, y, z).CurrentValue > threshold)
+                            occupied.Add((x / boxSize, y / boxSize, z / boxSize));
+                    }
             if (occupied.Count > 0)
             { logCount.Add(MathF.Log(occupied.Count)); logInvSize.Add(MathF.Log(1.0f / boxSize)); }
         }
-        if (logCount.Count < 2) return 1.0f;
+        if (logCount.Count < 2)
+            return 1.0f;
         float sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
         int c = logCount.Count;
-        for (int i = 0; i < c; i++) { sumX += logInvSize[i]; sumY += logCount[i]; sumXY += logInvSize[i] * logCount[i]; sumX2 += logInvSize[i] * logInvSize[i]; }
+        for (int i = 0; i < c; i++)
+        { sumX += logInvSize[i]; sumY += logCount[i]; sumXY += logInvSize[i] * logCount[i]; sumX2 += logInvSize[i] * logInvSize[i]; }
         return (c * sumXY - sumX * sumY) / (c * sumX2 - sumX * sumX + 1e-10f);
     }
 }
@@ -3928,7 +4331,8 @@ public sealed unsafe class StochasticFieldDifferentiator
     public float* ComputeGradient(FieldLossFunction lossFunction, int numTimesteps, float dt)
     {
         ArgumentNullException.ThrowIfNull(lossFunction);
-        if (numTimesteps < 0) throw new ArgumentOutOfRangeException(nameof(numTimesteps));
+        if (numTimesteps < 0)
+            throw new ArgumentOutOfRangeException(nameof(numTimesteps));
 
         int total = _field.TotalCells;
         float** snapshots = (float**)NativeMemory.AlignedAlloc((nuint)((numTimesteps + 1) * sizeof(float*)), 64);
@@ -3937,8 +4341,10 @@ public sealed unsafe class StochasticFieldDifferentiator
             for (int t = 0; t <= numTimesteps; t++)
             {
                 snapshots[t] = (float*)NativeMemory.AlignedAlloc((nuint)(total * sizeof(float)), 64);
-                for (int i = 0; i < total; i++) snapshots[t][i] = _field.DataPointer[i].CurrentValue;
-                if (t < numTimesteps) _field.StepEulerMaruyama(dt);
+                for (int i = 0; i < total; i++)
+                    snapshots[t][i] = _field.DataPointer[i].CurrentValue;
+                if (t < numTimesteps)
+                    _field.StepEulerMaruyama(dt);
             }
 
             float loss = lossFunction(new ReadOnlySpan<float>(snapshots[numTimesteps], total));
@@ -3950,7 +4356,8 @@ public sealed unsafe class StochasticFieldDifferentiator
             float* terminalScratch = (float*)NativeMemory.AlignedAlloc((nuint)(total * sizeof(float)), 64);
             try
             {
-                for (int i = 0; i < total; i++) terminalScratch[i] = snapshots[numTimesteps][i];
+                for (int i = 0; i < total; i++)
+                    terminalScratch[i] = snapshots[numTimesteps][i];
                 for (int i = 0; i < total; i++)
                 {
                     terminalScratch[i] = snapshots[numTimesteps][i] + epsilon;
@@ -4026,7 +4433,8 @@ public sealed unsafe class StochasticFieldDifferentiator
     {
         int total = _field.TotalCells;
         // Copy perturbation to tangent buffer
-        for (int i = 0; i < total; i++) _tangentBuffer[i] = perturbation[i];
+        for (int i = 0; i < total; i++)
+            _tangentBuffer[i] = perturbation[i];
 
         // Forward propagate tangent through linearized dynamics
         for (int t = 0; t < numTimesteps; t++)
@@ -4042,7 +4450,8 @@ public sealed unsafe class StochasticFieldDifferentiator
                 float dW = sqrtDt * (float)(Random.Shared.NextDouble() * 2 - 1);
                 newTangent[i] = _tangentBuffer[i] + mu * _tangentBuffer[i] * dt + sigma * _tangentBuffer[i] * dW;
             }
-            for (int i = 0; i < total; i++) _tangentBuffer[i] = newTangent[i];
+            for (int i = 0; i < total; i++)
+                _tangentBuffer[i] = newTangent[i];
             _field.StepEulerMaruyama(dt);
         }
         return _tangentBuffer;
@@ -4116,7 +4525,8 @@ public sealed unsafe class StochasticFieldDifferentiator
             int cellIdx = p / 6;
             int paramIdx = p % 6;
             int cx = cellIdx % _field.ResX, cy = (cellIdx / _field.ResX) % _field.ResY, cz = cellIdx / (_field.ResX * _field.ResY);
-            if (cx >= _field.ResX || cy >= _field.ResY || cz >= _field.ResZ) continue;
+            if (cx >= _field.ResX || cy >= _field.ResY || cz >= _field.ResZ)
+                continue;
             int flatIdx = (cz * _field.ResY + cy) * _field.ResX + cx;
 
             float origVal = paramIdx switch
@@ -4132,12 +4542,24 @@ public sealed unsafe class StochasticFieldDifferentiator
 
             switch (paramIdx)
             {
-                case 0: _field.DataPointer[flatIdx].CurrentValue = origVal + epsilon; break;
-                case 1: _field.DataPointer[flatIdx].Drift = origVal + epsilon; break;
-                case 2: _field.DataPointer[flatIdx].Diffusion = origVal + epsilon; break;
-                case 3: _field.DataPointer[flatIdx].Mean = origVal + epsilon; break;
-                case 4: _field.DataPointer[flatIdx].Variance = origVal + epsilon; break;
-                case 5: _field.DataPointer[flatIdx].Entropy = origVal + epsilon; break;
+                case 0:
+                    _field.DataPointer[flatIdx].CurrentValue = origVal + epsilon;
+                    break;
+                case 1:
+                    _field.DataPointer[flatIdx].Drift = origVal + epsilon;
+                    break;
+                case 2:
+                    _field.DataPointer[flatIdx].Diffusion = origVal + epsilon;
+                    break;
+                case 3:
+                    _field.DataPointer[flatIdx].Mean = origVal + epsilon;
+                    break;
+                case 4:
+                    _field.DataPointer[flatIdx].Variance = origVal + epsilon;
+                    break;
+                case 5:
+                    _field.DataPointer[flatIdx].Entropy = origVal + epsilon;
+                    break;
             }
 
             float[] perturbedOutput = outputFunction(_field);
@@ -4147,12 +4569,24 @@ public sealed unsafe class StochasticFieldDifferentiator
 
             switch (paramIdx)
             {
-                case 0: _field.DataPointer[flatIdx].CurrentValue = origVal; break;
-                case 1: _field.DataPointer[flatIdx].Drift = origVal; break;
-                case 2: _field.DataPointer[flatIdx].Diffusion = origVal; break;
-                case 3: _field.DataPointer[flatIdx].Mean = origVal; break;
-                case 4: _field.DataPointer[flatIdx].Variance = origVal; break;
-                case 5: _field.DataPointer[flatIdx].Entropy = origVal; break;
+                case 0:
+                    _field.DataPointer[flatIdx].CurrentValue = origVal;
+                    break;
+                case 1:
+                    _field.DataPointer[flatIdx].Drift = origVal;
+                    break;
+                case 2:
+                    _field.DataPointer[flatIdx].Diffusion = origVal;
+                    break;
+                case 3:
+                    _field.DataPointer[flatIdx].Mean = origVal;
+                    break;
+                case 4:
+                    _field.DataPointer[flatIdx].Variance = origVal;
+                    break;
+                case 5:
+                    _field.DataPointer[flatIdx].Entropy = origVal;
+                    break;
             }
         }
         return jacobian;
@@ -4165,7 +4599,8 @@ public sealed unsafe class StochasticFieldDifferentiator
         for (int i = 0; i < rows; i++)
         {
             float sum = 0;
-            for (int j = 0; j < cols; j++) sum += jacobian[i * cols + j] * vector[j];
+            for (int j = 0; j < cols; j++)
+                sum += jacobian[i * cols + j] * vector[j];
             result[i] = sum;
         }
         return result;
@@ -4184,10 +4619,15 @@ public sealed unsafe class StochasticFieldDifferentiator
 
     public void Dispose()
     {
-        if (_disposed) return;
-        if (_adjointBuffer != null) NativeMemory.AlignedFree(_adjointBuffer);
-        if (_tangentBuffer != null) NativeMemory.AlignedFree(_tangentBuffer);
-        _adjointBuffer = null; _tangentBuffer = null; _disposed = true;
+        if (_disposed)
+            return;
+        if (_adjointBuffer != null)
+            NativeMemory.AlignedFree(_adjointBuffer);
+        if (_tangentBuffer != null)
+            NativeMemory.AlignedFree(_tangentBuffer);
+        _adjointBuffer = null;
+        _tangentBuffer = null;
+        _disposed = true;
     }
 }
 
@@ -4272,7 +4712,8 @@ public sealed unsafe class StochasticFieldUQ : IDisposable
     public float[] ComputePCECoefficients(Func<StochasticField, float> quantityOfInterest, int numSamples, int maxOrder)
     {
         int numCoeffs = 1;
-        for (int d = 1; d <= maxOrder; d++) numCoeffs += (d + 1);
+        for (int d = 1; d <= maxOrder; d++)
+            numCoeffs += (d + 1);
 
         float[] xiSamples = new float[numSamples];
         float[] qoIValues = new float[numSamples];
@@ -4299,7 +4740,8 @@ public sealed unsafe class StochasticFieldUQ : IDisposable
         {
             int col = 0;
             designMatrix[s * numCoeffs + col++] = 1.0f; // H_0
-            if (maxOrder >= 1) designMatrix[s * numCoeffs + col++] = xiSamples[s]; // H_1
+            if (maxOrder >= 1)
+                designMatrix[s * numCoeffs + col++] = xiSamples[s]; // H_1
             for (int order = 2; order <= maxOrder; order++)
             {
                 for (int k = 0; k <= order; k++)
@@ -4335,12 +4777,15 @@ public sealed unsafe class StochasticFieldUQ : IDisposable
             for (int i = 0; i < numCoeffs; i++)
             {
                 float sum = 0;
-                for (int j = 0; j < numCoeffs; j++) if (j != i) sum += DtD[i * numCoeffs + j] * coefficients[j];
+                for (int j = 0; j < numCoeffs; j++)
+                    if (j != i)
+                        sum += DtD[i * numCoeffs + j] * coefficients[j];
                 float newVal = (Dty[i] - sum) / (DtD[i * numCoeffs + i] + 1e-10f);
                 maxDiff = MathF.Max(maxDiff, MathF.Abs(newVal - coefficients[i]));
                 coefficients[i] = newVal;
             }
-            if (maxDiff < 1e-8f) break;
+            if (maxDiff < 1e-8f)
+                break;
         }
 
         NativeMemory.AlignedFree(designMatrix);
@@ -4355,10 +4800,12 @@ public sealed unsafe class StochasticFieldUQ : IDisposable
         float result = 0;
         int col = 0;
         result += coefficients[col++] * 1.0f; // H_0
-        if (maxOrder >= 1 && col < coefficients.Length) result += coefficients[col++] * xi; // H_1
+        if (maxOrder >= 1 && col < coefficients.Length)
+            result += coefficients[col++] * xi; // H_1
         for (int order = 2; order <= maxOrder; order++)
         {
-            if (col >= coefficients.Length) break;
+            if (col >= coefficients.Length)
+                break;
             result += coefficients[col++] * HermitePolynomial(xi, order);
         }
         return result;
@@ -4373,7 +4820,8 @@ public sealed unsafe class StochasticFieldUQ : IDisposable
         float[] current = new float[dim];
         float[] posteriorMean = new float[dim];
         float[] posteriorVar = new float[dim];
-        for (int d = 0; d < dim; d++) current[d] = priorMean[d];
+        for (int d = 0; d < dim; d++)
+            current[d] = priorMean[d];
         float currentLogLik = LogLikelihood(likelihood, current, priorMean, priorStd);
 
         var samples = new List<float[]>(numMCMC - burnIn);
@@ -4398,21 +4846,25 @@ public sealed unsafe class StochasticFieldUQ : IDisposable
             if (iter >= burnIn)
             {
                 samples.Add((float[])current.Clone());
-                for (int d = 0; d < dim; d++) posteriorMean[d] += current[d];
+                for (int d = 0; d < dim; d++)
+                    posteriorMean[d] += current[d];
             }
         }
 
         // Compute posterior statistics
         int n = samples.Count;
-        for (int d = 0; d < dim; d++) posteriorMean[d] /= n;
+        for (int d = 0; d < dim; d++)
+            posteriorMean[d] /= n;
         for (int d = 0; d < dim; d++)
         {
             float var = 0;
-            for (int s = 0; s < n; s++) { float diff = samples[s][d] - posteriorMean[d]; var += diff * diff; }
+            for (int s = 0; s < n; s++)
+            { float diff = samples[s][d] - posteriorMean[d]; var += diff * diff; }
             posteriorVar[d] = var / n;
         }
         float[] posteriorStd = new float[dim];
-        for (int d = 0; d < dim; d++) posteriorStd[d] = MathF.Sqrt(posteriorVar[d]);
+        for (int d = 0; d < dim; d++)
+            posteriorStd[d] = MathF.Sqrt(posteriorVar[d]);
         return (posteriorMean, posteriorStd);
     }
 
@@ -4426,7 +4878,8 @@ public sealed unsafe class StochasticFieldUQ : IDisposable
             logL -= 0.5f * diff * diff / (priorStd[d] * priorStd[d] + 1e-10f);
         }
         // Likelihood contribution
-        try { logL += MathF.Log(MathF.Max(likelihood(parameters, _field), 1e-10f)); }
+        try
+        { logL += MathF.Log(MathF.Max(likelihood(parameters, _field), 1e-10f)); }
         catch { logL -= 1e6f; }
         return logL;
     }
@@ -4434,8 +4887,10 @@ public sealed unsafe class StochasticFieldUQ : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float HermitePolynomial(float x, int n)
     {
-        if (n == 0) return 1;
-        if (n == 1) return x;
+        if (n == 0)
+            return 1;
+        if (n == 1)
+            return x;
         float h0 = 1, h1 = x;
         for (int i = 2; i <= n; i++)
         { float h2 = x * h1 - (i - 1) * h0; h0 = h1; h1 = h2; }
@@ -4448,10 +4903,15 @@ public sealed unsafe class StochasticFieldUQ : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
-        if (_klModes != null) NativeMemory.AlignedFree(_klModes);
-        if (_klEigenvalues != null) NativeMemory.AlignedFree(_klEigenvalues);
-        _klModes = null; _klEigenvalues = null; _disposed = true;
+        if (_disposed)
+            return;
+        if (_klModes != null)
+            NativeMemory.AlignedFree(_klModes);
+        if (_klEigenvalues != null)
+            NativeMemory.AlignedFree(_klEigenvalues);
+        _klModes = null;
+        _klEigenvalues = null;
+        _disposed = true;
     }
 }
 
@@ -4494,7 +4954,8 @@ public sealed unsafe class StochasticFieldInterpolator
         // Kriging weights: w = K^{-1} k*
         Span<float> weights = stackalloc float[numTrain];
         // Solve via Gauss-Seidel with the training covariance matrix
-        for (int i = 0; i < numTrain; i++) weights[i] = 0;
+        for (int i = 0; i < numTrain; i++)
+            weights[i] = 0;
 
         for (int iter = 0; iter < 100; iter++)
         {
@@ -4504,7 +4965,8 @@ public sealed unsafe class StochasticFieldInterpolator
                 float sum = 0;
                 for (int j = 0; j < numTrain; j++)
                 {
-                    if (j == i) continue;
+                    if (j == i)
+                        continue;
                     float dx = trainX[i] - trainX[j], dy = trainY[i] - trainY[j], dz = trainZ[i] - trainZ[j];
                     sum += _kernel.Evaluate(dx, dy, dz) * weights[j];
                 }
@@ -4512,17 +4974,20 @@ public sealed unsafe class StochasticFieldInterpolator
                 maxDiff = MathF.Max(maxDiff, MathF.Abs(newVal - weights[i]));
                 weights[i] = newVal;
             }
-            if (maxDiff < 1e-8f) break;
+            if (maxDiff < 1e-8f)
+                break;
         }
 
         // Predicted value
         float predicted = 0;
-        for (int i = 0; i < numTrain; i++) predicted += weights[i] * trainValues[i];
+        for (int i = 0; i < numTrain; i++)
+            predicted += weights[i] * trainValues[i];
 
         // Prediction variance
         float kqq = _kernel.Evaluate(0, 0, 0);
         float var = kqq;
-        for (int i = 0; i < numTrain; i++) var -= weights[i] * k_star[i];
+        for (int i = 0; i < numTrain; i++)
+            var -= weights[i] * k_star[i];
 
         return (predicted, MathF.Max(var, 0));
     }
@@ -4536,10 +5001,12 @@ public sealed unsafe class StochasticFieldInterpolator
         Span<float> rhs = stackalloc float[numTrain];
 
         // Fill RHS with training values
-        for (int i = 0; i < numTrain; i++) rhs[i] = trainValues[i];
+        for (int i = 0; i < numTrain; i++)
+            rhs[i] = trainValues[i];
 
         // Gauss-Seidel solve for RBF weights
-        for (int i = 0; i < numTrain; i++) coefficients[i] = 0;
+        for (int i = 0; i < numTrain; i++)
+            coefficients[i] = 0;
         for (int iter = 0; iter < 200; iter++)
         {
             float maxDiff = 0;
@@ -4548,7 +5015,8 @@ public sealed unsafe class StochasticFieldInterpolator
                 float sum = 0;
                 for (int j = 0; j < numTrain; j++)
                 {
-                    if (j == i) continue;
+                    if (j == i)
+                        continue;
                     float dx = trainX[i] - trainX[j], dy = trainY[i] - trainY[j], dz = trainZ[i] - trainZ[j];
                     float r2 = dx * dx + dy * dy + dz * dz;
                     sum += MathF.Exp(-shapeParameter * r2) * coefficients[j];
@@ -4557,7 +5025,8 @@ public sealed unsafe class StochasticFieldInterpolator
                 maxDiff = MathF.Max(maxDiff, MathF.Abs(newVal - coefficients[i]));
                 coefficients[i] = newVal;
             }
-            if (maxDiff < 1e-8f) break;
+            if (maxDiff < 1e-8f)
+                break;
         }
 
         // Evaluate at query point
@@ -4575,14 +5044,16 @@ public sealed unsafe class StochasticFieldInterpolator
     public float CubicSplineInterpolateX(float queryX, int fixedY, int fixedZ)
     {
         int N = _field.ResX;
-        if (N < 2) return _field.At(0, fixedY, fixedZ).CurrentValue;
+        if (N < 2)
+            return _field.At(0, fixedY, fixedZ).CurrentValue;
 
         // Build knot values
         Span<float> x = stackalloc float[N];
         Span<float> y = stackalloc float[N];
         for (int i = 0; i < N; i++)
         {
-            x[i] = i; y[i] = _field.At(i, fixedY, fixedZ).CurrentValue;
+            x[i] = i;
+            y[i] = _field.At(i, fixedY, fixedZ).CurrentValue;
         }
 
         // Natural cubic spline: compute second derivatives
@@ -4595,18 +5066,23 @@ public sealed unsafe class StochasticFieldInterpolator
         Span<float> b = stackalloc float[N - 1];
         Span<float> d = stackalloc float[N - 1];
 
-        for (int i = 0; i < N - 1; i++) h[i] = x[i + 1] - x[i];
+        for (int i = 0; i < N - 1; i++)
+            h[i] = x[i + 1] - x[i];
         for (int i = 1; i < N - 1; i++)
             alpha[i] = 3.0f / h[i] * (y[i + 1] - y[i]) - 3.0f / h[i - 1] * (y[i] - y[i - 1]);
 
-        l[0] = 1; mu[0] = 0; z[0] = 0;
+        l[0] = 1;
+        mu[0] = 0;
+        z[0] = 0;
         for (int i = 1; i < N - 1; i++)
         {
             l[i] = 2 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1];
             mu[i] = h[i] / l[i];
             z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
         }
-        l[N - 1] = 1; z[N - 1] = 0; c[N - 1] = 0;
+        l[N - 1] = 1;
+        z[N - 1] = 0;
+        c[N - 1] = 0;
 
         for (int j = N - 2; j >= 0; j--)
         {
@@ -4619,7 +5095,8 @@ public sealed unsafe class StochasticFieldInterpolator
         int interval = 0;
         for (int i = 0; i < N - 1; i++)
         { if (queryX >= x[i] && queryX <= x[i + 1]) { interval = i; break; } }
-        if (queryX > x[N - 1]) interval = N - 2;
+        if (queryX > x[N - 1])
+            interval = N - 2;
 
         float dx = queryX - x[interval];
         return y[interval] + b[interval] * dx + c[interval] * dx * dx + d[interval] * dx * dx * dx;
@@ -4710,7 +5187,8 @@ public sealed class StochasticFieldProfiler
         Interlocked.Add(ref _totalBytesAllocated, bytes);
         long current = Interlocked.Read(ref _totalBytesAllocated);
         long peak = Interlocked.Read(ref _peakMemoryBytes);
-        if (current > peak) Interlocked.Exchange(ref _peakMemoryBytes, current);
+        if (current > peak)
+            Interlocked.Exchange(ref _peakMemoryBytes, current);
     }
 
     /// <summary>Returns a summary of all operation timings.</summary>
@@ -4737,7 +5215,8 @@ public sealed class StochasticFieldProfiler
         Interlocked.Exchange(ref _totalAllocations, 0);
         Interlocked.Exchange(ref _totalBytesAllocated, 0);
         Interlocked.Exchange(ref _peakMemoryBytes, 0);
-        lock (_operationCounts) { _operationCounts.Clear(); _operationTimes.Clear(); }
+        lock (_operationCounts)
+        { _operationCounts.Clear(); _operationTimes.Clear(); }
     }
 
     /// <summary>Returns a formatted performance report.</summary>
@@ -4846,12 +5325,14 @@ public static unsafe class StochasticFieldParallel
             float localSum = 0;
             int start = c * chunkSize;
             int end = Math.Min(start + chunkSize, total);
-            for (int i = start; i < end; i++) localSum += field.DataPointer[i].CurrentValue;
+            for (int i = start; i < end; i++)
+                localSum += field.DataPointer[i].CurrentValue;
             chunkSums[c] = localSum;
         });
 
         // Phase 2: sequential prefix sum of chunk sums
-        for (int c = 1; c < numChunks; c++) chunkSums[c] += chunkSums[c - 1];
+        for (int c = 1; c < numChunks; c++)
+            chunkSums[c] += chunkSums[c - 1];
 
         // Phase 3: compute full prefix sum using chunk offsets
         Parallel.For(0, numChunks, new ParallelOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism }, c =>
@@ -4955,8 +5436,10 @@ public static unsafe class StochasticFieldValidator
         for (int i = 0; i < total; i++)
         {
             float v = field.DataPointer[i].CurrentValue;
-            if (float.IsNaN(v)) nanCount++;
-            else if (float.IsInfinity(v)) infCount++;
+            if (float.IsNaN(v))
+                nanCount++;
+            else if (float.IsInfinity(v))
+                infCount++;
         }
         return (nanCount == 0 && infCount == 0, nanCount, infCount);
     }
@@ -4969,7 +5452,8 @@ public static unsafe class StochasticFieldValidator
         for (int i = 0; i < total; i++)
         {
             float v = field.DataPointer[i].CurrentValue;
-            if (v < minValue || v > maxValue) violations++;
+            if (v < minValue || v > maxValue)
+                violations++;
         }
         return (violations == 0, violations);
     }
@@ -4981,7 +5465,8 @@ public static unsafe class StochasticFieldValidator
         int total = field.TotalCells;
         for (int i = 0; i < total; i++)
         {
-            if (field.DataPointer[i].Diffusion < 0) violations++;
+            if (field.DataPointer[i].Diffusion < 0)
+                violations++;
         }
         return (violations == 0, violations);
     }
@@ -4991,12 +5476,15 @@ public static unsafe class StochasticFieldValidator
     {
         float initialSum = 0;
         int total = field.TotalCells;
-        for (int i = 0; i < total; i++) initialSum += field.DataPointer[i].CurrentValue;
+        for (int i = 0; i < total; i++)
+            initialSum += field.DataPointer[i].CurrentValue;
 
-        for (int s = 0; s < numSteps; s++) field.StepEulerMaruyama(dt);
+        for (int s = 0; s < numSteps; s++)
+            field.StepEulerMaruyama(dt);
 
         float finalSum = 0;
-        for (int i = 0; i < total; i++) finalSum += field.DataPointer[i].CurrentValue;
+        for (int i = 0; i < total; i++)
+            finalSum += field.DataPointer[i].CurrentValue;
 
         float relError = MathF.Abs(finalSum - initialSum) / (MathF.Abs(initialSum) + 1e-10f);
         return (relError < tolerance, relError);
@@ -5009,15 +5497,18 @@ public static unsafe class StochasticFieldValidator
         int n = Math.Min(total, 5000);
         Span<float> values = stackalloc float[n];
         int step = Math.Max(1, total / n);
-        for (int i = 0; i < n; i++) values[i] = field.DataPointer[i * step].CurrentValue;
+        for (int i = 0; i < n; i++)
+            values[i] = field.DataPointer[i * step].CurrentValue;
         values.Sort();
 
         float mean = 0;
-        for (int i = 0; i < n; i++) mean += values[i];
+        for (int i = 0; i < n; i++)
+            mean += values[i];
         mean /= n;
 
         float W = 0, ssq = 0;
-        for (int i = 0; i < n; i++) { float d = values[i] - mean; ssq += d * d; }
+        for (int i = 0; i < n; i++)
+        { float d = values[i] - mean; ssq += d * d; }
         // Simplified W statistic using order statistics
         float numerator = 0;
         for (int i = 0; i < n / 2; i++)
@@ -5039,7 +5530,8 @@ public static unsafe class StochasticFieldValidator
         int n = Math.Min(total, 5000);
         Span<float> values = stackalloc float[n];
         int step = Math.Max(1, total / n);
-        for (int i = 0; i < n; i++) values[i] = field.DataPointer[i * step].CurrentValue;
+        for (int i = 0; i < n; i++)
+            values[i] = field.DataPointer[i * step].CurrentValue;
         values.Sort();
 
         float maxDiff = 0;
@@ -5048,7 +5540,8 @@ public static unsafe class StochasticFieldValidator
             float empiricalCDF = (float)(i + 1) / n;
             float theoreticalCDF = cdf(values[i]);
             float diff = MathF.Abs(empiricalCDF - theoreticalCDF);
-            if (diff > maxDiff) maxDiff = diff;
+            if (diff > maxDiff)
+                maxDiff = diff;
         }
 
         // KS critical value approximation
@@ -5061,16 +5554,19 @@ public static unsafe class StochasticFieldValidator
     {
         float maxGrad = 0, sumGrad = 0;
         int count = 0;
-        for (int z = 1; z < field.ResZ - 1; z++) for (int y = 1; y < field.ResY - 1; y++) for (int x = 1; x < field.ResX - 1; x++)
-        {
-            float gx = (field.At(x + 1, y, z).CurrentValue - field.At(x - 1, y, z).CurrentValue) * 0.5f;
-            float gy = (field.At(x, y + 1, z).CurrentValue - field.At(x, y - 1, z).CurrentValue) * 0.5f;
-            float gz = (field.At(x, y, z + 1).CurrentValue - field.At(x, y, z - 1).CurrentValue) * 0.5f;
-            float gradMag = MathF.Sqrt(gx * gx + gy * gy + gz * gz);
-            if (gradMag > maxGrad) maxGrad = gradMag;
-            sumGrad += gradMag;
-            count++;
-        }
+        for (int z = 1; z < field.ResZ - 1; z++)
+            for (int y = 1; y < field.ResY - 1; y++)
+                for (int x = 1; x < field.ResX - 1; x++)
+                {
+                    float gx = (field.At(x + 1, y, z).CurrentValue - field.At(x - 1, y, z).CurrentValue) * 0.5f;
+                    float gy = (field.At(x, y + 1, z).CurrentValue - field.At(x, y - 1, z).CurrentValue) * 0.5f;
+                    float gz = (field.At(x, y, z + 1).CurrentValue - field.At(x, y, z - 1).CurrentValue) * 0.5f;
+                    float gradMag = MathF.Sqrt(gx * gx + gy * gy + gz * gz);
+                    if (gradMag > maxGrad)
+                        maxGrad = gradMag;
+                    sumGrad += gradMag;
+                    count++;
+                }
         float meanGrad = count > 0 ? sumGrad / count : 0;
         return (maxGrad < maxAllowedGradient, maxGrad, meanGrad);
     }
@@ -5132,9 +5628,12 @@ public static class StochasticFieldConstants
     /// <summary>Inverse normal CDF (Beasley-Springer-Moro algorithm).</summary>
     public static float InverseNormalCDF(float p)
     {
-        if (p <= 0) return -10.0f;
-        if (p >= 1) return 10.0f;
-        if (p == 0.5f) return 0.0f;
+        if (p <= 0)
+            return -10.0f;
+        if (p >= 1)
+            return 10.0f;
+        if (p == 0.5f)
+            return 0.0f;
 
         float[] a = { -3.969683028665376e+01f, 2.209460984245205e+02f, -2.759285104469687e+02f, 1.383577518672690e+02f, -3.066479806614716e+01f, 2.506628277459239e+00f };
         float[] b = { -5.447609879822406e+01f, 1.615858368580409e+02f, -1.556989798598866e+02f, 6.680131188771972e+01f, -1.328068155288572e+01f };
@@ -5152,7 +5651,8 @@ public static class StochasticFieldConstants
         }
         else if (p <= pHigh)
         {
-            q = p - 0.5f; r = q * q;
+            q = p - 0.5f;
+            r = q * q;
             return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
                    (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0f);
         }
@@ -5167,12 +5667,14 @@ public static class StochasticFieldConstants
     /// <summary>Approximation of the Gamma function (Stirling + Lanczos).</summary>
     public static float Gamma(float z)
     {
-        if (z < 0.5f) return Pi / (MathF.Sin(Pi * z) * Gamma(1.0f - z));
+        if (z < 0.5f)
+            return Pi / (MathF.Sin(Pi * z) * Gamma(1.0f - z));
         z -= 1.0f;
         float g = 7.0f;
         float[] c = { 0.99999999999980993f, 676.5203681218851f, -1259.1392167224028f, 771.32342877765313f, -176.61502916214059f, 12.507343278686905f, -0.13857109526572012f, 9.9843695780195716e-6f, 1.5056327351493116e-7f };
         float x = c[0];
-        for (int i = 1; i < g + 2; i++) x += c[i] / (z + i);
+        for (int i = 1; i < g + 2; i++)
+            x += c[i] / (z + i);
         float t = z + g + 0.5f;
         return Sqrt2Pi * MathF.Pow(t, z + 0.5f) * MathF.Exp(-t) * x;
     }
@@ -5183,8 +5685,10 @@ public static class StochasticFieldConstants
     /// <summary>Regularized incomplete beta function I_x(a,b) (series expansion).</summary>
     public static float RegularizedIncompleteBeta(float x, float a, float b)
     {
-        if (x <= 0) return 0;
-        if (x >= 1) return 1;
+        if (x <= 0)
+            return 0;
+        if (x >= 1)
+            return 1;
         float lbeta = MathF.Log(Beta(a, b));
         float front = MathF.Exp(MathF.Log(x) * a + MathF.Log(1 - x) * b - lbeta) / a;
         // Continued fraction (Lentz's method)
@@ -5193,7 +5697,8 @@ public static class StochasticFieldConstants
         {
             int m2 = 2 * m;
             float numerator;
-            if (m == 0) numerator = 1;
+            if (m == 0)
+                numerator = 1;
             else if (m % 2 == 0)
             {
                 float k = m / 2;
@@ -5205,12 +5710,15 @@ public static class StochasticFieldConstants
                 numerator = -(a + k - 1) * (a + b + k - 1) * x / ((a + m2 - 2) * (a + m2 - 1));
             }
             d = 1 + numerator * d;
-            if (MathF.Abs(d) < 1e-30f) d = 1e-30f;
+            if (MathF.Abs(d) < 1e-30f)
+                d = 1e-30f;
             d = 1.0f / d;
             c = 1 + numerator / c;
-            if (MathF.Abs(c) < 1e-30f) c = 1e-30f;
+            if (MathF.Abs(c) < 1e-30f)
+                c = 1e-30f;
             f *= c * d;
-            if (MathF.Abs(c * d - 1) < 1e-8f) break;
+            if (MathF.Abs(c * d - 1) < 1e-8f)
+                break;
         }
         return front * (f - 1);
     }
@@ -5218,7 +5726,8 @@ public static class StochasticFieldConstants
     /// <summary>Chi-squared CDF with k degrees of freedom.</summary>
     public static float ChiSquaredCDF(float x, int k)
     {
-        if (x <= 0) return 0;
+        if (x <= 0)
+            return 0;
         return RegularizedIncompleteBeta(x / 2.0f, k / 2.0f, 0.5f);
     }
 
@@ -5258,7 +5767,12 @@ public sealed class StreamingStatistics
     public StreamingStatistics(int capacity)
     {
         _buffer = new float[capacity];
-        _head = 0; _count = 0; _sum = 0; _sumSq = 0; _min = float.MaxValue; _max = float.MinValue;
+        _head = 0;
+        _count = 0;
+        _sum = 0;
+        _sumSq = 0;
+        _min = float.MaxValue;
+        _max = float.MinValue;
     }
 
     /// <summary>Adds a sample to the streaming statistics.</summary>
@@ -5277,8 +5791,10 @@ public sealed class StreamingStatistics
         _buffer[_head] = value;
         _sum += value;
         _sumSq += value * value;
-        if (value < _min) _min = value;
-        if (value > _max) _max = value;
+        if (value < _min)
+            _min = value;
+        if (value > _max)
+            _max = value;
         _head = (_head + 1) % _buffer.Length;
     }
 
@@ -5289,9 +5805,11 @@ public sealed class StreamingStatistics
     /// <summary>Computes the percentile within the buffer.</summary>
     public float Percentile(float p)
     {
-        if (_count == 0) return 0;
+        if (_count == 0)
+            return 0;
         Span<float> sorted = stackalloc float[_count];
-        for (int i = 0; i < _count; i++) sorted[i] = _buffer[i];
+        for (int i = 0; i < _count; i++)
+            sorted[i] = _buffer[i];
         sorted.Sort();
         int idx = Math.Clamp((int)(p * (_count - 1)), 0, _count - 1);
         return sorted[idx];
@@ -5300,7 +5818,8 @@ public sealed class StreamingStatistics
     /// <summary>Computes the Exponential Moving Average with given smoothing factor.</summary>
     public float EMA(float alpha)
     {
-        if (_count == 0) return 0;
+        if (_count == 0)
+            return 0;
         float ema = _buffer[0];
         for (int i = 1; i < _count; i++)
             ema = alpha * _buffer[i] + (1 - alpha) * ema;
@@ -5344,12 +5863,16 @@ public sealed class RandomPool
     /// <summary>Generates a Poisson sample on the current thread.</summary>
     public int NextPoisson(float lambda)
     {
-        if (lambda <= 0) return 0;
+        if (lambda <= 0)
+            return 0;
         var rng = Current;
-        if (lambda > 30) { float n = NextGaussian(); return Math.Max(0, (int)(lambda + MathF.Sqrt(lambda) * n + 0.5f)); }
+        if (lambda > 30)
+        { float n = NextGaussian(); return Math.Max(0, (int)(lambda + MathF.Sqrt(lambda) * n + 0.5f)); }
         float L = MathF.Exp(-lambda);
-        int k = 0; float p = 1;
-        do { k++; p *= (float)rng.NextDouble(); } while (p > L);
+        int k = 0;
+        float p = 1;
+        do
+        { k++; p *= (float)rng.NextDouble(); } while (p > L);
         return k - 1;
     }
 }

@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -55,16 +55,20 @@ namespace GDNN.Lighting.LDNN
             lock (_lock)
             {
                 _frameTimeHistory.Enqueue(telemetry.TotalFrameTimeMs);
-                if (_frameTimeHistory.Count > 120) _frameTimeHistory.Dequeue();
+                if (_frameTimeHistory.Count > 120)
+                    _frameTimeHistory.Dequeue();
 
                 _cascadeTimeHistory.Enqueue(telemetry.CascadeRenderTimeMs);
-                if (_cascadeTimeHistory.Count > 120) _cascadeTimeHistory.Dequeue();
+                if (_cascadeTimeHistory.Count > 120)
+                    _cascadeTimeHistory.Dequeue();
 
                 _neuralTimeHistory.Enqueue(telemetry.NeuralPredictionTimeMs);
-                if (_neuralTimeHistory.Count > 120) _neuralTimeHistory.Dequeue();
+                if (_neuralTimeHistory.Count > 120)
+                    _neuralTimeHistory.Dequeue();
 
                 _raysTracedHistory.Enqueue(telemetry.RaysTraced);
-                if (_raysTracedHistory.Count > 120) _raysTracedHistory.Dequeue();
+                if (_raysTracedHistory.Count > 120)
+                    _raysTracedHistory.Dequeue();
 
                 _totalFramesTraced++;
                 _totalRaysTraced += telemetry.RaysTraced;
@@ -75,14 +79,19 @@ namespace GDNN.Lighting.LDNN
 
         private void RecomputeAverages()
         {
-            if (_frameTimeHistory.Count == 0) return;
+            if (_frameTimeHistory.Count == 0)
+                return;
 
             float sumFrame = 0, sumCascade = 0, sumNeural = 0;
             int sumRays = 0;
-            foreach (float f in _frameTimeHistory) sumFrame += f;
-            foreach (float c in _cascadeTimeHistory) sumCascade += c;
-            foreach (float n in _neuralTimeHistory) sumNeural += n;
-            foreach (int r in _raysTracedHistory) sumRays += r;
+            foreach (float f in _frameTimeHistory)
+                sumFrame += f;
+            foreach (float c in _cascadeTimeHistory)
+                sumCascade += c;
+            foreach (float n in _neuralTimeHistory)
+                sumNeural += n;
+            foreach (int r in _raysTracedHistory)
+                sumRays += r;
 
             int count = _frameTimeHistory.Count;
             AverageFrameTimeMs = sumFrame / count;
@@ -102,7 +111,8 @@ namespace GDNN.Lighting.LDNN
                 _averageSSIM = _averageSSIM * 0.95f + ssim * 0.05f;
                 _lastQualityScore = CalculateQualityScore(psnr, ssim);
                 _qualityMetricsHistory.Enqueue(_lastQualityScore);
-                if (_qualityMetricsHistory.Count > 120) _qualityMetricsHistory.Dequeue();
+                if (_qualityMetricsHistory.Count > 120)
+                    _qualityMetricsHistory.Dequeue();
             }
         }
 

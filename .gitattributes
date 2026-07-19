@@ -1,0 +1,15 @@
+* text=auto eol=lf
+
+*.cs text eol=lf
+*.{csproj,slnx,props,targets} text eol=lf
+*.{json,yml,yaml,md,axaml,html,css,js} text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.dll binary
+*.exe binary
+*.pdb binary

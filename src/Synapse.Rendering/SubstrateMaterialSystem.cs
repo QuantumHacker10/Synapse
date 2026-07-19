@@ -8,15 +8,15 @@
 // =============================================================================
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Materials.SubstrateOmega
 {
@@ -205,9 +205,14 @@ namespace GDNN.Materials.SubstrateOmega
             string description = "", string displayGroup = "General",
             string uiHint = "")
         {
-            Name = name; Type = type; Value = value;
-            Min = min; Max = max; Default = defaultVal;
-            Description = description; DisplayGroup = displayGroup;
+            Name = name;
+            Type = type;
+            Value = value;
+            Min = min;
+            Max = max;
+            Default = defaultVal;
+            Description = description;
+            DisplayGroup = displayGroup;
             UIHint = uiHint;
         }
 
@@ -218,7 +223,8 @@ namespace GDNN.Materials.SubstrateOmega
 
         public Vec3 AsVec3()
         {
-            if (Value is Vec3 v) return v;
+            if (Value is Vec3 v)
+                return v;
             if (Value is float[] arr && arr.Length >= 3)
                 return new Vec3(arr[0], arr[1], arr[2]);
             if (Value is System.Numerics.Vector3 nv)
@@ -229,10 +235,12 @@ namespace GDNN.Materials.SubstrateOmega
 
         public Color3 AsColor()
         {
-            if (Value is Color3 c) return c;
+            if (Value is Color3 c)
+                return c;
             if (Value is float[] arr && arr.Length >= 3)
                 return new Color3(arr[0], arr[1], arr[2]);
-            if (Value is Vec3 v) return new Color3(v.X, v.Y, v.Z);
+            if (Value is Vec3 v)
+                return new Color3(v.X, v.Y, v.Z);
             float f = AsFloat();
             return new Color3(f, f, f);
         }
@@ -259,7 +267,8 @@ namespace GDNN.Materials.SubstrateOmega
 
         public TextureReference(string path, TextureChannel channel = TextureChannel.Albedo)
         {
-            Path = path; Channel = channel;
+            Path = path;
+            Channel = channel;
         }
 
         public Mat3 ComputeUVTransform()
@@ -315,11 +324,11 @@ namespace GDNN.Materials.SubstrateOmega
 
     public record ShaderSource
     {
-        public string Source { get; init; }
+        public required string Source { get; init; }
         public ShaderLanguage Language { get; init; }
         public ShaderStage Stage { get; init; }
         public MaterialFeatureFlags Features { get; init; }
-        public string Hash { get; init; }
+        public required string Hash { get; init; }
         public List<string> Includes { get; init; } = new();
         public Dictionary<string, string> Defines { get; init; } = new();
         public int EstimatedInstructionCount { get; init; }
@@ -479,7 +488,15 @@ namespace GDNN.Materials.SubstrateOmega
 
         public Mat3(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22)
         {
-            M00 = m00; M01 = m01; M02 = m02; M10 = m10; M11 = m11; M12 = m12; M20 = m20; M21 = m21; M22 = m22;
+            M00 = m00;
+            M01 = m01;
+            M02 = m02;
+            M10 = m10;
+            M11 = m11;
+            M12 = m12;
+            M20 = m20;
+            M21 = m21;
+            M22 = m22;
         }
 
         public static readonly Mat3 Identity = new(1, 0, 0, 0, 1, 0, 0, 0, 1);
@@ -494,7 +511,8 @@ namespace GDNN.Materials.SubstrateOmega
         public Mat3 Inverse()
         {
             float det = Determinant();
-            if (Math.Abs(det) < 1e-10f) return Identity;
+            if (Math.Abs(det) < 1e-10f)
+                return Identity;
             float invDet = 1.0f / det;
             return new Mat3(
                 (M11 * M22 - M12 * M21) * invDet, (M02 * M21 - M01 * M22) * invDet, (M01 * M12 - M02 * M11) * invDet,
@@ -652,8 +670,10 @@ namespace GDNN.Materials.SubstrateOmega
         public static float LerpAngle(float a, float b, float t)
         {
             float diff = b - a;
-            while (diff > PI) diff -= 2 * PI;
-            while (diff < -PI) diff += 2 * PI;
+            while (diff > PI)
+                diff -= 2 * PI;
+            while (diff < -PI)
+                diff += 2 * PI;
             return a + diff * t;
         }
 
@@ -661,7 +681,8 @@ namespace GDNN.Materials.SubstrateOmega
         public static float WrapAngle(float angle)
         {
             angle = angle % (2 * PI);
-            if (angle < 0) angle += 2 * PI;
+            if (angle < 0)
+                angle += 2 * PI;
             return angle;
         }
 
@@ -762,21 +783,25 @@ namespace GDNN.Materials.SubstrateOmega
             while (pending.Count > 0 && safety++ < _microGenomes.Count * 3)
             {
                 string name = pending.Dequeue();
-                if (evaluated.Contains(name)) continue;
+                if (evaluated.Contains(name))
+                    continue;
                 var micro = _microGenomes[name];
 
                 bool allInputsReady = true;
                 foreach (var conn in _synapticConnections.Where(c => c.TargetGenome == name))
-                    if (!evaluated.Contains(conn.SourceGenome)) { allInputsReady = false; break; }
+                    if (!evaluated.Contains(conn.SourceGenome))
+                    { allInputsReady = false; break; }
 
-                if (!allInputsReady) { pending.Enqueue(name); continue; }
+                if (!allInputsReady)
+                { pending.Enqueue(name); continue; }
 
                 var inputs = new Dictionary<string, float>();
                 foreach (var conn in _synapticConnections.Where(c => c.TargetGenome == name))
                     if (results.TryGetValue(conn.SourceGenome, out var sp))
                         inputs[conn.SourceProperty] = sp.AsFloat() * conn.Weight;
 
-                foreach (var prop in micro.Evaluate(inputs)) results[prop.Key] = prop.Value;
+                foreach (var prop in micro.Evaluate(inputs))
+                    results[prop.Key] = prop.Value;
                 evaluated.Add(name);
             }
             return results;
@@ -789,7 +814,8 @@ namespace GDNN.Materials.SubstrateOmega
         public void SetLOD(int lod)
         {
             _currentLOD = Math.Max(0, lod);
-            foreach (var micro in _microGenomes.Values) micro.SetLODComplexity(_currentLOD);
+            foreach (var micro in _microGenomes.Values)
+                micro.SetLODComplexity(_currentLOD);
             _version++;
         }
 
@@ -797,7 +823,8 @@ namespace GDNN.Materials.SubstrateOmega
         {
             rng ??= Random.Shared;
             foreach (var micro in _microGenomes.Values)
-                if (rng.NextDouble() < _mutationRate) micro.Mutate(rng, _mutationRate);
+                if (rng.NextDouble() < _mutationRate)
+                    micro.Mutate(rng, _mutationRate);
             _version++;
         }
 
@@ -816,8 +843,10 @@ namespace GDNN.Materials.SubstrateOmega
                     c1._microGenomes[key] = first ? _microGenomes[key] : other._microGenomes[key];
                     c2._microGenomes[key] = first ? other._microGenomes[key] : _microGenomes[key];
                 }
-                else if (_microGenomes.ContainsKey(key)) c1._microGenomes[key] = _microGenomes[key];
-                else if (other._microGenomes.ContainsKey(key)) c2._microGenomes[key] = other._microGenomes[key];
+                else if (_microGenomes.ContainsKey(key))
+                    c1._microGenomes[key] = _microGenomes[key];
+                else if (other._microGenomes.ContainsKey(key))
+                    c2._microGenomes[key] = other._microGenomes[key];
             }
             c1._activeFeatures = c2._activeFeatures = _activeFeatures | other._activeFeatures;
             c1._semanticTags.UnionWith(_semanticTags);
@@ -829,12 +858,17 @@ namespace GDNN.Materials.SubstrateOmega
         {
             using var ms = new System.IO.MemoryStream();
             using var w = new System.IO.BinaryWriter(ms);
-            w.Write(_version); w.Write(_mutationRate); w.Write(_crossoverRate);
-            w.Write((uint)_activeFeatures); w.Write(_currentLOD);
+            w.Write(_version);
+            w.Write(_mutationRate);
+            w.Write(_crossoverRate);
+            w.Write((uint)_activeFeatures);
+            w.Write(_currentLOD);
             w.Write(_semanticTags.Count);
-            foreach (string tag in _semanticTags) w.Write(tag);
+            foreach (string tag in _semanticTags)
+                w.Write(tag);
             w.Write(_microGenomes.Count);
-            foreach (var kvp in _microGenomes) { w.Write(kvp.Key); kvp.Value.Serialize(w); }
+            foreach (var kvp in _microGenomes)
+            { w.Write(kvp.Key); kvp.Value.Serialize(w); }
             w.Write(_synapticConnections.Count);
             foreach (var c in _synapticConnections)
             { w.Write(c.SourceGenome); w.Write(c.SourceProperty); w.Write(c.TargetGenome); w.Write(c.TargetProperty); w.Write(c.Weight); w.Write((byte)c.Type); }
@@ -846,9 +880,15 @@ namespace GDNN.Materials.SubstrateOmega
             using var ms = new System.IO.MemoryStream(data);
             using var r = new System.IO.BinaryReader(ms);
             var g = new MaterialGenome { _version = r.ReadInt32(), _mutationRate = r.ReadSingle(), _crossoverRate = r.ReadSingle(), _activeFeatures = (MaterialFeatureFlags)r.ReadUInt32(), _currentLOD = r.ReadInt32() };
-            int tc = r.ReadInt32(); for (int i = 0; i < tc; i++) g._semanticTags.Add(r.ReadString());
-            int mc = r.ReadInt32(); for (int i = 0; i < mc; i++) { string n = r.ReadString(); g._microGenomes[n] = MicroGenome.Deserialize(r); }
-            int cc = r.ReadInt32(); for (int i = 0; i < cc; i++) g._synapticConnections.Add(new SynapticConnection { SourceGenome = r.ReadString(), SourceProperty = r.ReadString(), TargetGenome = r.ReadString(), TargetProperty = r.ReadString(), Weight = r.ReadSingle(), Type = (SynapticConnectionType)r.ReadByte() });
+            int tc = r.ReadInt32();
+            for (int i = 0; i < tc; i++)
+                g._semanticTags.Add(r.ReadString());
+            int mc = r.ReadInt32();
+            for (int i = 0; i < mc; i++)
+            { string n = r.ReadString(); g._microGenomes[n] = MicroGenome.Deserialize(r); }
+            int cc = r.ReadInt32();
+            for (int i = 0; i < cc; i++)
+                g._synapticConnections.Add(new SynapticConnection { SourceGenome = r.ReadString(), SourceProperty = r.ReadString(), TargetGenome = r.ReadString(), TargetProperty = r.ReadString(), Weight = r.ReadSingle(), Type = (SynapticConnectionType)r.ReadByte() });
             return g;
         }
 
@@ -862,7 +902,8 @@ namespace GDNN.Materials.SubstrateOmega
 
         public void MergeWith(MaterialGenome other)
         {
-            foreach (var kvp in other._microGenomes) _microGenomes[kvp.Key] = kvp.Value;
+            foreach (var kvp in other._microGenomes)
+                _microGenomes[kvp.Key] = kvp.Value;
             _synapticConnections.AddRange(other._synapticConnections);
             _semanticTags.UnionWith(other._semanticTags);
             _activeFeatures |= other._activeFeatures;
@@ -871,10 +912,12 @@ namespace GDNN.Materials.SubstrateOmega
 
         public float ComputeSimilarity(MaterialGenome other)
         {
-            if (other == null) return 0;
+            if (other == null)
+                return 0;
             var tagsA = _semanticTags;
             var tagsB = other._semanticTags;
-            if (tagsA.Count == 0 && tagsB.Count == 0) return 1.0f;
+            if (tagsA.Count == 0 && tagsB.Count == 0)
+                return 1.0f;
             int intersection = tagsA.Intersect(tagsB).Count();
             int union = tagsA.Union(tagsB).Count();
             return union > 0 ? (float)intersection / union : 0;
@@ -913,14 +956,19 @@ namespace GDNN.Materials.SubstrateOmega
 
         public void Mutate(Random rng, float rate)
         {
-            foreach (var gene in _genes.Values) if (rng.NextDouble() < rate) gene.Mutate(rng);
+            foreach (var gene in _genes.Values)
+                if (rng.NextDouble() < rate)
+                    gene.Mutate(rng);
             _version++;
         }
 
         public void Serialize(System.IO.BinaryWriter writer)
         {
-            writer.Write(_name); writer.Write(_version); writer.Write(_genes.Count);
-            foreach (var kvp in _genes) { writer.Write(kvp.Key); kvp.Value.Serialize(writer); }
+            writer.Write(_name);
+            writer.Write(_version);
+            writer.Write(_genes.Count);
+            foreach (var kvp in _genes)
+            { writer.Write(kvp.Key); kvp.Value.Serialize(writer); }
         }
 
         public static MicroGenome Deserialize(System.IO.BinaryReader reader)
@@ -929,14 +977,15 @@ namespace GDNN.Materials.SubstrateOmega
             int version = reader.ReadInt32();
             var micro = new MicroGenome(name) { _version = version };
             int gc = reader.ReadInt32();
-            for (int i = 0; i < gc; i++) { string pn = reader.ReadString(); micro._genes[pn] = PropertyGene.Deserialize(reader); }
+            for (int i = 0; i < gc; i++)
+            { string pn = reader.ReadString(); micro._genes[pn] = PropertyGene.Deserialize(reader); }
             return micro;
         }
     }
 
     public class PropertyGene
     {
-        public string PropertyName { get; set; }
+        public required string PropertyName { get; set; }
         public MaterialPropertyType PropertyType { get; set; }
         public float Value { get; set; }
         public float MinValue { get; set; }
@@ -950,7 +999,8 @@ namespace GDNN.Materials.SubstrateOmega
 
         public float Evaluate(float input, int currentLOD)
         {
-            if (currentLOD < LODMin || currentLOD > LODMax) return DefaultValue;
+            if (currentLOD < LODMin || currentLOD > LODMax)
+                return DefaultValue;
             float raw = Value + input;
             return Activation switch
             {
@@ -974,9 +1024,17 @@ namespace GDNN.Materials.SubstrateOmega
 
         public void Serialize(System.IO.BinaryWriter writer)
         {
-            writer.Write(PropertyName); writer.Write((byte)PropertyType); writer.Write(Value); writer.Write(MinValue);
-            writer.Write(MaxValue); writer.Write(DefaultValue); writer.Write(MutationRange);
-            writer.Write(ExpressionPriority); writer.Write(LODMin); writer.Write(LODMax); writer.Write((byte)Activation);
+            writer.Write(PropertyName);
+            writer.Write((byte)PropertyType);
+            writer.Write(Value);
+            writer.Write(MinValue);
+            writer.Write(MaxValue);
+            writer.Write(DefaultValue);
+            writer.Write(MutationRange);
+            writer.Write(ExpressionPriority);
+            writer.Write(LODMin);
+            writer.Write(LODMax);
+            writer.Write((byte)Activation);
         }
 
         public static PropertyGene Deserialize(System.IO.BinaryReader reader) =>
@@ -985,17 +1043,17 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class SynapticConnection
     {
-        public string SourceGenome { get; set; }
-        public string SourceProperty { get; set; }
-        public string TargetGenome { get; set; }
-        public string TargetProperty { get; set; }
+        public required string SourceGenome { get; set; }
+        public required string SourceProperty { get; set; }
+        public required string TargetGenome { get; set; }
+        public required string TargetProperty { get; set; }
         public float Weight { get; set; } = 1.0f;
         public SynapticConnectionType Type { get; set; } = SynapticConnectionType.Excitatory;
     }
 
     public class ActivationKernel
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public float Strength { get; set; } = 1.0f;
         public float Bias { get; set; }
         public ActivationFunction Function { get; set; } = ActivationFunction.Linear;
@@ -1075,13 +1133,16 @@ namespace GDNN.Materials.SubstrateOmega
         public void SetProperty(string name, Color3 value) => SetProperty(name, new MaterialProperty(name, MaterialPropertyType.Color, value));
         public void SetProperty(string name, Vec3 value) => SetProperty(name, new MaterialProperty(name, MaterialPropertyType.Vec3, value));
 
-        public MaterialProperty GetProperty(string name)
+        public MaterialProperty? GetProperty(string name)
         {
             lock (_lock)
             {
-                if (_properties.TryGetValue(name, out var p)) return p;
-                if (_overrides.TryGetValue(name, out var o)) return o;
-                if (_parent != null) return _parent.GetProperty(name);
+                if (_properties.TryGetValue(name, out var p))
+                    return p;
+                if (_overrides.TryGetValue(name, out var o))
+                    return o;
+                if (_parent != null)
+                    return _parent.GetProperty(name);
                 return null;
             }
         }
@@ -1111,11 +1172,15 @@ namespace GDNN.Materials.SubstrateOmega
         public SubstrateMaterial CreateVariant(string variantName, Dictionary<string, object> overrides)
         {
             var v = new SubstrateMaterial(variantName) { _parent = this, _domain = _domain, _featureFlags = _featureFlags };
-            foreach (var kvp in _textureSlots) v._textureSlots[kvp.Key] = kvp.Value;
-            foreach (var kvp in _properties) v._properties[kvp.Key] = kvp.Value;
-            if (_genome != null) v._genome = _genome.Clone();
+            foreach (var kvp in _textureSlots)
+                v._textureSlots[kvp.Key] = kvp.Value;
+            foreach (var kvp in _properties)
+                v._properties[kvp.Key] = kvp.Value;
+            if (_genome != null)
+                v._genome = _genome.Clone();
             foreach (var kvp in overrides)
-                if (_properties.TryGetValue(kvp.Key, out var bp)) v._overrides[kvp.Key] = bp.WithValue(kvp.Value);
+                if (_properties.TryGetValue(kvp.Key, out var bp))
+                    v._overrides[kvp.Key] = bp.WithValue(kvp.Value);
             v.MarkDirty();
             return v;
         }
@@ -1123,12 +1188,18 @@ namespace GDNN.Materials.SubstrateOmega
         public SubstrateMaterial Clone(string newName = null)
         {
             var c = new SubstrateMaterial(newName ?? $"{_name}_Clone") { _domain = _domain, _featureFlags = _featureFlags, _parent = _parent, _version = _version };
-            foreach (var kvp in _properties) c._properties[kvp.Key] = kvp.Value;
-            foreach (var kvp in _textureSlots) c._textureSlots[kvp.Key] = kvp.Value;
-            foreach (var kvp in _metadata) c._metadata[kvp.Key] = kvp.Value;
-            foreach (var kvp in _overrides) c._overrides[kvp.Key] = kvp.Value;
-            foreach (var l in _layers) c._layers.Add(l);
-            if (_genome != null) c._genome = _genome.Clone();
+            foreach (var kvp in _properties)
+                c._properties[kvp.Key] = kvp.Value;
+            foreach (var kvp in _textureSlots)
+                c._textureSlots[kvp.Key] = kvp.Value;
+            foreach (var kvp in _metadata)
+                c._metadata[kvp.Key] = kvp.Value;
+            foreach (var kvp in _overrides)
+                c._overrides[kvp.Key] = kvp.Value;
+            foreach (var l in _layers)
+                c._layers.Add(l);
+            if (_genome != null)
+                c._genome = _genome.Clone();
             return c;
         }
 
@@ -1136,8 +1207,12 @@ namespace GDNN.Materials.SubstrateOmega
         {
             lock (_lock)
             {
-                foreach (var kvp in other._properties) if (overrideExisting || !_properties.ContainsKey(kvp.Key)) _properties[kvp.Key] = kvp.Value;
-                foreach (var kvp in other._textureSlots) if (overrideExisting || !_textureSlots.ContainsKey(kvp.Key)) _textureSlots[kvp.Key] = kvp.Value;
+                foreach (var kvp in other._properties)
+                    if (overrideExisting || !_properties.ContainsKey(kvp.Key))
+                        _properties[kvp.Key] = kvp.Value;
+                foreach (var kvp in other._textureSlots)
+                    if (overrideExisting || !_textureSlots.ContainsKey(kvp.Key))
+                        _textureSlots[kvp.Key] = kvp.Value;
                 _featureFlags |= other._featureFlags;
                 MarkDirty();
             }
@@ -1145,16 +1220,21 @@ namespace GDNN.Materials.SubstrateOmega
 
         public ulong ComputeHash()
         {
-            if (!_isDirty) return _hash;
+            if (!_isDirty)
+                return _hash;
             using var ms = new System.IO.MemoryStream();
             using var w = new System.IO.BinaryWriter(ms);
-            w.Write(_name ?? ""); w.Write((uint)_featureFlags); w.Write((byte)_domain);
+            w.Write(_name ?? "");
+            w.Write((uint)_featureFlags);
+            w.Write((byte)_domain);
             var sp = _properties.OrderBy(k => k.Key).ToList();
             w.Write(sp.Count);
-            foreach (var kvp in sp) { w.Write(kvp.Key); w.Write((byte)kvp.Value.Type); w.Write(kvp.Value.AsFloat()); }
+            foreach (var kvp in sp)
+            { w.Write(kvp.Key); w.Write((byte)kvp.Value.Type); w.Write(kvp.Value.AsFloat()); }
             var st = _textureSlots.OrderBy(k => k.Key).ToList();
             w.Write(st.Count);
-            foreach (var kvp in st) { w.Write((byte)kvp.Key); w.Write(kvp.Value?.Path ?? ""); }
+            foreach (var kvp in st)
+            { w.Write((byte)kvp.Key); w.Write(kvp.Value?.Path ?? ""); }
             byte[] data = ms.ToArray();
             _hash = ComputeXXHash64(data);
             _isDirty = false;
@@ -1204,20 +1284,34 @@ namespace GDNN.Materials.SubstrateOmega
         public MaterialFeatureFlags ComputeActiveFeatures()
         {
             var flags = MaterialFeatureFlags.None;
-            if (GetFloat("SubsurfaceRadius") > 0 || GetFloat("SubsurfaceColor") != default) flags |= MaterialFeatureFlags.SubsurfaceScattering;
-            if (GetFloat("ClearCoat") > 0) flags |= MaterialFeatureFlags.ClearCoat;
-            if (Math.Abs(GetFloat("Anisotropy")) > 0) flags |= MaterialFeatureFlags.Anisotropy;
-            if (GetFloat("Sheen") > 0) flags |= MaterialFeatureFlags.Sheen;
-            if (GetFloat("Transmission") > 0) flags |= MaterialFeatureFlags.Transmission;
-            if (GetFloat("EmissiveIntensity") > 0) flags |= MaterialFeatureFlags.Emissive;
-            if (GetFloat("Opacity") < 1) flags |= MaterialFeatureFlags.DitheredOpacity;
-            if (_layers.Count > 1) flags |= MaterialFeatureFlags.MaskedBlend;
-            if (_textureSlots.ContainsKey(TextureChannel.Height)) flags |= MaterialFeatureFlags.ParallaxOcclusion;
-            if (_textureSlots.ContainsKey(TextureChannel.PixelDepthOffset)) flags |= MaterialFeatureFlags.PixelDepthOffset;
-            if (_textureSlots.ContainsKey(TextureChannel.SubsurfaceColor)) flags |= MaterialFeatureFlags.DiffuseProfile;
-            if (_domain == MaterialDomain.Cloth) flags |= MaterialFeatureFlags.ClothBRDF;
-            if (_domain == MaterialDomain.Hair) flags |= MaterialFeatureFlags.HairBRDF;
-            if (_domain == MaterialDomain.Eye) flags |= MaterialFeatureFlags.EyeBRDF;
+            if (GetFloat("SubsurfaceRadius") > 0 || GetFloat("SubsurfaceColor") != default)
+                flags |= MaterialFeatureFlags.SubsurfaceScattering;
+            if (GetFloat("ClearCoat") > 0)
+                flags |= MaterialFeatureFlags.ClearCoat;
+            if (Math.Abs(GetFloat("Anisotropy")) > 0)
+                flags |= MaterialFeatureFlags.Anisotropy;
+            if (GetFloat("Sheen") > 0)
+                flags |= MaterialFeatureFlags.Sheen;
+            if (GetFloat("Transmission") > 0)
+                flags |= MaterialFeatureFlags.Transmission;
+            if (GetFloat("EmissiveIntensity") > 0)
+                flags |= MaterialFeatureFlags.Emissive;
+            if (GetFloat("Opacity") < 1)
+                flags |= MaterialFeatureFlags.DitheredOpacity;
+            if (_layers.Count > 1)
+                flags |= MaterialFeatureFlags.MaskedBlend;
+            if (_textureSlots.ContainsKey(TextureChannel.Height))
+                flags |= MaterialFeatureFlags.ParallaxOcclusion;
+            if (_textureSlots.ContainsKey(TextureChannel.PixelDepthOffset))
+                flags |= MaterialFeatureFlags.PixelDepthOffset;
+            if (_textureSlots.ContainsKey(TextureChannel.SubsurfaceColor))
+                flags |= MaterialFeatureFlags.DiffuseProfile;
+            if (_domain == MaterialDomain.Cloth)
+                flags |= MaterialFeatureFlags.ClothBRDF;
+            if (_domain == MaterialDomain.Hair)
+                flags |= MaterialFeatureFlags.HairBRDF;
+            if (_domain == MaterialDomain.Eye)
+                flags |= MaterialFeatureFlags.EyeBRDF;
             _featureFlags = flags;
             return flags;
         }
@@ -1237,14 +1331,22 @@ namespace GDNN.Materials.SubstrateOmega
             float score = _properties.Count * 0.1f;
             score += _textureSlots.Count * 0.5f;
             score += _layers.Count * 0.3f;
-            if (_featureFlags.HasFlag(MaterialFeatureFlags.SubsurfaceScattering)) score += 2.0f;
-            if (_featureFlags.HasFlag(MaterialFeatureFlags.ClearCoat)) score += 1.5f;
-            if (_featureFlags.HasFlag(MaterialFeatureFlags.Anisotropy)) score += 1.0f;
-            if (_featureFlags.HasFlag(MaterialFeatureFlags.Sheen)) score += 1.0f;
-            if (_featureFlags.HasFlag(MaterialFeatureFlags.Transmission)) score += 2.0f;
-            if (_featureFlags.HasFlag(MaterialFeatureFlags.HairBRDF)) score += 3.0f;
-            if (_featureFlags.HasFlag(MaterialFeatureFlags.EyeBRDF)) score += 3.0f;
-            if (_genome != null) score += _genome.MicroGenomeCount * 0.5f;
+            if (_featureFlags.HasFlag(MaterialFeatureFlags.SubsurfaceScattering))
+                score += 2.0f;
+            if (_featureFlags.HasFlag(MaterialFeatureFlags.ClearCoat))
+                score += 1.5f;
+            if (_featureFlags.HasFlag(MaterialFeatureFlags.Anisotropy))
+                score += 1.0f;
+            if (_featureFlags.HasFlag(MaterialFeatureFlags.Sheen))
+                score += 1.0f;
+            if (_featureFlags.HasFlag(MaterialFeatureFlags.Transmission))
+                score += 2.0f;
+            if (_featureFlags.HasFlag(MaterialFeatureFlags.HairBRDF))
+                score += 3.0f;
+            if (_featureFlags.HasFlag(MaterialFeatureFlags.EyeBRDF))
+                score += 3.0f;
+            if (_genome != null)
+                score += _genome.MicroGenomeCount * 0.5f;
             return score;
         }
 
@@ -1257,36 +1359,49 @@ namespace GDNN.Materials.SubstrateOmega
             int offset = 0, rem = data.Length;
             while (rem >= 32)
             {
-                v1 = Rnd(v1, BitConverter.ToUInt64(data, offset)); offset += 8;
-                v2 = Rnd(v2, BitConverter.ToUInt64(data, offset)); offset += 8;
-                v3 = Rnd(v3, BitConverter.ToUInt64(data, offset)); offset += 8;
-                v4 = Rnd(v4, BitConverter.ToUInt64(data, offset)); offset += 8;
+                v1 = Rnd(v1, BitConverter.ToUInt64(data, offset));
+                offset += 8;
+                v2 = Rnd(v2, BitConverter.ToUInt64(data, offset));
+                offset += 8;
+                v3 = Rnd(v3, BitConverter.ToUInt64(data, offset));
+                offset += 8;
+                v4 = Rnd(v4, BitConverter.ToUInt64(data, offset));
+                offset += 8;
                 rem -= 32;
             }
             ulong h = RotL(v1, 1) + RotL(v2, 7) + RotL(v3, 12) + RotL(v4, 18);
-            while (rem >= 8) { h ^= Rnd(0, BitConverter.ToUInt64(data, offset)); h = RotL(h, 27) * P1 + P4; offset += 8; rem -= 8; }
-            while (rem > 0) { h ^= (ulong)data[offset] * P5; h = RotL(h, 11) * P1; offset++; rem--; }
-            h ^= (uint)data.Length; h ^= h >> 33; h *= P2; h ^= h >> 29; h *= P3; h ^= h >> 32;
+            while (rem >= 8)
+            { h ^= Rnd(0, BitConverter.ToUInt64(data, offset)); h = RotL(h, 27) * P1 + P4; offset += 8; rem -= 8; }
+            while (rem > 0)
+            { h ^= (ulong)data[offset] * P5; h = RotL(h, 11) * P1; offset++; rem--; }
+            h ^= (uint)data.Length;
+            h ^= h >> 33;
+            h *= P2;
+            h ^= h >> 29;
+            h *= P3;
+            h ^= h >> 32;
             return h;
-            static ulong Rnd(ulong acc, ulong input) { acc += input * P2; acc = RotL(acc, 31); acc *= P1; return acc; }
+            static ulong Rnd(ulong acc, ulong input)
+            { acc += input * P2; acc = RotL(acc, 31); acc *= P1; return acc; }
             static ulong RotL(ulong v, int c) => (v << c) | (v >> (64 - c));
         }
 
         public void Dispose()
         {
-            if (!_disposed) { _properties.Clear(); _textureSlots.Clear(); _metadata.Clear(); _layers.Clear(); _overrides.Clear(); _changeLog.Clear(); _disposed = true; }
+            if (!_disposed)
+            { _properties.Clear(); _textureSlots.Clear(); _metadata.Clear(); _layers.Clear(); _overrides.Clear(); _changeLog.Clear(); _disposed = true; }
             GC.SuppressFinalize(this);
         }
     }
 
     public class MaterialLayer
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public float Opacity { get; set; } = 1.0f;
         public LayerBlendMode BlendMode { get; set; } = LayerBlendMode.AlphaBlend;
         public int UVSet { get; set; }
-        public SubstrateMaterial Material { get; set; }
-        public TextureReference Mask { get; set; }
+        public required SubstrateMaterial Material { get; set; }
+        public required TextureReference Mask { get; set; }
         public float HeightBlendSharpness { get; set; } = 10.0f;
         public bool IsEnabled { get; set; } = true;
         public float SortOrder { get; set; }
@@ -1310,7 +1425,8 @@ namespace GDNN.Materials.SubstrateOmega
         {
             float NdotV = Math.Max(normal.Dot(outgoing), EPSILON);
             float NdotL = Math.Max(normal.Dot(incoming), 0.0f);
-            if (NdotV < EPSILON || NdotL < EPSILON) return Color3.Black;
+            if (NdotV < EPSILON || NdotL < EPSILON)
+                return Color3.Black;
 
             Color3 albedo = material.GetColor("BaseColor", new Color3(0.8f));
             float roughness = Math.Max(material.GetFloat("Roughness", 0.5f), MIN_ROUGHNESS);
@@ -1843,7 +1959,8 @@ namespace GDNN.Materials.SubstrateOmega
         public static float ExactFresnelDielectric(float cosThetaI, float eta)
         {
             float sinThetaTSq = eta * eta * (1.0f - cosThetaI * cosThetaI);
-            if (sinThetaTSq >= 1.0f) return 1.0f;
+            if (sinThetaTSq >= 1.0f)
+                return 1.0f;
             float cosThetaT = (float)Math.Sqrt(1.0f - sinThetaTSq);
             float rP = (eta * cosThetaI - cosThetaT) / (eta * cosThetaI + cosThetaT);
             float rS = (cosThetaI - eta * cosThetaT) / (cosThetaI + eta * cosThetaT);
@@ -1998,7 +2115,8 @@ namespace GDNN.Materials.SubstrateOmega
         {
             var result = new BlendedMaterialResult();
             var active = _layers.Where(l => l.IsEnabled).ToList();
-            if (active.Count == 0) return result;
+            if (active.Count == 0)
+                return result;
 
             var baseLayer = active.FirstOrDefault(l => l.IsBase);
             if (baseLayer != null)
@@ -2015,7 +2133,8 @@ namespace GDNN.Materials.SubstrateOmega
             {
                 float layerMask = layer.GetMask(uv) * maskValue;
                 float layerOpacity = layer.Opacity * layerMask;
-                if (layerOpacity < MathHelper.EPSILON) continue;
+                if (layerOpacity < MathHelper.EPSILON)
+                    continue;
 
                 Color3 lbc = layer.GetBaseColor(uv);
                 float lr = layer.GetRoughness(uv);
@@ -2081,7 +2200,8 @@ namespace GDNN.Materials.SubstrateOmega
         public BlendedMaterialResult[] EvaluateBatch(Vec2[] uvs, float maskValue = 1.0f)
         {
             var results = new BlendedMaterialResult[uvs.Length];
-            for (int i = 0; i < uvs.Length; i++) results[i] = Evaluate(uvs[i], maskValue);
+            for (int i = 0; i < uvs.Length; i++)
+                results[i] = Evaluate(uvs[i], maskValue);
             return results;
         }
 
@@ -2103,7 +2223,7 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class MaterialLayerEntry
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public float Opacity { get; set; } = 1.0f;
         public LayerBlendMode BlendMode { get; set; } = LayerBlendMode.AlphaBlend;
         public float SortOrder { get; set; }
@@ -2111,8 +2231,8 @@ namespace GDNN.Materials.SubstrateOmega
         public bool IsEnabled { get; set; } = true;
         public float HeightBlendSharpness { get; set; } = 10.0f;
 
-        private SubstrateMaterial _material;
-        private TextureReference _maskTexture;
+        private required SubstrateMaterial _material;
+        private required TextureReference _maskTexture;
 
         public void SetMaterial(SubstrateMaterial material) => _material = material;
         public void SetMask(TextureReference mask) => _maskTexture = mask;
@@ -2165,7 +2285,8 @@ namespace GDNN.Materials.SubstrateOmega
 
         public ManagedTexture LoadTexture(string path, int width = 0, int height = 0, TextureCompression format = TextureCompression.None, bool generateMipmaps = true)
         {
-            if (_textureCache.TryGetValue(path, out var cached)) { cached.LastAccessTime = DateTime.UtcNow; cached.AccessCount++; return cached; }
+            if (_textureCache.TryGetValue(path, out var cached))
+            { cached.LastAccessTime = DateTime.UtcNow; cached.AccessCount++; return cached; }
 
             byte[] data = System.IO.File.Exists(path) ? System.IO.File.ReadAllBytes(path) : new byte[Math.Max(width, 1) * Math.Max(height, 1) * 4];
             int w = width > 0 ? width : 256;
@@ -2173,12 +2294,19 @@ namespace GDNN.Materials.SubstrateOmega
 
             var tex = new ManagedTexture
             {
-                Path = path, Width = w, Height = h, Format = format, Data = data,
+                Path = path,
+                Width = w,
+                Height = h,
+                Format = format,
+                Data = data,
                 MipLevels = generateMipmaps ? ComputeMipLevels(w, h) : 1,
-                SizeBytes = data.Length, LastAccessTime = DateTime.UtcNow, AccessCount = 1
+                SizeBytes = data.Length,
+                LastAccessTime = DateTime.UtcNow,
+                AccessCount = 1
             };
 
-            if (generateMipmaps && data.Length > 0) tex.MipData = GenerateMipmaps(data, w, h, format);
+            if (generateMipmaps && data.Length > 0)
+                tex.MipData = GenerateMipmaps(data, w, h, format);
 
             _textureCache[path] = tex;
             Interlocked.Add(ref _totalMemoryBytes, tex.SizeBytes);
@@ -2191,10 +2319,15 @@ namespace GDNN.Materials.SubstrateOmega
             byte[] data = gen.Generate(type, width, height);
             var tex = new ManagedTexture
             {
-                Path = $"procedural://{name}", Width = width, Height = height,
-                Format = TextureCompression.None, Data = data,
-                MipLevels = ComputeMipLevels(width, height), SizeBytes = data.Length,
-                LastAccessTime = DateTime.UtcNow, AccessCount = 1
+                Path = $"procedural://{name}",
+                Width = width,
+                Height = height,
+                Format = TextureCompression.None,
+                Data = data,
+                MipLevels = ComputeMipLevels(width, height),
+                SizeBytes = data.Length,
+                LastAccessTime = DateTime.UtcNow,
+                AccessCount = 1
             };
             tex.MipData = GenerateMipmaps(data, width, height, TextureCompression.None);
             _textureCache[tex.Path] = tex;
@@ -2207,7 +2340,8 @@ namespace GDNN.Materials.SubstrateOmega
             if (_textureCache.TryRemove(path, out var tex))
             {
                 Interlocked.Add(ref _totalMemoryBytes, -tex.SizeBytes);
-                tex.Data = null; tex.MipData = null;
+                tex.Data = null;
+                tex.MipData = null;
                 return true;
             }
             return false;
@@ -2219,8 +2353,10 @@ namespace GDNN.Materials.SubstrateOmega
             int evicted = 0;
             foreach (var kvp in _textureCache.OrderBy(k => k.Value.LastAccessTime).ToList())
             {
-                if (Interlocked.Read(ref _totalMemoryBytes) <= targetBytes) break;
-                if (UnloadTexture(kvp.Key)) evicted++;
+                if (Interlocked.Read(ref _totalMemoryBytes) <= targetBytes)
+                    break;
+                if (UnloadTexture(kvp.Key))
+                    evicted++;
             }
             return evicted;
         }
@@ -2236,7 +2372,9 @@ namespace GDNN.Materials.SubstrateOmega
                 int nw = Math.Max(1, cw / 2), nh = Math.Max(1, ch / 2);
                 var ds = Downsample(cd, cw, ch, nw, nh);
                 mipData[i - 1] = ds;
-                cd = ds; cw = nw; ch = nh;
+                cd = ds;
+                cw = nw;
+                ch = nh;
             }
             return mipData;
         }
@@ -2244,7 +2382,8 @@ namespace GDNN.Materials.SubstrateOmega
         public TextureAtlas CreateAtlas(string name, List<string> texturePaths, int atlasSize = 4096)
         {
             foreach (var p in texturePaths)
-                if (!_textureCache.ContainsKey(p)) LoadTexture(p);
+                if (!_textureCache.ContainsKey(p))
+                    LoadTexture(p);
 
             var atlas = new TextureAtlas { Name = name, Width = atlasSize, Height = atlasSize, Entries = new List<TextureAtlasEntry>() };
             int cols = (int)Math.Ceiling(Math.Sqrt(texturePaths.Count));
@@ -2256,9 +2395,12 @@ namespace GDNN.Materials.SubstrateOmega
                 atlas.Entries.Add(new TextureAtlasEntry
                 {
                     TexturePath = texturePaths[i],
-                    U0 = (float)col / cols, V0 = (float)row / rows,
-                    U1 = (float)(col + 1) / cols, V1 = (float)(row + 1) / rows,
-                    Width = atlasSize / cols, Height = atlasSize / rows
+                    U0 = (float)col / cols,
+                    V0 = (float)row / rows,
+                    U1 = (float)(col + 1) / cols,
+                    V1 = (float)(row + 1) / rows,
+                    Width = atlasSize / cols,
+                    Height = atlasSize / rows
                 });
             }
             _atlases[name] = atlas;
@@ -2281,10 +2423,14 @@ namespace GDNN.Materials.SubstrateOmega
             var s = new TextureMemoryStats();
             foreach (var tex in _textureCache.Values)
             {
-                s.TotalTextures++; s.TotalBytes += tex.SizeBytes;
-                if (tex.MipData != null) s.MipmappedTextures++;
-                if (tex.IsStreaming) s.StreamingTextures++;
-                if (tex.Format != TextureCompression.None) s.CompressedTextures++;
+                s.TotalTextures++;
+                s.TotalBytes += tex.SizeBytes;
+                if (tex.MipData != null)
+                    s.MipmappedTextures++;
+                if (tex.IsStreaming)
+                    s.StreamingTextures++;
+                if (tex.Format != TextureCompression.None)
+                    s.CompressedTextures++;
             }
             s.AtlasCount = _atlases.Count;
             return s;
@@ -2305,8 +2451,10 @@ namespace GDNN.Materials.SubstrateOmega
                     int di = (y * dstW + x) * bpp;
                     if (si + 3 < src.Length && di + 3 < dst.Length)
                     {
-                        dst[di] = src[si]; dst[di + 1] = src[si + 1];
-                        dst[di + 2] = src[si + 2]; dst[di + 3] = src[si + 3];
+                        dst[di] = src[si];
+                        dst[di + 1] = src[si + 1];
+                        dst[di + 2] = src[si + 2];
+                        dst[di + 3] = src[si + 3];
                     }
                 }
             return dst;
@@ -2322,8 +2470,10 @@ namespace GDNN.Materials.SubstrateOmega
         {
             if (!_disposed)
             {
-                foreach (var tex in _textureCache.Values) { tex.Data = null; tex.MipData = null; }
-                _textureCache.Clear(); _atlases.Clear();
+                foreach (var tex in _textureCache.Values)
+                { tex.Data = null; tex.MipData = null; }
+                _textureCache.Clear();
+                _atlases.Clear();
                 _disposed = true;
             }
             GC.SuppressFinalize(this);
@@ -2332,12 +2482,12 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class ManagedTexture
     {
-        public string Path { get; set; }
+        public required string Path { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
         public TextureCompression Format { get; set; }
-        public byte[] Data { get; set; }
-        public byte[][] MipData { get; set; }
+        public required byte[] Data { get; set; }
+        public required byte[][] MipData { get; set; }
         public int MipLevels { get; set; }
         public long SizeBytes { get; set; }
         public DateTime LastAccessTime { get; set; }
@@ -2347,7 +2497,7 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class TextureAtlas
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
         public List<TextureAtlasEntry> Entries { get; set; } = new();
@@ -2355,7 +2505,7 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class TextureAtlasEntry
     {
-        public string TexturePath { get; set; }
+        public required string TexturePath { get; set; }
         public float U0 { get; set; }
         public float V0 { get; set; }
         public float U1 { get; set; }
@@ -2412,7 +2562,10 @@ namespace GDNN.Materials.SubstrateOmega
                     bool white = ((x / tileSize) + (y / tileSize)) % 2 == 0;
                     byte c = (byte)(white ? 240 : 32);
                     int i = (y * w + x) * 4;
-                    data[i] = c; data[i + 1] = c; data[i + 2] = c; data[i + 3] = 255;
+                    data[i] = c;
+                    data[i + 1] = c;
+                    data[i + 2] = c;
+                    data[i + 3] = 255;
                 }
             return data;
         }
@@ -2426,7 +2579,10 @@ namespace GDNN.Materials.SubstrateOmega
                     float t = (float)x / w;
                     byte c = (byte)(t * 255);
                     int i = (y * w + x) * 4;
-                    data[i] = c; data[i + 1] = c; data[i + 2] = c; data[i + 3] = 255;
+                    data[i] = c;
+                    data[i + 1] = c;
+                    data[i + 2] = c;
+                    data[i + 3] = 255;
                 }
             return data;
         }
@@ -2439,7 +2595,10 @@ namespace GDNN.Materials.SubstrateOmega
                 {
                     byte c = (byte)(_rng.Next(256));
                     int i = (y * w + x) * 4;
-                    data[i] = c; data[i + 1] = c; data[i + 2] = c; data[i + 3] = 255;
+                    data[i] = c;
+                    data[i + 1] = c;
+                    data[i + 2] = c;
+                    data[i + 3] = 255;
                 }
             return data;
         }
@@ -2466,7 +2625,10 @@ namespace GDNN.Materials.SubstrateOmega
                         c = (byte)Math.Clamp(180 + noise, 0, 255);
                     }
                     int i = (y * w + x) * 4;
-                    data[i] = c; data[i + 1] = (byte)(c * 0.85f); data[i + 2] = (byte)(c * 0.7f); data[i + 3] = 255;
+                    data[i] = c;
+                    data[i + 1] = (byte)(c * 0.85f);
+                    data[i + 2] = (byte)(c * 0.7f);
+                    data[i + 3] = 255;
                 }
             return data;
         }
@@ -2489,7 +2651,10 @@ namespace GDNN.Materials.SubstrateOmega
                     byte g = (byte)(Math.Clamp(val * 120 + 20, 0, 255));
                     byte b = (byte)(Math.Clamp(val * 60 + 10, 0, 255));
                     int i = (y * w + x) * 4;
-                    data[i] = r; data[i + 1] = g; data[i + 2] = b; data[i + 3] = 255;
+                    data[i] = r;
+                    data[i + 1] = g;
+                    data[i + 2] = b;
+                    data[i + 3] = 255;
                 }
             return data;
         }
@@ -2508,7 +2673,10 @@ namespace GDNN.Materials.SubstrateOmega
                     val = val * 0.8f + 0.1f;
                     byte c = (byte)(Math.Clamp(val * 255, 0, 255));
                     int i = (y * w + x) * 4;
-                    data[i] = c; data[i + 1] = (byte)(c * 0.98f); data[i + 2] = (byte)(c * 0.96f); data[i + 3] = 255;
+                    data[i] = c;
+                    data[i + 1] = (byte)(c * 0.98f);
+                    data[i + 2] = (byte)(c * 0.96f);
+                    data[i + 3] = 255;
                 }
             return data;
         }
@@ -2523,7 +2691,10 @@ namespace GDNN.Materials.SubstrateOmega
                     float val = PerlinNoise2D(x * freq, y * freq) * 0.5f + 0.5f;
                     byte c = (byte)(Math.Clamp(val * 255, 0, 255));
                     int i = (y * w + x) * 4;
-                    data[i] = c; data[i + 1] = c; data[i + 2] = c; data[i + 3] = 255;
+                    data[i] = c;
+                    data[i + 1] = c;
+                    data[i + 2] = c;
+                    data[i + 3] = 255;
                 }
             return data;
         }
@@ -2548,18 +2719,24 @@ namespace GDNN.Materials.SubstrateOmega
                         for (int dx = -1; dx <= 1; dx++)
                         {
                             int px = cx + dx, py = cy + dy;
-                            if (px < 0 || px >= pointsX || py < 0 || py >= pointsY) continue;
+                            if (px < 0 || px >= pointsX || py < 0 || py >= pointsY)
+                                continue;
                             int pi = py * pointsX + px;
                             Vec2 pt = new Vec2(px * cellSize + points[pi].X, py * cellSize + points[pi].Y);
                             float dist = (new Vec2(x, y) - pt).Length;
-                            if (dist < minDist) { secondDist = minDist; minDist = dist; }
-                            else if (dist < secondDist) secondDist = dist;
+                            if (dist < minDist)
+                            { secondDist = minDist; minDist = dist; }
+                            else if (dist < secondDist)
+                                secondDist = dist;
                         }
                     float edge = secondDist - minDist;
                     float val = MathHelper.Clamp(edge / 8.0f, 0, 1);
                     byte c = (byte)(val * 255);
                     int i = (y * w + x) * 4;
-                    data[i] = c; data[i + 1] = c; data[i + 2] = c; data[i + 3] = 255;
+                    data[i] = c;
+                    data[i + 1] = c;
+                    data[i + 2] = c;
+                    data[i + 3] = 255;
                 }
             return data;
         }
@@ -2577,7 +2754,10 @@ namespace GDNN.Materials.SubstrateOmega
                     val = MathHelper.Clamp(val, 0, 1);
                     byte c = (byte)(val * 255);
                     int i = (y * w + x) * 4;
-                    data[i] = c; data[i + 1] = c; data[i + 2] = c; data[i + 3] = 255;
+                    data[i] = c;
+                    data[i + 1] = c;
+                    data[i + 2] = c;
+                    data[i + 3] = 255;
                 }
             return data;
         }
@@ -2601,7 +2781,10 @@ namespace GDNN.Materials.SubstrateOmega
                     val = val / totalAmp * 0.5f + 0.5f;
                     byte c = (byte)(Math.Clamp(val * 255, 0, 255));
                     int i = (y * w + x) * 4;
-                    data[i] = c; data[i + 1] = c; data[i + 2] = c; data[i + 3] = 255;
+                    data[i] = c;
+                    data[i + 1] = c;
+                    data[i + 2] = c;
+                    data[i + 3] = 255;
                 }
             return data;
         }
@@ -2617,13 +2800,16 @@ namespace GDNN.Materials.SubstrateOmega
                     val = MathHelper.Clamp(val, 0, 1);
                     byte c = (byte)(val * 255);
                     int i = (y * w + x) * 4;
-                    data[i] = c; data[i + 1] = c; data[i + 2] = c; data[i + 3] = 255;
+                    data[i] = c;
+                    data[i + 1] = c;
+                    data[i + 2] = c;
+                    data[i + 3] = 255;
                 }
             return data;
         }
 
         // Perlin noise helpers
-        private static readonly int[] Permutation = { 151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180 };
+        private static readonly int[] Permutation = { 151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180 };
 
         private float PerlinNoise2D(float x, float y)
         {
@@ -2716,7 +2902,8 @@ namespace GDNN.Materials.SubstrateOmega
                         SortOrder = layer.SortOrder,
                         IsBase = stack.LayerCount == 0
                     };
-                    if (layer.Material != null) entry.SetMaterial(layer.Material);
+                    if (layer.Material != null)
+                        entry.SetMaterial(layer.Material);
                     stack.AddLayer(entry);
                 }
                 var layered = stack.Evaluate(uv);
@@ -2781,7 +2968,8 @@ namespace GDNN.Materials.SubstrateOmega
         public Vec3 ComputeTangentSpaceNormal(SubstrateMaterial material, Vec2 uv, Vec3 geometricNormal, Vec3 geometricTangent)
         {
             var normalTex = material.GetTexture(TextureChannel.Normal);
-            if (normalTex == null) return geometricNormal;
+            if (normalTex == null)
+                return geometricNormal;
 
             float strength = material.GetFloat("NormalStrength", 1.0f);
             Vec3 tangentSpaceNormal = new Vec3(0, 0, 1);
@@ -2804,7 +2992,8 @@ namespace GDNN.Materials.SubstrateOmega
             {
                 Vec3 samplePos = position + direction * t;
                 float height = sampleHeight(samplePos);
-                if (height > prevHeight + 0.001f) return 0;
+                if (height > prevHeight + 0.001f)
+                    return 0;
                 t += stepSize;
                 prevHeight = height;
             }
@@ -2823,7 +3012,8 @@ namespace GDNN.Materials.SubstrateOmega
             {
                 currentUV -= dt;
                 float sampledHeight = SampleHeightMap(material, currentUV);
-                if (sampledHeight >= currentHeight) break;
+                if (sampledHeight >= currentHeight)
+                    break;
                 prevHeight = currentHeight;
                 currentHeight -= stepSize;
             }
@@ -2855,7 +3045,8 @@ namespace GDNN.Materials.SubstrateOmega
                     (float)(Math.Sin(phi) * Math.Cos(theta)),
                     (float)(Math.Sin(phi) * Math.Sin(theta)),
                     (float)Math.Cos(phi));
-                if (sampleDir.Dot(normal) < 0) sampleDir = -sampleDir;
+                if (sampleDir.Dot(normal) < 0)
+                    sampleDir = -sampleDir;
                 float dist = sceneSDF(position + sampleDir * radius);
                 ao += MathHelper.Clamp(dist / radius, 0, 1);
             }
@@ -2875,7 +3066,8 @@ namespace GDNN.Materials.SubstrateOmega
         private float SampleHeightMap(SubstrateMaterial material, Vec2 uv)
         {
             var heightTex = material.GetTexture(TextureChannel.Height);
-            if (heightTex == null) return 0;
+            if (heightTex == null)
+                return 0;
             return material.GetFloat("DisplacementScale", 0.1f) * 0.5f;
         }
 
@@ -2968,7 +3160,8 @@ namespace GDNN.Materials.SubstrateOmega
 
         private string GenerateHLSL(SubstrateMaterial material, MaterialFeatureFlags features, ShaderStage stage)
         {
-            if (stage == ShaderStage.Vertex) return GenerateHLSLVertex(material, features);
+            if (stage == ShaderStage.Vertex)
+                return GenerateHLSLVertex(material, features);
 
             var sb = new StringBuilder();
             sb.AppendLine("// Auto-generated Substrate Material HLSL Shader");
@@ -3164,7 +3357,8 @@ namespace GDNN.Materials.SubstrateOmega
 
         private string GenerateGLSL(SubstrateMaterial material, MaterialFeatureFlags features, ShaderStage stage)
         {
-            if (stage == ShaderStage.Vertex) return GenerateGLSLVertex(material, features);
+            if (stage == ShaderStage.Vertex)
+                return GenerateGLSLVertex(material, features);
 
             var sb = new StringBuilder();
             sb.AppendLine("// Auto-generated Substrate Material GLSL Shader");
@@ -3316,7 +3510,8 @@ namespace GDNN.Materials.SubstrateOmega
 
         private string GenerateSlang(SubstrateMaterial material, MaterialFeatureFlags features, ShaderStage stage)
         {
-            if (stage == ShaderStage.Vertex) return GenerateSlangVertex(material, features);
+            if (stage == ShaderStage.Vertex)
+                return GenerateSlangVertex(material, features);
 
             var sb = new StringBuilder();
             sb.AppendLine("// Auto-generated Substrate Material Slang Shader");
@@ -3415,18 +3610,30 @@ namespace GDNN.Materials.SubstrateOmega
         private Dictionary<string, string> GenerateDefines(MaterialFeatureFlags features)
         {
             var defines = new Dictionary<string, string>();
-            if (features.HasFlag(MaterialFeatureFlags.SubsurfaceScattering)) defines["SUBSURFACE_SCATTERING"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.ClearCoat)) defines["CLEAR_COAT"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.Anisotropy)) defines["ANISOTROPY"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.Sheen)) defines["SHEEN"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.Transmission)) defines["TRANSMISSION"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.Emissive)) defines["EMISSIVE"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.DiffuseTransmission)) defines["DIFFUSE_TRANSMISSION"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.ThinSurface)) defines["THIN_SURFACE"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.TwoSided)) defines["TWO_SIDED"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.WorldPositionOffset)) defines["WORLD_POSITION_OFFSET"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.ParallaxOcclusion)) defines["PARALLAX_OCCLUSION"] = "1";
-            if (features.HasFlag(MaterialFeatureFlags.PixelDepthOffset)) defines["PIXEL_DEPTH_OFFSET"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.SubsurfaceScattering))
+                defines["SUBSURFACE_SCATTERING"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.ClearCoat))
+                defines["CLEAR_COAT"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.Anisotropy))
+                defines["ANISOTROPY"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.Sheen))
+                defines["SHEEN"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.Transmission))
+                defines["TRANSMISSION"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.Emissive))
+                defines["EMISSIVE"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.DiffuseTransmission))
+                defines["DIFFUSE_TRANSMISSION"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.ThinSurface))
+                defines["THIN_SURFACE"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.TwoSided))
+                defines["TWO_SIDED"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.WorldPositionOffset))
+                defines["WORLD_POSITION_OFFSET"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.ParallaxOcclusion))
+                defines["PARALLAX_OCCLUSION"] = "1";
+            if (features.HasFlag(MaterialFeatureFlags.PixelDepthOffset))
+                defines["PIXEL_DEPTH_OFFSET"] = "1";
             return defines;
         }
 
@@ -3439,7 +3646,9 @@ namespace GDNN.Materials.SubstrateOmega
         private static int EstimateInstructions(string source)
         {
             int count = 0;
-            foreach (char c in source) if (c == ';' || c == '{' || c == '}') count++;
+            foreach (char c in source)
+                if (c == ';' || c == '{' || c == '}')
+                    count++;
             count += source.Split('\n').Count(l => l.Contains("if") || l.Contains("for") || l.Contains("while")) * 3;
             count += source.Split('\n').Count(l => l.Contains("sin") || l.Contains("cos") || l.Contains("pow") || l.Contains("sqrt")) * 5;
             return count;
@@ -4193,15 +4402,24 @@ namespace GDNN.Materials.SubstrateOmega
             cost += material.TextureSlots.Count * 0.5f;
             cost += material.Layers.Count * 0.3f;
             var features = material.ComputeActiveFeatures();
-            if (features.HasFlag(MaterialFeatureFlags.SubsurfaceScattering)) cost += 3.0f;
-            if (features.HasFlag(MaterialFeatureFlags.ClearCoat)) cost += 1.5f;
-            if (features.HasFlag(MaterialFeatureFlags.Anisotropy)) cost += 1.0f;
-            if (features.HasFlag(MaterialFeatureFlags.Sheen)) cost += 1.0f;
-            if (features.HasFlag(MaterialFeatureFlags.Transmission)) cost += 2.5f;
-            if (features.HasFlag(MaterialFeatureFlags.HairBRDF)) cost += 4.0f;
-            if (features.HasFlag(MaterialFeatureFlags.EyeBRDF)) cost += 4.0f;
-            if (features.HasFlag(MaterialFeatureFlags.ParallaxOcclusion)) cost += 2.0f;
-            if (features.HasFlag(MaterialFeatureFlags.PixelDepthOffset)) cost += 0.5f;
+            if (features.HasFlag(MaterialFeatureFlags.SubsurfaceScattering))
+                cost += 3.0f;
+            if (features.HasFlag(MaterialFeatureFlags.ClearCoat))
+                cost += 1.5f;
+            if (features.HasFlag(MaterialFeatureFlags.Anisotropy))
+                cost += 1.0f;
+            if (features.HasFlag(MaterialFeatureFlags.Sheen))
+                cost += 1.0f;
+            if (features.HasFlag(MaterialFeatureFlags.Transmission))
+                cost += 2.5f;
+            if (features.HasFlag(MaterialFeatureFlags.HairBRDF))
+                cost += 4.0f;
+            if (features.HasFlag(MaterialFeatureFlags.EyeBRDF))
+                cost += 4.0f;
+            if (features.HasFlag(MaterialFeatureFlags.ParallaxOcclusion))
+                cost += 2.0f;
+            if (features.HasFlag(MaterialFeatureFlags.PixelDepthOffset))
+                cost += 0.5f;
             return cost;
         }
 
@@ -4256,7 +4474,8 @@ namespace GDNN.Materials.SubstrateOmega
             if (issues.Count > 0)
             {
                 sb.AppendLine("\nIssues:");
-                foreach (var issue in issues) sb.AppendLine($"  - {issue}");
+                foreach (var issue in issues)
+                    sb.AppendLine($"  - {issue}");
             }
             else
             {
@@ -4277,7 +4496,8 @@ namespace GDNN.Materials.SubstrateOmega
                 MaterialFeatureFlags.DiffuseTransmission, MaterialFeatureFlags.ThinSurface
             };
             foreach (var f in featureBits)
-                if (features.HasFlag(f)) count *= 2;
+                if (features.HasFlag(f))
+                    count *= 2;
             return count;
         }
 
@@ -4287,19 +4507,26 @@ namespace GDNN.Materials.SubstrateOmega
             cost += material.TextureSlots.Count * 5;
             cost += material.Layers.Count * 3;
             var features = material.ComputeActiveFeatures();
-            if (features.HasFlag(MaterialFeatureFlags.SubsurfaceScattering)) cost += 20;
-            if (features.HasFlag(MaterialFeatureFlags.ClearCoat)) cost += 10;
-            if (features.HasFlag(MaterialFeatureFlags.Transmission)) cost += 15;
-            if (features.HasFlag(MaterialFeatureFlags.HairBRDF)) cost += 25;
-            if (features.HasFlag(MaterialFeatureFlags.EyeBRDF)) cost += 25;
+            if (features.HasFlag(MaterialFeatureFlags.SubsurfaceScattering))
+                cost += 20;
+            if (features.HasFlag(MaterialFeatureFlags.ClearCoat))
+                cost += 10;
+            if (features.HasFlag(MaterialFeatureFlags.Transmission))
+                cost += 15;
+            if (features.HasFlag(MaterialFeatureFlags.HairBRDF))
+                cost += 25;
+            if (features.HasFlag(MaterialFeatureFlags.EyeBRDF))
+                cost += 25;
             return cost;
         }
 
         private int EstimateDrawCalls(SubstrateMaterial material)
         {
             int calls = 1;
-            if (material.Layers.Count > 1) calls += material.Layers.Count;
-            if (material.FeatureFlags.HasFlag(MaterialFeatureFlags.Decal)) calls++;
+            if (material.Layers.Count > 1)
+                calls += material.Layers.Count;
+            if (material.FeatureFlags.HasFlag(MaterialFeatureFlags.Decal))
+                calls++;
             return calls;
         }
     }
@@ -4380,10 +4607,12 @@ namespace GDNN.Materials.SubstrateOmega
             variant.SetProperty("BaseColor", original * colorShift);
 
             Color3 sss = variant.GetColor("SubsurfaceColor");
-            if (!sss.Equals(default(Color3))) variant.SetProperty("SubsurfaceColor", sss * colorShift);
+            if (!sss.Equals(default(Color3)))
+                variant.SetProperty("SubsurfaceColor", sss * colorShift);
 
             Color3 emissive = variant.GetColor("Emissive");
-            if (!emissive.Equals(default(Color3))) variant.SetProperty("Emissive", emissive * colorShift);
+            if (!emissive.Equals(default(Color3)))
+                variant.SetProperty("Emissive", emissive * colorShift);
 
             variant.ComputeActiveFeatures();
             return variant;
@@ -4450,12 +4679,18 @@ namespace GDNN.Materials.SubstrateOmega
             float x = c * (1 - Math.Abs((h / 60) % 2 - 1));
             float m = v - c;
             float r, g, b;
-            if (h < 60) { r = c; g = x; b = 0; }
-            else if (h < 120) { r = x; g = c; b = 0; }
-            else if (h < 180) { r = 0; g = c; b = x; }
-            else if (h < 240) { r = 0; g = x; b = c; }
-            else if (h < 300) { r = x; g = 0; b = c; }
-            else { r = c; g = 0; b = x; }
+            if (h < 60)
+            { r = c; g = x; b = 0; }
+            else if (h < 120)
+            { r = x; g = c; b = 0; }
+            else if (h < 180)
+            { r = 0; g = c; b = x; }
+            else if (h < 240)
+            { r = 0; g = x; b = c; }
+            else if (h < 300)
+            { r = x; g = 0; b = c; }
+            else
+            { r = c; g = 0; b = x; }
             return new Color3(r + m, g + m, b + m);
         }
     }
@@ -4537,16 +4772,19 @@ namespace GDNN.Materials.SubstrateOmega
 
         public BlendedMaterialResult TextureSplat(SubstrateMaterial[] materials, float[] weights, Vec2 uv)
         {
-            if (materials.Length == 0) return new BlendedMaterialResult();
-            if (materials.Length == 1) return new BlendedMaterialResult
-            {
-                BaseColor = materials[0].GetColor("BaseColor"),
-                Roughness = materials[0].GetFloat("Roughness"),
-                Metallic = materials[0].GetFloat("Metallic")
-            };
+            if (materials.Length == 0)
+                return new BlendedMaterialResult();
+            if (materials.Length == 1)
+                return new BlendedMaterialResult
+                {
+                    BaseColor = materials[0].GetColor("BaseColor"),
+                    Roughness = materials[0].GetFloat("Roughness"),
+                    Metallic = materials[0].GetFloat("Metallic")
+                };
 
             float totalWeight = weights.Sum();
-            if (totalWeight < MathHelper.EPSILON) totalWeight = 1;
+            if (totalWeight < MathHelper.EPSILON)
+                totalWeight = 1;
 
             Color3 color = Color3.Black;
             float roughness = 0, metallic = 0, ao = 0;
@@ -4732,7 +4970,8 @@ namespace GDNN.Materials.SubstrateOmega
                 }
             }
 
-            if (stats.FloatProperties > 0) stats.AverageFloatValue /= stats.FloatProperties;
+            if (stats.FloatProperties > 0)
+                stats.AverageFloatValue /= stats.FloatProperties;
 
             stats.EstimatedTextureMemory = material.TextureSlots.Count * 1024 * 1024;
             stats.FeatureFlags = material.ComputeActiveFeatures();
@@ -4772,8 +5011,10 @@ namespace GDNN.Materials.SubstrateOmega
         public int EstimateDrawCalls(SubstrateMaterial material)
         {
             int calls = 1;
-            if (material.Layers.Count > 0) calls = Math.Max(calls, material.Layers.Count);
-            if (material.FeatureFlags.HasFlag(MaterialFeatureFlags.Decal)) calls++;
+            if (material.Layers.Count > 0)
+                calls = Math.Max(calls, material.Layers.Count);
+            if (material.FeatureFlags.HasFlag(MaterialFeatureFlags.Decal))
+                calls++;
             return calls;
         }
 
@@ -4783,12 +5024,18 @@ namespace GDNN.Materials.SubstrateOmega
             cost += material.TextureSlots.Count * 5;
             cost += material.Layers.Count * 3;
             var features = material.ComputeActiveFeatures();
-            if (features.HasFlag(MaterialFeatureFlags.SubsurfaceScattering)) cost += 20;
-            if (features.HasFlag(MaterialFeatureFlags.ClearCoat)) cost += 10;
-            if (features.HasFlag(MaterialFeatureFlags.Transmission)) cost += 15;
-            if (features.HasFlag(MaterialFeatureFlags.HairBRDF)) cost += 25;
-            if (features.HasFlag(MaterialFeatureFlags.EyeBRDF)) cost += 25;
-            if (features.HasFlag(MaterialFeatureFlags.ParallaxOcclusion)) cost += 12;
+            if (features.HasFlag(MaterialFeatureFlags.SubsurfaceScattering))
+                cost += 20;
+            if (features.HasFlag(MaterialFeatureFlags.ClearCoat))
+                cost += 10;
+            if (features.HasFlag(MaterialFeatureFlags.Transmission))
+                cost += 15;
+            if (features.HasFlag(MaterialFeatureFlags.HairBRDF))
+                cost += 25;
+            if (features.HasFlag(MaterialFeatureFlags.EyeBRDF))
+                cost += 25;
+            if (features.HasFlag(MaterialFeatureFlags.ParallaxOcclusion))
+                cost += 12;
             return cost;
         }
 
@@ -4828,7 +5075,8 @@ namespace GDNN.Materials.SubstrateOmega
                 {
                     if (flag != MaterialFeatureFlags.None && features.HasFlag(flag))
                     {
-                        if (!featureCounts.ContainsKey(flag)) featureCounts[flag] = 0;
+                        if (!featureCounts.ContainsKey(flag))
+                            featureCounts[flag] = 0;
                         featureCounts[flag]++;
                     }
                 }
@@ -4840,7 +5088,8 @@ namespace GDNN.Materials.SubstrateOmega
         private static int CountSetBits(uint value)
         {
             int count = 0;
-            while (value != 0) { count++; value &= value - 1; }
+            while (value != 0)
+            { count++; value &= value - 1; }
             return count;
         }
     }
@@ -5118,7 +5367,7 @@ namespace GDNN.Materials.SubstrateOmega
 
         private class CachedMaterialEntry
         {
-            public SubstrateMaterial Material { get; set; }
+            public required SubstrateMaterial Material { get; set; }
             public DateTime LastAccess { get; set; }
             public int AccessCount { get; set; }
         }
@@ -5143,7 +5392,8 @@ namespace GDNN.Materials.SubstrateOmega
         public void CopyProperty(SubstrateMaterial material, string propertyName)
         {
             var prop = material.GetProperty(propertyName);
-            if (prop != null) _propertyBuffer[propertyName] = prop.Value;
+            if (prop != null)
+                _propertyBuffer[propertyName] = prop.Value;
         }
 
         public void PasteProperties(SubstrateMaterial target)
@@ -5177,10 +5427,10 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class MaterialChangedEventArgs : EventArgs
     {
-        public string MaterialId { get; set; }
-        public string PropertyName { get; set; }
-        public object OldValue { get; set; }
-        public object NewValue { get; set; }
+        public required string MaterialId { get; set; }
+        public required string PropertyName { get; set; }
+        public required object OldValue { get; set; }
+        public required object NewValue { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
 
@@ -5265,7 +5515,8 @@ namespace GDNN.Materials.SubstrateOmega
             bool first = true;
             foreach (var kvp in material.Properties)
             {
-                if (!first) sb.AppendLine(",");
+                if (!first)
+                    sb.AppendLine(",");
                 first = false;
                 sb.Append($"    \"{kvp.Key}\": {{");
                 sb.Append($"\"type\": {(int)kvp.Value.Type}, ");
@@ -5292,7 +5543,8 @@ namespace GDNN.Materials.SubstrateOmega
             first = true;
             foreach (var kvp in material.TextureSlots)
             {
-                if (!first) sb.AppendLine(",");
+                if (!first)
+                    sb.AppendLine(",");
                 first = false;
                 sb.Append($"    \"{kvp.Key}\": {{");
                 sb.Append($"\"path\": \"{kvp.Value?.Path ?? ""}\"");
@@ -5316,7 +5568,7 @@ namespace GDNN.Materials.SubstrateOmega
 
             // Simple JSON parsing for material properties
             var lines = json.Split('\n');
-            string currentProperty = null;
+            string? currentProperty = null;
             foreach (var rawLine in lines)
             {
                 string line = rawLine.Trim().TrimEnd(',');
@@ -5363,7 +5615,8 @@ namespace GDNN.Materials.SubstrateOmega
         private static int ExtractIntValue(string line)
         {
             int colon = line.IndexOf(':');
-            if (colon < 0) return 0;
+            if (colon < 0)
+                return 0;
             string val = line.Substring(colon + 1).Trim().TrimEnd(',');
             return int.TryParse(val, out int result) ? result : 0;
         }
@@ -5371,7 +5624,8 @@ namespace GDNN.Materials.SubstrateOmega
         private static uint ExtractUIntValue(string line)
         {
             int colon = line.IndexOf(':');
-            if (colon < 0) return 0;
+            if (colon < 0)
+                return 0;
             string val = line.Substring(colon + 1).Trim().TrimEnd(',');
             return uint.TryParse(val, out uint result) ? result : 0;
         }
@@ -5379,16 +5633,18 @@ namespace GDNN.Materials.SubstrateOmega
         private static float ExtractFloatValue(string line)
         {
             int colon = line.IndexOf(':');
-            if (colon < 0) return 0;
+            if (colon < 0)
+                return 0;
             string val = line.Substring(colon + 1).Trim().TrimEnd(',');
             return float.TryParse(val, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float result) ? result : 0;
         }
 
-        private static float[] ExtractArrayValue(string line)
+        private static float[]? ExtractArrayValue(string line)
         {
             int bracketStart = line.IndexOf('[');
             int bracketEnd = line.IndexOf(']');
-            if (bracketStart < 0 || bracketEnd < 0) return null;
+            if (bracketStart < 0 || bracketEnd < 0)
+                return null;
             string arrayStr = line.Substring(bracketStart + 1, bracketEnd - bracketStart - 1);
             var parts = arrayStr.Split(',');
             var result = new float[parts.Length];
@@ -5441,7 +5697,8 @@ namespace GDNN.Materials.SubstrateOmega
 
         public void SimplifyForLOD(SubstrateMaterial source, int targetLOD)
         {
-            if (targetLOD == 0) return;
+            if (targetLOD == 0)
+                return;
 
             if (targetLOD >= 2)
             {
@@ -5527,7 +5784,8 @@ namespace GDNN.Materials.SubstrateOmega
         private static int CountBits(uint value)
         {
             int count = 0;
-            while (value != 0) { count++; value &= value - 1; }
+            while (value != 0)
+            { count++; value &= value - 1; }
             return count;
         }
     }
@@ -5584,8 +5842,10 @@ namespace GDNN.Materials.SubstrateOmega
             foreach (var entry in Entries)
             {
                 sb.AppendLine($"  [{entry.Type}] {entry.PropertyName}");
-                if (entry.OldValue != null) sb.AppendLine($"    Old: {entry.OldValue}");
-                if (entry.NewValue != null) sb.AppendLine($"    New: {entry.NewValue}");
+                if (entry.OldValue != null)
+                    sb.AppendLine($"    Old: {entry.OldValue}");
+                if (entry.NewValue != null)
+                    sb.AppendLine($"    New: {entry.NewValue}");
             }
             return sb.ToString();
         }
@@ -5593,10 +5853,10 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class MaterialDiffEntry
     {
-        public string PropertyName { get; set; }
+        public required string PropertyName { get; set; }
         public MaterialDiffType Type { get; set; }
-        public object OldValue { get; set; }
-        public object NewValue { get; set; }
+        public required object OldValue { get; set; }
+        public required object NewValue { get; set; }
     }
 
     public enum MaterialDiffType { Added, Removed, Changed }

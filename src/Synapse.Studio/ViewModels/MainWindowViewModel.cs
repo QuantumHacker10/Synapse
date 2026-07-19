@@ -11,12 +11,12 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GDNN.Rendering.ArtPipeline;
-using Synapse.Studio.Contracts;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
 using Synapse.Runtime;
-using SceneEntity = Synapse.Studio.Contracts.SceneEntity;
+using Synapse.Studio.Contracts;
 using EntityType = Synapse.Studio.Contracts.EntityType;
+using SceneEntity = Synapse.Studio.Contracts.SceneEntity;
 
 namespace Synapse.Studio.ViewModels
 {
@@ -187,7 +187,8 @@ namespace Synapse.Studio.ViewModels
 
         partial void OnSelectedLawIdChanged(string? value)
         {
-            if (value == null) return;
+            if (value == null)
+                return;
             var law = _host.ListLaws().FirstOrDefault(l => l.Id == value);
             if (law.Id != null)
                 LawExpression = law.Expression;
@@ -259,7 +260,8 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private void ApplyInspector()
         {
-            if (SelectedEntity == null) return;
+            if (SelectedEntity == null)
+                return;
 
             var pos = new Vector3((float)EntityPosX, (float)EntityPosY, (float)EntityPosZ);
             var id = SelectedEntity.Id;
@@ -274,7 +276,8 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private void DeleteEntity()
         {
-            if (SelectedEntity == null) return;
+            if (SelectedEntity == null)
+                return;
             _host.DeleteSceneEntity(SelectedEntity.Id);
             RefreshEntities();
         }
@@ -292,7 +295,8 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task SendChatAsync()
         {
-            if (string.IsNullOrWhiteSpace(ChatInput)) return;
+            if (string.IsNullOrWhiteSpace(ChatInput))
+                return;
             var prompt = ChatInput.Trim();
             ChatInput = "";
             ChatMessages.Add(new ChatMessageRecord { Role = "Vous", Content = prompt });
@@ -434,7 +438,8 @@ namespace Synapse.Studio.ViewModels
         private async Task OpenProjectAsync()
         {
             var window = GetMainWindow();
-            if (window?.StorageProvider == null) return;
+            if (window?.StorageProvider == null)
+                return;
             var files = await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
             {
                 Title = "Ouvrir un projet Synapse",
@@ -448,7 +453,8 @@ namespace Synapse.Studio.ViewModels
                 }
             });
             var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
-            if (path == null) return;
+            if (path == null)
+                return;
             await _host.LoadSceneAsync(path);
             GDNN.Streaming.AssetStreamer.AssetRootDirectory = Path.Combine(Path.GetDirectoryName(path)!, "assets");
             _projectPath = path;
@@ -463,7 +469,8 @@ namespace Synapse.Studio.ViewModels
             if (string.IsNullOrWhiteSpace(path))
             {
                 var window = GetMainWindow();
-                if (window?.StorageProvider == null) return;
+                if (window?.StorageProvider == null)
+                    return;
                 var file = await window.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
                 {
                     Title = "Enregistrer le projet Synapse",
@@ -479,7 +486,8 @@ namespace Synapse.Studio.ViewModels
                 });
                 path = file?.TryGetLocalPath();
             }
-            if (string.IsNullOrWhiteSpace(path)) return;
+            if (string.IsNullOrWhiteSpace(path))
+                return;
 
             Directory.CreateDirectory(_config.ProjectsDirectory);
             var assetsDir = Path.Combine(Path.GetDirectoryName(path)!, "assets");
@@ -551,7 +559,8 @@ namespace Synapse.Studio.ViewModels
         private async Task SaveBlueprintAsync()
         {
             var window = GetMainWindow();
-            if (window?.StorageProvider == null) return;
+            if (window?.StorageProvider == null)
+                return;
             var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Enregistrer le blueprint",
@@ -563,7 +572,8 @@ namespace Synapse.Studio.ViewModels
                 }
             });
             var path = file?.TryGetLocalPath();
-            if (path == null) return;
+            if (path == null)
+                return;
             await _blueprint.SaveAsync(path);
             BlueprintStatus = $"Enregistré : {path}";
         }
@@ -591,7 +601,8 @@ namespace Synapse.Studio.ViewModels
         private async Task ImportMegascansAsync()
         {
             var window = GetMainWindow();
-            if (window?.StorageProvider == null) return;
+            if (window?.StorageProvider == null)
+                return;
 
             string? path = MegascansPath;
             if (string.IsNullOrWhiteSpace(path))
@@ -621,7 +632,8 @@ namespace Synapse.Studio.ViewModels
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _uiTimer.Stop();
             _host.ViewportEntitySelected -= OnViewportEntitySelected;

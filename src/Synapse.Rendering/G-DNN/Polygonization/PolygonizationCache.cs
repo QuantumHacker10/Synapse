@@ -138,7 +138,8 @@ public sealed class PolygonizationCache
     {
         try
         {
-            if (!File.Exists(path)) return false;
+            if (!File.Exists(path))
+                return false;
             File.Delete(path);
             return true;
         }

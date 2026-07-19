@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -114,7 +114,8 @@ namespace GDNN.Llm
             TimeSpan? ttl = null,
             EmbeddingVector? embedding = null)
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
 
             var hash = ComputeHash(prompt);
             var entry = new CacheEntry
@@ -148,10 +149,12 @@ namespace GDNN.Llm
         /// <returns>The cached response, or null if not found/expired.</returns>
         public LlmResponse? GetExact(string prompt)
         {
-            if (_disposed || string.IsNullOrEmpty(prompt)) return null;
+            if (_disposed || string.IsNullOrEmpty(prompt))
+                return null;
 
             var hash = ComputeHash(prompt);
-            if (!_exactCache.TryGetValue(hash, out var entry)) return null;
+            if (!_exactCache.TryGetValue(hash, out var entry))
+                return null;
 
             if (entry.IsInvalidated || DateTimeOffset.UtcNow > entry.ExpiresAt)
             {
@@ -173,7 +176,8 @@ namespace GDNN.Llm
         /// <returns>The best matching cached response, or null.</returns>
         public LlmResponse? GetSemantic(EmbeddingVector queryEmbedding)
         {
-            if (_disposed || queryEmbedding.Values.Length == 0) return null;
+            if (_disposed || queryEmbedding.Values.Length == 0)
+                return null;
 
             CacheEntry? bestMatch = null;
             float bestScore = 0f;
@@ -182,8 +186,10 @@ namespace GDNN.Llm
             {
                 foreach (var entry in _semanticIndex)
                 {
-                    if (entry.IsInvalidated || DateTimeOffset.UtcNow > entry.ExpiresAt) continue;
-                    if (entry.SemanticEmbedding == null) continue;
+                    if (entry.IsInvalidated || DateTimeOffset.UtcNow > entry.ExpiresAt)
+                        continue;
+                    if (entry.SemanticEmbedding == null)
+                        continue;
 
                     var score = ComputeCosineSimilarity(
                         queryEmbedding.Values, entry.SemanticEmbedding.Values);
@@ -212,7 +218,8 @@ namespace GDNN.Llm
         /// <param name="model">Model name to invalidate.</param>
         public void InvalidateByModel(string model)
         {
-            if (string.IsNullOrEmpty(model)) return;
+            if (string.IsNullOrEmpty(model))
+                return;
 
             var keysToInvalidate = _exactCache
                 .Where(kv => kv.Value.Response.Model == model)
@@ -234,7 +241,8 @@ namespace GDNN.Llm
         public void Clear()
         {
             _exactCache.Clear();
-            lock (_semanticLock) { _semanticIndex.Clear(); }
+            lock (_semanticLock)
+            { _semanticIndex.Clear(); }
         }
 
         /// <summary>
@@ -259,7 +267,8 @@ namespace GDNN.Llm
         /// </summary>
         public void PersistToDisk()
         {
-            if (string.IsNullOrEmpty(_persistentPath)) return;
+            if (string.IsNullOrEmpty(_persistentPath))
+                return;
             if (!Directory.Exists(_persistentPath))
                 Directory.CreateDirectory(_persistentPath);
 
@@ -277,7 +286,8 @@ namespace GDNN.Llm
         /// </summary>
         public static float ComputeCosineSimilarity(float[] a, float[] b)
         {
-            if (a == null || b == null || a.Length == 0 || a.Length != b.Length) return 0f;
+            if (a == null || b == null || a.Length == 0 || a.Length != b.Length)
+                return 0f;
 
             float dot = 0f, normA = 0f, normB = 0f;
             for (int i = 0; i < a.Length; i++)
@@ -294,7 +304,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             PersistToDisk();
         }
@@ -319,7 +330,8 @@ namespace GDNN.Llm
                     _exactCache.TryRemove(oldest.PromptHash, out _);
                     Interlocked.Increment(ref _evictionCount);
                 }
-                else break;
+                else
+                    break;
             }
         }
 
@@ -328,7 +340,8 @@ namespace GDNN.Llm
             try
             {
                 var filePath = Path.Combine(_persistentPath!, "llm_cache.json");
-                if (!File.Exists(filePath)) return;
+                if (!File.Exists(filePath))
+                    return;
 
                 var json = File.ReadAllText(filePath);
                 var entries = JsonSerializer.Deserialize<List<CacheEntry>>(json);

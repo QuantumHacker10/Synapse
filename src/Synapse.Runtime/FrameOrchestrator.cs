@@ -53,8 +53,10 @@ namespace Synapse.Runtime
         {
             float dt = (float)_frameTimer.Elapsed.TotalSeconds;
             _frameTimer.Restart();
-            if (dt <= 0 || dt > 0.25f) dt = 1f / 60f;
-            if (!_paused) _totalTime += dt;
+            if (dt <= 0 || dt > 0.25f)
+                dt = 1f / 60f;
+            if (!_paused)
+                _totalTime += dt;
 
             _fpsFrames++;
             if (_fpsTimer.Elapsed.TotalSeconds >= 1.0)

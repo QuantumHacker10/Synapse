@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -84,7 +84,8 @@ namespace GDNN.Llm
         /// <param name="cancellationToken">Cancellation token.</param>
         public Task TrackAsync(CostEntry entry, CancellationToken cancellationToken = default)
         {
-            if (_disposed) return Task.CompletedTask;
+            if (_disposed)
+                return Task.CompletedTask;
 
             _entries.Add(entry);
 
@@ -128,7 +129,8 @@ namespace GDNN.Llm
         /// <returns>True if within budget.</returns>
         public bool CheckBudget(decimal estimatedCost)
         {
-            if (!_config.EnforceLimits) return true;
+            if (!_config.EnforceLimits)
+                return true;
 
             lock (_lock)
             {
@@ -277,7 +279,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
         }
 
@@ -355,7 +358,8 @@ namespace GDNN.Llm
         {
             try
             {
-                if (string.IsNullOrEmpty(_config.StoragePath)) return;
+                if (string.IsNullOrEmpty(_config.StoragePath))
+                    return;
                 if (!Directory.Exists(_config.StoragePath))
                     Directory.CreateDirectory(_config.StoragePath);
 

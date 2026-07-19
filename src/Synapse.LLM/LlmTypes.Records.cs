@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -257,12 +257,14 @@ namespace GDNN.Llm
         /// <summary>Normalizes the embedding vector to unit length.</summary>
         public EmbeddingVector Normalize()
         {
-            if (Values.Length == 0) return this;
+            if (Values.Length == 0)
+                return this;
             float magnitude = 0f;
             for (int i = 0; i < Values.Length; i++)
                 magnitude += Values[i] * Values[i];
             magnitude = MathF.Sqrt(magnitude);
-            if (magnitude < 1e-10f) return this;
+            if (magnitude < 1e-10f)
+                return this;
             var normalized = new float[Values.Length];
             for (int i = 0; i < Values.Length; i++)
                 normalized[i] = Values[i] / magnitude;

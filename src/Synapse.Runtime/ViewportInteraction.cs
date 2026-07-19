@@ -17,7 +17,8 @@ namespace Synapse.Runtime
 
             foreach (var entity in scene.Entities)
             {
-                if (!entity.Visible) continue;
+                if (!entity.Visible)
+                    continue;
                 if (entity.Type.Equals("Light", StringComparison.OrdinalIgnoreCase) ||
                     entity.Type.Equals("Camera", StringComparison.OrdinalIgnoreCase) ||
                     entity.Type.Equals("Empty", StringComparison.OrdinalIgnoreCase))
@@ -82,13 +83,15 @@ namespace Synapse.Runtime
                 GizmoAxis.Z => Vector3.UnitZ,
                 _ => Vector3.Zero
             };
-            if (axis == Vector3.Zero) return;
+            if (axis == Vector3.Zero)
+                return;
 
             var start = editor.DragStartPosition;
             var p0 = ViewportPickUtility.ProjectWorldToScreen(start, view, proj, width, height);
             var p1 = ViewportPickUtility.ProjectWorldToScreen(start + axis, view, proj, width, height);
             var screenAxis = new Vector2(p1.X - p0.X, p1.Y - p0.Y);
-            if (screenAxis.LengthSquared() < 1e-4f) return;
+            if (screenAxis.LengthSquared() < 1e-4f)
+                return;
             screenAxis = Vector2.Normalize(screenAxis);
 
             float deltaX = mouseX - editor.DragStartMouseX;
@@ -111,9 +114,15 @@ namespace Synapse.Runtime
 
             switch (editor.ActiveGizmoAxis)
             {
-                case GizmoAxis.X: rot.X = editor.DragStartRotation.X + deltaY * 0.5f; break;
-                case GizmoAxis.Y: rot.Y = editor.DragStartRotation.Y + deltaX * 0.5f; break;
-                case GizmoAxis.Z: rot.Z = editor.DragStartRotation.Z + deltaX * 0.5f; break;
+                case GizmoAxis.X:
+                    rot.X = editor.DragStartRotation.X + deltaY * 0.5f;
+                    break;
+                case GizmoAxis.Y:
+                    rot.Y = editor.DragStartRotation.Y + deltaX * 0.5f;
+                    break;
+                case GizmoAxis.Z:
+                    rot.Z = editor.DragStartRotation.Z + deltaX * 0.5f;
+                    break;
                 default:
                     rot.Y = editor.DragStartRotation.Y + deltaX * 0.5f;
                     rot.X = editor.DragStartRotation.X + deltaY * 0.5f;

@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: CompressionUtils.cs
 // PATH: Streaming/CompressionUtils.cs
@@ -25,16 +7,32 @@ using System.Threading.Tasks;
 
 using System;
 using System.Buffers;
+using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
 using System.IO;
 using System.IO.Compression;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Threading.Tasks;
 
 namespace GDNN.Streaming
@@ -306,7 +304,8 @@ namespace GDNN.Streaming
         /// <returns>Delta-encoded frames.</returns>
         public static List<byte[]> DeltaEncode(List<float[]> frames)
         {
-            if (frames.Count == 0) return [];
+            if (frames.Count == 0)
+                return [];
 
             var result = new List<byte[]>(frames.Count);
             float[]? previous = null;
@@ -344,7 +343,8 @@ namespace GDNN.Streaming
         /// <returns>Decoded absolute weight frames.</returns>
         public static List<float[]> DeltaDecode(List<byte[]> deltaFrames)
         {
-            if (deltaFrames.Count == 0) return [];
+            if (deltaFrames.Count == 0)
+                return [];
 
             var result = new List<float[]>(deltaFrames.Count);
             float[]? previous = null;
@@ -361,9 +361,9 @@ namespace GDNN.Streaming
                 {
                     float[] frame = new float[deltaFloats.Length];
                     for (int i = 0; i < frame.Length; i++)
-                {
-                    frame[i] = previous[i] + deltaFloats[i];
-                }
+                    {
+                        frame[i] = previous[i] + deltaFloats[i];
+                    }
                     result.Add(frame);
                 }
 
@@ -430,7 +430,8 @@ namespace GDNN.Streaming
             ReadOnlySpan<byte> data,
             CompressionAlgorithm algorithm = CompressionAlgorithm.LZ4)
         {
-            if (data.Length == 0) return 1.0;
+            if (data.Length == 0)
+                return 1.0;
 
             int sampleSize = Math.Min(data.Length, 8192);
             var sample = data[..sampleSize];
@@ -475,7 +476,8 @@ namespace GDNN.Streaming
         /// </summary>
         private static CompressionAlgorithm SelectBestAlgorithm(ReadOnlySpan<byte> data)
         {
-            if (data.Length < 128) return CompressionAlgorithm.None;
+            if (data.Length < 128)
+                return CompressionAlgorithm.None;
 
             double ratio = EstimateCompressionRatio(data, CompressionAlgorithm.LZ4);
 
@@ -587,8 +589,10 @@ namespace GDNN.Streaming
             int exponent = (int)((bits >> 23) & 0xFF) - 127 + 15;
             uint mantissa = (bits >> 21) & 0x03;
 
-            if (exponent <= 0) return (byte)(sign | 0x01);
-            if (exponent >= 31) return (byte)(sign | 0x7F);
+            if (exponent <= 0)
+                return (byte)(sign | 0x01);
+            if (exponent >= 31)
+                return (byte)(sign | 0x7F);
 
             return (byte)(sign | ((uint)exponent << 2) | mantissa);
         }
@@ -603,8 +607,10 @@ namespace GDNN.Streaming
             int exponent = ((value >> 2) & 0x1F) - 15 + 127;
             uint mantissa = (uint)(value & 0x03) << 21;
 
-            if ((value & 0x7F) == 0) return BitConverter.UInt32BitsToSingle(sign);
-            if ((value & 0x7F) == 0x7F) return BitConverter.UInt32BitsToSingle(sign | 0x7F800000);
+            if ((value & 0x7F) == 0)
+                return BitConverter.UInt32BitsToSingle(sign);
+            if ((value & 0x7F) == 0x7F)
+                return BitConverter.UInt32BitsToSingle(sign | 0x7F800000);
 
             uint bits = sign | ((uint)exponent << 23) | mantissa;
             return BitConverter.UInt32BitsToSingle(bits);
@@ -652,8 +658,10 @@ namespace GDNN.Streaming
             int exponent = (int)((bits >> 23) & 0xFF) - 127 + 7;
             uint mantissa = (bits >> 20) & 0x07;
 
-            if (exponent <= 0) return (byte)(sign | 0x01);
-            if (exponent >= 15) return (byte)(sign | 0x7F);
+            if (exponent <= 0)
+                return (byte)(sign | 0x01);
+            if (exponent >= 15)
+                return (byte)(sign | 0x7F);
 
             return (byte)(sign | ((uint)exponent << 3) | mantissa);
         }
@@ -668,8 +676,10 @@ namespace GDNN.Streaming
             int exponent = ((value >> 3) & 0x0F) - 7 + 127;
             uint mantissa = (uint)(value & 0x07) << 20;
 
-            if ((value & 0x7F) == 0) return BitConverter.UInt32BitsToSingle(sign);
-            if ((value & 0x7F) == 0x7F) return BitConverter.UInt32BitsToSingle(sign | 0x7F800000);
+            if ((value & 0x7F) == 0)
+                return BitConverter.UInt32BitsToSingle(sign);
+            if ((value & 0x7F) == 0x7F)
+                return BitConverter.UInt32BitsToSingle(sign | 0x7F800000);
 
             uint bits = sign | ((uint)exponent << 23) | mantissa;
             return BitConverter.UInt32BitsToSingle(bits);
@@ -684,19 +694,23 @@ namespace GDNN.Streaming
         /// </summary>
         public static byte[] QuantizeUINT8(ReadOnlySpan<float> weights)
         {
-            if (weights.Length == 0) return [];
+            if (weights.Length == 0)
+                return [];
 
             float min = float.MaxValue;
             float max = float.MinValue;
 
             for (int i = 0; i < weights.Length; i++)
             {
-                if (weights[i] < min) min = weights[i];
-                if (weights[i] > max) max = weights[i];
+                if (weights[i] < min)
+                    min = weights[i];
+                if (weights[i] > max)
+                    max = weights[i];
             }
 
             float range = max - min;
-            if (range < 1e-10f) range = 1.0f;
+            if (range < 1e-10f)
+                range = 1.0f;
 
             float scale = range / 255.0f;
             byte zeroPoint = (byte)(-min / scale);
@@ -719,7 +733,8 @@ namespace GDNN.Streaming
         /// </summary>
         public static float[] DequantizeUINT8(ReadOnlySpan<byte> data, int count)
         {
-            if (data.Length < 5) return [];
+            if (data.Length < 5)
+                return [];
 
             float scale = BitConverter.ToSingle(data[..4]);
             byte zeroPoint = data[4];
@@ -742,19 +757,23 @@ namespace GDNN.Streaming
         /// </summary>
         public static byte[] QuantizeINT4(ReadOnlySpan<float> weights)
         {
-            if (weights.Length == 0) return [];
+            if (weights.Length == 0)
+                return [];
 
             float min = float.MaxValue;
             float max = float.MinValue;
 
             for (int i = 0; i < weights.Length; i++)
             {
-                if (weights[i] < min) min = weights[i];
-                if (weights[i] > max) max = weights[i];
+                if (weights[i] < min)
+                    min = weights[i];
+                if (weights[i] > max)
+                    max = weights[i];
             }
 
             float range = max - min;
-            if (range < 1e-10f) range = 1.0f;
+            if (range < 1e-10f)
+                range = 1.0f;
 
             int byteCount = (weights.Length + 1) / 2;
             byte[] result = new byte[byteCount + 4];
@@ -781,7 +800,8 @@ namespace GDNN.Streaming
         /// </summary>
         public static float[] DequantizeINT4(ReadOnlySpan<byte> data, int count)
         {
-            if (data.Length < 4) return [];
+            if (data.Length < 4)
+                return [];
 
             float range = BitConverter.ToSingle(data[..4]);
             float min = BitConverter.ToSingle(data[4..8]);
@@ -790,7 +810,8 @@ namespace GDNN.Streaming
             for (int i = 0; i < count; i++)
             {
                 int byteIndex = 8 + i / 2;
-                if (byteIndex >= data.Length) break;
+                if (byteIndex >= data.Length)
+                    break;
 
                 int nibble;
                 if (i % 2 == 0)
@@ -830,7 +851,8 @@ namespace GDNN.Streaming
         /// </summary>
         private static byte[] DecompressLZ4(ReadOnlySpan<byte> data)
         {
-            if (data.Length < 4) return data.ToArray();
+            if (data.Length < 4)
+                return data.ToArray();
 
             int originalSize = BitConverter.ToInt32(data[..4]);
             using var input = new MemoryStream(data[4..].ToArray());
@@ -841,7 +863,8 @@ namespace GDNN.Streaming
             while (totalRead < originalSize)
             {
                 int read = decompressor.Read(result, totalRead, originalSize - totalRead);
-                if (read == 0) break;
+                if (read == 0)
+                    break;
                 totalRead += read;
             }
 
@@ -950,7 +973,8 @@ namespace GDNN.Streaming
         /// </summary>
         private static byte[] DecompressDeflate(ReadOnlySpan<byte> data)
         {
-            if (data.Length < 4) return data.ToArray();
+            if (data.Length < 4)
+                return data.ToArray();
 
             int originalSize = BitConverter.ToInt32(data[..4]);
             using var input = new MemoryStream(data[4..].ToArray());
@@ -961,7 +985,8 @@ namespace GDNN.Streaming
             while (totalRead < originalSize)
             {
                 int read = decompressor.Read(result, totalRead, originalSize - totalRead);
-                if (read == 0) break;
+                if (read == 0)
+                    break;
                 totalRead += read;
             }
 
@@ -1000,7 +1025,8 @@ namespace GDNN.Streaming
         /// </summary>
         private static byte[] DecompressGZip(ReadOnlySpan<byte> data)
         {
-            if (data.Length < 4) return data.ToArray();
+            if (data.Length < 4)
+                return data.ToArray();
 
             int originalSize = BitConverter.ToInt32(data[..4]);
             using var input = new MemoryStream(data[4..].ToArray());
@@ -1011,7 +1037,8 @@ namespace GDNN.Streaming
             while (totalRead < originalSize)
             {
                 int read = decompressor.Read(result, totalRead, originalSize - totalRead);
-                if (read == 0) break;
+                if (read == 0)
+                    break;
                 totalRead += read;
             }
 
@@ -1138,8 +1165,10 @@ namespace GDNN.Streaming
         {
             public bool Equals(byte[]? x, byte[]? y)
             {
-                if (x == null && y == null) return true;
-                if (x == null || y == null) return false;
+                if (x == null && y == null)
+                    return true;
+                if (x == null || y == null)
+                    return false;
                 return x.AsSpan().SequenceEqual(y);
             }
 
@@ -1253,7 +1282,8 @@ namespace GDNN.Streaming
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             Flush();
         }
@@ -1297,7 +1327,8 @@ namespace GDNN.Streaming
         /// <returns>Number of bytes written to the buffer.</returns>
         public int ReadBlock(Span<byte> buffer)
         {
-            if (_finished) return 0;
+            if (_finished)
+                return 0;
 
             if (_inputStream.Read(_lengthBuffer, 0, 4) < 4)
             {
@@ -1317,7 +1348,8 @@ namespace GDNN.Streaming
             while (totalRead < compressedSize)
             {
                 int read = _inputStream.Read(compressedData, totalRead, compressedSize - totalRead);
-                if (read == 0) { _finished = true; break; }
+                if (read == 0)
+                { _finished = true; break; }
                 totalRead += read;
             }
 
@@ -1351,7 +1383,8 @@ namespace GDNN.Streaming
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
         }
     }

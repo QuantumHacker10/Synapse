@@ -104,7 +104,8 @@ namespace GDNN.Rendering.Particles
         {
             for (int i = 0; i < count; i++)
             {
-                if (!particles[i].IsAlive) continue;
+                if (!particles[i].IsAlive)
+                    continue;
                 particles[i].Acceleration += Gravity * Strength;
             }
         }
@@ -118,7 +119,8 @@ namespace GDNN.Rendering.Particles
         {
             for (int i = 0; i < count; i++)
             {
-                if (!particles[i].IsAlive) continue;
+                if (!particles[i].IsAlive)
+                    continue;
                 float drag = 1.0f / (1.0f + deltaTime * DragCoefficient * particles[i].Mass);
                 particles[i].Velocity *= drag;
             }
@@ -134,7 +136,8 @@ namespace GDNN.Rendering.Particles
         {
             for (int i = 0; i < count; i++)
             {
-                if (!particles[i].IsAlive) continue;
+                if (!particles[i].IsAlive)
+                    continue;
                 particles[i].Color = Vector4.Lerp(ColorStart, ColorEnd, particles[i].NormalizedAge);
             }
         }
@@ -149,7 +152,8 @@ namespace GDNN.Rendering.Particles
         {
             for (int i = 0; i < count; i++)
             {
-                if (!particles[i].IsAlive) continue;
+                if (!particles[i].IsAlive)
+                    continue;
                 float size = float.Lerp(SizeStart, SizeEnd, particles[i].NormalizedAge);
                 particles[i].Size *= size;
             }
@@ -164,7 +168,8 @@ namespace GDNN.Rendering.Particles
         {
             for (int i = 0; i < count; i++)
             {
-                if (!particles[i].IsAlive) continue;
+                if (!particles[i].IsAlive)
+                    continue;
                 particles[i].Rotation += RotationSpeed * deltaTime;
             }
         }
@@ -181,7 +186,8 @@ namespace GDNN.Rendering.Particles
             _time += deltaTime;
             for (int i = 0; i < count; i++)
             {
-                if (!particles[i].IsAlive) continue;
+                if (!particles[i].IsAlive)
+                    continue;
                 Vector3 noise = CurlNoise(particles[i].Position * Frequency + new Vector3(_time));
                 particles[i].Velocity += noise * Strength * deltaTime;
             }
@@ -212,7 +218,8 @@ namespace GDNN.Rendering.Particles
         {
             for (int i = 0; i < count; i++)
             {
-                if (!particles[i].IsAlive) continue;
+                if (!particles[i].IsAlive)
+                    continue;
                 if (particles[i].Position.Y < GroundHeight)
                 {
                     particles[i].Position.Y = GroundHeight;
@@ -235,7 +242,8 @@ namespace GDNN.Rendering.Particles
             int totalFrames = GridX * GridY;
             for (int i = 0; i < count; i++)
             {
-                if (!particles[i].IsAlive) continue;
+                if (!particles[i].IsAlive)
+                    continue;
                 int frame = (int)(particles[i].NormalizedAge * totalFrames);
                 frame = Math.Clamp(frame, 0, totalFrames - 1);
                 particles[i].SortKey = frame;
@@ -338,7 +346,8 @@ namespace GDNN.Rendering.Particles
                 for (int e = 0; e < _emitters.Count; e++)
                 {
                     var emitter = _emitters[e];
-                    if (!emitter.IsActive) continue;
+                    if (!emitter.IsActive)
+                        continue;
 
                     emitter.ElapsedTime += deltaTime;
                     if (!emitter.IsLooping && emitter.ElapsedTime > emitter.Duration)
@@ -368,7 +377,8 @@ namespace GDNN.Rendering.Particles
             for (int i = 0; i < particlesToEmit && _activeParticleCount < _config.MaxParticles; i++)
             {
                 int slot = FindDeadParticle();
-                if (slot < 0) break;
+                if (slot < 0)
+                    break;
 
                 var p = _particles[slot];
                 p.IsAlive = true;
@@ -470,7 +480,8 @@ namespace GDNN.Rendering.Particles
 
             foreach (var module in sortedModules)
             {
-                if (!module.Enabled) continue;
+                if (!module.Enabled)
+                    continue;
                 module.Update(_particles, _config.MaxParticles, deltaTime, emitter);
             }
         }
@@ -479,7 +490,8 @@ namespace GDNN.Rendering.Particles
         {
             for (int i = 0; i < _config.MaxParticles; i++)
             {
-                if (!_particles[i].IsAlive) continue;
+                if (!_particles[i].IsAlive)
+                    continue;
 
                 ref var p = ref _particles[i];
                 p.PreviousPosition = p.Position;
@@ -494,7 +506,8 @@ namespace GDNN.Rendering.Particles
         {
             for (int i = 0; i < _config.MaxParticles; i++)
             {
-                if (!_particles[i].IsAlive) continue;
+                if (!_particles[i].IsAlive)
+                    continue;
 
                 ref var p = ref _particles[i];
                 p.Age += deltaTime;
@@ -601,7 +614,8 @@ namespace GDNN.Rendering.Particles
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
         }
     }

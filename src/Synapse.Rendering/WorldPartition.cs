@@ -106,8 +106,10 @@ namespace GDNN.Rendering.World
                 float minZ = z * cellSize;
                 return new CellData
                 {
-                    CellX = x, CellZ = z,
-                    State = CellState.Unloaded, LOD = CellLOD.LOD3,
+                    CellX = x,
+                    CellZ = z,
+                    State = CellState.Unloaded,
+                    LOD = CellLOD.LOD3,
                     WorldMin = new Vector3(minX, -100, minZ),
                     WorldMax = new Vector3(minX + cellSize, 500, minZ + cellSize)
                 };
@@ -120,7 +122,7 @@ namespace GDNN.Rendering.World
         public bool TryDequeueUnload(out StreamingRequest req) => _unloadQueue.TryDequeue(out req);
 
         public void SetCellMeshData(long key, float[] data) => _cellMeshData[key] = data;
-        public float[] GetCellMeshData(long key) => _cellMeshData.TryGetValue(key, out var d) ? d : null;
+        public float[]? GetCellMeshData(long key) => _cellMeshData.TryGetValue(key, out var d) ? d : null;
         public void SetCellHLODs(long key, HLODCluster[] h) => _cellHLODs[key] = h;
 
         public void UpdateCellState(long key, CellState state, float progress = 0)
@@ -198,7 +200,8 @@ namespace GDNN.Rendering.World
                     _streamingSignal.Reset();
                     ProcessStreamingQueue();
                 }
-            }) { IsBackground = true, Priority = ThreadPriority.BelowNormal };
+            })
+            { IsBackground = true, Priority = ThreadPriority.BelowNormal };
             _streamingThread.Start();
         }
 
@@ -240,7 +243,8 @@ namespace GDNN.Rendering.World
 
                         _cellManager.EnqueueLoad(new StreamingRequest
                         {
-                            CellX = x, CellZ = z,
+                            CellX = x,
+                            CellZ = z,
                             Priority = cell.Priority,
                             RequestTime = Environment.TickCount / 1000.0f
                         });
@@ -250,7 +254,8 @@ namespace GDNN.Rendering.World
                     {
                         _cellManager.EnqueueUnload(new StreamingRequest
                         {
-                            CellX = x, CellZ = z,
+                            CellX = x,
+                            CellZ = z,
                             RequestTime = Environment.TickCount / 1000.0f
                         });
                         cell.State = CellState.Unloading;
@@ -281,7 +286,8 @@ namespace GDNN.Rendering.World
 
                 float loadTime = 0.01f;
                 _recentLoadTimes.Enqueue(loadTime);
-                if (_recentLoadTimes.Count > 100) _recentLoadTimes.Dequeue();
+                if (_recentLoadTimes.Count > 100)
+                    _recentLoadTimes.Dequeue();
                 loading++;
             }
 
@@ -297,8 +303,10 @@ namespace GDNN.Rendering.World
             _loadingCells = 0;
             foreach (var c in _tempCells)
             {
-                if (c.State == CellState.Loaded) _loadedCells++;
-                else if (c.State == CellState.Loading) _loadingCells++;
+                if (c.State == CellState.Loaded)
+                    _loadedCells++;
+                else if (c.State == CellState.Loading)
+                    _loadingCells++;
             }
         }
 
@@ -320,18 +328,42 @@ namespace GDNN.Rendering.World
                 float s = 0.5f + (float)rng.NextDouble() * 2.0f;
 
                 int vOff = i * 36;
-                meshData[vOff] = px - s; meshData[vOff + 1] = py; meshData[vOff + 2] = pz - s;
-                meshData[vOff + 3] = px + s; meshData[vOff + 4] = py; meshData[vOff + 5] = pz - s;
-                meshData[vOff + 6] = px + s; meshData[vOff + 7] = py + s * 2; meshData[vOff + 8] = pz - s;
-                meshData[vOff + 9] = px - s; meshData[vOff + 10] = py; meshData[vOff + 11] = pz + s;
-                meshData[vOff + 12] = px + s; meshData[vOff + 13] = py; meshData[vOff + 14] = pz + s;
-                meshData[vOff + 15] = px + s; meshData[vOff + 16] = py + s * 2; meshData[vOff + 17] = pz + s;
-                meshData[vOff + 18] = px - s; meshData[vOff + 19] = py + s * 2; meshData[vOff + 20] = pz - s;
-                meshData[vOff + 21] = px - s; meshData[vOff + 22] = py + s * 2; meshData[vOff + 23] = pz + s;
-                meshData[vOff + 24] = px - s; meshData[vOff + 25] = py; meshData[vOff + 26] = pz - s;
-                meshData[vOff + 27] = px - s; meshData[vOff + 28] = py; meshData[vOff + 29] = pz + s;
-                meshData[vOff + 30] = px + s; meshData[vOff + 31] = py; meshData[vOff + 32] = pz - s;
-                meshData[vOff + 33] = px + s; meshData[vOff + 34] = py; meshData[vOff + 35] = pz + s;
+                meshData[vOff] = px - s;
+                meshData[vOff + 1] = py;
+                meshData[vOff + 2] = pz - s;
+                meshData[vOff + 3] = px + s;
+                meshData[vOff + 4] = py;
+                meshData[vOff + 5] = pz - s;
+                meshData[vOff + 6] = px + s;
+                meshData[vOff + 7] = py + s * 2;
+                meshData[vOff + 8] = pz - s;
+                meshData[vOff + 9] = px - s;
+                meshData[vOff + 10] = py;
+                meshData[vOff + 11] = pz + s;
+                meshData[vOff + 12] = px + s;
+                meshData[vOff + 13] = py;
+                meshData[vOff + 14] = pz + s;
+                meshData[vOff + 15] = px + s;
+                meshData[vOff + 16] = py + s * 2;
+                meshData[vOff + 17] = pz + s;
+                meshData[vOff + 18] = px - s;
+                meshData[vOff + 19] = py + s * 2;
+                meshData[vOff + 20] = pz - s;
+                meshData[vOff + 21] = px - s;
+                meshData[vOff + 22] = py + s * 2;
+                meshData[vOff + 23] = pz + s;
+                meshData[vOff + 24] = px - s;
+                meshData[vOff + 25] = py;
+                meshData[vOff + 26] = pz - s;
+                meshData[vOff + 27] = px - s;
+                meshData[vOff + 28] = py;
+                meshData[vOff + 29] = pz + s;
+                meshData[vOff + 30] = px + s;
+                meshData[vOff + 31] = py;
+                meshData[vOff + 32] = pz - s;
+                meshData[vOff + 33] = px + s;
+                meshData[vOff + 34] = py;
+                meshData[vOff + 35] = pz + s;
             }
 
             _cellManager.SetCellMeshData(key, meshData);
@@ -357,7 +389,8 @@ namespace GDNN.Rendering.World
             _cellManager.GetAllCells(_tempCells);
             foreach (var cell in _tempCells)
             {
-                if (cell.State != CellState.Loaded) continue;
+                if (cell.State != CellState.Loaded)
+                    continue;
                 long key = StreamingCellManager.CellKey(cell.CellX, cell.CellZ);
 
                 CellLOD newLOD = cell.DistanceToViewer <= _config.LOD0Range ? CellLOD.LOD0
@@ -379,15 +412,18 @@ namespace GDNN.Rendering.World
 
         public float GetAverageLoadTime()
         {
-            if (_recentLoadTimes.Count == 0) return 0;
+            if (_recentLoadTimes.Count == 0)
+                return 0;
             float sum = 0;
-            foreach (var t in _recentLoadTimes) sum += t;
+            foreach (var t in _recentLoadTimes)
+                sum += t;
             return sum / _recentLoadTimes.Count;
         }
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _streamingRunning = false;
             _streamingSignal?.Set();

@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -22,13 +22,13 @@ namespace GDNN.Lighting.LDNN
         private const int CLUSTER_Z_SLICES = 16;
 
         private List<LightConfig> _allLights = new();
-        private List<int>[,] _tileLightLists;
-        private List<int>[][][] _clusterLightLists;
+        private required List<int>[,] _tileLightLists;
+        private required List<int>[][][] _clusterLightLists;
         private int _tileCountX;
         private int _tileCountY;
         private int _screenWidth;
         private int _screenHeight;
-        private float[] _clusterDepths;
+        private required float[] _clusterDepths;
         private bool _isInitialized;
 
         /// <summary>Number of tiles in the X direction.</summary>
@@ -76,7 +76,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public void CullLights(List<LightConfig> lights, CameraState camera)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized)
+                return;
             _allLights = lights;
             ComputeClusterDepths(camera.NearPlane, camera.FarPlane);
 
@@ -129,17 +130,21 @@ namespace GDNN.Lighting.LDNN
 
         private bool IsLightRelevant(LightConfig light, int tx, int ty, CameraState camera)
         {
-            if (light.Type == LightType.Directional) return true;
+            if (light.Type == LightType.Directional)
+                return true;
             float range = light.Range;
-            if (range <= 0) range = 100.0f;
+            if (range <= 0)
+                range = 100.0f;
             Vector3 viewPos = Vector3.Transform(light.Position, camera.ViewMatrix);
-            if (viewPos.Z > -camera.NearPlane) return false;
+            if (viewPos.Z > -camera.NearPlane)
+                return false;
             float tileXMin = (float)(tx * TILE_SIZE) / _screenWidth * 2.0f - 1.0f;
             float tileXMax = (float)((tx + 1) * TILE_SIZE) / _screenWidth * 2.0f - 1.0f;
             float tileYMin = 1.0f - (float)((ty + 1) * TILE_SIZE) / _screenHeight * 2.0f;
             float tileYMax = 1.0f - (float)(ty * TILE_SIZE) / _screenHeight * 2.0f;
             float absZ = MathF.Abs(viewPos.Z);
-            if (absZ < 0.001f) return true;
+            if (absZ < 0.001f)
+                return true;
             float projRadius = range / absZ * MathF.Max(_screenWidth, _screenHeight) * 0.5f / MathF.Tan(camera.FieldOfView * 0.5f);
             float screenX = (viewPos.X / absZ * 0.5f + 0.5f) * 2.0f - 1.0f;
             float screenY = 1.0f - (viewPos.Y / absZ * 0.5f + 0.5f) * 2.0f;
@@ -151,11 +156,14 @@ namespace GDNN.Lighting.LDNN
 
         private bool IsLightInCluster(LightConfig light, int tx, int ty, float zMin, float zMax, CameraState camera)
         {
-            if (light.Type == LightType.Directional) return true;
+            if (light.Type == LightType.Directional)
+                return true;
             float range = light.Range;
-            if (range <= 0) range = 100.0f;
+            if (range <= 0)
+                range = 100.0f;
             Vector3 viewPos = Vector3.Transform(light.Position, camera.ViewMatrix);
-            if (viewPos.Z + range < -zMax || viewPos.Z - range > -zMin) return false;
+            if (viewPos.Z + range < -zMax || viewPos.Z - range > -zMin)
+                return false;
             return true;
         }
 
@@ -185,7 +193,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public (float Near, float Far) GetClusterDepthRange(int clusterZ)
         {
-            if (clusterZ < 0 || clusterZ >= CLUSTER_Z_SLICES) return (0, 0);
+            if (clusterZ < 0 || clusterZ >= CLUSTER_Z_SLICES)
+                return (0, 0);
             return (_clusterDepths[clusterZ], _clusterDepths[clusterZ + 1]);
         }
 

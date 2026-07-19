@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: SkinningWeights.cs
 // PATH: Animation/SkinningWeights.cs
@@ -24,10 +6,26 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Animation
 {
@@ -380,7 +378,8 @@ namespace GDNN.Animation
                 throw new ArgumentOutOfRangeException(nameof(vertexIndex));
 
             int count = _influenceCounts[vertexIndex];
-            if (count <= 0) return;
+            if (count <= 0)
+                return;
 
             int baseIdx = vertexIndex * _maxInfluences;
             float sum = 0f;
@@ -432,7 +431,8 @@ namespace GDNN.Animation
                 throw new ArgumentOutOfRangeException(nameof(vertexIndex));
 
             int count = _influenceCounts[vertexIndex];
-            if (count <= 0) return;
+            if (count <= 0)
+                return;
 
             int baseIdx = vertexIndex * _maxInfluences;
 
@@ -467,7 +467,8 @@ namespace GDNN.Animation
                 throw new ArgumentOutOfRangeException(nameof(vertexIndex));
 
             int count = _influenceCounts[vertexIndex];
-            if (count <= 1) return;
+            if (count <= 1)
+                return;
 
             int baseIdx = vertexIndex * _maxInfluences;
 
@@ -529,7 +530,8 @@ namespace GDNN.Animation
         /// </summary>
         public unsafe void QuantizeTo8Bit()
         {
-            if (_isQuantized) return;
+            if (_isQuantized)
+                return;
 
             _quantizedWeights8 = new byte[_vertexCount * _maxInfluences];
 
@@ -553,7 +555,8 @@ namespace GDNN.Animation
         /// </summary>
         public unsafe void QuantizeTo4Bit()
         {
-            if (_isQuantized) return;
+            if (_isQuantized)
+                return;
 
             int packedCount = (_vertexCount * _maxInfluences + 1) / 2;
             _quantizedWeights4 = new byte[packedCount];
@@ -635,7 +638,8 @@ namespace GDNN.Animation
         /// </summary>
         public void Decompress()
         {
-            if (!_isQuantized) return;
+            if (!_isQuantized)
+                return;
 
             switch (_quantizationMode)
             {
@@ -752,14 +756,19 @@ namespace GDNN.Animation
                 throw new ArgumentException("Data too short.");
 
             int offset = 0;
-            uint magic = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)); offset += 4;
+            uint magic = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset));
+            offset += 4;
             if (magic != 0x534B494E)
                 throw new InvalidDataException("Invalid skinning weights magic.");
 
-            uint version = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)); offset += 4;
-            uint vertexCount = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)); offset += 4;
-            uint maxInfluences = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)); offset += 4;
-            QuantizationMode quantMode = (QuantizationMode)data[offset]; offset += 1;
+            uint version = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset));
+            offset += 4;
+            uint vertexCount = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset));
+            offset += 4;
+            uint maxInfluences = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset));
+            offset += 4;
+            QuantizationMode quantMode = (QuantizationMode)data[offset];
+            offset += 1;
 
             var skinning = new SkinningWeights((int)vertexCount, (int)maxInfluences);
 
@@ -796,7 +805,8 @@ namespace GDNN.Animation
 
             for (int v = 0; v < (int)vertexCount; v++)
             {
-                int count = data[offset]; offset += 1;
+                int count = data[offset];
+                offset += 1;
                 skinning._influenceCounts[v] = count;
 
                 int baseIdx = v * (int)maxInfluences;

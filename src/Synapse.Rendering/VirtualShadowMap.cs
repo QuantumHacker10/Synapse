@@ -51,7 +51,7 @@ namespace GDNN.Rendering.Shadows
         public Matrix4x4 ViewProjection { get; set; }
         public float NearPlane { get; set; }
         public float FarPlane { get; set; }
-        public VSMTile[] Tiles { get; set; }
+        public required VSMTile[] Tiles { get; set; }
         public int TileCountX { get; set; }
         public int TileCountY { get; set; }
     }
@@ -65,8 +65,8 @@ namespace GDNN.Rendering.Shadows
         public int ClipmapLevel { get; set; }
         public uint Hash { get; set; }
         public int LastAccessFrame { get; set; }
-        public float[] DepthData { get; set; }
-        public float[] NormalData { get; set; }
+        public required float[] DepthData { get; set; }
+        public required float[] NormalData { get; set; }
     }
 
     public class VirtualShadowMap : IDisposable
@@ -252,12 +252,16 @@ namespace GDNN.Rendering.Shadows
 
             Vector4 viewCenter = Vector4.Transform(new Vector4(center, 1f), viewProj);
 
-            if (viewCenter.Z < -viewCenter.W || viewCenter.Z > viewCenter.W) return false;
-            if (viewCenter.X < -viewCenter.W || viewCenter.X > viewCenter.W) return false;
-            if (viewCenter.Y < -viewCenter.W || viewCenter.Y > viewCenter.W) return false;
+            if (viewCenter.Z < -viewCenter.W || viewCenter.Z > viewCenter.W)
+                return false;
+            if (viewCenter.X < -viewCenter.W || viewCenter.X > viewCenter.W)
+                return false;
+            if (viewCenter.Y < -viewCenter.W || viewCenter.Y > viewCenter.W)
+                return false;
 
             float distToCam = Vector3.Distance(center, camPos);
-            if (distToCam > 200.0f * clipmap.Scale) return false;
+            if (distToCam > 200.0f * clipmap.Scale)
+                return false;
 
             return true;
         }
@@ -273,7 +277,8 @@ namespace GDNN.Rendering.Shadows
         private void RenderTile(VSMTile tile, VSMClipmap clipmap, float[] depthBuffer, float[] normalBuffer, int screenW, int screenH)
         {
             int physicalPage = AllocatePage();
-            if (physicalPage < 0) return;
+            if (physicalPage < 0)
+                return;
 
             var page = _physicalPages[physicalPage];
             page.VirtualX = tile.X;
@@ -308,7 +313,8 @@ namespace GDNN.Rendering.Shadows
                     );
 
                     Vector4 clipPos = Vector4.Transform(new Vector4(worldPos, 1.0f), tileViewProj);
-                    if (clipPos.W <= 0) continue;
+                    if (clipPos.W <= 0)
+                        continue;
 
                     float ndcX = clipPos.X / clipPos.W;
                     float ndcY = clipPos.Y / clipPos.W;
@@ -382,7 +388,8 @@ namespace GDNN.Rendering.Shadows
         {
             lock (_lock)
             {
-                if (clipmapLevel >= _config.ClipmapLevels) return 1.0f;
+                if (clipmapLevel >= _config.ClipmapLevels)
+                    return 1.0f;
 
                 var clipmap = _clipmaps[clipmapLevel];
                 float tileSizeWorld = _config.TileSize * clipmap.Scale;
@@ -400,7 +407,8 @@ namespace GDNN.Rendering.Shadows
                     return 0.0f;
 
                 var page = _physicalPages[tile.PhysicalTileIndex];
-                if (page.DepthData == null) return 0.0f;
+                if (page.DepthData == null)
+                    return 0.0f;
 
                 float localX = ((worldPos.X - clipmap.Offset.X) / tileSizeWorld - tile.X) * _config.TileSize;
                 float localY = ((worldPos.Z - clipmap.Offset.Z) / tileSizeWorld - tile.Y) * _config.TileSize;
@@ -476,7 +484,8 @@ namespace GDNN.Rendering.Shadows
                 }
             }
 
-            if (blockerCount == 0) return 1.0f;
+            if (blockerCount == 0)
+                return 1.0f;
             avgBlockerDepth /= blockerCount;
 
             float penumbraWidth = MathF.Max(0, (worldPos.Z - avgBlockerDepth) / avgBlockerDepth) * 10.0f;
@@ -532,7 +541,8 @@ namespace GDNN.Rendering.Shadows
                 cachedTiles = _cachedTiles;
                 allocatedPages = 0;
                 for (int i = 0; i < _physicalPages.Length; i++)
-                    if (_physicalPages[i].IsAllocated) allocatedPages++;
+                    if (_physicalPages[i].IsAllocated)
+                        allocatedPages++;
             }
         }
 
@@ -548,7 +558,8 @@ namespace GDNN.Rendering.Shadows
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _shadowCache = null;
             _normalCache = null;

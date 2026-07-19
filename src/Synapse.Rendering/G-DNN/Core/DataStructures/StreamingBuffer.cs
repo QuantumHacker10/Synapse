@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: StreamingBuffer.cs
 // PATH: Core/DataStructures/StreamingBuffer.cs
@@ -25,11 +7,27 @@ using System.Threading.Tasks;
 
 using System;
 using System.Buffers;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO;
+using System.IO.Compression;
 using System.IO.MemoryMappedFiles;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Core.DataStructures;
 
@@ -217,7 +215,8 @@ public sealed unsafe class StreamingBuffer<T> : IDisposable
         long available = _capacity - (writePos - readPos);
         int toWrite = (int)Math.Min(data.Length, available);
 
-        if (toWrite <= 0) return 0;
+        if (toWrite <= 0)
+            return 0;
 
         int startIndex = (int)(writePos % _capacity);
 
@@ -284,7 +283,8 @@ public sealed unsafe class StreamingBuffer<T> : IDisposable
         long available = flushedPos - readPos;
         int toRead = (int)Math.Min(destination.Length, available);
 
-        if (toRead <= 0) return 0;
+        if (toRead <= 0)
+            return 0;
 
         int startIndex = (int)(readPos % _capacity);
 
@@ -349,7 +349,8 @@ public sealed unsafe class StreamingBuffer<T> : IDisposable
         long available = flushedPos - readPos - offset;
         int toPeek = (int)Math.Min(destination.Length, available);
 
-        if (toPeek <= 0) return 0;
+        if (toPeek <= 0)
+            return 0;
 
         int startIndex = (int)((readPos + offset) % _capacity);
 
@@ -533,7 +534,8 @@ public sealed unsafe class StreamingBuffer<T> : IDisposable
         long available = flushedPos - readPos - offset;
         int toCopy = (int)Math.Min(destination.Length, available);
 
-        if (toCopy <= 0) return;
+        if (toCopy <= 0)
+            return;
 
         int startIndex = (int)((readPos + offset) % _capacity);
 
@@ -558,7 +560,8 @@ public sealed unsafe class StreamingBuffer<T> : IDisposable
         long flushedPos = Volatile.Read(ref _flushedPosition);
 
         long available = flushedPos - readPos;
-        if (available <= 0) return Span<T>.Empty;
+        if (available <= 0)
+            return Span<T>.Empty;
 
         int startIndex = (int)(readPos % _capacity);
         int contiguous = (int)Math.Min(available, _capacity - startIndex);
@@ -575,7 +578,8 @@ public sealed unsafe class StreamingBuffer<T> : IDisposable
         long readPos = Volatile.Read(ref _readPosition);
 
         long available = _capacity - (writePos - readPos);
-        if (available <= 0) return Span<T>.Empty;
+        if (available <= 0)
+            return Span<T>.Empty;
 
         int startIndex = (int)(writePos % _capacity);
         int contiguous = (int)Math.Min(available, _capacity - startIndex);
@@ -913,7 +917,8 @@ public sealed class StreamingByteBuffer : IDisposable
         long available = _capacity - (writePos - readPos);
         int toWrite = (int)Math.Min(data.Length, available);
 
-        if (toWrite <= 0) return 0;
+        if (toWrite <= 0)
+            return 0;
 
         int startIndex = (int)(writePos % _capacity);
 
@@ -944,7 +949,8 @@ public sealed class StreamingByteBuffer : IDisposable
         long available = flushedPos - readPos;
         int toRead = (int)Math.Min(destination.Length, available);
 
-        if (toRead <= 0) return 0;
+        if (toRead <= 0)
+            return 0;
 
         int startIndex = (int)(readPos % _capacity);
 
@@ -975,7 +981,8 @@ public sealed class StreamingByteBuffer : IDisposable
         long available = flushedPos - readPos - offset;
         int toPeek = (int)Math.Min(destination.Length, available);
 
-        if (toPeek <= 0) return 0;
+        if (toPeek <= 0)
+            return 0;
 
         int startIndex = (int)((readPos + offset) % _capacity);
 

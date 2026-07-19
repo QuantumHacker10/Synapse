@@ -198,7 +198,8 @@ namespace GDNN.Diagnostics
             _frameCount++;
 
             _frameTimes.Enqueue(_cpuFrameTimeMs);
-            if (_frameTimes.Count > 120) _frameTimes.Dequeue();
+            if (_frameTimes.Count > 120)
+                _frameTimes.Dequeue();
 
             _fpsAccumulator += _cpuFrameTimeMs;
             _fpsFrameCount++;
@@ -223,14 +224,16 @@ namespace GDNN.Diagnostics
 
         public float GetMedianFrameTime()
         {
-            if (_frameTimes.Count == 0) return 0;
+            if (_frameTimes.Count == 0)
+                return 0;
             var sorted = _frameTimes.OrderBy(x => x).ToList();
             return sorted[sorted.Count / 2];
         }
 
         public float GetPercentile(float percentile)
         {
-            if (_frameTimes.Count == 0) return 0;
+            if (_frameTimes.Count == 0)
+                return 0;
             var sorted = _frameTimes.OrderBy(x => x).ToList();
             int idx = (int)(sorted.Count * percentile / 100.0f);
             return sorted[Math.Min(idx, sorted.Count - 1)];
@@ -297,14 +300,16 @@ namespace GDNN.Diagnostics
             _testRemaining = _config.TestFrames;
             _cooldownRemaining = _config.CoolDownFrames;
             _results.Clear();
-            while (_samples.TryTake(out _)) { }
+            while (_samples.TryTake(out _))
+            { }
             _frameTimer.Reset();
             OnStateChanged?.Invoke(_state);
         }
 
         public void RecordFrame()
         {
-            if (_state == BenchmarkState.Idle) return;
+            if (_state == BenchmarkState.Idle)
+                return;
 
             _frameTimer.EndFrame();
 
@@ -369,7 +374,8 @@ namespace GDNN.Diagnostics
 
         private void UpdateThrottling()
         {
-            if (!_config.AutoDetectThrottling) return;
+            if (!_config.AutoDetectThrottling)
+                return;
 
             float avgFrameTime = _frameTimer.GetAverageFrameTime();
             float targetFrameTime = 1000.0f / 60.0f;
@@ -393,7 +399,8 @@ namespace GDNN.Diagnostics
             {
                 var testSamples = group.OrderBy(s => s.Value).ToList();
                 int count = testSamples.Count;
-                if (count == 0) continue;
+                if (count == 0)
+                    continue;
 
                 float avg = testSamples.Average(s => s.Value);
                 float min = testSamples.First().Value;
@@ -451,7 +458,8 @@ namespace GDNN.Diagnostics
 
         private float CalculateOverallScore(List<BenchmarkStats> results)
         {
-            if (results.Count == 0) return 0;
+            if (results.Count == 0)
+                return 0;
 
             float fpsScore = 0;
             var frameTimeStats = results.FirstOrDefault(r => r.TestType == BenchmarkTestType.FrameTime);
@@ -513,7 +521,8 @@ namespace GDNN.Diagnostics
         {
             _state = BenchmarkState.Idle;
             _results.Clear();
-            while (_samples.TryTake(out _)) { }
+            while (_samples.TryTake(out _))
+            { }
             _frameTimer.Reset();
         }
     }

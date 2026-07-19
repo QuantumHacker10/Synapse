@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // SpirvShaders.cs - GDNN Engine: SPIR-V Shader Builder + Embedded Shaders
 // Supports G-Buffer, deferred lighting, shadow mapping, post-processing
 // =============================================================================
@@ -733,8 +733,10 @@ namespace GDNN.Rendering.Shaders
             {
                 var id = Id();
                 _words.Add(((uint)Op.OpTypeFunction) | ((4u + (uint)paramTypes.Length) << 16));
-                _words.Add(id); _words.Add(returnType);
-                foreach (var p in paramTypes) _words.Add(p);
+                _words.Add(id);
+                _words.Add(returnType);
+                foreach (var p in paramTypes)
+                    _words.Add(p);
                 return id;
             }
 
@@ -775,7 +777,8 @@ namespace GDNN.Rendering.Shaders
             {
                 var id = Id();
                 Emit(Op.OpConstantComposite, type, id);
-                foreach (var c in constituents) _words.Add(c);
+                foreach (var c in constituents)
+                    _words.Add(c);
                 return id;
             }
 
@@ -786,7 +789,8 @@ namespace GDNN.Rendering.Shaders
             {
                 var id = Id();
                 Emit(Op.OpVariable, pointerType, id, (uint)sc);
-                if (name != null) _names.Add((id, name));
+                if (name != null)
+                    _names.Add((id, name));
                 return id;
             }
 
@@ -803,7 +807,8 @@ namespace GDNN.Rendering.Shaders
             {
                 var id = Id();
                 Emit(Op.OpAccessChain, resultType, id, baseId);
-                foreach (var idx in indices) _words.Add(idx);
+                foreach (var idx in indices)
+                    _words.Add(idx);
                 return id;
             }
 
@@ -833,7 +838,8 @@ namespace GDNN.Rendering.Shaders
             {
                 var id = Id();
                 Emit(Op.OpPhi, type, id);
-                foreach (var (val, lbl) in args) { _words.Add(val); _words.Add(lbl); }
+                foreach (var (val, lbl) in args)
+                { _words.Add(val); _words.Add(lbl); }
                 return id;
             }
 
@@ -873,7 +879,8 @@ namespace GDNN.Rendering.Shaders
             {
                 var id = Id();
                 Emit(Op.OpCompositeConstruct, type, id);
-                foreach (var c in constituents) _words.Add(c);
+                foreach (var c in constituents)
+                    _words.Add(c);
                 return id;
             }
 
@@ -888,7 +895,8 @@ namespace GDNN.Rendering.Shaders
             {
                 var id = Id();
                 Emit(Op.OpCompositeInsert, type, id, value, composite);
-                foreach (var idx in indices) _words.Add(idx);
+                foreach (var idx in indices)
+                    _words.Add(idx);
                 return id;
             }
 
@@ -896,7 +904,8 @@ namespace GDNN.Rendering.Shaders
             {
                 var id = Id();
                 Emit(Op.OpVectorShuffle, type, id, vec1, vec2);
-                foreach (var c in components) _words.Add(c);
+                foreach (var c in components)
+                    _words.Add(c);
                 return id;
             }
 
@@ -978,10 +987,13 @@ namespace GDNN.Rendering.Shaders
             {
                 var nameBytes = Encoding.UTF8.GetBytes(name + '\0');
                 var nameWords = new List<uint>();
-                foreach (var bt in nameBytes) { nameWords.Add(bt); }
+                foreach (var bt in nameBytes)
+                { nameWords.Add(bt); }
                 Emit(Op.OpEntryPoint, (uint)model, entryPointId);
-                foreach (var w in nameWords) _words.Add(w);
-                foreach (var iface in interfaces) _words.Add(iface);
+                foreach (var w in nameWords)
+                    _words.Add(w);
+                foreach (var iface in interfaces)
+                    _words.Add(iface);
             }
 
             public void ExecutionMode(uint entryPoint, ExecutionMode mode, params uint[] args)
@@ -998,22 +1010,28 @@ namespace GDNN.Rendering.Shaders
                 foreach (var (id, dec, args) in _decorations)
                 {
                     allWords.Add(((uint)Op.OpDecorate) | (((uint)args.Length + 3) << 16));
-                    allWords.Add(id); allWords.Add((uint)dec);
-                    foreach (var a in args) allWords.Add(a);
+                    allWords.Add(id);
+                    allWords.Add((uint)dec);
+                    foreach (var a in args)
+                        allWords.Add(a);
                 }
 
                 foreach (var (structId, member, dec, args) in _memberDecorations)
                 {
                     allWords.Add(((uint)Op.OpMemberDecorate) | (((uint)args.Length + 4) << 16));
-                    allWords.Add(structId); allWords.Add(member); allWords.Add((uint)dec);
-                    foreach (var a in args) allWords.Add(a);
+                    allWords.Add(structId);
+                    allWords.Add(member);
+                    allWords.Add((uint)dec);
+                    foreach (var a in args)
+                        allWords.Add(a);
                 }
 
                 foreach (var (id, args) in _executionModes)
                 {
                     allWords.Add(((uint)Op.OpExecutionMode) | (((uint)args.Length + 3) << 16));
                     allWords.Add(id);
-                    foreach (var a in args) allWords.Add(a);
+                    foreach (var a in args)
+                        allWords.Add(a);
                 }
 
                 foreach (var (id, name) in _names)

@@ -1,8 +1,8 @@
+using System.Numerics;
 using FluentAssertions;
 using GDNN.Core.NeuralNetwork;
 using GDNN.Evaluation;
 using GDNN.GPU;
-using System.Numerics;
 using Xunit;
 
 namespace Synapse.Tests.GDNN;

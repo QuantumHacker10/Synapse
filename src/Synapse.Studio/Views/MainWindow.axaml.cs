@@ -27,8 +27,10 @@ namespace Synapse.Studio.Views
 
         private void OnWindowKeyDown(object? sender, KeyEventArgs e)
         {
-            if (e.Key != Key.Space || DataContext is not MainWindowViewModel vm) return;
-            if (e.Source is TextBox) return;
+            if (e.Key != Key.Space || DataContext is not MainWindowViewModel vm)
+                return;
+            if (e.Source is TextBox)
+                return;
 
             vm.TogglePlayCommand.Execute(null);
             e.Handled = true;

@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: SynchronizedBuffer.cs
 // PATH: Threading/SynchronizedBuffer.cs
@@ -24,10 +6,26 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Threading
 {
@@ -163,7 +161,8 @@ namespace GDNN.Threading
         /// <param name="capacity">Maximum number of elements.</param>
         public unsafe SynchronizedBuffer(int capacity)
         {
-            if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+            if (capacity <= 0)
+                throw new ArgumentOutOfRangeException(nameof(capacity));
 
             _capacity = capacity;
             _elementSize = sizeof(T);
@@ -493,7 +492,8 @@ namespace GDNN.Threading
         /// </summary>
         public unsafe void SwapBuffers()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
 
             int spinCount = 0;
             int backoffNs = BACKOFF_INITIAL_NS;
@@ -542,7 +542,8 @@ namespace GDNN.Threading
         /// </summary>
         public unsafe void Reset()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
 
             int spinCount = 0;
             int backoffNs = BACKOFF_INITIAL_NS;
@@ -703,7 +704,8 @@ namespace GDNN.Threading
         /// </summary>
         public unsafe void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             int spinCount = 0;
@@ -758,7 +760,8 @@ namespace GDNN.Threading
         /// <param name="minCapacity">Minimum capacity. Will be rounded up to power of 2.</param>
         public unsafe SPSCRingBuffer(int minCapacity)
         {
-            if (minCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(minCapacity));
+            if (minCapacity <= 0)
+                throw new ArgumentOutOfRangeException(nameof(minCapacity));
 
             _capacity = RoundUpPow2(minCapacity);
             _mask = _capacity - 1;
@@ -774,7 +777,8 @@ namespace GDNN.Threading
         /// <returns>True if enqueued, false if buffer is full.</returns>
         public unsafe bool TryEnqueue(T item)
         {
-            if (_disposed) return false;
+            if (_disposed)
+                return false;
 
             int head = _head;
             int next = (head + 1) & _mask;
@@ -842,7 +846,8 @@ namespace GDNN.Threading
         /// <returns>Number of elements actually drained.</returns>
         public unsafe int TryDequeueBatch(Span<T> destination, int maxCount = -1)
         {
-            if (_disposed) return 0;
+            if (_disposed)
+                return 0;
 
             int tail = _tail;
             int head = _head;
@@ -889,7 +894,8 @@ namespace GDNN.Threading
         /// </summary>
         public unsafe void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             NativeMemory.Free(_buffer);
         }
@@ -1123,7 +1129,8 @@ namespace GDNN.Threading
             get => _frameBudgetTicks;
             set
             {
-                if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value));
+                if (value <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(value));
                 _frameBudgetTicks = value;
             }
         }
@@ -1188,7 +1195,8 @@ namespace GDNN.Threading
             string name = "")
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            if (action == null) throw new ArgumentNullException(nameof(action));
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
             var task = new ScheduledTask
             {
@@ -1410,11 +1418,21 @@ namespace GDNN.Threading
                     var task = _readyQueue.Dequeue();
                     switch (task.Priority)
                     {
-                        case TaskPriority.Critical: criticalTasks.Add(task); break;
-                        case TaskPriority.High: highTasks.Add(task); break;
-                        case TaskPriority.Normal: normalTasks.Add(task); break;
-                        case TaskPriority.Low: lowTasks.Add(task); break;
-                        case TaskPriority.Background: backgroundTasks.Add(task); break;
+                        case TaskPriority.Critical:
+                            criticalTasks.Add(task);
+                            break;
+                        case TaskPriority.High:
+                            highTasks.Add(task);
+                            break;
+                        case TaskPriority.Normal:
+                            normalTasks.Add(task);
+                            break;
+                        case TaskPriority.Low:
+                            lowTasks.Add(task);
+                            break;
+                        case TaskPriority.Background:
+                            backgroundTasks.Add(task);
+                            break;
                     }
                 }
 
@@ -1672,7 +1690,8 @@ namespace GDNN.Threading
         /// </summary>
         public double GetAverageFrameDurationMs(int lastN = 60)
         {
-            if (_frameHistory.Count == 0) return 0;
+            if (_frameHistory.Count == 0)
+                return 0;
 
             int start = Math.Max(0, _frameHistory.Count - lastN);
             double sum = 0;
@@ -1692,7 +1711,8 @@ namespace GDNN.Threading
         /// </summary>
         public double GetAverageBudgetUtilization(int lastN = 60)
         {
-            if (_frameHistory.Count == 0) return 0;
+            if (_frameHistory.Count == 0)
+                return 0;
 
             int start = Math.Max(0, _frameHistory.Count - lastN);
             double sum = 0;
@@ -1730,7 +1750,8 @@ namespace GDNN.Threading
             {
                 _allTasks.Clear();
                 _scheduledQueue.Clear();
-                while (_readyQueue.Count > 0) _readyQueue.Dequeue();
+                while (_readyQueue.Count > 0)
+                    _readyQueue.Dequeue();
                 _runningTasks.Clear();
                 for (int i = 0; i < _tasksPerPriorityCount.Length; i++)
                     _tasksPerPriorityCount[i] = 0;
@@ -1766,7 +1787,8 @@ namespace GDNN.Threading
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             Clear();
         }
@@ -1942,7 +1964,8 @@ namespace GDNN.Threading
 
         internal bool TryResolveDependency(WorkItem completed)
         {
-            if (!Dependencies.Contains(completed)) return false;
+            if (!Dependencies.Contains(completed))
+                return false;
             if (Interlocked.Decrement(ref _remainingDependencies) == 0)
                 return true;
             return false;
@@ -2273,7 +2296,8 @@ namespace GDNN.Threading
         /// </summary>
         public void Start()
         {
-            if (_running) return;
+            if (_running)
+                return;
             _running = true;
 
             for (int i = 0; i < _threadCount; i++)
@@ -2306,7 +2330,8 @@ namespace GDNN.Threading
         public void Submit(WorkItem item, int threadHint = -1)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            if (item == null) throw new ArgumentNullException(nameof(item));
+            if (item == null)
+                throw new ArgumentNullException(nameof(item));
 
             item.MarkQueued();
 
@@ -2416,7 +2441,8 @@ namespace GDNN.Threading
                 int chunkIndex = c;
 
                 var item = new DelegateWorkItem(
-                    tid => {
+                    tid =>
+                    {
                         for (int i = chunkStart; i < chunkEnd; i++)
                             action(i, tid);
                     },
@@ -2452,7 +2478,8 @@ namespace GDNN.Threading
         /// <returns>True if the item completed, false on timeout.</returns>
         public bool WaitForCompletion(WorkItem item, TimeSpan timeout)
         {
-            if (item == null) throw new ArgumentNullException(nameof(item));
+            if (item == null)
+                throw new ArgumentNullException(nameof(item));
             var deadline = Stopwatch.StartNew();
 
             var spin = new SpinWait();
@@ -2678,8 +2705,10 @@ namespace GDNN.Threading
 
         private void ResizePool(int newCount)
         {
-            if (newCount == _threadCount) return;
-            if (newCount < 1 || newCount > MAX_THREAD_COUNT) return;
+            if (newCount == _threadCount)
+                return;
+            if (newCount < 1 || newCount > MAX_THREAD_COUNT)
+                return;
 
             int oldCount = _threadCount;
             _threadCount = newCount;
@@ -2724,7 +2753,8 @@ namespace GDNN.Threading
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             _cts.Cancel();

@@ -284,9 +284,13 @@ public sealed class SoftwareRasterizer
                     AtomicMax(ref buffer[rowBase + x], key);
                     any = true;
                 }
-                w0 += stepX0; w1 += stepX1; w2 += stepX2;
+                w0 += stepX0;
+                w1 += stepX1;
+                w2 += stepX2;
             }
-            rowW0 += stepY0; rowW1 += stepY1; rowW2 += stepY2;
+            rowW0 += stepY0;
+            rowW1 += stepY1;
+            rowW2 += stepY2;
         }
 
         return any;

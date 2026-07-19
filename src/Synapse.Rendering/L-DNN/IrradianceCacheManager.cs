@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ namespace GDNN.Lighting.LDNN
     public class IrradianceCacheManager
     {
         private IrradianceCacheType _cacheType;
-        private List<IrradianceProbe> _probes;
+        private required List<IrradianceProbe> _probes;
         private int _maxProbes;
         private float _probeSpacing;
         private int _frameIndex;
@@ -68,7 +68,8 @@ namespace GDNN.Lighting.LDNN
                             (y - probesPerAxis / 2.0f) * step,
                             (z - probesPerAxis / 2.0f) * step);
 
-                        if (_probes.Count >= _maxProbes) return;
+                        if (_probes.Count >= _maxProbes)
+                            return;
 
                         _probes.Add(new IrradianceProbe
                         {
@@ -106,7 +107,8 @@ namespace GDNN.Lighting.LDNN
                         radius * MathF.Cos(phi),
                         radius * MathF.Sin(phi) * MathF.Sin(theta));
 
-                    if (_probes.Count >= _maxProbes) return;
+                    if (_probes.Count >= _maxProbes)
+                        return;
 
                     _probes.Add(new IrradianceProbe
                     {
@@ -137,7 +139,8 @@ namespace GDNN.Lighting.LDNN
                     {
                         Vector3 pos = origin + new Vector3(x, y, z) * cellSize;
 
-                        if (_probes.Count >= _maxProbes) return;
+                        if (_probes.Count >= _maxProbes)
+                            return;
 
                         _probes.Add(new IrradianceProbe
                         {
@@ -161,17 +164,20 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public Vector3 TrilinearInterpolate(Vector3 worldPos, Vector3 normal)
         {
-            if (_probes == null || _probes.Count == 0) return Vector3.Zero;
+            if (_probes == null || _probes.Count == 0)
+                return Vector3.Zero;
 
             float totalWeight = 0;
             Vector3 totalIrradiance = Vector3.Zero;
 
             foreach (var probe in _probes)
             {
-                if (!probe.IsValid) continue;
+                if (!probe.IsValid)
+                    continue;
                 float dist = (probe.Position - worldPos).Length();
                 float weight = MathF.Exp(-dist / _probeSpacing);
-                if (weight < 0.001f) continue;
+                if (weight < 0.001f)
+                    continue;
 
                 Vector3 irradiance = ComputeProbeIrradiance(probe, normal);
                 totalIrradiance += irradiance * weight;
@@ -187,7 +193,8 @@ namespace GDNN.Lighting.LDNN
         public Vector3 TetrahedralInterpolate(Vector3 worldPos, Vector3 normal)
         {
             var nearest = FindNearestProbes(worldPos, 4);
-            if (nearest.Count < 4) return TrilinearInterpolate(worldPos, normal);
+            if (nearest.Count < 4)
+                return TrilinearInterpolate(worldPos, normal);
 
             Vector3 p0 = nearest[0].Position;
             Vector3 p1 = nearest[1].Position;
@@ -254,7 +261,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public void ManageBudget(int targetCount)
         {
-            if (_probes.Count <= targetCount) return;
+            if (_probes.Count <= targetCount)
+                return;
 
             var sorted = _probes.OrderByDescending(p => p.Importance).Take(targetCount).ToList();
             _probes = sorted;
@@ -265,7 +273,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public float TrackCacheCoherence(CameraState camera)
         {
-            if (_probes.Count == 0) return 0;
+            if (_probes.Count == 0)
+                return 0;
 
             int reusedCount = 0;
             foreach (var probe in _probes)
@@ -447,7 +456,8 @@ namespace GDNN.Lighting.LDNN
             float d32 = Vector3.Dot(v3, v2);
 
             float denom = d00 * (d11 * d22 - d12 * d12) - d01 * (d01 * d22 - d12 * d02) + d02 * (d01 * d12 - d11 * d02);
-            if (MathF.Abs(denom) < 0.0001f) return new Vector4(0.25f, 0.25f, 0.25f, 0.25f);
+            if (MathF.Abs(denom) < 0.0001f)
+                return new Vector4(0.25f, 0.25f, 0.25f, 0.25f);
 
             float w = (d30 * (d11 * d22 - d12 * d12) - d01 * (d31 * d22 - d12 * d32) + d02 * (d31 * d12 - d11 * d32)) / denom;
             float u = (d00 * (d31 * d22 - d12 * d32) - d30 * (d01 * d22 - d12 * d02) + d02 * (d01 * d32 - d31 * d02)) / denom;

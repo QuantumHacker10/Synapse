@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -17,10 +17,10 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class AmbientOcclusionSystem
     {
-        private float[] _aoBuffer;
-        private float[] _temporalHistory;
-        private Vector3[] _hemisphereKernel;
-        private Vector3[] _noiseTexture;
+        private required float[] _aoBuffer;
+        private required float[] _temporalHistory;
+        private required Vector3[] _hemisphereKernel;
+        private required Vector3[] _noiseTexture;
         private int _width;
         private int _height;
         private int _kernelSize;
@@ -62,7 +62,9 @@ namespace GDNN.Lighting.LDNN
                 float y = rng.NextFloat(-1.0f, 1.0f);
                 float z = rng.NextFloat(0.0f, 1.0f);
                 float len = MathF.Sqrt(x * x + y * y + z * z);
-                x /= len; y /= len; z /= len;
+                x /= len;
+                y /= len;
+                z /= len;
 
                 float scale = (float)i / _kernelSize;
                 scale = 0.1f + scale * scale * 0.9f;
@@ -87,7 +89,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public void ComputeSSAO(GBuffer gbuffer, CameraState camera, int kernelSize, float radius)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized)
+                return;
 
             Parallel.For(0, _height, y =>
             {
@@ -151,7 +154,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public void ComputeGTAO(GBuffer gbuffer, CameraState camera, int numDirections, float radius)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized)
+                return;
 
             Parallel.For(0, _height, y =>
             {

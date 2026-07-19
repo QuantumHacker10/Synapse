@@ -1,4 +1,10 @@
 using System;
+// ============================================================
+// FILE: MathHelpers.cs
+// PATH: Utilities/MathHelpers.cs
+// ============================================================
+
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
@@ -7,7 +13,10 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Numerics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -15,17 +24,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-
-
-// ============================================================
-// FILE: MathHelpers.cs
-// PATH: Utilities/MathHelpers.cs
-// ============================================================
-
-using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace GDNN.Utilities;
 
@@ -149,7 +147,8 @@ public static class MathHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float InverseLerp(float a, float b, float value)
     {
-        if (MathF.Abs(b - a) < Epsilon) return 0;
+        if (MathF.Abs(b - a) < Epsilon)
+            return 0;
         return Clamp01((value - a) / (b - a));
     }
 
@@ -179,7 +178,8 @@ public static class MathHelpers
     public static int Log2Floor(int value)
     {
         int result = 0;
-        while ((value >>= 1) != 0) result++;
+        while ((value >>= 1) != 0)
+            result++;
         return result;
     }
 
@@ -193,7 +193,8 @@ public static class MathHelpers
     public static float Wrap(float value, float length)
     {
         value %= length;
-        if (value < 0) value += length;
+        if (value < 0)
+            value += length;
         return value;
     }
 
@@ -202,7 +203,8 @@ public static class MathHelpers
     public static int Wrap(int value, int length)
     {
         value %= length;
-        if (value < 0) value += length;
+        if (value < 0)
+            value += length;
         return value;
     }
 
@@ -225,7 +227,8 @@ public static class MathHelpers
     /// <returns>The polynomial value at x.</returns>
     public static float EvaluatePolynomial(ReadOnlySpan<float> coefficients, float x)
     {
-        if (coefficients.Length == 0) return 0;
+        if (coefficients.Length == 0)
+            return 0;
         float result = coefficients[^1];
         for (int i = coefficients.Length - 2; i >= 0; i--)
         {
@@ -237,7 +240,8 @@ public static class MathHelpers
     /// <summary>Evaluates a polynomial using Horner's method (double precision).</summary>
     public static double EvaluatePolynomial(ReadOnlySpan<double> coefficients, double x)
     {
-        if (coefficients.Length == 0) return 0;
+        if (coefficients.Length == 0)
+            return 0;
         double result = coefficients[^1];
         for (int i = coefficients.Length - 2; i >= 0; i--)
         {
@@ -256,8 +260,10 @@ public static class MathHelpers
     /// <returns>Approximate integral value.</returns>
     public static double IntegrateTrapezoidal(Func<double, double> func, double a, double b, int intervals = 1000)
     {
-        if (intervals <= 0) throw new ArgumentException("Intervals must be positive.", nameof(intervals));
-        if (MathF.Abs((float)(b - a)) < Epsilon) return 0;
+        if (intervals <= 0)
+            throw new ArgumentException("Intervals must be positive.", nameof(intervals));
+        if (MathF.Abs((float)(b - a)) < Epsilon)
+            return 0;
 
         double h = (b - a) / intervals;
         double sum = 0.5 * (func(a) + func(b));
@@ -280,9 +286,12 @@ public static class MathHelpers
     /// <returns>Approximate integral value.</returns>
     public static double IntegrateSimpson(Func<double, double> func, double a, double b, int intervals = 1000)
     {
-        if (intervals <= 0) throw new ArgumentException("Intervals must be positive.", nameof(intervals));
-        if (intervals % 2 != 0) intervals++;
-        if (MathF.Abs((float)(b - a)) < Epsilon) return 0;
+        if (intervals <= 0)
+            throw new ArgumentException("Intervals must be positive.", nameof(intervals));
+        if (intervals % 2 != 0)
+            intervals++;
+        if (MathF.Abs((float)(b - a)) < Epsilon)
+            return 0;
 
         double h = (b - a) / intervals;
         double sum = func(a) + func(b);
@@ -419,8 +428,10 @@ public static class MathHelpers
                 return x1;
 
             double x2 = x1 - f1 * (x1 - x0) / (f1 - f0);
-            x0 = x1; f0 = f1;
-            x1 = x2; f1 = func(x1);
+            x0 = x1;
+            f0 = f1;
+            x1 = x2;
+            f1 = func(x1);
         }
 
         return x1;
@@ -446,13 +457,17 @@ public static class MathHelpers
         {
             if (fc < fd)
             {
-                b = d; d = c; fd = fc;
+                b = d;
+                d = c;
+                fd = fc;
                 c = b - invPhi * (b - a);
                 fc = func(c);
             }
             else
             {
-                a = c; c = d; fc = fd;
+                a = c;
+                c = d;
+                fc = fd;
                 d = a + invPhi * (b - a);
                 fd = func(d);
             }
@@ -466,9 +481,11 @@ public static class MathHelpers
     /// </summary>
     public static double Mean(ReadOnlySpan<double> values)
     {
-        if (values.Length == 0) return 0;
+        if (values.Length == 0)
+            return 0;
         double sum = 0;
-        foreach (double v in values) sum += v;
+        foreach (double v in values)
+            sum += v;
         return sum / values.Length;
     }
 
@@ -477,9 +494,11 @@ public static class MathHelpers
     /// </summary>
     public static float Mean(ReadOnlySpan<float> values)
     {
-        if (values.Length == 0) return 0;
+        if (values.Length == 0)
+            return 0;
         double sum = 0;
-        foreach (float v in values) sum += v;
+        foreach (float v in values)
+            sum += v;
         return (float)(sum / values.Length);
     }
 
@@ -488,7 +507,8 @@ public static class MathHelpers
     /// </summary>
     public static double Variance(ReadOnlySpan<double> values, bool populationVariance = true)
     {
-        if (values.Length == 0) return 0;
+        if (values.Length == 0)
+            return 0;
         double mean = Mean(values);
         double sumSq = 0;
         foreach (double v in values)
@@ -504,7 +524,8 @@ public static class MathHelpers
     /// </summary>
     public static float Variance(ReadOnlySpan<float> values, bool populationVariance = true)
     {
-        if (values.Length == 0) return 0;
+        if (values.Length == 0)
+            return 0;
         float mean = Mean(values);
         double sumSq = 0;
         foreach (float v in values)
@@ -535,14 +556,17 @@ public static class MathHelpers
     /// <returns>The percentile value.</returns>
     public static double Percentile(ReadOnlySpan<double> sortedValues, double percentile)
     {
-        if (sortedValues.Length == 0) return 0;
-        if (sortedValues.Length == 1) return sortedValues[0];
+        if (sortedValues.Length == 0)
+            return 0;
+        if (sortedValues.Length == 1)
+            return sortedValues[0];
 
         double index = (percentile / 100.0) * (sortedValues.Length - 1);
         int lower = (int)Math.Floor(index);
         int upper = (int)Math.Ceiling(index);
 
-        if (lower == upper) return sortedValues[lower];
+        if (lower == upper)
+            return sortedValues[lower];
 
         double fraction = index - lower;
         return sortedValues[lower] * (1 - fraction) + sortedValues[upper] * fraction;
@@ -553,7 +577,8 @@ public static class MathHelpers
     /// </summary>
     public static double PercentileUnsorted(ReadOnlySpan<double> values, double percentile)
     {
-        if (values.Length == 0) return 0;
+        if (values.Length == 0)
+            return 0;
         double[] sorted = values.ToArray();
         Array.Sort(sorted);
         return Percentile(sorted, percentile);
@@ -569,7 +594,8 @@ public static class MathHelpers
     /// </summary>
     public static float Median(ReadOnlySpan<float> values)
     {
-        if (values.Length == 0) return 0;
+        if (values.Length == 0)
+            return 0;
         float[] sorted = values.ToArray();
         Array.Sort(sorted);
         int mid = sorted.Length / 2;
@@ -585,7 +611,8 @@ public static class MathHelpers
     {
         if (values.Length != weights.Length)
             throw new ArgumentException("Values and weights must have the same length.");
-        if (values.Length == 0) return 0;
+        if (values.Length == 0)
+            return 0;
 
         double sumWeight = 0, sumValue = 0;
         for (int i = 0; i < values.Length; i++)
@@ -605,8 +632,10 @@ public static class MathHelpers
     /// <returns>Moving average series (shorter than input by windowSize-1).</returns>
     public static double[] MovingAverage(ReadOnlySpan<double> values, int windowSize)
     {
-        if (windowSize <= 0) throw new ArgumentException("Window size must be positive.");
-        if (values.Length < windowSize) return Array.Empty<double>();
+        if (windowSize <= 0)
+            throw new ArgumentException("Window size must be positive.");
+        if (values.Length < windowSize)
+            return Array.Empty<double>();
 
         int resultLength = values.Length - windowSize + 1;
         double[] result = new double[resultLength];
@@ -630,7 +659,8 @@ public static class MathHelpers
     /// </summary>
     public static double ExponentialMovingAverage(ReadOnlySpan<double> values, double alpha)
     {
-        if (values.Length == 0) return 0;
+        if (values.Length == 0)
+            return 0;
         double ema = values[0];
         for (int i = 1; i < values.Length; i++)
         {
@@ -762,7 +792,8 @@ public static class MathHelpers
     public static Vector3 Project(Vector3 a, Vector3 b)
     {
         float sqrLen = b.LengthSquared();
-        if (sqrLen < Epsilon) return Vector3.Zero;
+        if (sqrLen < Epsilon)
+            return Vector3.Zero;
         return b * (Vector3.Dot(a, b) / sqrLen);
     }
 
@@ -781,7 +812,8 @@ public static class MathHelpers
     {
         float dot = Vector3.Dot(normal, direction);
         float k = 1f - eta * eta * (1f - dot * dot);
-        if (k < 0) return Vector3.Zero;
+        if (k < 0)
+            return Vector3.Zero;
         return eta * direction - (eta * dot + MathF.Sqrt(k)) * normal;
     }
 
@@ -792,7 +824,8 @@ public static class MathHelpers
     public static float AngleBetween(Vector3 a, Vector3 b)
     {
         float lenA = a.Length(), lenB = b.Length();
-        if (lenA < Epsilon || lenB < Epsilon) return 0;
+        if (lenA < Epsilon || lenB < Epsilon)
+            return 0;
         float dot = Math.Clamp(Vector3.Dot(a, b) / (lenA * lenB), -1f, 1f);
         return MathF.Acos(dot);
     }
@@ -830,11 +863,13 @@ public static class MathHelpers
     {
         Vector3 ab = b - a, ac = c - a, ap = point - a;
         float d1 = Vector3.Dot(ab, ap), d2 = Vector3.Dot(ac, ap);
-        if (d1 <= 0 && d2 <= 0) return a;
+        if (d1 <= 0 && d2 <= 0)
+            return a;
 
         Vector3 bp = point - b;
         float d3 = Vector3.Dot(ab, bp), d4 = Vector3.Dot(ac, bp);
-        if (d3 >= 0 && d4 <= d3) return b;
+        if (d3 >= 0 && d4 <= d3)
+            return b;
 
         float vc = d1 * d4 - d3 * d2;
         if (vc <= 0 && d1 >= 0 && d3 <= 0)
@@ -845,7 +880,8 @@ public static class MathHelpers
 
         Vector3 cp = point - c;
         float d5 = Vector3.Dot(ab, cp), d6 = Vector3.Dot(ac, cp);
-        if (d6 >= 0 && d5 <= d6) return c;
+        if (d6 >= 0 && d5 <= d6)
+            return c;
 
         float vb = d5 * d2 - d1 * d6;
         if (vb <= 0 && d2 >= 0 && d6 <= 0)
@@ -894,7 +930,8 @@ public static class MathHelpers
         float d11 = Vector3.Dot(v1, v1), d20 = Vector3.Dot(v2, v0);
         float d21 = Vector3.Dot(v2, v1);
         float denom = d00 * d11 - d01 * d01;
-        if (MathF.Abs(denom) < Epsilon) return new Vector3(1, 0, 0);
+        if (MathF.Abs(denom) < Epsilon)
+            return new Vector3(1, 0, 0);
 
         float v = (d11 * d20 - d01 * d21) / denom;
         float w = (d00 * d21 - d01 * d20) / denom;
@@ -961,7 +998,8 @@ public static class MathHelpers
     {
         Vector3 diff = target - current;
         float dist = diff.Length();
-        if (dist <= maxDistance || dist < Epsilon) return target;
+        if (dist <= maxDistance || dist < Epsilon)
+            return target;
         return current + diff / dist * maxDistance;
     }
 
@@ -980,7 +1018,8 @@ public static class MathHelpers
     public static Quaternion FromToRotation(Vector3 from, Vector3 to)
     {
         float dot = Vector3.Dot(from, to);
-        if (dot >= 1f) return Quaternion.Identity;
+        if (dot >= 1f)
+            return Quaternion.Identity;
         if (dot <= -1f)
         {
             Vector3 ortho = GetPerpendicular(from);
@@ -1001,9 +1040,15 @@ public static class MathHelpers
         Vector3 correctedUp = Vector3.Cross(forward, right);
 
         Matrix4x4 m = Matrix4x4.Identity;
-        m.M11 = right.X; m.M12 = right.Y; m.M13 = right.Z;
-        m.M21 = correctedUp.X; m.M22 = correctedUp.Y; m.M23 = correctedUp.Z;
-        m.M31 = forward.X; m.M32 = forward.Y; m.M33 = forward.Z;
+        m.M11 = right.X;
+        m.M12 = right.Y;
+        m.M13 = right.Z;
+        m.M21 = correctedUp.X;
+        m.M22 = correctedUp.Y;
+        m.M23 = correctedUp.Z;
+        m.M31 = forward.X;
+        m.M32 = forward.Y;
+        m.M33 = forward.Z;
 
         return Quaternion.CreateFromRotationMatrix(m);
     }
@@ -1068,7 +1113,8 @@ public static class MathHelpers
     private static (Vector3 Normal, float D) NormalizePlane(Vector3 normal, float d)
     {
         float length = normal.Length();
-        if (length < Epsilon) return (Vector3.Zero, 0);
+        if (length < Epsilon)
+            return (Vector3.Zero, 0);
         return (normal / length, d / length);
     }
 
@@ -1101,7 +1147,8 @@ public static class MathHelpers
         float c = Vector3.Dot(oc, oc) - sphereRadius * sphereRadius;
         float discriminant = b * b - 4 * a * c;
 
-        if (discriminant < 0) return false;
+        if (discriminant < 0)
+            return false;
 
         t = (-b - MathF.Sqrt(discriminant)) / (2 * a);
         if (t < 0)
@@ -1118,7 +1165,8 @@ public static class MathHelpers
     public static bool RayAabbIntersect(Vector3 rayOrigin, Vector3 rayDirection,
         Vector3 boxMin, Vector3 boxMax, out float tMin, out float tMax)
     {
-        tMin = 0; tMax = float.MaxValue;
+        tMin = 0;
+        tMax = float.MaxValue;
 
         for (int i = 0; i < 3; i++)
         {
@@ -1129,7 +1177,8 @@ public static class MathHelpers
 
             if (MathF.Abs(dir) < Epsilon)
             {
-                if (origin < min || origin > max) return false;
+                if (origin < min || origin > max)
+                    return false;
             }
             else
             {
@@ -1137,11 +1186,13 @@ public static class MathHelpers
                 float t1 = (min - origin) * invDir;
                 float t2 = (max - origin) * invDir;
 
-                if (t1 > t2) (t1, t2) = (t2, t1);
+                if (t1 > t2)
+                    (t1, t2) = (t2, t1);
                 tMin = MathF.Max(tMin, t1);
                 tMax = MathF.Min(tMax, t2);
 
-                if (tMin > tMax) return false;
+                if (tMin > tMax)
+                    return false;
             }
         }
 
@@ -1160,16 +1211,19 @@ public static class MathHelpers
         Vector3 h = Vector3.Cross(rayDirection, edge2);
         float a = Vector3.Dot(edge1, h);
 
-        if (a > -Epsilon && a < Epsilon) return false;
+        if (a > -Epsilon && a < Epsilon)
+            return false;
 
         float f = 1f / a;
         Vector3 s = rayOrigin - v0;
         u = f * Vector3.Dot(s, h);
-        if (u < 0f || u > 1f) return false;
+        if (u < 0f || u > 1f)
+            return false;
 
         Vector3 q = Vector3.Cross(s, edge1);
         v = f * Vector3.Dot(rayDirection, q);
-        if (v < 0f || u + v > 1f) return false;
+        if (v < 0f || u + v > 1f)
+            return false;
 
         t = f * Vector3.Dot(edge2, q);
         return t > Epsilon;

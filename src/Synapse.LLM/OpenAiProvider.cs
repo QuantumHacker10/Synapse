@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -244,11 +244,14 @@ namespace GDNN.Llm
                     _currentCts.Token.ThrowIfCancellationRequested();
                     var line = await reader.ReadLineAsync(_currentCts.Token);
 
-                    if (string.IsNullOrEmpty(line)) continue;
-                    if (!line.StartsWith("data: ")) continue;
+                    if (string.IsNullOrEmpty(line))
+                        continue;
+                    if (!line.StartsWith("data: "))
+                        continue;
 
                     var data = line.Substring(6).Trim();
-                    if (data == "[DONE]") break;
+                    if (data == "[DONE]")
+                        break;
 
                     string? openaiText = null;
                     FinishReason? openaiFinishReason = null;
@@ -366,7 +369,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public int EstimateTokens(string text)
         {
-            if (string.IsNullOrEmpty(text)) return 0;
+            if (string.IsNullOrEmpty(text))
+                return 0;
             // cl100k_base approximation: ~0.75 tokens per word, ~4 chars per token
             int wordCount = text.Split(new[] { ' ', '\t', '\n', '\r' },
                 StringSplitOptions.RemoveEmptyEntries).Length;
@@ -384,8 +388,10 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
         {
-            if (_disposed) return false;
-            if (string.IsNullOrEmpty(_apiKey)) return false;
+            if (_disposed)
+                return false;
+            if (string.IsNullOrEmpty(_apiKey))
+                return false;
 
             try
             {
@@ -425,7 +431,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public async Task<HealthCheckStatus> CheckHealthAsync(CancellationToken cancellationToken = default)
         {
-            if (_disposed) return HealthCheckStatus.Unhealthy;
+            if (_disposed)
+                return HealthCheckStatus.Unhealthy;
 
             try
             {
@@ -568,12 +575,14 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _currentCts?.Cancel();
             _currentCts?.Dispose();
             _modelCache.Clear();
-            if (_ownsHttpClient) _httpClient.Dispose();
+            if (_ownsHttpClient)
+                _httpClient.Dispose();
         }
 
         // ─── Private Helpers ───────────────────────────────────────────────

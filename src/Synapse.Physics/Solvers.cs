@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // Synapse Omnia — Physics Solvers
 // Complete implementations of electromagnetic, acoustic, thermodynamic,
 // chemical, gravitational, lattice-Boltzmann, quantum, elastic, turbulent,
@@ -143,10 +143,16 @@ public sealed class FieldSnapshot
 
     public FieldSnapshot(int nx, int ny, int nz)
     {
-        Nx = nx; Ny = ny; Nz = nz;
+        Nx = nx;
+        Ny = ny;
+        Nz = nz;
         int n = nx * ny * nz;
-        Ex = new double[n]; Ey = new double[n]; Ez = new double[n];
-        Hx = new double[n]; Hy = new double[n]; Hz = new double[n];
+        Ex = new double[n];
+        Ey = new double[n];
+        Ez = new double[n];
+        Hx = new double[n];
+        Hy = new double[n];
+        Hz = new double[n];
     }
 
     /// <summary>Compute total electric energy (ε₀εᵣ/2 ∫|E|² dV).</summary>
@@ -231,10 +237,18 @@ public sealed class MaxwellSolver : IDisposable
             throw new ArgumentException(
                 $"Time-step {_dt:e3} exceeds CFL limit {cfl:e3}.");
 
-        _ex = new double[_n]; _ey = new double[_n]; _ez = new double[_n];
-        _hx = new double[_n]; _hy = new double[_n]; _hz = new double[_n];
-        _sigmaX = new double[_n]; _sigmaY = new double[_n]; _sigmaZ = new double[_n];
-        _epsR = new double[_n]; _muR = new double[_n]; _sigma = new double[_n];
+        _ex = new double[_n];
+        _ey = new double[_n];
+        _ez = new double[_n];
+        _hx = new double[_n];
+        _hy = new double[_n];
+        _hz = new double[_n];
+        _sigmaX = new double[_n];
+        _sigmaY = new double[_n];
+        _sigmaZ = new double[_n];
+        _epsR = new double[_n];
+        _muR = new double[_n];
+        _sigma = new double[_n];
 
         Array.Fill(_epsR, config.EpsR);
         Array.Fill(_muR, config.MuR);
@@ -242,12 +256,18 @@ public sealed class MaxwellSolver : IDisposable
 
         if (config.PmlThickness > 0)
         {
-            _pmlExy = new double[_n]; _pmlExz = new double[_n];
-            _pmlEyx = new double[_n]; _pmlEyz = new double[_n];
-            _pmlEzx = new double[_n]; _pmlEzy = new double[_n];
-            _pmlHxy = new double[_n]; _pmlHxz = new double[_n];
-            _pmlHyx = new double[_n]; _pmlHyz = new double[_n];
-            _pmlHzx = new double[_n]; _pmlHzy = new double[_n];
+            _pmlExy = new double[_n];
+            _pmlExz = new double[_n];
+            _pmlEyx = new double[_n];
+            _pmlEyz = new double[_n];
+            _pmlEzx = new double[_n];
+            _pmlEzy = new double[_n];
+            _pmlHxy = new double[_n];
+            _pmlHxz = new double[_n];
+            _pmlHyx = new double[_n];
+            _pmlHyz = new double[_n];
+            _pmlHzx = new double[_n];
+            _pmlHzy = new double[_n];
             InitialisePmlConductivity();
         }
 
@@ -265,8 +285,12 @@ public sealed class MaxwellSolver : IDisposable
             _drudeGamma = config.DrudeGamma;
         }
 
-        _nfJx = new double[_n]; _nfJy = new double[_n]; _nfJz = new double[_n];
-        _nfMx = new double[_n]; _nfMy = new double[_n]; _nfMz = new double[_n];
+        _nfJx = new double[_n];
+        _nfJy = new double[_n];
+        _nfJz = new double[_n];
+        _nfMx = new double[_n];
+        _nfMy = new double[_n];
+        _nfMz = new double[_n];
         _timeProbes = new List<(int, double, double, double)>();
         _currentStep = 0;
     }
@@ -277,12 +301,13 @@ public sealed class MaxwellSolver : IDisposable
         double epsR = 1.0, double muR = 1.0, double sigma = 0.0)
     {
         for (int z = lo.Z0; z <= hi.Z1; z++)
-        for (int y = lo.Y0; y <= hi.Y1; y++)
-        for (int x = lo.X0; x <= hi.X1; x++)
-        {
-            int idx = z * _ny * _nx + y * _nx + x;
-            if ((uint)idx < (uint)_n) { _epsR[idx] = epsR; _muR[idx] = muR; _sigma[idx] = sigma; }
-        }
+            for (int y = lo.Y0; y <= hi.Y1; y++)
+                for (int x = lo.X0; x <= hi.X1; x++)
+                {
+                    int idx = z * _ny * _nx + y * _nx + x;
+                    if ((uint)idx < (uint)_n)
+                    { _epsR[idx] = epsR; _muR[idx] = muR; _sigma[idx] = sigma; }
+                }
     }
 
     /// <summary>Set a region to PEC (perfect electric conductor).</summary>
@@ -290,12 +315,13 @@ public sealed class MaxwellSolver : IDisposable
     {
         _pec ??= new bool[_n];
         for (int z = lo.Z0; z <= hi.Z1; z++)
-        for (int y = lo.Y0; y <= hi.Y1; y++)
-        for (int x = lo.X0; x <= hi.X1; x++)
-        {
-            int idx = z * _ny * _nx + y * _nx + x;
-            if ((uint)idx < (uint)_n) _pec[idx] = true;
-        }
+            for (int y = lo.Y0; y <= hi.Y1; y++)
+                for (int x = lo.X0; x <= hi.X1; x++)
+                {
+                    int idx = z * _ny * _nx + y * _nx + x;
+                    if ((uint)idx < (uint)_n)
+                        _pec[idx] = true;
+                }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -319,20 +345,23 @@ public sealed class MaxwellSolver : IDisposable
         {
             double ratio = (double)(pml - i) / pml;
             double sig = sigmaMax * Math.Pow(ratio, _cfg.PmlOrder);
-            sx[i] = sig; sx[_nx - 1 - i] = sig;
-            sy[i] = sig; sy[_ny - 1 - i] = sig;
-            sz[i] = sig; sz[_nz - 1 - i] = sig;
+            sx[i] = sig;
+            sx[_nx - 1 - i] = sig;
+            sy[i] = sig;
+            sy[_ny - 1 - i] = sig;
+            sz[i] = sig;
+            sz[_nz - 1 - i] = sig;
         }
 
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = z * _ny * _nx + y * _nx + x;
-            _sigmaX[idx] = sx[x];
-            _sigmaY[idx] = sy[y];
-            _sigmaZ[idx] = sz[z];
-        }
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = z * _ny * _nx + y * _nx + x;
+                    _sigmaX[idx] = sx[x];
+                    _sigmaY[idx] = sy[y];
+                    _sigmaZ[idx] = sz[z];
+                }
     }
 
     // ---- Plane-wave TFSF source ----
@@ -360,8 +389,12 @@ public sealed class MaxwellSolver : IDisposable
         _pwKy = PhysicsConstants.TwoPi * _cfg.SourceFrequency / _c0 * ky;
         _pwKz = PhysicsConstants.TwoPi * _cfg.SourceFrequency / _c0 * kz;
         _pwOmega = PhysicsConstants.TwoPi * _cfg.SourceFrequency;
-        _pwExDir = ex; _pwEyDir = ey; _pwEzDir = ez;
-        _pwHxDir = hx; _pwHyDir = hy; _pwHzDir = hz;
+        _pwExDir = ex;
+        _pwEyDir = ey;
+        _pwEzDir = ez;
+        _pwHxDir = hx;
+        _pwHyDir = hy;
+        _pwHzDir = hz;
 
         int margin = (int)(_c0 / (_cfg.SourceFrequency * _dx)) + 4;
         _tfsfLo = margin;
@@ -385,7 +418,8 @@ public sealed class MaxwellSolver : IDisposable
     {
         var sp = _cfg.SourcePosition;
         int idx = Idx(sp.X, sp.Y, sp.Z);
-        if ((uint)idx >= (uint)_n) return;
+        if ((uint)idx >= (uint)_n)
+            return;
         double t = _currentStep * _dt;
         double f0 = _cfg.SourceFrequency;
         double t0 = 0.5 / f0;
@@ -398,7 +432,8 @@ public sealed class MaxwellSolver : IDisposable
     /// <summary>Advance the EM field by one FDTD time-step (Yee algorithm).</summary>
     public void Step()
     {
-        if (!_planeWaveInit && _cfg.UsePlaneWave) InitPlaneWave();
+        if (!_planeWaveInit && _cfg.UsePlaneWave)
+            InitPlaneWave();
 
         double dt = _dt, dx = _dx;
         double eps0 = PhysicsConstants.Eps0, mu0 = PhysicsConstants.Mu0;
@@ -407,51 +442,53 @@ public sealed class MaxwellSolver : IDisposable
         // --- Update H from E (Faraday) ---
         double dtMu0 = dt / (mu0 * dx);
         for (int z = 0; z < _nz - 1; z++)
-        for (int y = 0; y < _ny - 1; y++)
-        for (int x = 0; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
-            if (_pec != null && _pec[idx]) continue;
-            double muR = _muR[idx];
-            double dtMu = dtMu0 / muR;
+            for (int y = 0; y < _ny - 1; y++)
+                for (int x = 0; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    if (_pec != null && _pec[idx])
+                        continue;
+                    double muR = _muR[idx];
+                    double dtMu = dtMu0 / muR;
 
-            double dEydZ = (_ey[Idx(x, y, z + 1)] - _ey[idx]) / dx;
-            double dEzdY = (_ez[Idx(x, y + 1, z)] - _ez[idx]) / dx;
-            double dEzdX = (_ez[Idx(x + 1, y, z)] - _ez[idx]) / dx;
-            double dExdZ = (_ex[Idx(x, y, z + 1)] - _ex[idx]) / dx;
-            double dExdY = (_ex[Idx(x, y + 1, z)] - _ex[idx]) / dx;
-            double dEydx = (_ey[Idx(x + 1, y, z)] - _ey[idx]) / dx;
+                    double dEydZ = (_ey[Idx(x, y, z + 1)] - _ey[idx]) / dx;
+                    double dEzdY = (_ez[Idx(x, y + 1, z)] - _ez[idx]) / dx;
+                    double dEzdX = (_ez[Idx(x + 1, y, z)] - _ez[idx]) / dx;
+                    double dExdZ = (_ex[Idx(x, y, z + 1)] - _ex[idx]) / dx;
+                    double dExdY = (_ex[Idx(x, y + 1, z)] - _ex[idx]) / dx;
+                    double dEydx = (_ey[Idx(x + 1, y, z)] - _ey[idx]) / dx;
 
-            _hx[idx] += dtMu * (dEydZ - dEzdY);
-            _hy[idx] += dtMu * (dEzdX - dExdZ);
-            _hz[idx] += dtMu * (dExdY - dEydx);
-        }
+                    _hx[idx] += dtMu * (dEydZ - dEzdY);
+                    _hy[idx] += dtMu * (dEzdX - dExdZ);
+                    _hz[idx] += dtMu * (dExdY - dEydx);
+                }
 
         // --- Update E from H (Ampere-Maxwell) ---
         double dtEps0 = dt / (eps0 * dx);
         for (int z = 1; z < _nz; z++)
-        for (int y = 1; y < _ny; y++)
-        for (int x = 1; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            if (_pec != null && _pec[idx]) continue;
-            double eps = _epsR[idx];
-            double sig = _sigma[idx];
-            double kappa = 1.0 + sig * dt / (2.0 * eps0 * eps);
-            double atten = (1.0 - sig * dt / (2.0 * eps0 * eps)) / kappa;
-            double coeff = dtEps0 / (eps * kappa);
+            for (int y = 1; y < _ny; y++)
+                for (int x = 1; x < _nx; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    if (_pec != null && _pec[idx])
+                        continue;
+                    double eps = _epsR[idx];
+                    double sig = _sigma[idx];
+                    double kappa = 1.0 + sig * dt / (2.0 * eps0 * eps);
+                    double atten = (1.0 - sig * dt / (2.0 * eps0 * eps)) / kappa;
+                    double coeff = dtEps0 / (eps * kappa);
 
-            double dHzdY = (_hz[idx] - _hz[Idx(x, y - 1, z)]) / dx;
-            double dHydZ = (_hy[idx] - _hy[Idx(x, y, z - 1)]) / dx;
-            double dHxdZ = (_hx[idx] - _hx[Idx(x, y, z - 1)]) / dx;
-            double dHzdX = (_hz[idx] - _hz[Idx(x - 1, y, z)]) / dx;
-            double dHydX = (_hy[idx] - _hy[Idx(x - 1, y, z)]) / dx;
-            double dHxdY = (_hx[idx] - _hx[Idx(x, y - 1, z)]) / dx;
+                    double dHzdY = (_hz[idx] - _hz[Idx(x, y - 1, z)]) / dx;
+                    double dHydZ = (_hy[idx] - _hy[Idx(x, y, z - 1)]) / dx;
+                    double dHxdZ = (_hx[idx] - _hx[Idx(x, y, z - 1)]) / dx;
+                    double dHzdX = (_hz[idx] - _hz[Idx(x - 1, y, z)]) / dx;
+                    double dHydX = (_hy[idx] - _hy[Idx(x - 1, y, z)]) / dx;
+                    double dHxdY = (_hx[idx] - _hx[Idx(x, y - 1, z)]) / dx;
 
-            _ex[idx] = atten * _ex[idx] + coeff * (dHzdY - dHydZ);
-            _ey[idx] = atten * _ey[idx] + coeff * (dHxdZ - dHzdX);
-            _ez[idx] = atten * _ez[idx] + coeff * (dHydX - dHxdY);
-        }
+                    _ex[idx] = atten * _ex[idx] + coeff * (dHzdY - dHydZ);
+                    _ey[idx] = atten * _ey[idx] + coeff * (dHxdZ - dHzdX);
+                    _ez[idx] = atten * _ez[idx] + coeff * (dHydX - dHxdY);
+                }
 
         // --- Dispersive polarisation ---
         if (_cfg.Polarization == PolarizationModel.Debye && _auxP != null)
@@ -479,7 +516,8 @@ public sealed class MaxwellSolver : IDisposable
         }
 
         // --- Inject source ---
-        if (!_cfg.UsePlaneWave) InjectSource();
+        if (!_cfg.UsePlaneWave)
+            InjectSource();
         _currentStep++;
     }
 
@@ -494,29 +532,30 @@ public sealed class MaxwellSolver : IDisposable
         double eThetaRe = 0, eThetaIm = 0, ePhiRe = 0, ePhiIm = 0;
 
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            double jx = _nfJx[idx], jy = _nfJy[idx], jz = _nfJz[idx];
-            double mx = _nfMx[idx], my = _nfMy[idx], mz = _nfMz[idx];
-            if (jx == 0 && jy == 0 && jz == 0 && mx == 0 && my == 0 && mz == 0) continue;
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    double jx = _nfJx[idx], jy = _nfJy[idx], jz = _nfJz[idx];
+                    double mx = _nfMx[idx], my = _nfMy[idx], mz = _nfMz[idx];
+                    if (jx == 0 && jy == 0 && jz == 0 && mx == 0 && my == 0 && mz == 0)
+                        continue;
 
-            double px = x * _dx, py = y * _dx, pz = z * _dx;
-            double phase = k * (rx * px + ry * py + rz * pz);
-            double cosPh = Math.Cos(phase), sinPh = Math.Sin(phase);
-            double jDotR = jx * rx + jy * ry + jz * rz;
-            double jTheta = (jx - jDotR * rx) * cosT * cosP +
-                            (jy - jDotR * ry) * cosT * sinP - (jz - jDotR * rz) * sinT;
-            double jPhi = -jx * sinP + jy * cosP;
+                    double px = x * _dx, py = y * _dx, pz = z * _dx;
+                    double phase = k * (rx * px + ry * py + rz * pz);
+                    double cosPh = Math.Cos(phase), sinPh = Math.Sin(phase);
+                    double jDotR = jx * rx + jy * ry + jz * rz;
+                    double jTheta = (jx - jDotR * rx) * cosT * cosP +
+                                    (jy - jDotR * ry) * cosT * sinP - (jz - jDotR * rz) * sinT;
+                    double jPhi = -jx * sinP + jy * cosP;
 
-            double omega = PhysicsConstants.TwoPi * frequency;
-            double scale = -omega * PhysicsConstants.Mu0 / (4.0 * Math.PI);
-            eThetaRe += scale * (jTheta * cosPh + z0 * my * sinPh);
-            eThetaIm += scale * (jTheta * sinPh - z0 * my * cosPh);
-            ePhiRe += scale * (jPhi * cosPh + z0 * mx * sinPh);
-            ePhiIm += scale * (jPhi * sinPh - z0 * mx * cosPh);
-        }
+                    double omega = PhysicsConstants.TwoPi * frequency;
+                    double scale = -omega * PhysicsConstants.Mu0 / (4.0 * Math.PI);
+                    eThetaRe += scale * (jTheta * cosPh + z0 * my * sinPh);
+                    eThetaIm += scale * (jTheta * sinPh - z0 * my * cosPh);
+                    ePhiRe += scale * (jPhi * cosPh + z0 * mx * sinPh);
+                    ePhiIm += scale * (jPhi * sinPh - z0 * mx * cosPh);
+                }
         return (Math.Sqrt(eThetaRe * eThetaRe + eThetaIm * eThetaIm),
                 Math.Sqrt(ePhiRe * ePhiRe + ePhiIm * ePhiIm));
     }
@@ -536,8 +575,12 @@ public sealed class MaxwellSolver : IDisposable
     public FieldSnapshot Snapshot()
     {
         var s = new FieldSnapshot(_nx, _ny, _nz);
-        Array.Copy(_ex, s.Ex, _n); Array.Copy(_ey, s.Ey, _n); Array.Copy(_ez, s.Ez, _n);
-        Array.Copy(_hx, s.Hx, _n); Array.Copy(_hy, s.Hy, _n); Array.Copy(_hz, s.Hz, _n);
+        Array.Copy(_ex, s.Ex, _n);
+        Array.Copy(_ey, s.Ey, _n);
+        Array.Copy(_ez, s.Ez, _n);
+        Array.Copy(_hx, s.Hx, _n);
+        Array.Copy(_hy, s.Hy, _n);
+        Array.Copy(_hz, s.Hz, _n);
         return s;
     }
 
@@ -562,7 +605,8 @@ public sealed class MaxwellSolver : IDisposable
     /// <summary>Run the FDTD simulation for the configured number of steps.</summary>
     public void Run()
     {
-        for (int i = 0; i < _cfg.NumSteps; i++) Step();
+        for (int i = 0; i < _cfg.NumSteps; i++)
+            Step();
     }
 
     /// <summary>Run with periodic probing at the source location.</summary>
@@ -571,13 +615,15 @@ public sealed class MaxwellSolver : IDisposable
         for (int i = 0; i < _cfg.NumSteps; i++)
         {
             Step();
-            if (i % probeInterval == 0) ProbeSource();
+            if (i % probeInterval == 0)
+                ProbeSource();
         }
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
     }
 }
@@ -718,33 +764,33 @@ public sealed class WavePropagator : IDisposable
 
             // x-dimension
             for (int z = 0; z < _nz; z++)
-            for (int y = 0; y < _ny; y++)
-            {
-                if (_cfg.PmlFaces.NegX)
-                    _sigmaX[Idx(i, y, z)] = sig;
-                if (_cfg.PmlFaces.PosX)
-                    _sigmaX[Idx(_nx - 1 - i, y, z)] = sig;
-            }
+                for (int y = 0; y < _ny; y++)
+                {
+                    if (_cfg.PmlFaces.NegX)
+                        _sigmaX[Idx(i, y, z)] = sig;
+                    if (_cfg.PmlFaces.PosX)
+                        _sigmaX[Idx(_nx - 1 - i, y, z)] = sig;
+                }
 
             // y-dimension
             for (int z = 0; z < _nz; z++)
-            for (int x = 0; x < _nx; x++)
-            {
-                if (_cfg.PmlFaces.NegY)
-                    _sigmaY[Idx(x, i, z)] = sig;
-                if (_cfg.PmlFaces.PosY)
-                    _sigmaY[Idx(x, _ny - 1 - i, z)] = sig;
-            }
+                for (int x = 0; x < _nx; x++)
+                {
+                    if (_cfg.PmlFaces.NegY)
+                        _sigmaY[Idx(x, i, z)] = sig;
+                    if (_cfg.PmlFaces.PosY)
+                        _sigmaY[Idx(x, _ny - 1 - i, z)] = sig;
+                }
 
             // z-dimension
             for (int y = 0; y < _ny; y++)
-            for (int x = 0; x < _nx; x++)
-            {
-                if (_cfg.PmlFaces.NegZ)
-                    _sigmaZ[Idx(x, y, i)] = sig;
-                if (_cfg.PmlFaces.PosZ)
-                    _sigmaZ[Idx(x, y, _nz - 1 - i)] = sig;
-            }
+                for (int x = 0; x < _nx; x++)
+                {
+                    if (_cfg.PmlFaces.NegZ)
+                        _sigmaZ[Idx(x, y, i)] = sig;
+                    if (_cfg.PmlFaces.PosZ)
+                        _sigmaZ[Idx(x, y, _nz - 1 - i)] = sig;
+                }
         }
     }
 
@@ -755,12 +801,12 @@ public sealed class WavePropagator : IDisposable
     public void SetSoundSpeed(int x0, int y0, int z0, int x1, int y1, int z1, double c)
     {
         for (int z = z0; z <= z1; z++)
-        for (int y = y0; y <= y1; y++)
-        for (int x = x0; x <= x1; x++)
-        {
-            if (InBounds(x, y, z))
-                _density[Idx(x, y, z)] = _rho0; // could store c² instead
-        }
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++)
+                {
+                    if (InBounds(x, y, z))
+                        _density[Idx(x, y, z)] = _rho0; // could store c² instead
+                }
     }
 
     /// <summary>
@@ -789,34 +835,34 @@ public sealed class WavePropagator : IDisposable
 
         // Main stencil loop.
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
-            double c2 = SoundSpeedSquared(idx);
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    double c2 = SoundSpeedSquared(idx);
 
-            // Laplacian of pressure (2nd order central difference).
-            double laplacian = (
-                (_pPrev[Idx(x + 1, y, z)] + _pPrev[Idx(x - 1, y, z)] +
-                 _pPrev[Idx(x, y + 1, z)] + _pPrev[Idx(x, y - 1, z)] +
-                 _pPrev[Idx(x, y, z + 1)] + _pPrev[Idx(x, y, z - 1)] -
-                 6.0 * _pPrev[idx])
-            ) * dt2OverDx2;
+                    // Laplacian of pressure (2nd order central difference).
+                    double laplacian = (
+                        (_pPrev[Idx(x + 1, y, z)] + _pPrev[Idx(x - 1, y, z)] +
+                         _pPrev[Idx(x, y + 1, z)] + _pPrev[Idx(x, y - 1, z)] +
+                         _pPrev[Idx(x, y, z + 1)] + _pPrev[Idx(x, y, z - 1)] -
+                         6.0 * _pPrev[idx])
+                    ) * dt2OverDx2;
 
-            _pNext[idx] = 2.0 * _pPrev[idx] - _p[idx] + c2 * laplacian;
+                    _pNext[idx] = 2.0 * _pPrev[idx] - _p[idx] + c2 * laplacian;
 
-            // PML absorption.
-            if (_sigmaX != null)
-            {
-                double sx = _sigmaX[idx];
-                double sy = _sigmaY[idx];
-                double sz = _sigmaZ[idx];
-                double dampX = sx > 0 ? Math.Exp(-sx * dt) : 1.0;
-                double dampY = sy > 0 ? Math.Exp(-sy * dt) : 1.0;
-                double dampZ = sz > 0 ? Math.Exp(-sz * dt) : 1.0;
-                _pNext[idx] *= dampX * dampY * dampZ;
-            }
-        }
+                    // PML absorption.
+                    if (_sigmaX != null)
+                    {
+                        double sx = _sigmaX[idx];
+                        double sy = _sigmaY[idx];
+                        double sz = _sigmaZ[idx];
+                        double dampX = sx > 0 ? Math.Exp(-sx * dt) : 1.0;
+                        double dampY = sy > 0 ? Math.Exp(-sy * dt) : 1.0;
+                        double dampZ = sz > 0 ? Math.Exp(-sz * dt) : 1.0;
+                        _pNext[idx] *= dampX * dampY * dampZ;
+                    }
+                }
 
         // Inject soft source (modulated Gaussian pulse).
         var sp = _cfg.SourcePosition;
@@ -847,29 +893,29 @@ public sealed class WavePropagator : IDisposable
         if (_cfg.Periodic.X)
         {
             for (int z = 0; z < _nz; z++)
-            for (int y = 0; y < _ny; y++)
-            {
-                _pNext[Idx(0, y, z)] = _pNext[Idx(_nx - 2, y, z)];
-                _pNext[Idx(_nx - 1, y, z)] = _pNext[Idx(1, y, z)];
-            }
+                for (int y = 0; y < _ny; y++)
+                {
+                    _pNext[Idx(0, y, z)] = _pNext[Idx(_nx - 2, y, z)];
+                    _pNext[Idx(_nx - 1, y, z)] = _pNext[Idx(1, y, z)];
+                }
         }
         if (_cfg.Periodic.Y)
         {
             for (int z = 0; z < _nz; z++)
-            for (int x = 0; x < _nx; x++)
-            {
-                _pNext[Idx(x, 0, z)] = _pNext[Idx(x, _ny - 2, z)];
-                _pNext[Idx(x, _ny - 1, z)] = _pNext[Idx(x, 1, z)];
-            }
+                for (int x = 0; x < _nx; x++)
+                {
+                    _pNext[Idx(x, 0, z)] = _pNext[Idx(x, _ny - 2, z)];
+                    _pNext[Idx(x, _ny - 1, z)] = _pNext[Idx(x, 1, z)];
+                }
         }
         if (_cfg.Periodic.Z)
         {
             for (int y = 0; y < _ny; y++)
-            for (int x = 0; x < _nx; x++)
-            {
-                _pNext[Idx(x, y, 0)] = _pNext[Idx(x, y, _nz - 2)];
-                _pNext[Idx(x, y, _nz - 1)] = _pNext[Idx(x, y, 1)];
-            }
+                for (int x = 0; x < _nx; x++)
+                {
+                    _pNext[Idx(x, y, 0)] = _pNext[Idx(x, y, _nz - 2)];
+                    _pNext[Idx(x, y, _nz - 1)] = _pNext[Idx(x, y, 1)];
+                }
         }
     }
 
@@ -909,7 +955,8 @@ public sealed class WavePropagator : IDisposable
         for (int i = 0; i < _n; i++)
             rhsNorm += source[i].Magnitude * source[i].Magnitude;
         rhsNorm = Math.Sqrt(rhsNorm);
-        if (rhsNorm < 1e-30) rhsNorm = 1.0;
+        if (rhsNorm < 1e-30)
+            rhsNorm = 1.0;
 
         int iter;
         for (iter = 0; iter < maxIter; iter++)
@@ -917,25 +964,25 @@ public sealed class WavePropagator : IDisposable
             double residualNorm = 0.0;
 
             for (int z = 1; z < _nz - 1; z++)
-            for (int y = 1; y < _ny - 1; y++)
-            for (int x = 1; x < _nx - 1; x++)
-            {
-                int idx = Idx(x, y, z);
-                Complex neighbors =
-                    _pFreq[Idx(x + 1, y, z)] + _pFreq[Idx(x - 1, y, z)] +
-                    _pFreq[Idx(x, y + 1, z)] + _pFreq[Idx(x, y - 1, z)] +
-                    _pFreq[Idx(x, y, z + 1)] + _pFreq[Idx(x, y, z - 1)];
+                for (int y = 1; y < _ny - 1; y++)
+                    for (int x = 1; x < _nx - 1; x++)
+                    {
+                        int idx = Idx(x, y, z);
+                        Complex neighbors =
+                            _pFreq[Idx(x + 1, y, z)] + _pFreq[Idx(x - 1, y, z)] +
+                            _pFreq[Idx(x, y + 1, z)] + _pFreq[Idx(x, y - 1, z)] +
+                            _pFreq[Idx(x, y, z + 1)] + _pFreq[Idx(x, y, z - 1)];
 
-                // (∇² + k²) p = s → (6/dx² − k²) p_center = neighbors/dx² + s
-                Complex diag = new Complex(6.0 / dx2 - k2, 0);
-                Complex rhs = neighbors / dx2 + source[idx];
-                Complex pNew = rhs / diag;
+                        // (∇² + k²) p = s → (6/dx² − k²) p_center = neighbors/dx² + s
+                        Complex diag = new Complex(6.0 / dx2 - k2, 0);
+                        Complex rhs = neighbors / dx2 + source[idx];
+                        Complex pNew = rhs / diag;
 
-                // SOR update.
-                Complex correction = (pNew - _pFreq[idx]) * sorOmega;
-                _pFreq[idx] += correction;
-                residualNorm += correction.Magnitude * correction.Magnitude;
-            }
+                        // SOR update.
+                        Complex correction = (pNew - _pFreq[idx]) * sorOmega;
+                        _pFreq[idx] += correction;
+                        residualNorm += correction.Magnitude * correction.Magnitude;
+                    }
 
             if (Math.Sqrt(residualNorm) / rhsNorm < tolerance)
                 break;
@@ -960,25 +1007,25 @@ public sealed class WavePropagator : IDisposable
     {
         double dtOverDx = _dt / _dx;
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
-            double dpdx = (_p[Idx(x + 1, y, z)] - _p[Idx(x - 1, y, z)]) / (2.0 * _dx);
-            double dpdy = (_p[Idx(x, y + 1, z)] - _p[Idx(x, y - 1, z)]) / (2.0 * _dx);
-            double dpdz = (_p[Idx(x, y, z + 1)] - _p[Idx(x, y, z - 1)]) / (2.0 * _dx);
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    double dpdx = (_p[Idx(x + 1, y, z)] - _p[Idx(x - 1, y, z)]) / (2.0 * _dx);
+                    double dpdy = (_p[Idx(x, y + 1, z)] - _p[Idx(x, y - 1, z)]) / (2.0 * _dx);
+                    double dpdz = (_p[Idx(x, y, z + 1)] - _p[Idx(x, y, z - 1)]) / (2.0 * _dx);
 
-            // Particle velocity: v = −∇p / (iωρ) in frequency domain,
-            // or time-integrated: v(t+dt) = v(t) − dt/ρ ∇p.
-            _vx[idx] -= dtOverDx * dpdx / _rho0;
-            _vy[idx] -= dtOverDx * dpdy / _rho0;
-            _vz[idx] -= dtOverDx * dpdz / _rho0;
+                    // Particle velocity: v = −∇p / (iωρ) in frequency domain,
+                    // or time-integrated: v(t+dt) = v(t) − dt/ρ ∇p.
+                    _vx[idx] -= dtOverDx * dpdx / _rho0;
+                    _vy[idx] -= dtOverDx * dpdy / _rho0;
+                    _vz[idx] -= dtOverDx * dpdz / _rho0;
 
-            // Intensity I = p * v (time-averaged over a cycle ≈ 0.5 Re{p v*}).
-            _fluxX[idx] = 0.5 * _p[idx] * _vx[idx];
-            _fluxY[idx] = 0.5 * _p[idx] * _vy[idx];
-            _fluxZ[idx] = 0.5 * _p[idx] * _vz[idx];
-        }
+                    // Intensity I = p * v (time-averaged over a cycle ≈ 0.5 Re{p v*}).
+                    _fluxX[idx] = 0.5 * _p[idx] * _vx[idx];
+                    _fluxY[idx] = 0.5 * _p[idx] * _vy[idx];
+                    _fluxZ[idx] = 0.5 * _p[idx] * _vz[idx];
+                }
     }
 
     /// <summary>
@@ -1052,7 +1099,8 @@ public sealed class WavePropagator : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
     }
 }
@@ -1104,7 +1152,9 @@ public struct Particle
 
     public Particle(double x, double y, double z)
     {
-        X = x; Y = y; Z = z;
+        X = x;
+        Y = y;
+        Z = z;
         Fx = Fy = Fz = 0;
         Charge = 0;
     }
@@ -1158,7 +1208,8 @@ public struct LennardJonesPotential
     /// </summary>
     public double EnergyWithTail(double r)
     {
-        if (r >= Cutoff) return 0.0;
+        if (r >= Cutoff)
+            return 0.0;
         return Energy(r);
     }
 
@@ -1277,21 +1328,21 @@ public sealed class ThermodynamicEnsemble : IDisposable
         };
 
         for (int ix = 0; ix < particlesPerSide && count < _nParticles; ix++)
-        for (int iy = 0; iy < particlesPerSide && count < _nParticles; iy++)
-        for (int iz = 0; iz < particlesPerSide && count < _nParticles; iz++)
-        for (int b = 0; b < 4 && count < _nParticles; b++)
-        {
-            double x = (ix + basis[b, 0] * 0.5) * spacing;
-            double y = (iy + basis[b, 1] * 0.5) * spacing;
-            double z = (iz + basis[b, 2] * 0.5) * spacing;
+            for (int iy = 0; iy < particlesPerSide && count < _nParticles; iy++)
+                for (int iz = 0; iz < particlesPerSide && count < _nParticles; iz++)
+                    for (int b = 0; b < 4 && count < _nParticles; b++)
+                    {
+                        double x = (ix + basis[b, 0] * 0.5) * spacing;
+                        double y = (iy + basis[b, 1] * 0.5) * spacing;
+                        double z = (iz + basis[b, 2] * 0.5) * spacing;
 
-            // Apply minimum image to wrap into box.
-            x -= _boxL * Math.Floor(x / _boxL);
-            y -= _boxL * Math.Floor(y / _boxL);
-            z -= _boxL * Math.Floor(z / _boxL);
+                        // Apply minimum image to wrap into box.
+                        x -= _boxL * Math.Floor(x / _boxL);
+                        y -= _boxL * Math.Floor(y / _boxL);
+                        z -= _boxL * Math.Floor(z / _boxL);
 
-            _particles[count++] = new Particle(x, y, z);
-        }
+                        _particles[count++] = new Particle(x, y, z);
+                    }
 
         // If lattice didn't fill all particles, randomise extras.
         for (int i = count; i < _nParticles; i++)
@@ -1351,7 +1402,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
 
         for (int j = 0; j < _nParticles; j++)
         {
-            if (j == particleIdx) continue;
+            if (j == particleIdx)
+                continue;
 
             double dxOld = MinimumImage(oldX - _particles[j].X);
             double dyOld = MinimumImage(oldY - _particles[j].Y);
@@ -1408,7 +1460,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
         }
 
         _totalTrials++;
-        if (accept) _acceptedMoves++;
+        if (accept)
+            _acceptedMoves++;
         return accept;
     }
 
@@ -1422,7 +1475,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
     /// </summary>
     private bool TryVolumeMove()
     {
-        if (_cfg.Ensemble != EnsembleType.NPT) return false;
+        if (_cfg.Ensemble != EnsembleType.NPT)
+            return false;
 
         double dLnV = (_rng.NextDouble() - 0.5) * 0.1;
         double newBoxL = _boxL * Math.Exp(dLnV);
@@ -1475,7 +1529,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
     /// </summary>
     private bool TryGrandCanonicalMove()
     {
-        if (_cfg.Ensemble != EnsembleType.Grand) return false;
+        if (_cfg.Ensemble != EnsembleType.Grand)
+            return false;
 
         bool insert = _rng.NextDouble() < 0.5;
 
@@ -1516,13 +1571,15 @@ public sealed class ThermodynamicEnsemble : IDisposable
         else
         {
             // Deletion: remove a random particle.
-            if (_nParticles <= 1) return false;
+            if (_nParticles <= 1)
+                return false;
 
             int idx = _rng.Next(_nParticles);
             double deltaE = 0.0;
             for (int j = 0; j < _nParticles; j++)
             {
-                if (j == idx) continue;
+                if (j == idx)
+                    continue;
                 double dx = MinimumImage(_particles[idx].X - _particles[j].X);
                 double dy = MinimumImage(_particles[idx].Y - _particles[j].Y);
                 double dz = MinimumImage(_particles[idx].Z - _particles[j].Z);
@@ -1697,7 +1754,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
         if (insert)
         {
             // Transfer from boxA to boxB: remove from A, insert into B.
-            if (boxes[boxA].Length <= 1) return false;
+            if (boxes[boxA].Length <= 1)
+                return false;
 
             int idx = _rng.Next(boxes[boxA].Length);
             Particle p = boxes[boxA][idx];
@@ -1706,7 +1764,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
             double eRemove = 0.0;
             for (int j = 0; j < boxes[boxA].Length; j++)
             {
-                if (j == idx) continue;
+                if (j == idx)
+                    continue;
                 double dx = p.X - boxes[boxA][j].X;
                 double dy = p.Y - boxes[boxA][j].Y;
                 double dz = p.Z - boxes[boxA][j].Z;
@@ -1778,7 +1837,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
         double newV0 = volumes[0] * (1.0 + deltaFrac);
         double newV1 = totalV - newV0;
 
-        if (newV0 <= 0 || newV1 <= 0) return false;
+        if (newV0 <= 0 || newV1 <= 0)
+            return false;
 
         double scale0 = Math.Pow(newV0 / volumes[0], 1.0 / 3.0);
         double scale1 = Math.Pow(newV1 / volumes[1], 1.0 / 3.0);
@@ -1809,7 +1869,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
                 dy -= newV0 * Math.Round(dy / newV0);
                 dz -= newV0 * Math.Round(dz / newV0);
                 double r2 = dx * dx + dy * dy + dz * dz;
-                if (r2 < _cutoff2) e0 += _lj.Energy(Math.Sqrt(r2));
+                if (r2 < _cutoff2)
+                    e0 += _lj.Energy(Math.Sqrt(r2));
             }
         for (int i = 0; i < boxes[1].Length; i++)
             for (int j = i + 1; j < boxes[1].Length; j++)
@@ -1821,7 +1882,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
                 dy -= newV1 * Math.Round(dy / newV1);
                 dz -= newV1 * Math.Round(dz / newV1);
                 double r2 = dx * dx + dy * dy + dz * dz;
-                if (r2 < _cutoff2) e1 += _lj.Energy(Math.Sqrt(r2));
+                if (r2 < _cutoff2)
+                    e1 += _lj.Energy(Math.Sqrt(r2));
             }
 
         double deltaE = (e0 + e1) - (energies[0] + energies[1]);
@@ -1878,7 +1940,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
                     break;
                 case EnsembleType.NPT:
                     TryDisplacementMove();
-                    if (step % 10 == 0) TryVolumeMove();
+                    if (step % 10 == 0)
+                        TryVolumeMove();
                     break;
                 case EnsembleType.Grand:
                     TryGrandCanonicalMove();
@@ -1949,7 +2012,8 @@ public sealed class ThermodynamicEnsemble : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
     }
 }
@@ -1963,10 +2027,10 @@ public sealed class ThermodynamicEnsemble : IDisposable
 public sealed class Reaction
 {
     /// <summary>Species indices of reactants (can be empty for zeroth-order).</summary>
-    public int[] Reactants { get; init; }
+    public required int[] Reactants { get; init; }
 
     /// <summary>Species indices of products (can be empty for degradation).</summary>
-    public int[] Products { get; init; }
+    public required int[] Products { get; init; }
 
     /// <summary>Reaction rate constant.</summary>
     public double RateConstant { get; init; }
@@ -1975,10 +2039,10 @@ public sealed class Reaction
     public bool Irreversible { get; init; } = true;
 
     /// <summary>Stoichiometric coefficient for each reactant (parallel to Reactants).</summary>
-    public int[] ReactantCoefficients { get; init; }
+    public required int[] ReactantCoefficients { get; init; }
 
     /// <summary>Stoichiometric coefficient for each product (parallel to Products).</summary>
-    public int[] ProductCoefficients { get; init; }
+    public required int[] ProductCoefficients { get; init; }
 
     /// <summary>Human-readable label.</summary>
     public string Label { get; init; } = string.Empty;
@@ -2021,7 +2085,7 @@ public sealed class CRNConfig
     public bool Stochastic { get; init; }
     public bool UseReactionDiffusion { get; init; }
     public (int Nx, int Ny, int Nz) GridSize { get; init; } = (50, 50, 1);
-    public double[] DiffusionCoefficients { get; init; }  // per species
+    public required double[] DiffusionCoefficients { get; init; }  // per species
     public double Dx { get; init; } = 0.01;               // spatial cell size
     public double Dt { get; init; } = 0.0001;             // spatial time step
     public int SpatialSteps { get; init; } = 10_000;
@@ -2284,23 +2348,29 @@ public sealed class ChemicalReactionNetwork : IDisposable
         for (int i = 0; i < n; i++)
             temp[i] = _concentrations[i] + 0.5 * dt * k1[i];
         double[] saved = (double[])_concentrations.Clone();
-        for (int i = 0; i < n; i++) _concentrations[i] = temp[i];
+        for (int i = 0; i < n; i++)
+            _concentrations[i] = temp[i];
         ComputeDerivatives(k2);
-        for (int i = 0; i < n; i++) _concentrations[i] = saved[i];
+        for (int i = 0; i < n; i++)
+            _concentrations[i] = saved[i];
 
         // k3 = f(t + dt/2, y + dt/2 k2)
         for (int i = 0; i < n; i++)
             temp[i] = _concentrations[i] + 0.5 * dt * k2[i];
-        for (int i = 0; i < n; i++) _concentrations[i] = temp[i];
+        for (int i = 0; i < n; i++)
+            _concentrations[i] = temp[i];
         ComputeDerivatives(k3);
-        for (int i = 0; i < n; i++) _concentrations[i] = saved[i];
+        for (int i = 0; i < n; i++)
+            _concentrations[i] = saved[i];
 
         // k4 = f(t + dt, y + dt k3)
         for (int i = 0; i < n; i++)
             temp[i] = _concentrations[i] + dt * k3[i];
-        for (int i = 0; i < n; i++) _concentrations[i] = temp[i];
+        for (int i = 0; i < n; i++)
+            _concentrations[i] = temp[i];
         ComputeDerivatives(k4);
-        for (int i = 0; i < n; i++) _concentrations[i] = saved[i];
+        for (int i = 0; i < n; i++)
+            _concentrations[i] = saved[i];
 
         // y_new = y + dt/6 (k1 + 2k2 + 2k3 + k4)
         for (int i = 0; i < n; i++)
@@ -2353,7 +2423,8 @@ public sealed class ChemicalReactionNetwork : IDisposable
             totalPropensity += propensities[i];
         }
 
-        if (totalPropensity <= 0) return double.MaxValue; // system is frozen
+        if (totalPropensity <= 0)
+            return double.MaxValue; // system is frozen
 
         // Time to next reaction: exponential distribution.
         double dt = -Math.Log(_rng.NextDouble()) / totalPropensity;
@@ -2393,7 +2464,8 @@ public sealed class ChemicalReactionNetwork : IDisposable
         while (t < totalTime)
         {
             double dt = GillespieStep();
-            if (dt == double.MaxValue || double.IsNaN(dt)) break;
+            if (dt == double.MaxValue || double.IsNaN(dt))
+                break;
             t += dt;
         }
     }
@@ -2408,9 +2480,9 @@ public sealed class ChemicalReactionNetwork : IDisposable
     public void SetSpatialConcentration(int species, Func<int, int, int, double> initializer)
     {
         for (int z = 0; z < _sz; z++)
-        for (int y = 0; y < _sy; y++)
-        for (int x = 0; x < _sx; x++)
-            _spatialConc[species, z, y, x] = initializer(x, y, z);
+            for (int y = 0; y < _sy; y++)
+                for (int x = 0; x < _sx; x++)
+                    _spatialConc[species, z, y, x] = initializer(x, y, z);
     }
 
     /// <summary>
@@ -2439,46 +2511,46 @@ public sealed class ChemicalReactionNetwork : IDisposable
             double rk = dk * dt / (dx * dx);
 
             for (int z = 1; z < sz - 1; z++)
-            for (int y = 1; y < sy - 1; y++)
-            for (int x = 1; x < sx - 1; x++)
-            {
-                double laplacian =
-                    _spatialConcPrev[sp, z, y, x + 1] + _spatialConcPrev[sp, z, y, x - 1] +
-                    _spatialConcPrev[sp, z, y + 1, x] + _spatialConcPrev[sp, z, y - 1, x] +
-                    _spatialConcPrev[sp, z + 1, y, x] + _spatialConcPrev[sp, z - 1, y, x] -
-                    6.0 * _spatialConcPrev[sp, z, y, x];
+                for (int y = 1; y < sy - 1; y++)
+                    for (int x = 1; x < sx - 1; x++)
+                    {
+                        double laplacian =
+                            _spatialConcPrev[sp, z, y, x + 1] + _spatialConcPrev[sp, z, y, x - 1] +
+                            _spatialConcPrev[sp, z, y + 1, x] + _spatialConcPrev[sp, z, y - 1, x] +
+                            _spatialConcPrev[sp, z + 1, y, x] + _spatialConcPrev[sp, z - 1, y, x] -
+                            6.0 * _spatialConcPrev[sp, z, y, x];
 
-                _spatialConc[sp, z, y, x] = _spatialConcPrev[sp, z, y, x] + rk * laplacian;
-            }
+                        _spatialConc[sp, z, y, x] = _spatialConcPrev[sp, z, y, x] + rk * laplacian;
+                    }
         }
 
         // Reaction step at each grid point.
         double[] localConc = new double[_nSpecies];
         double[] dcdt = new double[_nSpecies];
         for (int z = 0; z < sz; z++)
-        for (int y = 0; y < sy; y++)
-        for (int x = 0; x < sx; x++)
-        {
-            for (int sp = 0; sp < _nSpecies; sp++)
-                localConc[sp] = _spatialConc[sp, z, y, x];
+            for (int y = 0; y < sy; y++)
+                for (int x = 0; x < sx; x++)
+                {
+                    for (int sp = 0; sp < _nSpecies; sp++)
+                        localConc[sp] = _spatialConc[sp, z, y, x];
 
-            // Temporarily swap concentrations for local evaluation.
-            double[] savedGlobal = (double[])_concentrations.Clone();
-            for (int sp = 0; sp < _nSpecies; sp++)
-                _concentrations[sp] = localConc[sp];
+                    // Temporarily swap concentrations for local evaluation.
+                    double[] savedGlobal = (double[])_concentrations.Clone();
+                    for (int sp = 0; sp < _nSpecies; sp++)
+                        _concentrations[sp] = localConc[sp];
 
-            ComputeDerivatives(dcdt);
+                    ComputeDerivatives(dcdt);
 
-            for (int sp = 0; sp < _nSpecies; sp++)
-            {
-                _spatialConc[sp, z, y, x] = Math.Max(0,
-                    localConc[sp] + dt * dcdt[sp]);
-            }
+                    for (int sp = 0; sp < _nSpecies; sp++)
+                    {
+                        _spatialConc[sp, z, y, x] = Math.Max(0,
+                            localConc[sp] + dt * dcdt[sp]);
+                    }
 
-            // Restore global concentrations.
-            for (int sp = 0; sp < _nSpecies; sp++)
-                _concentrations[sp] = savedGlobal[sp];
-        }
+                    // Restore global concentrations.
+                    for (int sp = 0; sp < _nSpecies; sp++)
+                        _concentrations[sp] = savedGlobal[sp];
+                }
 
         // Neumann (no-flux) boundaries are implicit in the zeroing of
         // ghost-cell contributions.
@@ -2500,9 +2572,9 @@ public sealed class ChemicalReactionNetwork : IDisposable
     {
         var result = new double[_sz, _sy, _sx];
         for (int z = 0; z < _sz; z++)
-        for (int y = 0; y < _sy; y++)
-        for (int x = 0; x < _sx; x++)
-            result[z, y, x] = _spatialConc[species, z, y, x];
+            for (int y = 0; y < _sy; y++)
+                for (int x = 0; x < _sx; x++)
+                    result[z, y, x] = _spatialConc[species, z, y, x];
         return result;
     }
 
@@ -2528,7 +2600,8 @@ public sealed class ChemicalReactionNetwork : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
     }
 }
@@ -2550,7 +2623,7 @@ public sealed class NBodyConfig
     public bool ComputeRadiation { get; init; }          // post-Newtonian radiation
     public int RadiationOrder { get; init; } = 2;        // PN order (1 = 1PN, 2 = 2PN)
     public double GravitationalConstant { get; init; } = 1.0;
-    public double[] Masses { get; init; }                // per-body masses (null = unit)
+    public required double[] Masses { get; init; }                // per-body masses (null = unit)
     public bool RecordTrajectory { get; init; }
     public int TrajectoryInterval { get; init; } = 100;
 }
@@ -2570,7 +2643,9 @@ public struct NBodyParticle
 
     public NBodyParticle(double x, double y, double z, double mass)
     {
-        X = x; Y = y; Z = z;
+        X = x;
+        Y = y;
+        Z = z;
         Vx = Vy = Vz = 0;
         Ax = Ay = Az = 0;
         Mass = mass;
@@ -2587,7 +2662,7 @@ internal sealed class BHNode
     public double TotalMass;
     public double HalfSize;
     public int BodyIndex = -1;       // leaf: index into body array
-    public BHNode[] Children;        // 8 children (null for leaf or empty)
+    public required BHNode[] Children;        // 8 children (null for leaf or empty)
     public int ChildCount;
 }
 
@@ -2657,7 +2732,9 @@ public sealed class NBodySolver : IDisposable
         {
             _bodies[i] = new NBodyParticle(x[i], y[i], z[i], mass[i])
             {
-                Vx = vx[i], Vy = vy[i], Vz = vz[i]
+                Vx = vx[i],
+                Vy = vy[i],
+                Vz = vz[i]
             };
         }
         _initialEnergy = ComputeTotalEnergy();
@@ -2719,7 +2796,9 @@ public sealed class NBodySolver : IDisposable
             vcmZ += _bodies[i].Vz * _bodies[i].Mass;
         }
         double totalM = totalMass;
-        vcmX /= totalM; vcmY /= totalM; vcmZ /= totalM;
+        vcmX /= totalM;
+        vcmY /= totalM;
+        vcmZ /= totalM;
         for (int i = 0; i < n; i++)
         {
             _bodies[i].Vx -= vcmX;
@@ -2816,12 +2895,18 @@ public sealed class NBodySolver : IDisposable
         double zmin = double.MaxValue, zmax = double.MinValue;
         for (int i = 0; i < _bodies.Length; i++)
         {
-            if (_bodies[i].X < xmin) xmin = _bodies[i].X;
-            if (_bodies[i].X > xmax) xmax = _bodies[i].X;
-            if (_bodies[i].Y < ymin) ymin = _bodies[i].Y;
-            if (_bodies[i].Y > ymax) ymax = _bodies[i].Y;
-            if (_bodies[i].Z < zmin) zmin = _bodies[i].Z;
-            if (_bodies[i].Z > zmax) zmax = _bodies[i].Z;
+            if (_bodies[i].X < xmin)
+                xmin = _bodies[i].X;
+            if (_bodies[i].X > xmax)
+                xmax = _bodies[i].X;
+            if (_bodies[i].Y < ymin)
+                ymin = _bodies[i].Y;
+            if (_bodies[i].Y > ymax)
+                ymax = _bodies[i].Y;
+            if (_bodies[i].Z < zmin)
+                zmin = _bodies[i].Z;
+            if (_bodies[i].Z > zmax)
+                zmax = _bodies[i].Z;
         }
 
         double cx = 0.5 * (xmin + xmax);
@@ -2830,7 +2915,9 @@ public sealed class NBodySolver : IDisposable
         double halfSize = 0.5 * Math.Max(Math.Max(xmax - xmin, ymax - ymin), zmax - zmin) * 1.01;
 
         var root = AllocateNode();
-        root.Cx = cx; root.Cy = cy; root.Cz = cz;
+        root.Cx = cx;
+        root.Cy = cy;
+        root.Cz = cz;
         root.HalfSize = halfSize;
 
         for (int i = 0; i < _bodies.Length; i++)
@@ -2880,9 +2967,12 @@ public sealed class NBodySolver : IDisposable
 
         // Determine octant.
         int octant = 0;
-        if (bx >= node.Cx) octant |= 1;
-        if (by >= node.Cy) octant |= 2;
-        if (bz >= node.Cz) octant |= 4;
+        if (bx >= node.Cx)
+            octant |= 1;
+        if (by >= node.Cy)
+            octant |= 2;
+        if (bz >= node.Cz)
+            octant |= 4;
 
         if (node.Children == null)
         {
@@ -2909,7 +2999,8 @@ public sealed class NBodySolver : IDisposable
     /// </summary>
     private void ComputeAccelerationBH(BHNode node, int bodyIdx)
     {
-        if (node == null || node.TotalMass == 0) return;
+        if (node == null || node.TotalMass == 0)
+            return;
 
         double dx = node.Cx - _bodies[bodyIdx].X;
         double dy = node.Cy - _bodies[bodyIdx].Y;
@@ -2922,7 +3013,8 @@ public sealed class NBodySolver : IDisposable
         if (!isOpen || (node.ChildCount == 0 && node.BodyIndex != -1))
         {
             // Treat as point mass.
-            if (node.BodyIndex == bodyIdx) return; // skip self
+            if (node.BodyIndex == bodyIdx)
+                return; // skip self
 
             double invR = 1.0 / Math.Sqrt(r2);
             double invR3 = invR * invR * invR;
@@ -2975,7 +3067,8 @@ public sealed class NBodySolver : IDisposable
     /// </summary>
     public void ComputeRadiationReaction(int bodyA, int bodyB)
     {
-        if (!_cfg.ComputeRadiation) return;
+        if (!_cfg.ComputeRadiation)
+            return;
 
         double c5 = Math.Pow(PhysicsConstants.C0, 5);
         ref var a = ref _bodies[bodyA];
@@ -3024,7 +3117,8 @@ public sealed class NBodySolver : IDisposable
     /// </summary>
     public void Compute1PNCorrection(int bodyA, int bodyB)
     {
-        if (_cfg.RadiationOrder < 1) return;
+        if (_cfg.RadiationOrder < 1)
+            return;
 
         double c2 = PhysicsConstants.C0 * PhysicsConstants.C0;
         ref var a = ref _bodies[bodyA];
@@ -3166,7 +3260,8 @@ public sealed class NBodySolver : IDisposable
 
         // Store initial state.
         var saved = new NBodyParticle[n];
-        for (int i = 0; i < n; i++) saved[i] = _bodies[i];
+        for (int i = 0; i < n; i++)
+            saved[i] = _bodies[i];
 
         double[] k1ax = new double[n], k1ay = new double[n], k1az = new double[n];
 
@@ -3265,8 +3360,10 @@ public sealed class NBodySolver : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ComputeForcesOrBH()
     {
-        if (_cfg.UseBarnesHut) ComputeForcesBH();
-        else ComputeForcesDirect();
+        if (_cfg.UseBarnesHut)
+            ComputeForcesBH();
+        else
+            ComputeForcesDirect();
     }
 
     // -----------------------------------------------------------------------
@@ -3397,7 +3494,8 @@ public sealed class NBodySolver : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
     }
 }
@@ -3439,7 +3537,7 @@ public sealed class LBMConfig
     public double OutletPressure { get; init; } = 1.0;
     public bool UseMultiphase { get; init; }            // Shan-Chen pseudopotential
     public double GShanChen { get; init; } = -4.7;      // Shan-Chen interaction strength
-    public double[] BodyForce { get; init; }             // external force (fx, fy, fz)
+    public required double[] BodyForce { get; init; }             // external force (fx, fy, fz)
     public int OutputInterval { get; init; } = 1000;
 }
 
@@ -3585,8 +3683,10 @@ public sealed class LatticeBoltzmannSolver : IDisposable
         }
 
         _w[0] = 1.0 / 3.0;
-        for (int q = 1; q <= 6; q++) _w[q] = 1.0 / 18.0;
-        for (int q = 7; q < _q; q++) _w[q] = 1.0 / 36.0;
+        for (int q = 1; q <= 6; q++)
+            _w[q] = 1.0 / 18.0;
+        for (int q = 7; q < _q; q++)
+            _w[q] = 1.0 / 36.0;
     }
 
     // -----------------------------------------------------------------------
@@ -3614,28 +3714,28 @@ public sealed class LatticeBoltzmannSolver : IDisposable
     private void InitialiseEquilibrium()
     {
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            _rho[idx] = _cfg.Density0;
-            _ux[idx] = 0;
-            _uy[idx] = 0;
-            _uz[idx] = 0;
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    _rho[idx] = _cfg.Density0;
+                    _ux[idx] = 0;
+                    _uy[idx] = 0;
+                    _uz[idx] = 0;
 
-            for (int q = 0; q < _q; q++)
-                _f[FIdx(q, idx)] = Feq(q, _rho[idx], 0, 0, 0);
-        }
+                    for (int q = 0; q < _q; q++)
+                        _f[FIdx(q, idx)] = Feq(q, _rho[idx], 0, 0, 0);
+                }
 
         // Set inlet velocity.
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        {
-            int idx = Idx(0, y, z);
-            _ux[idx] = _cfg.InletVelocity;
-            for (int q = 0; q < _q; q++)
-                _f[FIdx(q, idx)] = Feq(q, _rho[idx], _cfg.InletVelocity, 0, 0);
-        }
+            for (int y = 0; y < _ny; y++)
+            {
+                int idx = Idx(0, y, z);
+                _ux[idx] = _cfg.InletVelocity;
+                for (int q = 0; q < _q; q++)
+                    _f[FIdx(q, idx)] = Feq(q, _rho[idx], _cfg.InletVelocity, 0, 0);
+            }
     }
 
     // -----------------------------------------------------------------------
@@ -3657,9 +3757,9 @@ public sealed class LatticeBoltzmannSolver : IDisposable
     public void SetSolidRegion(int x0, int y0, int z0, int x1, int y1, int z1)
     {
         for (int z = z0; z <= z1; z++)
-        for (int y = y0; y <= y1; y++)
-        for (int x = x0; x <= x1; x++)
-            SetSolid(x, y, z);
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++)
+                    SetSolid(x, y, z);
     }
 
     /// <summary>
@@ -3668,26 +3768,27 @@ public sealed class LatticeBoltzmannSolver : IDisposable
     private void ApplyBounceBack()
     {
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            if (!_solid[idx]) continue;
-
-            for (int q = 0; q < _q; q++)
-            {
-                // Opposite direction.
-                int oppQ = FindOpposite(q);
-                int nx = x + _ex[oppQ, 0];
-                int ny2 = y + _ey[oppQ, 0];
-                int nz2 = z + _ez[oppQ, 0];
-                if ((uint)nx < (uint)_nx && (uint)ny2 < (uint)_ny && (uint)nz2 < (uint)_nz)
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
                 {
-                    int nIdx = Idx(nx, ny2, nz2);
-                    _fTmp[FIdx(oppQ, nIdx)] = _f[FIdx(q, idx)];
+                    int idx = Idx(x, y, z);
+                    if (!_solid[idx])
+                        continue;
+
+                    for (int q = 0; q < _q; q++)
+                    {
+                        // Opposite direction.
+                        int oppQ = FindOpposite(q);
+                        int nx = x + _ex[oppQ, 0];
+                        int ny2 = y + _ey[oppQ, 0];
+                        int nz2 = z + _ez[oppQ, 0];
+                        if ((uint)nx < (uint)_nx && (uint)ny2 < (uint)_ny && (uint)nz2 < (uint)_nz)
+                        {
+                            int nIdx = Idx(nx, ny2, nz2);
+                            _fTmp[FIdx(oppQ, nIdx)] = _f[FIdx(q, idx)];
+                        }
+                    }
                 }
-            }
-        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3717,44 +3818,45 @@ public sealed class LatticeBoltzmannSolver : IDisposable
         double uIn = _cfg.InletVelocity;
 
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        {
-            int idx = Idx(0, y, z);
-            if (_solid[idx]) continue;
-
-            _ux[idx] = uIn;
-            _uy[idx] = 0;
-            _uz[idx] = 0;
-
-            // D3Q19: unknown distributions are q = 1, 7, 9, 13, 15 (x > 0 velocities).
-            // Using Zou-He formulas for density and unknown f_i.
-            double rho = 0;
-            for (int q = 0; q < _q; q++)
+            for (int y = 0; y < _ny; y++)
             {
-                if (_ex[q, 0] <= 0) // known: incoming from right
-                    rho += _f[FIdx(q, idx)];
-            }
+                int idx = Idx(0, y, z);
+                if (_solid[idx])
+                    continue;
 
-            double rhoStar = rho / (1.0 - uIn); // simplified for D3Q19
-            _rho[idx] = Math.Max(rhoStar, 0.001);
+                _ux[idx] = uIn;
+                _uy[idx] = 0;
+                _uz[idx] = 0;
 
-            // Compute unknown distributions from equilibrium + non-equilibrium.
-            for (int q = 0; q < _q; q++)
-            {
-                if (_ex[q, 0] > 0)
+                // D3Q19: unknown distributions are q = 1, 7, 9, 13, 15 (x > 0 velocities).
+                // Using Zou-He formulas for density and unknown f_i.
+                double rho = 0;
+                for (int q = 0; q < _q; q++)
                 {
-                    int oppQ = FindOpposite(q);
-                    double feqOpp = Feq(oppQ, _rho[idx], _ux[idx], _uy[idx], _uz[idx]);
-                    double feqCurr = Feq(q, _rho[idx], _ux[idx], _uy[idx], _uz[idx]);
-                    _f[FIdx(q, idx)] = feqCurr + (_f[FIdx(oppQ, idx)] - feqOpp);
+                    if (_ex[q, 0] <= 0) // known: incoming from right
+                        rho += _f[FIdx(q, idx)];
                 }
-            }
 
-            // Update known distributions.
-            for (int q = 0; q < _q; q++)
-                _f[FIdx(q, idx)] = Feq(q, _rho[idx], _ux[idx], _uy[idx], _uz[idx]) +
-                    (_f[FIdx(q, idx)] - Feq(q, _rho[idx], _ux[idx], _uy[idx], _uz[idx]));
-        }
+                double rhoStar = rho / (1.0 - uIn); // simplified for D3Q19
+                _rho[idx] = Math.Max(rhoStar, 0.001);
+
+                // Compute unknown distributions from equilibrium + non-equilibrium.
+                for (int q = 0; q < _q; q++)
+                {
+                    if (_ex[q, 0] > 0)
+                    {
+                        int oppQ = FindOpposite(q);
+                        double feqOpp = Feq(oppQ, _rho[idx], _ux[idx], _uy[idx], _uz[idx]);
+                        double feqCurr = Feq(q, _rho[idx], _ux[idx], _uy[idx], _uz[idx]);
+                        _f[FIdx(q, idx)] = feqCurr + (_f[FIdx(oppQ, idx)] - feqOpp);
+                    }
+                }
+
+                // Update known distributions.
+                for (int q = 0; q < _q; q++)
+                    _f[FIdx(q, idx)] = Feq(q, _rho[idx], _ux[idx], _uy[idx], _uz[idx]) +
+                        (_f[FIdx(q, idx)] - Feq(q, _rho[idx], _ux[idx], _uy[idx], _uz[idx]));
+            }
     }
 
     /// <summary>
@@ -3765,25 +3867,26 @@ public sealed class LatticeBoltzmannSolver : IDisposable
         double rhoOut = _cfg.OutletPressure; // in lattice units, cs² = 1/3
 
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        {
-            int idx = Idx(_nx - 1, y, z);
-            if (_solid[idx]) continue;
-
-            _rho[idx] = rhoOut;
-
-            // Unknown distributions: q with ex < 0 (incoming from left).
-            for (int q = 0; q < _q; q++)
+            for (int y = 0; y < _ny; y++)
             {
-                if (_ex[q, 0] < 0)
+                int idx = Idx(_nx - 1, y, z);
+                if (_solid[idx])
+                    continue;
+
+                _rho[idx] = rhoOut;
+
+                // Unknown distributions: q with ex < 0 (incoming from left).
+                for (int q = 0; q < _q; q++)
                 {
-                    int oppQ = FindOpposite(q);
-                    double feqOpp = Feq(oppQ, rhoOut, _ux[idx], _uy[idx], _uz[idx]);
-                    _f[FIdx(q, idx)] = Feq(q, rhoOut, _ux[idx], _uy[idx], _uz[idx]) +
-                        (_f[FIdx(oppQ, idx)] - feqOpp);
+                    if (_ex[q, 0] < 0)
+                    {
+                        int oppQ = FindOpposite(q);
+                        double feqOpp = Feq(oppQ, rhoOut, _ux[idx], _uy[idx], _uz[idx]);
+                        _f[FIdx(q, idx)] = Feq(q, rhoOut, _ux[idx], _uy[idx], _uz[idx]) +
+                            (_f[FIdx(oppQ, idx)] - feqOpp);
+                    }
                 }
             }
-        }
     }
 
     // -----------------------------------------------------------------------
@@ -3801,38 +3904,39 @@ public sealed class LatticeBoltzmannSolver : IDisposable
         double rho0 = 1.0;
 
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            if (_solid[idx]) continue;
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    if (_solid[idx])
+                        continue;
 
-            double psiI = rho0 * (1.0 - Math.Exp(-_rho[idx] / rho0));
-            double fx = 0, fy = 0, fz = 0;
+                    double psiI = rho0 * (1.0 - Math.Exp(-_rho[idx] / rho0));
+                    double fx = 0, fy = 0, fz = 0;
 
-            for (int q = 1; q < _q; q++) // skip rest (q=0, e=0)
-            {
-                int nx = x + _ex[q, 0];
-                int ny2 = y + _ey[q, 0];
-                int nz2 = z + _ez[q, 0];
+                    for (int q = 1; q < _q; q++) // skip rest (q=0, e=0)
+                    {
+                        int nx = x + _ex[q, 0];
+                        int ny2 = y + _ey[q, 0];
+                        int nz2 = z + _ez[q, 0];
 
-                // Periodic wrapping.
-                nx = ((nx % _nx) + _nx) % _nx;
-                ny2 = ((ny2 % _ny) + _ny) % _ny;
-                nz2 = ((nz2 % _nz) + _nz) % _nz;
+                        // Periodic wrapping.
+                        nx = ((nx % _nx) + _nx) % _nx;
+                        ny2 = ((ny2 % _ny) + _ny) % _ny;
+                        nz2 = ((nz2 % _nz) + _nz) % _nz;
 
-                int nIdx = Idx(nx, ny2, nz2);
-                double psiJ = rho0 * (1.0 - Math.Exp(-_rho[nIdx] / rho0));
+                        int nIdx = Idx(nx, ny2, nz2);
+                        double psiJ = rho0 * (1.0 - Math.Exp(-_rho[nIdx] / rho0));
 
-                fx -= _w[q] * psiI * psiJ * _ex[q, 0];
-                fy -= _w[q] * psiI * psiJ * _ey[q, 0];
-                fz -= _w[q] * psiI * psiJ * _ez[q, 0];
-            }
+                        fx -= _w[q] * psiI * psiJ * _ex[q, 0];
+                        fy -= _w[q] * psiI * psiJ * _ey[q, 0];
+                        fz -= _w[q] * psiI * psiJ * _ez[q, 0];
+                    }
 
-            _Fx[idx] = G * fx;
-            _Fy[idx] = G * fy;
-            _Fz[idx] = G * fz;
-        }
+                    _Fx[idx] = G * fx;
+                    _Fy[idx] = G * fy;
+                    _Fz[idx] = G * fz;
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -3877,20 +3981,21 @@ public sealed class LatticeBoltzmannSolver : IDisposable
         double dt = 1.0; // lattice time unit
 
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            if (_solid[idx]) continue;
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    if (_solid[idx])
+                        continue;
 
-            for (int q = 0; q < _q; q++)
-            {
-                double feq = Feq(q, _rho[idx], _ux[idx], _uy[idx], _uz[idx]);
-                double ft = ForceTerm(q, idx, dt);
-                _fTmp[FIdx(q, idx)] = _f[FIdx(q, idx)] * (1.0 - omega) +
-                    omega * feq + ft;
-            }
-        }
+                    for (int q = 0; q < _q; q++)
+                    {
+                        double feq = Feq(q, _rho[idx], _ux[idx], _uy[idx], _uz[idx]);
+                        double ft = ForceTerm(q, idx, dt);
+                        _fTmp[FIdx(q, idx)] = _f[FIdx(q, idx)] * (1.0 - omega) +
+                            omega * feq + ft;
+                    }
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -3910,9 +4015,12 @@ public sealed class LatticeBoltzmannSolver : IDisposable
         _mrtS[0] = 0;            // conserved density
         _mrtS[1] = 1.19;         // energy
         _mrtS[2] = 1.19;         // energy squared
-        for (int i = 3; i <= 5; i++) _mrtS[i] = 0; // momentum (conserved)
-        for (int i = 6; i <= 9; i++) _mrtS[i] = 1.4; // stress
-        for (int i = 10; i < _q; i++) _mrtS[i] = 1.0 / _tau; // viscous
+        for (int i = 3; i <= 5; i++)
+            _mrtS[i] = 0; // momentum (conserved)
+        for (int i = 6; i <= 9; i++)
+            _mrtS[i] = 1.4; // stress
+        for (int i = 10; i < _q; i++)
+            _mrtS[i] = 1.0 / _tau; // viscous
     }
 
     private void CollideMRT()
@@ -3922,21 +4030,22 @@ public sealed class LatticeBoltzmannSolver : IDisposable
         double dt = 1.0;
 
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            if (_solid[idx]) continue;
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    if (_solid[idx])
+                        continue;
 
-            for (int q = 0; q < _q; q++)
-            {
-                double feq = Feq(q, _rho[idx], _ux[idx], _uy[idx], _uz[idx]);
-                double ft = ForceTerm(q, idx, dt);
-                double si = _mrtS[q];
-                _fTmp[FIdx(q, idx)] = _f[FIdx(q, idx)] * (1.0 - si) +
-                    si * feq + ft;
-            }
-        }
+                    for (int q = 0; q < _q; q++)
+                    {
+                        double feq = Feq(q, _rho[idx], _ux[idx], _uy[idx], _uz[idx]);
+                        double ft = ForceTerm(q, idx, dt);
+                        double si = _mrtS[q];
+                        _fTmp[FIdx(q, idx)] = _f[FIdx(q, idx)] * (1.0 - si) +
+                            si * feq + ft;
+                    }
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -3946,32 +4055,32 @@ public sealed class LatticeBoltzmannSolver : IDisposable
     private void ComputeMacroscopic()
     {
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            if (_solid[idx])
-            {
-                _rho[idx] = 0;
-                _ux[idx] = _uy[idx] = _uz[idx] = 0;
-                continue;
-            }
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    if (_solid[idx])
+                    {
+                        _rho[idx] = 0;
+                        _ux[idx] = _uy[idx] = _uz[idx] = 0;
+                        continue;
+                    }
 
-            double rhoSum = 0, uxSum = 0, uySum = 0, uzSum = 0;
-            for (int q = 0; q < _q; q++)
-            {
-                double f = _f[FIdx(q, idx)];
-                rhoSum += f;
-                uxSum += f * _ex[q, 0];
-                uySum += f * _ey[q, 0];
-                uzSum += f * _ez[q, 0];
-            }
+                    double rhoSum = 0, uxSum = 0, uySum = 0, uzSum = 0;
+                    for (int q = 0; q < _q; q++)
+                    {
+                        double f = _f[FIdx(q, idx)];
+                        rhoSum += f;
+                        uxSum += f * _ex[q, 0];
+                        uySum += f * _ey[q, 0];
+                        uzSum += f * _ez[q, 0];
+                    }
 
-            _rho[idx] = Math.Max(rhoSum, 1e-10);
-            _ux[idx] = uxSum / _rho[idx];
-            _uy[idx] = uySum / _rho[idx];
-            _uz[idx] = uzSum / _rho[idx];
-        }
+                    _rho[idx] = Math.Max(rhoSum, 1e-10);
+                    _ux[idx] = uxSum / _rho[idx];
+                    _uy[idx] = uySum / _rho[idx];
+                    _uz[idx] = uzSum / _rho[idx];
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -3985,40 +4094,40 @@ public sealed class LatticeBoltzmannSolver : IDisposable
 
         // Copy streamed distributions.
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            for (int q = 0; q < _q; q++)
-            {
-                // Distributions streamed FROM neighbour (x - e_q).
-                int sx = x - _ex[q, 0];
-                int sy2 = y - _ey[q, 0];
-                int sz2 = z - _ez[q, 0];
-
-                // Apply periodic wrapping or skip OOB.
-                if (_cfg.Lattice == LatticeType.D2Q9 && _nz == 1)
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
                 {
-                    // 2D: skip z streaming.
-                    if ((uint)sx >= (uint)_nx || (uint)sy2 >= (uint)_ny)
+                    int idx = Idx(x, y, z);
+                    for (int q = 0; q < _q; q++)
                     {
-                        _f[FIdx(q, idx)] = _fTmp[FIdx(q, idx)]; // keep old
-                        continue;
+                        // Distributions streamed FROM neighbour (x - e_q).
+                        int sx = x - _ex[q, 0];
+                        int sy2 = y - _ey[q, 0];
+                        int sz2 = z - _ez[q, 0];
+
+                        // Apply periodic wrapping or skip OOB.
+                        if (_cfg.Lattice == LatticeType.D2Q9 && _nz == 1)
+                        {
+                            // 2D: skip z streaming.
+                            if ((uint)sx >= (uint)_nx || (uint)sy2 >= (uint)_ny)
+                            {
+                                _f[FIdx(q, idx)] = _fTmp[FIdx(q, idx)]; // keep old
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            if ((uint)sx >= (uint)_nx || (uint)sy2 >= (uint)_ny || (uint)sz2 >= (uint)_nz)
+                            {
+                                _f[FIdx(q, idx)] = _fTmp[FIdx(q, idx)];
+                                continue;
+                            }
+                        }
+
+                        int sIdx = Idx(sx, sy2, sz2);
+                        _f[FIdx(q, idx)] = _fTmp[FIdx(q, sIdx)];
                     }
                 }
-                else
-                {
-                    if ((uint)sx >= (uint)_nx || (uint)sy2 >= (uint)_ny || (uint)sz2 >= (uint)_nz)
-                    {
-                        _f[FIdx(q, idx)] = _fTmp[FIdx(q, idx)];
-                        continue;
-                    }
-                }
-
-                int sIdx = Idx(sx, sy2, sz2);
-                _f[FIdx(q, idx)] = _fTmp[FIdx(q, sIdx)];
-            }
-        }
     }
 
     // -----------------------------------------------------------------------
@@ -4062,12 +4171,12 @@ public sealed class LatticeBoltzmannSolver : IDisposable
         {
             int cx = _nx / 2, cy = _ny / 2;
             for (int dz = -2; dz <= 2; dz++)
-            for (int dy = -2; dy <= 2; dy++)
-            {
-                int idx = Idx(cx, cy + dy, _nz / 2 + dz);
-                if ((uint)idx < (uint)_n && !_solid[idx])
-                    _ux[idx] += (_rng.NextDouble() - 0.5) * 1e-5;
-            }
+                for (int dy = -2; dy <= 2; dy++)
+                {
+                    int idx = Idx(cx, cy + dy, _nz / 2 + dz);
+                    if ((uint)idx < (uint)_n && !_solid[idx])
+                        _ux[idx] += (_rng.NextDouble() - 0.5) * 1e-5;
+                }
         }
 
         CurrentStep++;
@@ -4110,7 +4219,8 @@ public sealed class LatticeBoltzmannSolver : IDisposable
     {
         double sum = 0;
         for (int i = 0; i < _n; i++)
-            if (!_solid[i]) sum += _rho[i];
+            if (!_solid[i])
+                sum += _rho[i];
         return sum;
     }
 
@@ -4120,14 +4230,14 @@ public sealed class LatticeBoltzmannSolver : IDisposable
     public void ExportSliceZ(int z, double[] uxOut, double[] uyOut, double[] rhoOut)
     {
         for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            int flat = y * _nx + x;
-            uxOut[flat] = _ux[idx];
-            uyOut[flat] = _uy[idx];
-            rhoOut[flat] = _rho[idx];
-        }
+            for (int x = 0; x < _nx; x++)
+            {
+                int idx = Idx(x, y, z);
+                int flat = y * _nx + x;
+                uxOut[flat] = _ux[idx];
+                uyOut[flat] = _uy[idx];
+                rhoOut[flat] = _rho[idx];
+            }
     }
 
     /// <summary>
@@ -4141,7 +4251,8 @@ public sealed class LatticeBoltzmannSolver : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
     }
 }
@@ -4284,9 +4395,10 @@ public sealed class SchrodingerSolver : IDisposable
         (int X0, int Y0, int Z0) lo, (int X1, int Y1, int Z1) hi, double value)
     {
         for (int z = lo.Z0; z <= hi.Z1; z++)
-        for (int y = lo.Y0; y <= hi.Y1; y++)
-        for (int x = lo.X0; x <= hi.X1; x++)
-            if (InBounds(x, y, z)) _V[Idx(x, y, z)] = value;
+            for (int y = lo.Y0; y <= hi.Y1; y++)
+                for (int x = lo.X0; x <= hi.X1; x++)
+                    if (InBounds(x, y, z))
+                        _V[Idx(x, y, z)] = value;
     }
 
     /// <summary>
@@ -4296,9 +4408,9 @@ public sealed class SchrodingerSolver : IDisposable
     {
         Array.Fill(_V, 1e10);
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-            _V[Idx(x, y, z)] = 0;
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                    _V[Idx(x, y, z)] = 0;
     }
 
     /// <summary>
@@ -4307,15 +4419,15 @@ public sealed class SchrodingerSolver : IDisposable
     public void CreateHarmonicOscillator(double omega, (double Cx, double Cy, double Cz) center)
     {
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            double dx = (x - center.Cx) * _dx;
-            double dy = (y - center.Cy) * _dx;
-            double dz = (z - center.Cz) * _dx;
-            double r2 = dx * dx + dy * dy + dz * dz;
-            _V[Idx(x, y, z)] = 0.5 * _m * omega * omega * r2;
-        }
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    double dx = (x - center.Cx) * _dx;
+                    double dy = (y - center.Cy) * _dx;
+                    double dz = (z - center.Cz) * _dx;
+                    double r2 = dx * dx + dy * dy + dz * dz;
+                    _V[Idx(x, y, z)] = 0.5 * _m * omega * omega * r2;
+                }
     }
 
     /// <summary>
@@ -4325,15 +4437,15 @@ public sealed class SchrodingerSolver : IDisposable
     {
         double eVnm = 14.3996; // e²/(4πε₀) in eV·Å
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            double dx = (x - center.Cx) * _dx;
-            double dy = (y - center.Cy) * _dx;
-            double dz = (z - center.Cz) * _dx;
-            double r = Math.Sqrt(dx * dx + dy * dy + dz * dz + 0.01); // soft-core
-            _V[Idx(x, y, z)] = -Z * eVnm / r;
-        }
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    double dx = (x - center.Cx) * _dx;
+                    double dy = (y - center.Cy) * _dx;
+                    double dz = (z - center.Cz) * _dx;
+                    double r = Math.Sqrt(dx * dx + dy * dy + dz * dz + 0.01); // soft-core
+                    _V[Idx(x, y, z)] = -Z * eVnm / r;
+                }
     }
 
     /// <summary>
@@ -4343,13 +4455,13 @@ public sealed class SchrodingerSolver : IDisposable
     {
         double cx = _nx * 0.5;
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            double dx1 = (x - cx + separation * 0.5) * _dx;
-            double dx2 = (x - cx - separation * 0.5) * _dx;
-            _V[Idx(x, y, z)] = depth * (dx1 * dx1 * dx2 * dx2);
-        }
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    double dx1 = (x - cx + separation * 0.5) * _dx;
+                    double dx2 = (x - cx - separation * 0.5) * _dx;
+                    _V[Idx(x, y, z)] = depth * (dx1 * dx1 * dx2 * dx2);
+                }
     }
 
     /// <summary>
@@ -4362,22 +4474,22 @@ public sealed class SchrodingerSolver : IDisposable
     {
         double norm = 0;
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            double dx = (x - center.Cx) * _dx;
-            double dy = (y - center.Cy) * _dx;
-            double dz = (z - center.Cz) * _dx;
-            double r2 = dx * dx + dy * dy + dz * dz;
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    double dx = (x - center.Cx) * _dx;
+                    double dy = (y - center.Cy) * _dx;
+                    double dz = (z - center.Cz) * _dx;
+                    double r2 = dx * dx + dy * dy + dz * dz;
 
-            double envelope = Math.Exp(-r2 / (2.0 * sigma * sigma));
-            double phase = k.Kx * dx + k.Ky * dy + k.Kz * dz;
+                    double envelope = Math.Exp(-r2 / (2.0 * sigma * sigma));
+                    double phase = k.Kx * dx + k.Ky * dy + k.Kz * dz;
 
-            int idx = Idx(x, y, z);
-            _psiRe[idx] = envelope * Math.Cos(phase);
-            _psiIm[idx] = envelope * Math.Sin(phase);
-            norm += _psiRe[idx] * _psiRe[idx] + _psiIm[idx] * _psiIm[idx];
-        }
+                    int idx = Idx(x, y, z);
+                    _psiRe[idx] = envelope * Math.Cos(phase);
+                    _psiIm[idx] = envelope * Math.Sin(phase);
+                    norm += _psiRe[idx] * _psiRe[idx] + _psiIm[idx] * _psiIm[idx];
+                }
 
         // Normalise.
         norm = Math.Sqrt(norm * _dx * _dx * _dx);
@@ -4452,48 +4564,48 @@ public sealed class SchrodingerSolver : IDisposable
         double[] solRe = new double[_nx], solIm = new double[_nx];
 
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        {
-            for (int x = 0; x < _nx; x++)
+            for (int y = 0; y < _ny; y++)
             {
-                int idx = Idx(x, y, z);
-                double vi = _V[idx] * dt / (2.0 * hbar);
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    double vi = _V[idx] * dt / (2.0 * hbar);
 
-                // RHS: (1 − iĤdt/2ℏ) ψ
-                double laplacianY = 0, laplacianZ = 0;
-                if (y > 0 && y < _ny - 1)
-                    laplacianY = r * (_psiRePrev[Idx(x, y + 1, z)] +
-                                      _psiRePrev[Idx(x, y - 1, z)] -
-                                      2.0 * _psiRePrev[idx]);
-                if (_nz > 1 && z > 0 && z < _nz - 1)
-                    laplacianZ = r * (_psiRePrev[Idx(x, y, z + 1)] +
-                                      _psiRePrev[Idx(x, y, z - 1)] -
-                                      2.0 * _psiRePrev[idx]);
+                    // RHS: (1 − iĤdt/2ℏ) ψ
+                    double laplacianY = 0, laplacianZ = 0;
+                    if (y > 0 && y < _ny - 1)
+                        laplacianY = r * (_psiRePrev[Idx(x, y + 1, z)] +
+                                          _psiRePrev[Idx(x, y - 1, z)] -
+                                          2.0 * _psiRePrev[idx]);
+                    if (_nz > 1 && z > 0 && z < _nz - 1)
+                        laplacianZ = r * (_psiRePrev[Idx(x, y, z + 1)] +
+                                          _psiRePrev[Idx(x, y, z - 1)] -
+                                          2.0 * _psiRePrev[idx]);
 
-                dRe[x] = _psiRePrev[idx] + vi * _psiImPrev[idx] -
-                         laplacianY - laplacianZ;
-                dIm[x] = _psiImPrev[idx] - vi * _psiRePrev[idx];
+                    dRe[x] = _psiRePrev[idx] + vi * _psiImPrev[idx] -
+                             laplacianY - laplacianZ;
+                    dIm[x] = _psiImPrev[idx] - vi * _psiRePrev[idx];
 
-                // Tridiagonal coefficients for x-direction.
-                a[x] = -r;  // sub-diagonal
-                b[x] = 1.0 + 2.0 * r + vi;  // diagonal (for Im part)
-                c[x] = -r;  // super-diagonal
+                    // Tridiagonal coefficients for x-direction.
+                    a[x] = -r;  // sub-diagonal
+                    b[x] = 1.0 + 2.0 * r + vi;  // diagonal (for Im part)
+                    c[x] = -r;  // super-diagonal
 
-                // Adjust for imaginary part.
-                dIm[x] -= r * (_psiRePrev[Math.Max(0, x - 1)] - 2.0 * _psiRePrev[idx] +
-                               _psiRePrev[Math.Min(_nx - 1, x + 1)]);
+                    // Adjust for imaginary part.
+                    dIm[x] -= r * (_psiRePrev[Math.Max(0, x - 1)] - 2.0 * _psiRePrev[idx] +
+                                   _psiRePrev[Math.Min(_nx - 1, x + 1)]);
+                }
+
+                SolveTridiagonalSystem(a, b, c, dRe, solRe, _nx);
+                SolveTridiagonalSystem(a, b, c, dIm, solIm, _nx);
+
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    _psiRe[idx] = solRe[x];
+                    _psiIm[idx] = solIm[x];
+                }
             }
-
-            SolveTridiagonalSystem(a, b, c, dRe, solRe, _nx);
-            SolveTridiagonalSystem(a, b, c, dIm, solIm, _nx);
-
-            for (int x = 0; x < _nx; x++)
-            {
-                int idx = Idx(x, y, z);
-                _psiRe[idx] = solRe[x];
-                _psiIm[idx] = solIm[x];
-            }
-        }
     }
 
     private void SolveTridiagonalY(double r, double dt, double hbar)
@@ -4503,31 +4615,31 @@ public sealed class SchrodingerSolver : IDisposable
         double[] solRe = new double[_ny], solIm = new double[_ny];
 
         for (int z = 0; z < _nz; z++)
-        for (int x = 0; x < _nx; x++)
-        {
-            for (int y = 0; y < _ny; y++)
+            for (int x = 0; x < _nx; x++)
             {
-                int idx = Idx(x, y, z);
-                double vi = _V[idx] * dt / (2.0 * hbar);
+                for (int y = 0; y < _ny; y++)
+                {
+                    int idx = Idx(x, y, z);
+                    double vi = _V[idx] * dt / (2.0 * hbar);
 
-                dRe[x] = _psiRe[idx];
-                dIm[x] = _psiIm[idx];
+                    dRe[x] = _psiRe[idx];
+                    dIm[x] = _psiIm[idx];
 
-                a[y] = -r;
-                b[y] = 1.0 + 2.0 * r + vi;
-                c[y] = -r;
+                    a[y] = -r;
+                    b[y] = 1.0 + 2.0 * r + vi;
+                    c[y] = -r;
+                }
+
+                SolveTridiagonalSystem(a, b, c, dRe, solRe, _ny);
+                SolveTridiagonalSystem(a, b, c, dIm, solIm, _ny);
+
+                for (int y = 0; y < _ny; y++)
+                {
+                    int idx = Idx(x, y, z);
+                    _psiRe[idx] = solRe[y];
+                    _psiIm[idx] = solIm[y];
+                }
             }
-
-            SolveTridiagonalSystem(a, b, c, dRe, solRe, _ny);
-            SolveTridiagonalSystem(a, b, c, dIm, solIm, _ny);
-
-            for (int y = 0; y < _ny; y++)
-            {
-                int idx = Idx(x, y, z);
-                _psiRe[idx] = solRe[y];
-                _psiIm[idx] = solIm[y];
-            }
-        }
     }
 
     private void SolveTridiagonalZ(double r, double dt, double hbar)
@@ -4537,31 +4649,31 @@ public sealed class SchrodingerSolver : IDisposable
         double[] solRe = new double[_nz], solIm = new double[_nz];
 
         for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            for (int z = 0; z < _nz; z++)
+            for (int x = 0; x < _nx; x++)
             {
-                int idx = Idx(x, y, z);
-                double vi = _V[idx] * dt / (2.0 * hbar);
+                for (int z = 0; z < _nz; z++)
+                {
+                    int idx = Idx(x, y, z);
+                    double vi = _V[idx] * dt / (2.0 * hbar);
 
-                dRe[z] = _psiRe[idx];
-                dIm[z] = _psiIm[idx];
+                    dRe[z] = _psiRe[idx];
+                    dIm[z] = _psiIm[idx];
 
-                a[z] = -r;
-                b[z] = 1.0 + 2.0 * r + vi;
-                c[z] = -r;
+                    a[z] = -r;
+                    b[z] = 1.0 + 2.0 * r + vi;
+                    c[z] = -r;
+                }
+
+                SolveTridiagonalSystem(a, b, c, dRe, solRe, _nz);
+                SolveTridiagonalSystem(a, b, c, dIm, solIm, _nz);
+
+                for (int z = 0; z < _nz; z++)
+                {
+                    int idx = Idx(x, y, z);
+                    _psiRe[idx] = solRe[z];
+                    _psiIm[idx] = solIm[z];
+                }
             }
-
-            SolveTridiagonalSystem(a, b, c, dRe, solRe, _nz);
-            SolveTridiagonalSystem(a, b, c, dIm, solIm, _nz);
-
-            for (int z = 0; z < _nz; z++)
-            {
-                int idx = Idx(x, y, z);
-                _psiRe[idx] = solRe[z];
-                _psiIm[idx] = solIm[z];
-            }
-        }
     }
 
     /// <summary>
@@ -4579,7 +4691,8 @@ public sealed class SchrodingerSolver : IDisposable
         for (int i = 1; i < n; i++)
         {
             double denom = b[i] - a[i] * cp[i - 1];
-            if (Math.Abs(denom) < 1e-30) denom = 1e-30;
+            if (Math.Abs(denom) < 1e-30)
+                denom = 1e-30;
             cp[i] = c[i] / denom;
             dp[i] = (d[i] - a[i] * dp[i - 1]) / denom;
         }
@@ -4620,15 +4733,15 @@ public sealed class SchrodingerSolver : IDisposable
     {
         double ex = 0, ey = 0, ez = 0;
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = Idx(x, y, z);
-            double prob = _psiRe[idx] * _psiRe[idx] + _psiIm[idx] * _psiIm[idx];
-            ex += x * prob;
-            ey += y * prob;
-            ez += z * prob;
-        }
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    double prob = _psiRe[idx] * _psiRe[idx] + _psiIm[idx] * _psiIm[idx];
+                    ex += x * prob;
+                    ey += y * prob;
+                    ez += z * prob;
+                }
         double dV = _dx * _dx * _dx;
         return (ex * dV * _dx, ey * dV * _dx, ez * dV * _dx);
     }
@@ -4644,23 +4757,23 @@ public sealed class SchrodingerSolver : IDisposable
         double dx2 = _dx * _dx;
 
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
-            // Laplacian of Re and Im parts.
-            double lapRe = (_psiRe[Idx(x + 1, y, z)] + _psiRe[Idx(x - 1, y, z)] +
-                            _psiRe[Idx(x, y + 1, z)] + _psiRe[Idx(x, y - 1, z)] +
-                            (_nz > 1 ? _psiRe[Idx(x, y, z + 1)] + _psiRe[Idx(x, y, z - 1)] : 0) -
-                            (_nz > 1 ? 6.0 : 4.0) * _psiRe[idx]) / dx2;
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    // Laplacian of Re and Im parts.
+                    double lapRe = (_psiRe[Idx(x + 1, y, z)] + _psiRe[Idx(x - 1, y, z)] +
+                                    _psiRe[Idx(x, y + 1, z)] + _psiRe[Idx(x, y - 1, z)] +
+                                    (_nz > 1 ? _psiRe[Idx(x, y, z + 1)] + _psiRe[Idx(x, y, z - 1)] : 0) -
+                                    (_nz > 1 ? 6.0 : 4.0) * _psiRe[idx]) / dx2;
 
-            double lapIm = (_psiIm[Idx(x + 1, y, z)] + _psiIm[Idx(x - 1, y, z)] +
-                            _psiIm[Idx(x, y + 1, z)] + _psiIm[Idx(x, y - 1, z)] +
-                            (_nz > 1 ? _psiIm[Idx(x, y, z + 1)] + _psiIm[Idx(x, y, z - 1)] : 0) -
-                            (_nz > 1 ? 6.0 : 4.0) * _psiIm[idx]) / dx2;
+                    double lapIm = (_psiIm[Idx(x + 1, y, z)] + _psiIm[Idx(x - 1, y, z)] +
+                                    _psiIm[Idx(x, y + 1, z)] + _psiIm[Idx(x, y - 1, z)] +
+                                    (_nz > 1 ? _psiIm[Idx(x, y, z + 1)] + _psiIm[Idx(x, y, z - 1)] : 0) -
+                                    (_nz > 1 ? 6.0 : 4.0) * _psiIm[idx]) / dx2;
 
-            sum += _psiRe[idx] * lapRe + _psiIm[idx] * lapIm;
-        }
+                    sum += _psiRe[idx] * lapRe + _psiIm[idx] * lapIm;
+                }
 
         return coeff * sum * _dx * _dx * _dx;
     }
@@ -4692,26 +4805,26 @@ public sealed class SchrodingerSolver : IDisposable
         int dimFactor = _nz > 1 ? 6 : 4;
 
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
-            // ∂ψ/∂x ≈ (ψ(x+1) − ψ(x−1)) / 2dx
-            double dpsiReX = (_psiRe[Idx(x + 1, y, z)] - _psiRe[Idx(x - 1, y, z)]) / dx2;
-            double dpsiImX = (_psiIm[Idx(x + 1, y, z)] - _psiIm[Idx(x - 1, y, z)]) / dx2;
-            px += _psiRe[idx] * dpsiImX - _psiIm[idx] * dpsiReX;
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    // ∂ψ/∂x ≈ (ψ(x+1) − ψ(x−1)) / 2dx
+                    double dpsiReX = (_psiRe[Idx(x + 1, y, z)] - _psiRe[Idx(x - 1, y, z)]) / dx2;
+                    double dpsiImX = (_psiIm[Idx(x + 1, y, z)] - _psiIm[Idx(x - 1, y, z)]) / dx2;
+                    px += _psiRe[idx] * dpsiImX - _psiIm[idx] * dpsiReX;
 
-            double dpsiReY = (_psiRe[Idx(x, y + 1, z)] - _psiRe[Idx(x, y - 1, z)]) / dx2;
-            double dpsiImY = (_psiIm[Idx(x, y + 1, z)] - _psiIm[Idx(x, y - 1, z)]) / dx2;
-            py += _psiRe[idx] * dpsiImY - _psiIm[idx] * dpsiReY;
+                    double dpsiReY = (_psiRe[Idx(x, y + 1, z)] - _psiRe[Idx(x, y - 1, z)]) / dx2;
+                    double dpsiImY = (_psiIm[Idx(x, y + 1, z)] - _psiIm[Idx(x, y - 1, z)]) / dx2;
+                    py += _psiRe[idx] * dpsiImY - _psiIm[idx] * dpsiReY;
 
-            if (_nz > 1)
-            {
-                double dpsiReZ = (_psiRe[Idx(x, y, z + 1)] - _psiRe[Idx(x, y, z - 1)]) / dx2;
-                double dpsiImZ = (_psiIm[Idx(x, y, z + 1)] - _psiIm[Idx(x, y, z - 1)]) / dx2;
-                pz += _psiRe[idx] * dpsiImZ - _psiIm[idx] * dpsiReZ;
-            }
-        }
+                    if (_nz > 1)
+                    {
+                        double dpsiReZ = (_psiRe[Idx(x, y, z + 1)] - _psiRe[Idx(x, y, z - 1)]) / dx2;
+                        double dpsiImZ = (_psiIm[Idx(x, y, z + 1)] - _psiIm[Idx(x, y, z - 1)]) / dx2;
+                        pz += _psiRe[idx] * dpsiImZ - _psiIm[idx] * dpsiReZ;
+                    }
+                }
 
         double dV = _dx * _dx * _dx;
         return (coeff * px * dV, coeff * py * dV, coeff * pz * dV);
@@ -4755,7 +4868,8 @@ public sealed class SchrodingerSolver : IDisposable
             // Shift estimate: use Vmin + spacing.
             double vMin = double.MaxValue;
             for (int i = 0; i < nTotal; i++)
-                if (_V[i] < vMin) vMin = _V[i];
+                if (_V[i] < vMin)
+                    vMin = _V[i];
             double shift = vMin + (n + 1) * 1.0; // rough spacing
 
             for (int iter = 0; iter < maxIter; iter++)
@@ -4767,20 +4881,20 @@ public sealed class SchrodingerSolver : IDisposable
                 double[] solIm = new double[nTotal];
 
                 for (int z = 1; z < _nz - 1; z++)
-                for (int y = 1; y < _ny - 1; y++)
-                for (int x = 1; x < _nx - 1; x++)
-                {
-                    int idx = Idx(x, y, z);
-                    int dimF = _nz > 1 ? 6 : 4;
+                    for (int y = 1; y < _ny - 1; y++)
+                        for (int x = 1; x < _nx - 1; x++)
+                        {
+                            int idx = Idx(x, y, z);
+                            int dimF = _nz > 1 ? 6 : 4;
 
-                    double lapRe = (_eigenRe[n][Idx(x + 1, y, z)] + _eigenRe[n][Idx(x - 1, y, z)] +
-                                    _eigenRe[n][Idx(x, y + 1, z)] + _eigenRe[n][Idx(x, y - 1, z)] +
-                                    (_nz > 1 ? _eigenRe[n][Idx(x, y, z + 1)] + _eigenRe[n][Idx(x, y, z - 1)] : 0) -
-                                    dimF * _eigenRe[n][idx]) / (_dx * _dx);
+                            double lapRe = (_eigenRe[n][Idx(x + 1, y, z)] + _eigenRe[n][Idx(x - 1, y, z)] +
+                                            _eigenRe[n][Idx(x, y + 1, z)] + _eigenRe[n][Idx(x, y - 1, z)] +
+                                            (_nz > 1 ? _eigenRe[n][Idx(x, y, z + 1)] + _eigenRe[n][Idx(x, y, z - 1)] : 0) -
+                                            dimF * _eigenRe[n][idx]) / (_dx * _dx);
 
-                    rhsRe[idx] = r * lapRe + (_V[idx] - shift) * _eigenRe[n][idx];
-                    rhsIm[idx] = r * lapRe + (_V[idx] - shift) * _eigenIm[n][idx];
-                }
+                            rhsRe[idx] = r * lapRe + (_V[idx] - shift) * _eigenRe[n][idx];
+                            rhsIm[idx] = r * lapRe + (_V[idx] - shift) * _eigenIm[n][idx];
+                        }
 
                 // Solve approximately: use Gauss-Seidel.
                 double[] newRe = new double[nTotal];
@@ -4791,23 +4905,23 @@ public sealed class SchrodingerSolver : IDisposable
                 for (int gsIter = 0; gsIter < 20; gsIter++)
                 {
                     for (int z = 1; z < _nz - 1; z++)
-                    for (int y = 1; y < _ny - 1; y++)
-                    for (int x = 1; x < _nx - 1; x++)
-                    {
-                        int idx = Idx(x, y, z);
-                        double diag = (_V[idx] - shift);
-                        double dimF = _nz > 1 ? 6.0 : 4.0;
-                        double diagVal = dimF * r / (_dx * _dx) + diag;
+                        for (int y = 1; y < _ny - 1; y++)
+                            for (int x = 1; x < _nx - 1; x++)
+                            {
+                                int idx = Idx(x, y, z);
+                                double diag = (_V[idx] - shift);
+                                double dimF = _nz > 1 ? 6.0 : 4.0;
+                                double diagVal = dimF * r / (_dx * _dx) + diag;
 
-                        double sumRe = 0;
-                        sumRe += r / (_dx * _dx) * (newRe[Idx(x + 1, y, z)] + newRe[Idx(x - 1, y, z)] +
-                                                    newRe[Idx(x, y + 1, z)] + newRe[Idx(x, y - 1, z)]);
-                        if (_nz > 1)
-                            sumRe += r / (_dx * _dx) * (newRe[Idx(x, y, z + 1)] + newRe[Idx(x, y, z - 1)]);
+                                double sumRe = 0;
+                                sumRe += r / (_dx * _dx) * (newRe[Idx(x + 1, y, z)] + newRe[Idx(x - 1, y, z)] +
+                                                            newRe[Idx(x, y + 1, z)] + newRe[Idx(x, y - 1, z)]);
+                                if (_nz > 1)
+                                    sumRe += r / (_dx * _dx) * (newRe[Idx(x, y, z + 1)] + newRe[Idx(x, y, z - 1)]);
 
-                        newRe[idx] = (rhsRe[idx] + sumRe) / diagVal;
-                        newIm[idx] = (rhsIm[idx] + sumRe) / diagVal;
-                    }
+                                newRe[idx] = (rhsRe[idx] + sumRe) / diagVal;
+                                newIm[idx] = (rhsIm[idx] + sumRe) / diagVal;
+                            }
                 }
 
                 // Normalise.
@@ -4815,7 +4929,8 @@ public sealed class SchrodingerSolver : IDisposable
                 for (int i = 0; i < nTotal; i++)
                     norm += newRe[i] * newRe[i] + newIm[i] * newIm[i];
                 norm = Math.Sqrt(norm * dV);
-                if (norm < 1e-30) break;
+                if (norm < 1e-30)
+                    break;
 
                 for (int i = 0; i < nTotal; i++)
                 {
@@ -4842,17 +4957,17 @@ public sealed class SchrodingerSolver : IDisposable
             // Compute eigenvalue: E_n = ⟨ψ_n|Ĥ|ψ_n⟩ / ⟨ψ_n|ψ_n⟩.
             double energy = 0;
             for (int z = 1; z < _nz - 1; z++)
-            for (int y = 1; y < _ny - 1; y++)
-            for (int x = 1; x < _nx - 1; x++)
-            {
-                int idx = Idx(x, y, z);
-                double lapRe = (_eigenRe[n][Idx(x + 1, y, z)] + _eigenRe[n][Idx(x - 1, y, z)] +
-                                _eigenRe[n][Idx(x, y + 1, z)] + _eigenRe[n][Idx(x, y - 1, z)] +
-                                (_nz > 1 ? _eigenRe[n][Idx(x, y, z + 1)] + _eigenRe[n][Idx(x, y, z - 1)] : 0) -
-                                (_nz > 1 ? 6.0 : 4.0) * _eigenRe[n][idx]) / (_dx * _dx);
+                for (int y = 1; y < _ny - 1; y++)
+                    for (int x = 1; x < _nx - 1; x++)
+                    {
+                        int idx = Idx(x, y, z);
+                        double lapRe = (_eigenRe[n][Idx(x + 1, y, z)] + _eigenRe[n][Idx(x - 1, y, z)] +
+                                        _eigenRe[n][Idx(x, y + 1, z)] + _eigenRe[n][Idx(x, y - 1, z)] +
+                                        (_nz > 1 ? _eigenRe[n][Idx(x, y, z + 1)] + _eigenRe[n][Idx(x, y, z - 1)] : 0) -
+                                        (_nz > 1 ? 6.0 : 4.0) * _eigenRe[n][idx]) / (_dx * _dx);
 
-                energy += _eigenRe[n][idx] * (r * lapRe + _V[idx] * _eigenRe[n][idx]);
-            }
+                        energy += _eigenRe[n][idx] * (r * lapRe + _V[idx] * _eigenRe[n][idx]);
+                    }
             _eigenValues[n] = energy * dV;
 
             // Orthogonalise against previously computed eigenstates.
@@ -4906,7 +5021,8 @@ public sealed class SchrodingerSolver : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
     }
 }
@@ -5015,17 +5131,37 @@ public sealed class ElasticitySolver : IDisposable
         _mu = E / (2.0 * (1.0 + nu));
 
         // Allocate arrays.
-        _ux = new double[_n]; _uy = new double[_n]; _uz = new double[_n];
-        _uxPrev = new double[_n]; _uyPrev = new double[_n]; _uzPrev = new double[_n];
-        _vx = new double[_n]; _vy = new double[_n]; _vz = new double[_n];
-        _ax = new double[_n]; _ay = new double[_n]; _az = new double[_n];
-        _sxx = new double[_n]; _syy = new double[_n]; _szz = new double[_n];
-        _sxy = new double[_n]; _syz = new double[_n]; _sxz = new double[_n];
-        _exx = new double[_n]; _eyy = new double[_n]; _ezz = new double[_n];
-        _exy = new double[_n]; _eyz = new double[_n]; _exz = new double[_n];
+        _ux = new double[_n];
+        _uy = new double[_n];
+        _uz = new double[_n];
+        _uxPrev = new double[_n];
+        _uyPrev = new double[_n];
+        _uzPrev = new double[_n];
+        _vx = new double[_n];
+        _vy = new double[_n];
+        _vz = new double[_n];
+        _ax = new double[_n];
+        _ay = new double[_n];
+        _az = new double[_n];
+        _sxx = new double[_n];
+        _syy = new double[_n];
+        _szz = new double[_n];
+        _sxy = new double[_n];
+        _syz = new double[_n];
+        _sxz = new double[_n];
+        _exx = new double[_n];
+        _eyy = new double[_n];
+        _ezz = new double[_n];
+        _exy = new double[_n];
+        _eyz = new double[_n];
+        _exz = new double[_n];
         _vonMises = new double[_n];
-        _Fx = new double[_n]; _Fy = new double[_n]; _Fz = new double[_n];
-        _fixedX = new bool[_n]; _fixedY = new bool[_n]; _fixedZ = new bool[_n];
+        _Fx = new double[_n];
+        _Fy = new double[_n];
+        _Fz = new double[_n];
+        _fixedX = new bool[_n];
+        _fixedY = new bool[_n];
+        _fixedZ = new bool[_n];
         _contactForceY = new double[_n];
         _plasticStrain = new double[_n];
         _backStress = new double[_n];
@@ -5049,7 +5185,9 @@ public sealed class ElasticitySolver : IDisposable
     public void FixNode(int x, int y, int z, bool fixX = true, bool fixY = true, bool fixZ = true)
     {
         int idx = Idx(x, y, z);
-        _fixedX[idx] = fixX; _fixedY[idx] = fixY; _fixedZ[idx] = fixZ;
+        _fixedX[idx] = fixX;
+        _fixedY[idx] = fixY;
+        _fixedZ[idx] = fixZ;
     }
 
     public void FixFace(string face, double value = 0, string component = "all")
@@ -5059,43 +5197,55 @@ public sealed class ElasticitySolver : IDisposable
         {
             case "bottom":
                 for (int x = 0; x < _nx; x++)
-                for (int z = 0; z < _nz; z++)
-                {
-                    idx = Idx(x, 0, z);
-                    if (component == "all" || component == "y") { _fixedY[idx] = true; _uy[idx] = value; }
-                    if (component == "all" || component == "x") _fixedX[idx] = true;
-                    if (component == "all" || component == "z") _fixedZ[idx] = true;
-                }
+                    for (int z = 0; z < _nz; z++)
+                    {
+                        idx = Idx(x, 0, z);
+                        if (component == "all" || component == "y")
+                        { _fixedY[idx] = true; _uy[idx] = value; }
+                        if (component == "all" || component == "x")
+                            _fixedX[idx] = true;
+                        if (component == "all" || component == "z")
+                            _fixedZ[idx] = true;
+                    }
                 break;
             case "top":
                 for (int x = 0; x < _nx; x++)
-                for (int z = 0; z < _nz; z++)
-                {
-                    idx = Idx(x, _ny - 1, z);
-                    if (component == "all" || component == "y") { _fixedY[idx] = true; _uy[idx] = value; }
-                    if (component == "all" || component == "x") _fixedX[idx] = true;
-                    if (component == "all" || component == "z") _fixedZ[idx] = true;
-                }
+                    for (int z = 0; z < _nz; z++)
+                    {
+                        idx = Idx(x, _ny - 1, z);
+                        if (component == "all" || component == "y")
+                        { _fixedY[idx] = true; _uy[idx] = value; }
+                        if (component == "all" || component == "x")
+                            _fixedX[idx] = true;
+                        if (component == "all" || component == "z")
+                            _fixedZ[idx] = true;
+                    }
                 break;
             case "left":
                 for (int y = 0; y < _ny; y++)
-                for (int z = 0; z < _nz; z++)
-                {
-                    idx = Idx(0, y, z);
-                    if (component == "all" || component == "x") { _fixedX[idx] = true; _ux[idx] = value; }
-                    if (component == "all" || component == "y") _fixedY[idx] = true;
-                    if (component == "all" || component == "z") _fixedZ[idx] = true;
-                }
+                    for (int z = 0; z < _nz; z++)
+                    {
+                        idx = Idx(0, y, z);
+                        if (component == "all" || component == "x")
+                        { _fixedX[idx] = true; _ux[idx] = value; }
+                        if (component == "all" || component == "y")
+                            _fixedY[idx] = true;
+                        if (component == "all" || component == "z")
+                            _fixedZ[idx] = true;
+                    }
                 break;
             case "right":
                 for (int y = 0; y < _ny; y++)
-                for (int z = 0; z < _nz; z++)
-                {
-                    idx = Idx(_nx - 1, y, z);
-                    if (component == "all" || component == "x") { _fixedX[idx] = true; _ux[idx] = value; }
-                    if (component == "all" || component == "y") _fixedY[idx] = true;
-                    if (component == "all" || component == "z") _fixedZ[idx] = true;
-                }
+                    for (int z = 0; z < _nz; z++)
+                    {
+                        idx = Idx(_nx - 1, y, z);
+                        if (component == "all" || component == "x")
+                        { _fixedX[idx] = true; _ux[idx] = value; }
+                        if (component == "all" || component == "y")
+                            _fixedY[idx] = true;
+                        if (component == "all" || component == "z")
+                            _fixedZ[idx] = true;
+                    }
                 break;
         }
     }
@@ -5132,28 +5282,28 @@ public sealed class ElasticitySolver : IDisposable
     {
         double invDx2 = 0.5 / _dx;
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
 
-            // εxx = ∂ux/∂x
-            _exx[idx] = (_ux[Idx(x + 1, y, z)] - _ux[Idx(x - 1, y, z)]) * invDx2;
-            // εyy = ∂uy/∂y
-            _eyy[idx] = (_uy[Idx(x, y + 1, z)] - _uy[Idx(x, y - 1, z)]) * invDx2;
-            // εzz = ∂uz/∂z
-            _ezz[idx] = (_uz[Idx(x, y, z + 1)] - _uz[Idx(x, y, z - 1)]) * invDx2;
+                    // εxx = ∂ux/∂x
+                    _exx[idx] = (_ux[Idx(x + 1, y, z)] - _ux[Idx(x - 1, y, z)]) * invDx2;
+                    // εyy = ∂uy/∂y
+                    _eyy[idx] = (_uy[Idx(x, y + 1, z)] - _uy[Idx(x, y - 1, z)]) * invDx2;
+                    // εzz = ∂uz/∂z
+                    _ezz[idx] = (_uz[Idx(x, y, z + 1)] - _uz[Idx(x, y, z - 1)]) * invDx2;
 
-            // εxy = 0.5 (∂ux/∂y + ∂uy/∂x)
-            _exy[idx] = 0.5 * ((_ux[Idx(x, y + 1, z)] - _ux[Idx(x, y - 1, z)]) * invDx2 +
-                                (_uy[Idx(x + 1, y, z)] - _uy[Idx(x - 1, y, z)]) * invDx2);
-            // εyz
-            _eyz[idx] = 0.5 * ((_uy[Idx(x, y, z + 1)] - _uy[Idx(x, y, z - 1)]) * invDx2 +
-                                (_uz[Idx(x, y + 1, z)] - _uz[Idx(x, y - 1, z)]) * invDx2);
-            // εxz
-            _exz[idx] = 0.5 * ((_ux[Idx(x, y, z + 1)] - _ux[Idx(x, y, z - 1)]) * invDx2 +
-                                (_uz[Idx(x + 1, y, z)] - _uz[Idx(x - 1, y, z)]) * invDx2);
-        }
+                    // εxy = 0.5 (∂ux/∂y + ∂uy/∂x)
+                    _exy[idx] = 0.5 * ((_ux[Idx(x, y + 1, z)] - _ux[Idx(x, y - 1, z)]) * invDx2 +
+                                        (_uy[Idx(x + 1, y, z)] - _uy[Idx(x - 1, y, z)]) * invDx2);
+                    // εyz
+                    _eyz[idx] = 0.5 * ((_uy[Idx(x, y, z + 1)] - _uy[Idx(x, y, z - 1)]) * invDx2 +
+                                        (_uz[Idx(x, y + 1, z)] - _uz[Idx(x, y - 1, z)]) * invDx2);
+                    // εxz
+                    _exz[idx] = 0.5 * ((_ux[Idx(x, y, z + 1)] - _ux[Idx(x, y, z - 1)]) * invDx2 +
+                                        (_uz[Idx(x + 1, y, z)] - _uz[Idx(x - 1, y, z)]) * invDx2);
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -5187,43 +5337,43 @@ public sealed class ElasticitySolver : IDisposable
     {
         double invDx = 1.0 / _dx;
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
 
-            // Deformation gradient F ≈ I + ∇u.
-            double Fxx = 1.0 + (_ux[Idx(x + 1, y, z)] - _ux[Idx(x - 1, y, z)]) * 0.5 * invDx;
-            double Fyy = 1.0 + (_uy[Idx(x, y + 1, z)] - _uy[Idx(x, y - 1, z)]) * 0.5 * invDx;
-            double Fzz = 1.0 + (_uz[Idx(x, y, z + 1)] - _uz[Idx(x, y, z - 1)]) * 0.5 * invDx;
-            double Fxy = (_ux[Idx(x, y + 1, z)] - _ux[Idx(x, y - 1, z)]) * 0.5 * invDx;
-            double Fyx = (_uy[Idx(x + 1, y, z)] - _uy[Idx(x - 1, y, z)]) * 0.5 * invDx;
-            double Fxz = (_ux[Idx(x, y, z + 1)] - _ux[Idx(x, y, z - 1)]) * 0.5 * invDx;
-            double Fzx = (_uz[Idx(x + 1, y, z)] - _uz[Idx(x - 1, y, z)]) * 0.5 * invDx;
-            double Fyz = (_uy[Idx(x, y, z + 1)] - _uy[Idx(x, y, z - 1)]) * 0.5 * invDx;
-            double Fzy = (_uz[Idx(x, y + 1, z)] - _uz[Idx(x, y - 1, z)]) * 0.5 * invDx;
+                    // Deformation gradient F ≈ I + ∇u.
+                    double Fxx = 1.0 + (_ux[Idx(x + 1, y, z)] - _ux[Idx(x - 1, y, z)]) * 0.5 * invDx;
+                    double Fyy = 1.0 + (_uy[Idx(x, y + 1, z)] - _uy[Idx(x, y - 1, z)]) * 0.5 * invDx;
+                    double Fzz = 1.0 + (_uz[Idx(x, y, z + 1)] - _uz[Idx(x, y, z - 1)]) * 0.5 * invDx;
+                    double Fxy = (_ux[Idx(x, y + 1, z)] - _ux[Idx(x, y - 1, z)]) * 0.5 * invDx;
+                    double Fyx = (_uy[Idx(x + 1, y, z)] - _uy[Idx(x - 1, y, z)]) * 0.5 * invDx;
+                    double Fxz = (_ux[Idx(x, y, z + 1)] - _ux[Idx(x, y, z - 1)]) * 0.5 * invDx;
+                    double Fzx = (_uz[Idx(x + 1, y, z)] - _uz[Idx(x - 1, y, z)]) * 0.5 * invDx;
+                    double Fyz = (_uy[Idx(x, y, z + 1)] - _uy[Idx(x, y, z - 1)]) * 0.5 * invDx;
+                    double Fzy = (_uz[Idx(x, y + 1, z)] - _uz[Idx(x, y - 1, z)]) * 0.5 * invDx;
 
-            // J = det(F).
-            double J = Fxx * (Fyy * Fzz - Fyz * Fzy) -
-                       Fxy * (Fyx * Fzz - Fyz * Fzx) +
-                       Fxz * (Fyx * Fzy - Fyy * Fzx);
-            J = Math.Max(J, 0.01); // prevent collapse
+                    // J = det(F).
+                    double J = Fxx * (Fyy * Fzz - Fyz * Fzy) -
+                               Fxy * (Fyx * Fzz - Fyz * Fzx) +
+                               Fxz * (Fyx * Fzy - Fyy * Fzx);
+                    J = Math.Max(J, 0.01); // prevent collapse
 
-            // B = F Fᵀ (left Cauchy-Green).
-            double Bxx = Fxx * Fxx + Fxy * Fxy + Fxz * Fxz;
-            double Byy = Fyx * Fyx + Fyy * Fyy + Fyz * Fyz;
-            double Bzz = Fzx * Fzx + Fzy * Fzy + Fzz * Fzz;
-            double Bxy = Fxx * Fyx + Fxy * Fyy + Fxz * Fyz;
-            double Byz = Fyx * Fzx + Fyy * Fzy + Fyz * Fzz;
-            double Bxz = Fxx * Fzx + Fxy * Fzy + Fxz * Fzz;
+                    // B = F Fᵀ (left Cauchy-Green).
+                    double Bxx = Fxx * Fxx + Fxy * Fxy + Fxz * Fxz;
+                    double Byy = Fyx * Fyx + Fyy * Fyy + Fyz * Fyz;
+                    double Bzz = Fzx * Fzx + Fzy * Fzy + Fzz * Fzz;
+                    double Bxy = Fxx * Fyx + Fxy * Fyy + Fxz * Fyz;
+                    double Byz = Fyx * Fzx + Fyy * Fzy + Fyz * Fzz;
+                    double Bxz = Fxx * Fzx + Fxy * Fzy + Fxz * Fzz;
 
-            _sxx[idx] = _mu * (Bxx - 1.0) + _lambda * (J - 1.0);
-            _syy[idx] = _mu * (Byy - 1.0) + _lambda * (J - 1.0);
-            _szz[idx] = _mu * (Bzz - 1.0) + _lambda * (J - 1.0);
-            _sxy[idx] = _mu * Bxy;
-            _syz[idx] = _mu * Byz;
-            _sxz[idx] = _mu * Bxz;
-        }
+                    _sxx[idx] = _mu * (Bxx - 1.0) + _lambda * (J - 1.0);
+                    _syy[idx] = _mu * (Byy - 1.0) + _lambda * (J - 1.0);
+                    _szz[idx] = _mu * (Bzz - 1.0) + _lambda * (J - 1.0);
+                    _sxy[idx] = _mu * Bxy;
+                    _syz[idx] = _mu * Byz;
+                    _sxz[idx] = _mu * Bxz;
+                }
     }
 
     /// <summary>
@@ -5322,30 +5472,30 @@ public sealed class ElasticitySolver : IDisposable
     {
         double invDx = 1.0 / _dx;
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
 
-            // ∇·σ: div of stress tensor.
-            fintX[idx] = (
-                (_sxx[Idx(x + 1, y, z)] - _sxx[Idx(x - 1, y, z)]) * 0.5 * invDx +
-                (_sxy[Idx(x, y + 1, z)] - _sxy[Idx(x, y - 1, z)]) * 0.5 * invDx +
-                (_sxz[Idx(x, y, z + 1)] - _sxz[Idx(x, y, z - 1)]) * 0.5 * invDx
-            );
+                    // ∇·σ: div of stress tensor.
+                    fintX[idx] = (
+                        (_sxx[Idx(x + 1, y, z)] - _sxx[Idx(x - 1, y, z)]) * 0.5 * invDx +
+                        (_sxy[Idx(x, y + 1, z)] - _sxy[Idx(x, y - 1, z)]) * 0.5 * invDx +
+                        (_sxz[Idx(x, y, z + 1)] - _sxz[Idx(x, y, z - 1)]) * 0.5 * invDx
+                    );
 
-            fintY[idx] = (
-                (_sxy[Idx(x + 1, y, z)] - _sxy[Idx(x - 1, y, z)]) * 0.5 * invDx +
-                (_syy[Idx(x, y + 1, z)] - _syy[Idx(x, y - 1, z)]) * 0.5 * invDx +
-                (_syz[Idx(x, y, z + 1)] - _syz[Idx(x, y, z - 1)]) * 0.5 * invDx
-            );
+                    fintY[idx] = (
+                        (_sxy[Idx(x + 1, y, z)] - _sxy[Idx(x - 1, y, z)]) * 0.5 * invDx +
+                        (_syy[Idx(x, y + 1, z)] - _syy[Idx(x, y - 1, z)]) * 0.5 * invDx +
+                        (_syz[Idx(x, y, z + 1)] - _syz[Idx(x, y, z - 1)]) * 0.5 * invDx
+                    );
 
-            fintZ[idx] = (
-                (_sxz[Idx(x + 1, y, z)] - _sxz[Idx(x - 1, y, z)]) * 0.5 * invDx +
-                (_syz[Idx(x, y + 1, z)] - _syz[Idx(x, y - 1, z)]) * 0.5 * invDx +
-                (_szz[Idx(x, y, z + 1)] - _szz[Idx(x, y, z - 1)]) * 0.5 * invDx
-            );
-        }
+                    fintZ[idx] = (
+                        (_sxz[Idx(x + 1, y, z)] - _sxz[Idx(x - 1, y, z)]) * 0.5 * invDx +
+                        (_syz[Idx(x, y + 1, z)] - _syz[Idx(x, y - 1, z)]) * 0.5 * invDx +
+                        (_szz[Idx(x, y, z + 1)] - _szz[Idx(x, y, z - 1)]) * 0.5 * invDx
+                    );
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -5354,7 +5504,8 @@ public sealed class ElasticitySolver : IDisposable
 
     private void ComputeContactForces()
     {
-        if (!_cfg.EnableContact) return;
+        if (!_cfg.EnableContact)
+            return;
 
         double kContact = _cfg.ContactStiffness;
         double gap = _cfg.ContactGap;
@@ -5362,34 +5513,34 @@ public sealed class ElasticitySolver : IDisposable
         // Simple half-space contact: the bottom surface (y = 0) is the rigid
         // contact surface. Any node penetrating below y = 0 gets a penalty force.
         for (int z = 0; z < _nz; z++)
-        for (int x = 0; x < _nx; x++)
-        {
-            // Check the bottom layer.
-            int idx = Idx(x, 0, z);
-            double penetration = gap - _uy[idx];
-            if (penetration > 0)
+            for (int x = 0; x < _nx; x++)
             {
-                _contactForceY[idx] = kContact * penetration;
-                _uy[idx] = Math.Max(_uy[idx], -gap);
+                // Check the bottom layer.
+                int idx = Idx(x, 0, z);
+                double penetration = gap - _uy[idx];
+                if (penetration > 0)
+                {
+                    _contactForceY[idx] = kContact * penetration;
+                    _uy[idx] = Math.Max(_uy[idx], -gap);
+                }
+                else
+                {
+                    _contactForceY[idx] = 0;
+                }
             }
-            else
-            {
-                _contactForceY[idx] = 0;
-            }
-        }
 
         // Also check interior nodes near the contact surface.
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < Math.Min(5, _ny - 1); y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
-            double penetration = gap + y * _dx - _uy[idx];
-            if (penetration > 0 && penetration < gap)
-            {
-                _contactForceY[idx] = kContact * penetration * Math.Exp(-y);
-            }
-        }
+            for (int y = 1; y < Math.Min(5, _ny - 1); y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    double penetration = gap + y * _dx - _uy[idx];
+                    if (penetration > 0 && penetration < gap)
+                    {
+                        _contactForceY[idx] = kContact * penetration * Math.Exp(-y);
+                    }
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -5450,9 +5601,12 @@ public sealed class ElasticitySolver : IDisposable
             double totalFz = _Fz[i] - fintZ[i] - fDampZ;
 
             // Acceleration: a = F / ρ (explicit for simplicity).
-            if (!_fixedX[i]) _ax[i] = totalFx / _rho;
-            if (!_fixedY[i]) _ay[i] = totalFy / _rho;
-            if (!_fixedZ[i]) _az[i] = totalFz / _rho;
+            if (!_fixedX[i])
+                _ax[i] = totalFx / _rho;
+            if (!_fixedY[i])
+                _ay[i] = totalFy / _rho;
+            if (!_fixedZ[i])
+                _az[i] = totalFz / _rho;
 
             // Newmark update.
             if (!_fixedX[i])
@@ -5483,7 +5637,8 @@ public sealed class ElasticitySolver : IDisposable
     /// </summary>
     public void ComputeModalAnalysis()
     {
-        if (!_cfg.EnableModalAnalysis || _modalShapes == null) return;
+        if (!_cfg.EnableModalAnalysis || _modalShapes == null)
+            return;
 
         int nModes = _cfg.NumModes;
         double dx3 = _dx * _dx * _dx;
@@ -5513,29 +5668,29 @@ public sealed class ElasticitySolver : IDisposable
                 double[] result = new double[_n * 3];
 
                 for (int z = 1; z < _nz - 1; z++)
-                for (int y = 1; y < _ny - 1; y++)
-                for (int x = 1; x < _nx - 1; x++)
-                {
-                    int nodeIdx = Idx(x, y, z);
-                    int dofX = nodeIdx * 3;
-                    int dofY = nodeIdx * 3 + 1;
-                    int dofZ = nodeIdx * 3 + 2;
+                    for (int y = 1; y < _ny - 1; y++)
+                        for (int x = 1; x < _nx - 1; x++)
+                        {
+                            int nodeIdx = Idx(x, y, z);
+                            int dofX = nodeIdx * 3;
+                            int dofY = nodeIdx * 3 + 1;
+                            int dofZ = nodeIdx * 3 + 2;
 
-                    // Simplified stiffness matrix-vector product.
-                    // Using central difference approximation of the Laplacian.
-                    for (int d = 0; d < 3; d++)
-                    {
-                        double lap = 0;
-                        int dIdx = nodeIdx * 3 + d;
-                        lap += _modalShapes[mode][dIdx + 3] + _modalShapes[mode][dIdx - 3]; // x±1
-                        lap += _modalShapes[mode][dIdx + _nx * 3] + _modalShapes[mode][dIdx - _nx * 3]; // y±1
-                        if (_nz > 1)
-                            lap += _modalShapes[mode][dIdx + _nx * _ny * 3] + _modalShapes[mode][dIdx - _nx * _ny * 3]; // z±1
-                        lap -= 6.0 * _modalShapes[mode][dIdx];
+                            // Simplified stiffness matrix-vector product.
+                            // Using central difference approximation of the Laplacian.
+                            for (int d = 0; d < 3; d++)
+                            {
+                                double lap = 0;
+                                int dIdx = nodeIdx * 3 + d;
+                                lap += _modalShapes[mode][dIdx + 3] + _modalShapes[mode][dIdx - 3]; // x±1
+                                lap += _modalShapes[mode][dIdx + _nx * 3] + _modalShapes[mode][dIdx - _nx * 3]; // y±1
+                                if (_nz > 1)
+                                    lap += _modalShapes[mode][dIdx + _nx * _ny * 3] + _modalShapes[mode][dIdx - _nx * _ny * 3]; // z±1
+                                lap -= 6.0 * _modalShapes[mode][dIdx];
 
-                        result[dIdx] = stiffCoeff * lap - omega2Est * massCoeff * _modalShapes[mode][dIdx];
-                    }
-                }
+                                result[dIdx] = stiffCoeff * lap - omega2Est * massCoeff * _modalShapes[mode][dIdx];
+                            }
+                        }
 
                 // Inverse iteration: solve approximately.
                 for (int i = 0; i < _n * 3; i++)
@@ -5620,7 +5775,8 @@ public sealed class ElasticitySolver : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
     }
 }
@@ -5737,27 +5893,39 @@ public sealed class TurbulenceModels : IDisposable
         _nu = config.KinematicViscosity;
 
         // Allocate turbulence fields.
-        _k = new double[_n]; _epsilon = new double[_n]; _omega = new double[_n];
-        _nut = new double[_n]; _nutSA = new double[_n];
-        _kPrev = new double[_n]; _epsilonPrev = new double[_n];
-        _omegaPrev = new double[_n]; _nutPrev = new double[_n];
+        _k = new double[_n];
+        _epsilon = new double[_n];
+        _omega = new double[_n];
+        _nut = new double[_n];
+        _nutSA = new double[_n];
+        _kPrev = new double[_n];
+        _epsilonPrev = new double[_n];
+        _omegaPrev = new double[_n];
+        _nutPrev = new double[_n];
 
         // Velocity gradients.
-        _dUdx = new double[_n]; _dUdy = new double[_n]; _dUdz = new double[_n];
-        _dVdx = new double[_n]; _dVdy = new double[_n]; _dVdz = new double[_n];
-        _dWdx = new double[_n]; _dWdy = new double[_n]; _dWdz = new double[_n];
+        _dUdx = new double[_n];
+        _dUdy = new double[_n];
+        _dUdz = new double[_n];
+        _dVdx = new double[_n];
+        _dVdy = new double[_n];
+        _dVdz = new double[_n];
+        _dWdx = new double[_n];
+        _dWdy = new double[_n];
+        _dWdz = new double[_n];
 
-        _SijMag = new double[_n]; _OmegaMag = new double[_n];
+        _SijMag = new double[_n];
+        _OmegaMag = new double[_n];
         _yWall = new double[_n];
 
         // Default wall distance (for flat plate: y).
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-        {
-            int idx = z * _ny * _nx + y * _nx + x;
-            _yWall[idx] = y * _dx; // distance from bottom wall
-        }
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                {
+                    int idx = z * _ny * _nx + y * _nx + x;
+                    _yWall[idx] = y * _dx; // distance from bottom wall
+                }
 
         // Initialise with small turbulence.
         for (int i = 0; i < _n; i++)
@@ -5779,9 +5947,9 @@ public sealed class TurbulenceModels : IDisposable
     public void SetWallDistance(Func<int, int, int, double> wallDistFunc)
     {
         for (int z = 0; z < _nz; z++)
-        for (int y = 0; y < _ny; y++)
-        for (int x = 0; x < _nx; x++)
-            _yWall[Idx(x, y, z)] = wallDistFunc(x, y, z);
+            for (int y = 0; y < _ny; y++)
+                for (int x = 0; x < _nx; x++)
+                    _yWall[Idx(x, y, z)] = wallDistFunc(x, y, z);
     }
 
     // -----------------------------------------------------------------------
@@ -5794,40 +5962,40 @@ public sealed class TurbulenceModels : IDisposable
         double invDx2 = 0.5 / _dx;
 
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
 
-            _dUdx[idx] = (u[Idx(x + 1, y, z)] - u[Idx(x - 1, y, z)]) * invDx2;
-            _dUdy[idx] = (u[Idx(x, y + 1, z)] - u[Idx(x, y - 1, z)]) * invDx2;
-            _dUdz[idx] = (u[Idx(x, y, z + 1)] - u[Idx(x, y, z - 1)]) * invDx2;
+                    _dUdx[idx] = (u[Idx(x + 1, y, z)] - u[Idx(x - 1, y, z)]) * invDx2;
+                    _dUdy[idx] = (u[Idx(x, y + 1, z)] - u[Idx(x, y - 1, z)]) * invDx2;
+                    _dUdz[idx] = (u[Idx(x, y, z + 1)] - u[Idx(x, y, z - 1)]) * invDx2;
 
-            _dVdx[idx] = (v[Idx(x + 1, y, z)] - v[Idx(x - 1, y, z)]) * invDx2;
-            _dVdy[idx] = (v[Idx(x, y + 1, z)] - v[Idx(x, y - 1, z)]) * invDx2;
-            _dVdz[idx] = (v[Idx(x, y, z + 1)] - v[Idx(x, y, z - 1)]) * invDx2;
+                    _dVdx[idx] = (v[Idx(x + 1, y, z)] - v[Idx(x - 1, y, z)]) * invDx2;
+                    _dVdy[idx] = (v[Idx(x, y + 1, z)] - v[Idx(x, y - 1, z)]) * invDx2;
+                    _dVdz[idx] = (v[Idx(x, y, z + 1)] - v[Idx(x, y, z - 1)]) * invDx2;
 
-            _dWdx[idx] = (w[Idx(x + 1, y, z)] - w[Idx(x - 1, y, z)]) * invDx2;
-            _dWdy[idx] = (w[Idx(x, y + 1, z)] - w[Idx(x, y - 1, z)]) * invDx2;
-            _dWdz[idx] = (w[Idx(x, y, z + 1)] - w[Idx(x, y, z - 1)]) * invDx2;
+                    _dWdx[idx] = (w[Idx(x + 1, y, z)] - w[Idx(x - 1, y, z)]) * invDx2;
+                    _dWdy[idx] = (w[Idx(x, y + 1, z)] - w[Idx(x, y - 1, z)]) * invDx2;
+                    _dWdz[idx] = (w[Idx(x, y, z + 1)] - w[Idx(x, y, z - 1)]) * invDx2;
 
-            // Strain rate magnitude: S = sqrt(2 S_ij S_ij)
-            double Sxx = _dUdx[idx];
-            double Syy = _dVdy[idx];
-            double Szz = _dWdz[idx];
-            double Sxy = 0.5 * (_dUdy[idx] + _dVdx[idx]);
-            double Syz = 0.5 * (_dVdz[idx] + _dWdy[idx]);
-            double Sxz = 0.5 * (_dUdz[idx] + _dWdx[idx]);
+                    // Strain rate magnitude: S = sqrt(2 S_ij S_ij)
+                    double Sxx = _dUdx[idx];
+                    double Syy = _dVdy[idx];
+                    double Szz = _dWdz[idx];
+                    double Sxy = 0.5 * (_dUdy[idx] + _dVdx[idx]);
+                    double Syz = 0.5 * (_dVdz[idx] + _dWdy[idx]);
+                    double Sxz = 0.5 * (_dUdz[idx] + _dWdx[idx]);
 
-            _SijMag[idx] = Math.Sqrt(2.0 * (Sxx * Sxx + Syy * Syy + Szz * Szz +
-                                             2.0 * (Sxy * Sxy + Syz * Syz + Sxz * Sxz)));
+                    _SijMag[idx] = Math.Sqrt(2.0 * (Sxx * Sxx + Syy * Syy + Szz * Szz +
+                                                     2.0 * (Sxy * Sxy + Syz * Syz + Sxz * Sxz)));
 
-            // Vorticity magnitude: Ω = sqrt(2 Ω_ij Ω_ij)
-            double OmZ = _dVdx[idx] - _dUdy[idx];
-            double OmY = _dUdz[idx] - _dWdx[idx];
-            double OmX = _dWdy[idx] - _dVdz[idx];
-            _OmegaMag[idx] = Math.Sqrt(OmX * OmX + OmY * OmY + OmZ * OmZ);
-        }
+                    // Vorticity magnitude: Ω = sqrt(2 Ω_ij Ω_ij)
+                    double OmZ = _dVdx[idx] - _dUdy[idx];
+                    double OmY = _dUdz[idx] - _dWdx[idx];
+                    double OmX = _dWdy[idx] - _dVdz[idx];
+                    _OmegaMag[idx] = Math.Sqrt(OmX * OmX + OmY * OmY + OmZ * OmZ);
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -5846,46 +6014,46 @@ public sealed class TurbulenceModels : IDisposable
         ComputeVelocityGradients(u, v, w);
 
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
-            _kPrev[idx] = _k[idx];
-            _epsilonPrev[idx] = _epsilon[idx];
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    _kPrev[idx] = _k[idx];
+                    _epsilonPrev[idx] = _epsilon[idx];
 
-            // Production of turbulence: P_k = ν_t S²
-            double nut = Cmu * _k[idx] * _k[idx] / Math.Max(_epsilon[idx], 1e-20);
-            double Pk = nut * _SijMag[idx] * _SijMag[idx];
+                    // Production of turbulence: P_k = ν_t S²
+                    double nut = Cmu * _k[idx] * _k[idx] / Math.Max(_epsilon[idx], 1e-20);
+                    double Pk = nut * _SijMag[idx] * _SijMag[idx];
 
-            // Clamp production.
-            Pk = Math.Min(Pk, 10.0 * _epsilon[idx]);
+                    // Clamp production.
+                    Pk = Math.Min(Pk, 10.0 * _epsilon[idx]);
 
-            // Laplacians (diffusion).
-            double lapK = (_k[Idx(x + 1, y, z)] + _k[Idx(x - 1, y, z)] +
-                           _k[Idx(x, y + 1, z)] + _k[Idx(x, y - 1, z)] +
-                           _k[Idx(x, y, z + 1)] + _k[Idx(x, y, z - 1)] -
-                           6.0 * _k[idx]) / (_dx * _dx);
-            double lapEps = (_epsilon[Idx(x + 1, y, z)] + _epsilon[Idx(x - 1, y, z)] +
-                             _epsilon[Idx(x, y + 1, z)] + _epsilon[Idx(x, y - 1, z)] +
-                             _epsilon[Idx(x, y, z + 1)] + _epsilon[Idx(x, y, z - 1)] -
-                             6.0 * _epsilon[idx]) / (_dx * _dx);
+                    // Laplacians (diffusion).
+                    double lapK = (_k[Idx(x + 1, y, z)] + _k[Idx(x - 1, y, z)] +
+                                   _k[Idx(x, y + 1, z)] + _k[Idx(x, y - 1, z)] +
+                                   _k[Idx(x, y, z + 1)] + _k[Idx(x, y, z - 1)] -
+                                   6.0 * _k[idx]) / (_dx * _dx);
+                    double lapEps = (_epsilon[Idx(x + 1, y, z)] + _epsilon[Idx(x - 1, y, z)] +
+                                     _epsilon[Idx(x, y + 1, z)] + _epsilon[Idx(x, y - 1, z)] +
+                                     _epsilon[Idx(x, y, z + 1)] + _epsilon[Idx(x, y, z - 1)] -
+                                     6.0 * _epsilon[idx]) / (_dx * _dx);
 
-            // Transport for k.
-            double dkdt = Pk - _epsilon[idx] +
-                          (_nu + nut / sigmaK) * lapK;
-            _k[idx] = _kPrev[idx] + _dt * dkdt;
-            _k[idx] = Math.Max(_k[idx], 1e-20);
+                    // Transport for k.
+                    double dkdt = Pk - _epsilon[idx] +
+                                  (_nu + nut / sigmaK) * lapK;
+                    _k[idx] = _kPrev[idx] + _dt * dkdt;
+                    _k[idx] = Math.Max(_k[idx], 1e-20);
 
-            // Transport for ε.
-            double depsdt = (C1e * Pk - C2e * _epsilon[idx]) / Math.Max(_k[idx], 1e-20) +
-                            (_nu + nut / sigmaE) * lapEps;
-            _epsilon[idx] = _epsilonPrev[idx] + _dt * depsdt;
-            _epsilon[idx] = Math.Max(_epsilon[idx], 1e-20);
+                    // Transport for ε.
+                    double depsdt = (C1e * Pk - C2e * _epsilon[idx]) / Math.Max(_k[idx], 1e-20) +
+                                    (_nu + nut / sigmaE) * lapEps;
+                    _epsilon[idx] = _epsilonPrev[idx] + _dt * depsdt;
+                    _epsilon[idx] = Math.Max(_epsilon[idx], 1e-20);
 
-            // Turbulent viscosity.
-            _nut[idx] = Cmu * _k[idx] * _k[idx] / _epsilon[idx];
-            _nut[idx] = Math.Min(_nut[idx], _cfg.TurbulentViscosityMax);
-        }
+                    // Turbulent viscosity.
+                    _nut[idx] = Cmu * _k[idx] * _k[idx] / _epsilon[idx];
+                    _nut[idx] = Math.Min(_nut[idx], _cfg.TurbulentViscosityMax);
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -5903,62 +6071,62 @@ public sealed class TurbulenceModels : IDisposable
         ComputeVelocityGradients(u, v, w);
 
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
-            _kPrev[idx] = _k[idx];
-            _omegaPrev[idx] = _omega[idx];
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    _kPrev[idx] = _k[idx];
+                    _omegaPrev[idx] = _omega[idx];
 
-            double yW = _yWall[idx];
-            double dist = Math.Max(yW, 1e-10);
+                    double yW = _yWall[idx];
+                    double dist = Math.Max(yW, 1e-10);
 
-            // CD_kw = max(2 ρ σ_w2 / ω ∇k·∇ω, 10⁻²⁰)
-            double lapK = (_k[Idx(x + 1, y, z)] + _k[Idx(x - 1, y, z)] +
-                           _k[Idx(x, y + 1, z)] + _k[Idx(x, y - 1, z)] +
-                           _k[Idx(x, y, z + 1)] + _k[Idx(x, y, z - 1)] -
-                           6.0 * _k[idx]) / (_dx * _dx);
-            double lapOmega = (_omega[Idx(x + 1, y, z)] + _omega[Idx(x - 1, y, z)] +
-                               _omega[Idx(x, y + 1, z)] + _omega[Idx(x, y - 1, z)] +
-                               _omega[Idx(x, y, z + 1)] + _omega[Idx(x, y, z - 1)] -
-                               6.0 * _omega[idx]) / (_dx * _dx);
+                    // CD_kw = max(2 ρ σ_w2 / ω ∇k·∇ω, 10⁻²⁰)
+                    double lapK = (_k[Idx(x + 1, y, z)] + _k[Idx(x - 1, y, z)] +
+                                   _k[Idx(x, y + 1, z)] + _k[Idx(x, y - 1, z)] +
+                                   _k[Idx(x, y, z + 1)] + _k[Idx(x, y, z - 1)] -
+                                   6.0 * _k[idx]) / (_dx * _dx);
+                    double lapOmega = (_omega[Idx(x + 1, y, z)] + _omega[Idx(x - 1, y, z)] +
+                                       _omega[Idx(x, y + 1, z)] + _omega[Idx(x, y - 1, z)] +
+                                       _omega[Idx(x, y, z + 1)] + _omega[Idx(x, y, z - 1)] -
+                                       6.0 * _omega[idx]) / (_dx * _dx);
 
-            // F1 blending function: switches between inner (k-ω) and outer (k-ε).
-            double arg1 = Math.Sqrt(_k[idx]) / (BetaStar * Math.Max(_omega[idx], 1e-20) * dist);
-            double arg2 = 500.0 * _nu / (dist * dist * Math.Max(_omega[idx], 1e-20));
-            double F1 = Math.Tanh(Math.Pow(Math.Min(Math.Max(arg1, arg2), 4.0), 4.0));
+                    // F1 blending function: switches between inner (k-ω) and outer (k-ε).
+                    double arg1 = Math.Sqrt(_k[idx]) / (BetaStar * Math.Max(_omega[idx], 1e-20) * dist);
+                    double arg2 = 500.0 * _nu / (dist * dist * Math.Max(_omega[idx], 1e-20));
+                    double F1 = Math.Tanh(Math.Pow(Math.Min(Math.Max(arg1, arg2), 4.0), 4.0));
 
-            // F2 blending function.
-            double arg2b = 2.0 * Math.Sqrt(_k[idx]) / (BetaStar * Math.Max(_omega[idx], 1e-20) * dist);
-            double F2 = Math.Tanh(arg2b * arg2b);
+                    // F2 blending function.
+                    double arg2b = 2.0 * Math.Sqrt(_k[idx]) / (BetaStar * Math.Max(_omega[idx], 1e-20) * dist);
+                    double F2 = Math.Tanh(arg2b * arg2b);
 
-            // Blended coefficients.
-            double beta = Beta1 * F1 + Beta2 * (1.0 - F1);
-            double sigmaKBl = SigmaK1 * F1 + SigmaK2 * (1.0 - F1);
-            double sigmaWBl = SigmaW1 * F1 + SigmaW2 * (1.0 - F1);
+                    // Blended coefficients.
+                    double beta = Beta1 * F1 + Beta2 * (1.0 - F1);
+                    double sigmaKBl = SigmaK1 * F1 + SigmaK2 * (1.0 - F1);
+                    double sigmaWBl = SigmaW1 * F1 + SigmaW2 * (1.0 - F1);
 
-            // Production and destruction.
-            double Pk = _SijMag[idx] * _SijMag[idx] * Math.Min(_k[idx], 10.0 * BetaStar * _k[idx]);
-            double Pw = Pk / Math.Max(_k[idx], 1e-20);
+                    // Production and destruction.
+                    double Pk = _SijMag[idx] * _SijMag[idx] * Math.Min(_k[idx], 10.0 * BetaStar * _k[idx]);
+                    double Pw = Pk / Math.Max(_k[idx], 1e-20);
 
-            // Transport for k.
-            double dkdt = Pk - BetaStar * _omega[idx] * _k[idx] +
-                          (_nu + _nut[idx] / sigmaKBl) * lapK;
-            _k[idx] = _kPrev[idx] + _dt * dkdt;
-            _k[idx] = Math.Max(_k[idx], 1e-20);
+                    // Transport for k.
+                    double dkdt = Pk - BetaStar * _omega[idx] * _k[idx] +
+                                  (_nu + _nut[idx] / sigmaKBl) * lapK;
+                    _k[idx] = _kPrev[idx] + _dt * dkdt;
+                    _k[idx] = Math.Max(_k[idx], 1e-20);
 
-            // Transport for ω.
-            double domegadt = Pw - beta * _omega[idx] * _omega[idx] +
-                              (_nu + _nut[idx] / sigmaWBl) * lapOmega +
-                              (1.0 - F1) * Cw2 * lapOmega; // cross-diffusion
-            _omega[idx] = _omegaPrev[idx] + _dt * domegadt;
-            _omega[idx] = Math.Max(_omega[idx], 1e-20);
+                    // Transport for ω.
+                    double domegadt = Pw - beta * _omega[idx] * _omega[idx] +
+                                      (_nu + _nut[idx] / sigmaWBl) * lapOmega +
+                                      (1.0 - F1) * Cw2 * lapOmega; // cross-diffusion
+                    _omega[idx] = _omegaPrev[idx] + _dt * domegadt;
+                    _omega[idx] = Math.Max(_omega[idx], 1e-20);
 
-            // SST eddy viscosity: ν_t = a₁k / max(a₁ω, S F2).
-            double a1 = A1;
-            _nut[idx] = a1 * _k[idx] / Math.Max(a1 * _omega[idx], _SijMag[idx] * F2);
-            _nut[idx] = Math.Min(_nut[idx], _cfg.TurbulentViscosityMax);
-        }
+                    // SST eddy viscosity: ν_t = a₁k / max(a₁ω, S F2).
+                    double a1 = A1;
+                    _nut[idx] = a1 * _k[idx] / Math.Max(a1 * _omega[idx], _SijMag[idx] * F2);
+                    _nut[idx] = Math.Min(_nut[idx], _cfg.TurbulentViscosityMax);
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -5976,56 +6144,56 @@ public sealed class TurbulenceModels : IDisposable
         ComputeVelocityGradients(u, v, w);
 
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
-            _nutSA[idx] = _nutSA[idx]; // save previous
-            double nuTilde = _nutSA[idx];
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
+                    _nutSA[idx] = _nutSA[idx]; // save previous
+                    double nuTilde = _nutSA[idx];
 
-            double d = _yWall[idx];
-            double chi = nuTilde / _nu;
-            double fv1 = chi * chi * chi / (chi * chi * chi + Cv1 * Cv1 * Cv1);
+                    double d = _yWall[idx];
+                    double chi = nuTilde / _nu;
+                    double fv1 = chi * chi * chi / (chi * chi * chi + Cv1 * Cv1 * Cv1);
 
-            // Modified vorticity: S̃ = S + ν̃ fw / (κ² d²)
-            double kappa = 0.41;
-            double S = _SijMag[idx];
-            double Stilde = S + nuTilde * fv1 / (kappa * kappa * d * d + 1e-20);
+                    // Modified vorticity: S̃ = S + ν̃ fw / (κ² d²)
+                    double kappa = 0.41;
+                    double S = _SijMag[idx];
+                    double Stilde = S + nuTilde * fv1 / (kappa * kappa * d * d + 1e-20);
 
-            // fw function.
-            double r = nuTilde / (Stilde * kappa * kappa * d * d + 1e-20);
-            r = Math.Min(r, 10.0);
-            double g = r + Cw2 * (r * r * r * r * r * r - r);
-            double fw = Math.Pow(g, 1.0 / 6.0);
+                    // fw function.
+                    double r = nuTilde / (Stilde * kappa * kappa * d * d + 1e-20);
+                    r = Math.Min(r, 10.0);
+                    double g = r + Cw2 * (r * r * r * r * r * r - r);
+                    double fw = Math.Pow(g, 1.0 / 6.0);
 
-            // Diffusion terms.
-            double lapNuTilde = (_nutSA[Idx(x + 1, y, z)] + _nutSA[Idx(x - 1, y, z)] +
-                                 _nutSA[Idx(x, y + 1, z)] + _nutSA[Idx(x, y - 1, z)] +
-                                 _nutSA[Idx(x, y, z + 1)] + _nutSA[Idx(x, y, z - 1)] -
-                                 6.0 * nuTilde) / (_dx * _dx);
+                    // Diffusion terms.
+                    double lapNuTilde = (_nutSA[Idx(x + 1, y, z)] + _nutSA[Idx(x - 1, y, z)] +
+                                         _nutSA[Idx(x, y + 1, z)] + _nutSA[Idx(x, y - 1, z)] +
+                                         _nutSA[Idx(x, y, z + 1)] + _nutSA[Idx(x, y, z - 1)] -
+                                         6.0 * nuTilde) / (_dx * _dx);
 
-            double[] gradNu = new double[3];
-            gradNu[0] = (_nutSA[Idx(x + 1, y, z)] - _nutSA[Idx(x - 1, y, z)]) / (2.0 * _dx);
-            gradNu[1] = (_nutSA[Idx(x, y + 1, z)] - _nutSA[Idx(x, y - 1, z)]) / (2.0 * _dx);
-            gradNu[2] = (_nutSA[Idx(x, y, z + 1)] - _nutSA[Idx(x, y, z - 1)]) / (2.0 * _dx);
-            double gradNuSq = gradNu[0] * gradNu[0] + gradNu[1] * gradNu[1] + gradNu[2] * gradNu[2];
+                    double[] gradNu = new double[3];
+                    gradNu[0] = (_nutSA[Idx(x + 1, y, z)] - _nutSA[Idx(x - 1, y, z)]) / (2.0 * _dx);
+                    gradNu[1] = (_nutSA[Idx(x, y + 1, z)] - _nutSA[Idx(x, y - 1, z)]) / (2.0 * _dx);
+                    gradNu[2] = (_nutSA[Idx(x, y, z + 1)] - _nutSA[Idx(x, y, z - 1)]) / (2.0 * _dx);
+                    double gradNuSq = gradNu[0] * gradNu[0] + gradNu[1] * gradNu[1] + gradNu[2] * gradNu[2];
 
-            // Transport equation.
-            double dnuTildeDt = Cb1 * Stilde * nuTilde -
-                                Cw1 * fw * nuTilde * nuTilde / (d * d) +
-                                (1.0 / SigmaSA) * ((_nu + nuTilde) * lapNuTilde +
-                                                   Cb2 * gradNuSq);
+                    // Transport equation.
+                    double dnuTildeDt = Cb1 * Stilde * nuTilde -
+                                        Cw1 * fw * nuTilde * nuTilde / (d * d) +
+                                        (1.0 / SigmaSA) * ((_nu + nuTilde) * lapNuTilde +
+                                                           Cb2 * gradNuSq);
 
-            nuTilde += _dt * dnuTildeDt;
-            nuTilde = Math.Max(nuTilde, 0);
+                    nuTilde += _dt * dnuTildeDt;
+                    nuTilde = Math.Max(nuTilde, 0);
 
-            // Clamp.
-            nuTilde = Math.Min(nuTilde, _cfg.TurbulentViscosityMax);
-            _nutSA[idx] = nuTilde;
+                    // Clamp.
+                    nuTilde = Math.Min(nuTilde, _cfg.TurbulentViscosityMax);
+                    _nutSA[idx] = nuTilde;
 
-            // Turbulent viscosity: ν_t = ν̃ f_v1.
-            _nut[idx] = nuTilde * fv1;
-        }
+                    // Turbulent viscosity: ν_t = ν̃ f_v1.
+                    _nut[idx] = nuTilde * fv1;
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -6046,22 +6214,22 @@ public sealed class TurbulenceModels : IDisposable
         double delta = _dx; // filter width = grid spacing
 
         for (int z = 1; z < _nz - 1; z++)
-        for (int y = 1; y < _ny - 1; y++)
-        for (int x = 1; x < _nx - 1; x++)
-        {
-            int idx = Idx(x, y, z);
+            for (int y = 1; y < _ny - 1; y++)
+                for (int x = 1; x < _nx - 1; x++)
+                {
+                    int idx = Idx(x, y, z);
 
-            // Smagorinsky SGS viscosity.
-            _nut[idx] = (Cs * delta) * (Cs * delta) * _SijMag[idx];
+                    // Smagorinsky SGS viscosity.
+                    _nut[idx] = (Cs * delta) * (Cs * delta) * _SijMag[idx];
 
-            // Wall damping: van Driest damping near walls.
-            double yPlus = _yWall[idx] * Math.Sqrt(_SijMag[idx]) / Math.Max(_nu, 1e-20);
-            double APlus = 26.0;
-            double wallDamp = 1.0 - Math.Exp(-yPlus / APlus);
-            _nut[idx] *= wallDamp * wallDamp;
+                    // Wall damping: van Driest damping near walls.
+                    double yPlus = _yWall[idx] * Math.Sqrt(_SijMag[idx]) / Math.Max(_nu, 1e-20);
+                    double APlus = 26.0;
+                    double wallDamp = 1.0 - Math.Exp(-yPlus / APlus);
+                    _nut[idx] *= wallDamp * wallDamp;
 
-            _nut[idx] = Math.Min(_nut[idx], _cfg.TurbulentViscosityMax);
-        }
+                    _nut[idx] = Math.Min(_nut[idx], _cfg.TurbulentViscosityMax);
+                }
     }
 
     // -----------------------------------------------------------------------
@@ -6094,7 +6262,8 @@ public sealed class TurbulenceModels : IDisposable
                 count++;
             }
         }
-        if (count == 0) return 0;
+        if (count == 0)
+            return 0;
         double avgU = sumU / count;
         double avgK = sumK / count;
         return Math.Sqrt(2.0 * avgK / 3.0) / Math.Max(avgU, 1e-10);
@@ -6111,7 +6280,8 @@ public sealed class TurbulenceModels : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
     }
 }
@@ -6170,11 +6340,11 @@ public sealed class InterfaceData
 /// </summary>
 public sealed class CouplingLink
 {
-    public string SourceSolver { get; init; }
-    public string TargetSolver { get; init; }
-    public string SourceField { get; init; }
-    public string TargetField { get; init; }
-    public Func<double[], double[]> TransferFunction { get; init; }
+    public required string SourceSolver { get; init; }
+    public required string TargetSolver { get; init; }
+    public required string SourceField { get; init; }
+    public required string TargetField { get; init; }
+    public required Func<double[], double[]> TransferFunction { get; init; }
 }
 
 /// <summary>
@@ -6245,7 +6415,8 @@ public sealed class LoadBalancer
     {
         var result = new Dictionary<string, double>();
         double total = 0;
-        foreach (var kv in _executionTimes) total += kv.Value;
+        foreach (var kv in _executionTimes)
+            total += kv.Value;
         foreach (var kv in _executionTimes)
             result[kv.Key] = total > 0 ? kv.Value / total : 1.0 / Math.Max(_executionTimes.Count, 1);
         return result;
@@ -6256,7 +6427,8 @@ public sealed class LoadBalancer
         var result = new Dictionary<string, double>();
         double maxTime = 0;
         foreach (var kv in _executionTimes)
-            if (kv.Value > maxTime) maxTime = kv.Value;
+            if (kv.Value > maxTime)
+                maxTime = kv.Value;
         foreach (var kv in _executionTimes)
             result[kv.Key] = maxTime > 0 ? maxTime / kv.Value : 1.0;
         return result;
@@ -6372,7 +6544,8 @@ public sealed class MultiphysicsCoupler : IDisposable
             var newData = new Dictionary<string, double[]>();
             foreach (var link in _links)
             {
-                if (!oldData.ContainsKey(link.SourceField)) continue;
+                if (!oldData.ContainsKey(link.SourceField))
+                    continue;
 
                 double[] transferred = link.TransferFunction != null
                     ? link.TransferFunction(oldData[link.SourceField])
@@ -6454,14 +6627,18 @@ public sealed class MultiphysicsCoupler : IDisposable
 
         AddCouplingLink(new CouplingLink
         {
-            SourceSolver = "fluid", TargetSolver = "structure",
-            SourceField = "pressure", TargetField = "force",
+            SourceSolver = "fluid",
+            TargetSolver = "structure",
+            SourceField = "pressure",
+            TargetField = "force",
             TransferFunction = pressureToForce
         });
         AddCouplingLink(new CouplingLink
         {
-            SourceSolver = "structure", TargetSolver = "fluid",
-            SourceField = "displacement", TargetField = "mesh",
+            SourceSolver = "structure",
+            TargetSolver = "fluid",
+            SourceField = "displacement",
+            TargetField = "mesh",
             TransferFunction = displacementToMesh
         });
     }
@@ -6481,33 +6658,40 @@ public sealed class MultiphysicsCoupler : IDisposable
 
         AddCouplingLink(new CouplingLink
         {
-            SourceSolver = "fluid", TargetSolver = "solid",
-            SourceField = "temperature", TargetField = "solid_temperature",
+            SourceSolver = "fluid",
+            TargetSolver = "solid",
+            SourceField = "temperature",
+            TargetField = "solid_temperature",
             TransferFunction = tempToFlux
         });
         AddCouplingLink(new CouplingLink
         {
-            SourceSolver = "solid", TargetSolver = "fluid",
-            SourceField = "solid_heatflux", TargetField = "heatflux",
+            SourceSolver = "solid",
+            TargetSolver = "fluid",
+            SourceField = "solid_heatflux",
+            TargetField = "heatflux",
             TransferFunction = fluxToTemp
         });
     }
 
-    public T GetSolver<T>(string name) where T : class
+    public T? GetSolver<T>(string name) where T : class
     {
-        if (_solvers.TryGetValue(name, out var solver)) return solver as T;
+        if (_solvers.TryGetValue(name, out var solver))
+            return solver as T;
         throw new KeyNotFoundException($"Solver '{name}' not registered.");
     }
 
     public InterfaceData GetInterfaceData(string name)
     {
-        if (_interfaceData.TryGetValue(name, out var data)) return data;
+        if (_interfaceData.TryGetValue(name, out var data))
+            return data;
         throw new KeyNotFoundException($"Interface '{name}' not registered.");
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
     }
 }
@@ -6535,30 +6719,39 @@ public static class IterativeLinearSolver
         double[] r = new double[n], p = new double[n], Ap = new double[n];
         double[] bArr = b.ToArray();
         double[] Ax0 = matVec(x.ToArray());
-        for (int i = 0; i < n; i++) { r[i] = bArr[i] - Ax0[i]; p[i] = r[i]; }
+        for (int i = 0; i < n; i++)
+        { r[i] = bArr[i] - Ax0[i]; p[i] = r[i]; }
 
         double rsOld = 0;
-        for (int i = 0; i < n; i++) rsOld += r[i] * r[i];
+        for (int i = 0; i < n; i++)
+            rsOld += r[i] * r[i];
         double bNorm = Math.Sqrt(rsOld);
-        if (bNorm < 1e-30) bNorm = 1.0;
+        if (bNorm < 1e-30)
+            bNorm = 1.0;
 
         int iter;
         for (iter = 0; iter < maxIter; iter++)
         {
             Ap = matVec(p);
             double pAp = 0;
-            for (int i = 0; i < n; i++) pAp += p[i] * Ap[i];
-            if (Math.Abs(pAp) < 1e-30) break;
+            for (int i = 0; i < n; i++)
+                pAp += p[i] * Ap[i];
+            if (Math.Abs(pAp) < 1e-30)
+                break;
 
             double alpha = rsOld / pAp;
-            for (int i = 0; i < n; i++) { x[i] += alpha * p[i]; r[i] -= alpha * Ap[i]; }
+            for (int i = 0; i < n; i++)
+            { x[i] += alpha * p[i]; r[i] -= alpha * Ap[i]; }
 
             double rsNew = 0;
-            for (int i = 0; i < n; i++) rsNew += r[i] * r[i];
-            if (Math.Sqrt(rsNew) / bNorm < tolerance) { iter++; break; }
+            for (int i = 0; i < n; i++)
+                rsNew += r[i] * r[i];
+            if (Math.Sqrt(rsNew) / bNorm < tolerance)
+            { iter++; break; }
 
             double beta = rsNew / rsOld;
-            for (int i = 0; i < n; i++) p[i] = r[i] + beta * p[i];
+            for (int i = 0; i < n; i++)
+                p[i] = r[i] + beta * p[i];
             rsOld = rsNew;
         }
         return iter;
@@ -6579,18 +6772,23 @@ public static class IterativeLinearSolver
         double[] xOld = new double[n];
         for (int iter = 0; iter < maxIter; iter++)
         {
-            for (int i = 0; i < n; i++) xOld[i] = x[i];
+            for (int i = 0; i < n; i++)
+                xOld[i] = x[i];
             for (int i = 0; i < n; i++)
             {
                 double sigma = 0;
                 double diag = getElement(i, i);
-                for (int j = 0; j < n; j++) if (j != i) sigma += getElement(i, j) * x[j];
+                for (int j = 0; j < n; j++)
+                    if (j != i)
+                        sigma += getElement(i, j) * x[j];
                 double xGS = (b[i] - sigma) / diag;
                 x[i] = (1.0 - omega) * x[i] + omega * xGS;
             }
             double diff = 0;
-            for (int i = 0; i < n; i++) diff += (x[i] - xOld[i]) * (x[i] - xOld[i]);
-            if (Math.Sqrt(diff) < tolerance) return iter + 1;
+            for (int i = 0; i < n; i++)
+                diff += (x[i] - xOld[i]) * (x[i] - xOld[i]);
+            if (Math.Sqrt(diff) < tolerance)
+                return iter + 1;
         }
         return maxIter;
     }
@@ -6615,15 +6813,18 @@ public static class ODEIntegrators
         double[] k1 = rhs(t, yArr);
 
         double[] y2 = new double[n];
-        for (int i = 0; i < n; i++) y2[i] = y[i] + 0.5 * dt * k1[i];
+        for (int i = 0; i < n; i++)
+            y2[i] = y[i] + 0.5 * dt * k1[i];
         double[] k2 = rhs(t + 0.5 * dt, y2);
 
         double[] y3 = new double[n];
-        for (int i = 0; i < n; i++) y3[i] = y[i] + 0.5 * dt * k2[i];
+        for (int i = 0; i < n; i++)
+            y3[i] = y[i] + 0.5 * dt * k2[i];
         double[] k3 = rhs(t + 0.5 * dt, y3);
 
         double[] y4 = new double[n];
-        for (int i = 0; i < n; i++) y4[i] = y[i] + dt * k3[i];
+        for (int i = 0; i < n; i++)
+            y4[i] = y[i] + dt * k3[i];
         double[] k4 = rhs(t + dt, y4);
 
         double[] result = new double[n];
@@ -6641,7 +6842,8 @@ public static class ODEIntegrators
         double[] yn = y.ToArray();
         double[] f0 = rhs(t, yn);
         double[] yn1 = new double[n];
-        for (int i = 0; i < n; i++) yn1[i] = yn[i] + dt * f0[i];
+        for (int i = 0; i < n; i++)
+            yn1[i] = yn[i] + dt * f0[i];
 
         for (int iter = 0; iter < iters; iter++)
         {
@@ -6717,14 +6919,17 @@ public static class FFT
     public static void Forward(Span<double> real, Span<double> imag)
     {
         int n = real.Length;
-        if ((n & (n - 1)) != 0) throw new ArgumentException("Length must be a power of 2.");
+        if ((n & (n - 1)) != 0)
+            throw new ArgumentException("Length must be a power of 2.");
 
         for (int i = 1, j = 0; i < n; i++)
         {
             int bit = n >> 1;
-            for (; (j & bit) != 0; bit >>= 1) j ^= bit;
+            for (; (j & bit) != 0; bit >>= 1)
+                j ^= bit;
             j ^= bit;
-            if (i < j) { (real[i], real[j]) = (real[j], real[i]); (imag[i], imag[j]) = (imag[j], imag[i]); }
+            if (i < j)
+            { (real[i], real[j]) = (real[j], real[i]); (imag[i], imag[j]) = (imag[j], imag[i]); }
         }
 
         for (int len = 2; len <= n; len <<= 1)
@@ -6739,10 +6944,13 @@ public static class FFT
                     int a = i + j, b = i + j + len / 2;
                     double tRe = curRe * real[b] - curIm * imag[b];
                     double tIm = curRe * imag[b] + curIm * real[b];
-                    real[b] = real[a] - tRe; imag[b] = imag[a] - tIm;
-                    real[a] += tRe; imag[a] += tIm;
+                    real[b] = real[a] - tRe;
+                    imag[b] = imag[a] - tIm;
+                    real[a] += tRe;
+                    imag[a] += tIm;
                     double newRe = curRe * wr - curIm * wi;
-                    curIm = curRe * wi + curIm * wr; curRe = newRe;
+                    curIm = curRe * wi + curIm * wr;
+                    curRe = newRe;
                 }
             }
         }
@@ -6750,22 +6958,27 @@ public static class FFT
 
     public static void Inverse(Span<double> real, Span<double> imag)
     {
-        for (int i = 0; i < imag.Length; i++) imag[i] = -imag[i];
+        for (int i = 0; i < imag.Length; i++)
+            imag[i] = -imag[i];
         Forward(real, imag);
         double inv = 1.0 / real.Length;
-        for (int i = 0; i < real.Length; i++) { real[i] *= inv; imag[i] = -imag[i] * inv; }
+        for (int i = 0; i < real.Length; i++)
+        { real[i] *= inv; imag[i] = -imag[i] * inv; }
     }
 
     public static double[] PowerSpectrum(ReadOnlySpan<double> signal)
     {
         int n = signal.Length;
-        int fftSize = 1; while (fftSize < n) fftSize <<= 1;
+        int fftSize = 1;
+        while (fftSize < n)
+            fftSize <<= 1;
         double[] re = new double[fftSize], im = new double[fftSize];
         signal.CopyTo(re);
         Forward(re, im);
         int half = fftSize / 2;
         double[] psd = new double[half];
-        for (int i = 0; i < half; i++) psd[i] = (re[i] * re[i] + im[i] * im[i]) / (fftSize * fftSize);
+        for (int i = 0; i < half; i++)
+            psd[i] = (re[i] * re[i] + im[i] * im[i]) / (fftSize * fftSize);
         return psd;
     }
 }
@@ -6787,7 +7000,8 @@ public sealed class MersenneTwister
     public MersenneTwister(uint seed = 5489)
     {
         _mt[0] = seed;
-        for (int i = 1; i < N; i++) _mt[i] = 1812433253 * (_mt[i - 1] ^ (_mt[i - 1] >> 30)) + (uint)i;
+        for (int i = 1; i < N; i++)
+            _mt[i] = 1812433253 * (_mt[i - 1] ^ (_mt[i - 1] >> 30)) + (uint)i;
     }
 
     private uint GenerateUInt()
@@ -6795,14 +7009,19 @@ public sealed class MersenneTwister
         uint[] mag01 = { 0, MatrixA };
         if (_mti >= N)
         {
-            for (int k = 0; k < N - M; k++) { uint y = (_mt[k] & UpperMask) | (_mt[k + 1] & LowerMask); _mt[k] = _mt[k + M] ^ (y >> 1) ^ mag01[y & 1]; }
-            for (int k = N - M; k < N - 1; k++) { uint y = (_mt[k] & UpperMask) | (_mt[k + 1] & LowerMask); _mt[k] = _mt[k + M - N] ^ (y >> 1) ^ mag01[y & 1]; }
+            for (int k = 0; k < N - M; k++)
+            { uint y = (_mt[k] & UpperMask) | (_mt[k + 1] & LowerMask); _mt[k] = _mt[k + M] ^ (y >> 1) ^ mag01[y & 1]; }
+            for (int k = N - M; k < N - 1; k++)
+            { uint y = (_mt[k] & UpperMask) | (_mt[k + 1] & LowerMask); _mt[k] = _mt[k + M - N] ^ (y >> 1) ^ mag01[y & 1]; }
             uint yb = (_mt[N - 1] & UpperMask) | (_mt[0] & LowerMask);
             _mt[N - 1] = _mt[M - 1] ^ (yb >> 1) ^ mag01[yb & 1];
             _mti = 0;
         }
         uint y2 = _mt[_mti++];
-        y2 ^= y2 >> 11; y2 ^= (y2 << 7) & 0x9d2c5680; y2 ^= (y2 << 15) & 0xefc60000; y2 ^= y2 >> 18;
+        y2 ^= y2 >> 11;
+        y2 ^= (y2 << 7) & 0x9d2c5680;
+        y2 ^= (y2 << 15) & 0xefc60000;
+        y2 ^= y2 >> 18;
         return y2;
     }
 
@@ -6819,8 +7038,10 @@ public sealed class MersenneTwister
 
     public int NextPoisson(double lambda)
     {
-        double L = Math.Exp(-lambda), p = 1.0; int k = 0;
-        do { k++; p *= NextDouble(); } while (p > L);
+        double L = Math.Exp(-lambda), p = 1.0;
+        int k = 0;
+        do
+        { k++; p *= NextDouble(); } while (p > L);
         return k - 1;
     }
 }
@@ -6898,14 +7119,14 @@ public static class NumericalDifferentiation
     {
         double invDx2 = 0.5 / dx;
         for (int z = 1; z < nz - 1; z++)
-        for (int y = 1; y < ny - 1; y++)
-        for (int x = 1; x < nx - 1; x++)
-        {
-            int idx = z * ny * nx + y * nx + x;
-            dfdx[idx] = (f[idx + 1] - f[idx - 1]) * invDx2;
-            dfdy[idx] = (f[idx + nx] - f[idx - nx]) * invDx2;
-            dfdz[idx] = (f[idx + ny * nx] - f[idx - ny * nx]) * invDx2;
-        }
+            for (int y = 1; y < ny - 1; y++)
+                for (int x = 1; x < nx - 1; x++)
+                {
+                    int idx = z * ny * nx + y * nx + x;
+                    dfdx[idx] = (f[idx + 1] - f[idx - 1]) * invDx2;
+                    dfdy[idx] = (f[idx + nx] - f[idx - nx]) * invDx2;
+                    dfdz[idx] = (f[idx + ny * nx] - f[idx - ny * nx]) * invDx2;
+                }
     }
 
     /// <summary>
@@ -6918,15 +7139,15 @@ public static class NumericalDifferentiation
         double sum = 0;
         double invDx2 = 0.5 / dx;
         for (int z = 1; z < nz - 1; z++)
-        for (int y = 1; y < ny - 1; y++)
-        for (int x = 1; x < nx - 1; x++)
-        {
-            int idx = z * ny * nx + y * nx + x;
-            double div = (fx[idx + 1] - fx[idx - 1]) * invDx2 +
-                         (fy[idx + nx] - fy[idx - nx]) * invDx2 +
-                         (fz[idx + ny * nx] - fz[idx - ny * nx]) * invDx2;
-            sum += div * div;
-        }
+            for (int y = 1; y < ny - 1; y++)
+                for (int x = 1; x < nx - 1; x++)
+                {
+                    int idx = z * ny * nx + y * nx + x;
+                    double div = (fx[idx + 1] - fx[idx - 1]) * invDx2 +
+                                 (fy[idx + nx] - fy[idx - nx]) * invDx2 +
+                                 (fz[idx + ny * nx] - fz[idx - ny * nx]) * invDx2;
+                    sum += div * div;
+                }
         return Math.Sqrt(sum);
     }
 
@@ -6940,18 +7161,18 @@ public static class NumericalDifferentiation
     {
         double invDx2 = 0.5 / dx;
         for (int z = 1; z < nz - 1; z++)
-        for (int y = 1; y < ny - 1; y++)
-        for (int x = 1; x < nx - 1; x++)
-        {
-            int idx = z * ny * nx + y * nx + x;
-            int xp = idx + 1, xm = idx - 1;
-            int yp = idx + nx, ym = idx - nx;
-            int zp = idx + ny * nx, zm = idx - ny * nx;
+            for (int y = 1; y < ny - 1; y++)
+                for (int x = 1; x < nx - 1; x++)
+                {
+                    int idx = z * ny * nx + y * nx + x;
+                    int xp = idx + 1, xm = idx - 1;
+                    int yp = idx + nx, ym = idx - nx;
+                    int zp = idx + ny * nx, zm = idx - ny * nx;
 
-            curlX[idx] = (fz[yp] - fz[ym]) * invDx2 - (fy[zp] - fy[zm]) * invDx2;
-            curlY[idx] = (fx[zp] - fx[zm]) * invDx2 - (fz[xp] - fz[xm]) * invDx2;
-            curlZ[idx] = (fy[xp] - fy[xm]) * invDx2 - (fx[yp] - fx[ym]) * invDx2;
-        }
+                    curlX[idx] = (fz[yp] - fz[ym]) * invDx2 - (fy[zp] - fy[zm]) * invDx2;
+                    curlY[idx] = (fx[zp] - fx[zm]) * invDx2 - (fz[xp] - fz[xm]) * invDx2;
+                    curlZ[idx] = (fy[xp] - fy[xm]) * invDx2 - (fx[yp] - fx[ym]) * invDx2;
+                }
     }
 }
 
@@ -6997,14 +7218,14 @@ public static class PhysicsMatrix
     public static void GramMatrix(ReadOnlySpan<double> A, Span<double> AtA, int m, int n)
     {
         for (int i = 0; i < n; i++)
-        for (int j = 0; j <= i; j++)
-        {
-            double sum = 0;
-            for (int k = 0; k < m; k++)
-                sum += A[k * n + i] * A[k * n + j];
-            AtA[i * n + j] = sum;
-            AtA[j * n + i] = sum;
-        }
+            for (int j = 0; j <= i; j++)
+            {
+                double sum = 0;
+                for (int k = 0; k < m; k++)
+                    sum += A[k * n + i] * A[k * n + j];
+                AtA[i * n + j] = sum;
+                AtA[j * n + i] = sum;
+            }
     }
 
     /// <summary>
@@ -7042,7 +7263,8 @@ public static class PhysicsMatrix
     public static double Trace(ReadOnlySpan<double> A, int n)
     {
         double sum = 0;
-        for (int i = 0; i < n; i++) sum += A[i * n + i];
+        for (int i = 0; i < n; i++)
+            sum += A[i * n + i];
         return sum;
     }
 
@@ -7052,7 +7274,8 @@ public static class PhysicsMatrix
     public static double FrobeniusNorm(ReadOnlySpan<double> A, int m, int n)
     {
         double sum = 0;
-        for (int i = 0; i < m * n; i++) sum += A[i] * A[i];
+        for (int i = 0; i < m * n; i++)
+            sum += A[i] * A[i];
         return Math.Sqrt(sum);
     }
 }
@@ -7085,19 +7308,22 @@ public static class QuadratureRules
                 for (int j = 1; j < n; j++)
                 {
                     double pp2 = ((2.0 * j + 1.0) * z * pp1 - j * pp0) / (j + 1.0);
-                    pp0 = pp1; pp1 = pp2;
+                    pp0 = pp1;
+                    pp1 = pp2;
                 }
                 double dp = n * (z * pp1 - pp0) / (z * z - 1.0);
                 double dz = pp1 / dp;
                 z -= dz;
-                if (Math.Abs(dz) < 1e-15) break;
+                if (Math.Abs(dz) < 1e-15)
+                    break;
             }
             x[i] = z;
             double p0 = 1.0, p1x = z;
             for (int j = 1; j < n; j++)
             {
                 double p2 = ((2.0 * j + 1.0) * z * p1x - j * p0) / (j + 1.0);
-                p0 = p1x; p1x = p2;
+                p0 = p1x;
+                p1x = p2;
             }
             w[i] = 2.0 / ((1.0 - z * z) * p1x * p1x);
         }
@@ -7124,7 +7350,8 @@ public static class QuadratureRules
     public static double Simpson(ReadOnlySpan<double> f, double h)
     {
         int n = f.Length;
-        if (n < 3) return 0;
+        if (n < 3)
+            return 0;
         double sum = f[0] + f[n - 1];
         for (int i = 1; i < n - 1; i++)
             sum += (i % 2 == 0 ? 2.0 : 4.0) * f[i];
@@ -7137,9 +7364,11 @@ public static class QuadratureRules
     public static double Trapezoidal(ReadOnlySpan<double> f, double h)
     {
         int n = f.Length;
-        if (n < 2) return 0;
+        if (n < 2)
+            return 0;
         double sum = 0.5 * (f[0] + f[n - 1]);
-        for (int i = 1; i < n - 1; i++) sum += f[i];
+        for (int i = 1; i < n - 1; i++)
+            sum += f[i];
         return sum * h;
     }
 }
@@ -7200,8 +7429,11 @@ public static class CoordinateTransforms
         out double rx, out double ry, out double rz)
     {
         double len = Math.Sqrt(ax * ax + ay * ay + az * az);
-        if (len < 1e-30) { rx = vx; ry = vy; rz = vz; return; }
-        ax /= len; ay /= len; az /= len;
+        if (len < 1e-30)
+        { rx = vx; ry = vy; rz = vz; return; }
+        ax /= len;
+        ay /= len;
+        az /= len;
 
         double cosT = Math.Cos(theta), sinT = Math.Sin(theta);
         double dot = ax * vx + ay * vy + az * vz;
@@ -7221,8 +7453,11 @@ public static class CoordinateTransforms
     public static double[] RotationMatrix(double ax, double ay, double az, double theta)
     {
         double len = Math.Sqrt(ax * ax + ay * ay + az * az);
-        if (len < 1e-30) return new double[] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
-        ax /= len; ay /= len; az /= len;
+        if (len < 1e-30)
+            return new double[] { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+        ax /= len;
+        ay /= len;
+        az /= len;
 
         double c = Math.Cos(theta), s = Math.Sin(theta), t = 1.0 - c;
         return new double[] {
@@ -7257,7 +7492,8 @@ public static class SignalProcessing
             int count = 0;
             for (int j = i - half; j <= i + half; j++)
             {
-                if (j >= 0 && j < n) { sum += input[j]; count++; }
+                if (j >= 0 && j < n)
+                { sum += input[j]; count++; }
             }
             output[i] = count > 0 ? sum / count : input[i];
         }
@@ -7294,7 +7530,8 @@ public static class SignalProcessing
         double[] acf = new double[n];
 
         double mean = 0;
-        for (int i = 0; i < n; i++) mean += signal[i];
+        for (int i = 0; i < n; i++)
+            mean += signal[i];
         mean /= n;
 
         double variance = 0;
@@ -7304,7 +7541,8 @@ public static class SignalProcessing
             variance += d * d;
         }
         variance /= n;
-        if (variance < 1e-30) return acf;
+        if (variance < 1e-30)
+            return acf;
 
         for (int lag = 0; lag < n; lag++)
         {
@@ -7323,7 +7561,9 @@ public static class SignalProcessing
     public static void HilbertTransform(ReadOnlySpan<double> signal, Span<double> analytic)
     {
         int n = signal.Length;
-        int fftSize = 1; while (fftSize < n) fftSize <<= 1;
+        int fftSize = 1;
+        while (fftSize < n)
+            fftSize <<= 1;
 
         double[] re = new double[fftSize], im = new double[fftSize];
         signal.CopyTo(re);
@@ -7333,10 +7573,13 @@ public static class SignalProcessing
         // Multiply positive frequencies by 2, zero negative frequencies.
         for (int i = 1; i < fftSize / 2; i++)
         {
-            re[i] *= 2; im[i] *= 2;
-            re[fftSize - i] = 0; im[fftSize - i] = 0;
+            re[i] *= 2;
+            im[i] *= 2;
+            re[fftSize - i] = 0;
+            im[fftSize - i] = 0;
         }
-        re[0] *= 2; im[0] *= 2;
+        re[0] *= 2;
+        im[0] *= 2;
 
         FFT.Inverse(re, im);
 
@@ -7397,7 +7640,8 @@ public sealed class AdaptiveTimeStepper
     /// </summary>
     public double AdjustTimeStep(double error, double order = 4.0)
     {
-        if (error < 1e-30) error = 1e-30;
+        if (error < 1e-30)
+            error = 1e-30;
         _previousError = error;
 
         double factor = _safetyFactor * Math.Pow(_tolerance / error, 1.0 / (order + 1.0));
@@ -7480,7 +7724,8 @@ public static class ParallelPartitioner
         Task.WaitAll(tasks);
 
         double total = 0;
-        for (int b = 0; b < numBatches; b++) total += partialSums[b];
+        for (int b = 0; b < numBatches; b++)
+            total += partialSums[b];
         return total;
     }
 }
@@ -7517,9 +7762,9 @@ public static class VTKExporter
         writer.WriteLine("LOOKUP_TABLE default");
 
         for (int z = 0; z < nz; z++)
-        for (int y = 0; y < ny; y++)
-        for (int x = 0; x < nx; x++)
-            writer.WriteLine(field[z, y, x].ToString("G15"));
+            for (int y = 0; y < ny; y++)
+                for (int x = 0; x < nx; x++)
+                    writer.WriteLine(field[z, y, x].ToString("G15"));
     }
 
     /// <summary>
@@ -7545,9 +7790,9 @@ public static class VTKExporter
         writer.WriteLine($"VECTORS {fieldName} double");
 
         for (int z = 0; z < nz; z++)
-        for (int y = 0; y < ny; y++)
-        for (int x = 0; x < nx; x++)
-            writer.WriteLine($"{vx[z, y, x]:G15} {vy[z, y, x]:G15} {vz[z, y, x]:G15}");
+            for (int y = 0; y < ny; y++)
+                for (int x = 0; x < nx; x++)
+                    writer.WriteLine($"{vx[z, y, x]:G15} {vy[z, y, x]:G15} {vz[z, y, x]:G15}");
     }
 
     /// <summary>
@@ -7588,7 +7833,8 @@ public static class RootFinding
         double tolerance = 1e-12, int maxIter = 100)
     {
         double fa = f(a), fb = f(b);
-        if (fa * fb > 0) throw new ArgumentException("f(a) and f(b) must have opposite signs.");
+        if (fa * fb > 0)
+            throw new ArgumentException("f(a) and f(b) must have opposite signs.");
 
         double c = a, fc = fa;
         double d = b - a, e = d;
@@ -7597,14 +7843,19 @@ public static class RootFinding
         {
             if (Math.Abs(fc) < Math.Abs(fb))
             {
-                a = b; b = c; c = a;
-                fa = fb; fb = fc; fc = fa;
+                a = b;
+                b = c;
+                c = a;
+                fa = fb;
+                fb = fc;
+                fc = fa;
             }
 
             double tol1 = 2.0 * 1e-12 * Math.Abs(b) + 0.5 * tolerance;
             double m = 0.5 * (c - b);
 
-            if (Math.Abs(m) <= tol1 || fb == 0) return b;
+            if (Math.Abs(m) <= tol1 || fb == 0)
+                return b;
 
             if (Math.Abs(e) >= tol1 && Math.Abs(fa) > Math.Abs(fb))
             {
@@ -7623,23 +7874,30 @@ public static class RootFinding
                     q = (q - 1.0) * (r - 1.0) * (s - 1.0);
                 }
 
-                if (p > 0) q = -q; else p = -p;
+                if (p > 0)
+                    q = -q;
+                else
+                    p = -p;
                 if (2.0 * p < 3.0 * m * q - Math.Abs(tol1 * q) &&
                     2.0 * p < Math.Abs(e * q))
                 {
-                    e = d; d = p / q;
+                    e = d;
+                    d = p / q;
                 }
                 else
                 {
-                    d = m; e = m;
+                    d = m;
+                    e = m;
                 }
             }
             else
             {
-                d = m; e = m;
+                d = m;
+                e = m;
             }
 
-            a = b; fa = fb;
+            a = b;
+            fa = fb;
             if (Math.Abs(d) > tol1)
                 b += d;
             else
@@ -7648,7 +7906,10 @@ public static class RootFinding
             fb = f(b);
             if (fb * fc > 0)
             {
-                c = a; fc = fa; d = b - a; e = d;
+                c = a;
+                fc = fa;
+                d = b - a;
+                e = d;
             }
         }
         return b;
@@ -7665,10 +7926,12 @@ public static class RootFinding
         {
             double fx = f(x);
             double dfx = df(x);
-            if (Math.Abs(dfx) < 1e-30) break;
+            if (Math.Abs(dfx) < 1e-30)
+                break;
             double dx = fx / dfx;
             x -= dx;
-            if (Math.Abs(dx) < tolerance) break;
+            if (Math.Abs(dx) < tolerance)
+                break;
         }
         return x;
     }
@@ -7682,11 +7945,15 @@ public static class RootFinding
         double f0 = f(x0), f1 = f(x1);
         for (int i = 0; i < maxIter; i++)
         {
-            if (Math.Abs(f1 - f0) < 1e-30) break;
+            if (Math.Abs(f1 - f0) < 1e-30)
+                break;
             double x2 = x1 - f1 * (x1 - x0) / (f1 - f0);
-            x0 = x1; f0 = f1;
-            x1 = x2; f1 = f(x1);
-            if (Math.Abs(x1 - x0) < tolerance) break;
+            x0 = x1;
+            f0 = f1;
+            x1 = x2;
+            f1 = f(x1);
+            if (Math.Abs(x1 - x0) < tolerance)
+                break;
         }
         return x1;
     }
@@ -7712,14 +7979,16 @@ public static class LeastSquaresFitting
         double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
         for (int i = 0; i < n; i++)
         {
-            sumX += x[i]; sumY += y[i];
+            sumX += x[i];
+            sumY += y[i];
             sumXY += x[i] * y[i];
             sumX2 += x[i] * x[i];
             sumY2 += y[i] * y[i];
         }
 
         double denom = n * sumX2 - sumX * sumX;
-        if (Math.Abs(denom) < 1e-30) return (sumY / n, 0, 0);
+        if (Math.Abs(denom) < 1e-30)
+            return (sumY / n, 0, 0);
 
         double b = (n * sumXY - sumX * sumY) / denom;
         double a = (sumY - b * sumX) / n;
@@ -7767,7 +8036,8 @@ public static class LeastSquaresFitting
 
         // Solve via Gaussian elimination with partial pivoting.
         double[] c = new double[d];
-        for (int i = 0; i < d; i++) c[i] = rhs[i];
+        for (int i = 0; i < d; i++)
+            c[i] = rhs[i];
 
         for (int col = 0; col < d; col++)
         {
@@ -7784,7 +8054,8 @@ public static class LeastSquaresFitting
             (c[col], c[maxRow]) = (c[maxRow], c[col]);
 
             double diag = A[col * d + col];
-            if (Math.Abs(diag) < 1e-30) continue;
+            if (Math.Abs(diag) < 1e-30)
+                continue;
 
             for (int row = col + 1; row < d; row++)
             {

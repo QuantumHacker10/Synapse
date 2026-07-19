@@ -15,7 +15,8 @@ namespace GDNN.Sentience
         {
             if (ResponseHandler != null)
             {
-                try { return ResponseHandler(entity, context, response); }
+                try
+                { return ResponseHandler(entity, context, response); }
                 catch { return TaskStatus.Failure; }
             }
 

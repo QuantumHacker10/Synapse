@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: TransformUtils.cs
 // PATH: Core/Mathematics/TransformUtils.cs
@@ -24,10 +6,26 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Core.Mathematics;
 
@@ -73,7 +71,8 @@ public static class TransformUtils
         // First pass: compute world transforms
         for (int i = 0; i < nodes.Length; i++)
         {
-            if (!nodes[i].IsDirty) continue;
+            if (!nodes[i].IsDirty)
+                continue;
 
             if (nodes[i].ParentIndex < 0)
             {
@@ -95,7 +94,8 @@ public static class TransformUtils
     /// </summary>
     public static void MarkDirty(Span<TransformNode> nodes, int nodeIndex)
     {
-        if (nodeIndex < 0 || nodeIndex >= nodes.Length) return;
+        if (nodeIndex < 0 || nodeIndex >= nodes.Length)
+            return;
 
         nodes[nodeIndex].IsDirty = true;
 
@@ -188,7 +188,8 @@ public static class TransformUtils
         current = nodeB;
         while (current >= 0)
         {
-            if (visitedA[current]) return current;
+            if (visitedA[current])
+                return current;
             current = nodes[current].ParentIndex;
         }
 
@@ -280,7 +281,8 @@ public static class TransformUtils
             int idx = jointIndices[i];
             float weight = jointWeights[i];
 
-            if (weight < Epsilon) continue;
+            if (weight < Epsilon)
+                continue;
 
             Vector3 transformedPos = Vector3.Transform(position, skinningMatrices[idx]);
             Vector3 transformedNormal = Vector3.TransformNormal(normal, skinningMatrices[idx]);
@@ -312,7 +314,8 @@ public static class TransformUtils
             for (int j = 0; j < weights.Length; j++)
             {
                 float w = weights[j].Weight;
-                if (w < Epsilon) continue;
+                if (w < Epsilon)
+                    continue;
 
                 pos += Vector3.Transform(positions[v], skinningMatrices[weights[j].JointIndex]) * w;
                 norm += Vector3.TransformNormal(normals[v], skinningMatrices[weights[j].JointIndex]) * w;
@@ -344,7 +347,8 @@ public static class TransformUtils
         for (int i = 0; i < weights.Length; i++)
             sum += weights[i].Weight;
 
-        if (sum < Epsilon) return;
+        if (sum < Epsilon)
+            return;
 
         float invSum = 1f / sum;
         for (int i = 0; i < weights.Length; i++)
@@ -357,7 +361,8 @@ public static class TransformUtils
     /// </summary>
     public static void LimitJointInfluences(Span<JointWeight> weights, int maxInfluences)
     {
-        if (weights.Length <= maxInfluences) return;
+        if (weights.Length <= maxInfluences)
+            return;
 
         // Sort by weight descending
         for (int i = 0; i < maxInfluences; i++)
@@ -393,11 +398,15 @@ public static class TransformUtils
     /// </summary>
     public static Vector3 EvaluatePositionCurve(ReadOnlySpan<AnimationKeyframe> keyframes, float time)
     {
-        if (keyframes.Length == 0) return Vector3.Zero;
-        if (keyframes.Length == 1) return keyframes[0].Position;
+        if (keyframes.Length == 0)
+            return Vector3.Zero;
+        if (keyframes.Length == 1)
+            return keyframes[0].Position;
 
-        if (time <= keyframes[0].Time) return keyframes[0].Position;
-        if (time >= keyframes[^1].Time) return keyframes[^1].Position;
+        if (time <= keyframes[0].Time)
+            return keyframes[0].Position;
+        if (time >= keyframes[^1].Time)
+            return keyframes[^1].Position;
 
         int segment = FindSegment(keyframes, time);
         float t = (time - keyframes[segment].Time) /
@@ -419,11 +428,15 @@ public static class TransformUtils
     /// </summary>
     public static Quaternion EvaluateRotationCurve(ReadOnlySpan<AnimationKeyframe> keyframes, float time)
     {
-        if (keyframes.Length == 0) return Quaternion.Identity;
-        if (keyframes.Length == 1) return keyframes[0].Rotation;
+        if (keyframes.Length == 0)
+            return Quaternion.Identity;
+        if (keyframes.Length == 1)
+            return keyframes[0].Rotation;
 
-        if (time <= keyframes[0].Time) return keyframes[0].Rotation;
-        if (time >= keyframes[^1].Time) return keyframes[^1].Rotation;
+        if (time <= keyframes[0].Time)
+            return keyframes[0].Rotation;
+        if (time >= keyframes[^1].Time)
+            return keyframes[^1].Rotation;
 
         int segment = FindSegment(keyframes, time);
         float t = (time - keyframes[segment].Time) /
@@ -432,7 +445,8 @@ public static class TransformUtils
         Quaternion a = keyframes[segment].Rotation;
         Quaternion b = keyframes[segment + 1].Rotation;
 
-        if (Quaternion.Dot(a, b) < 0) b = -b;
+        if (Quaternion.Dot(a, b) < 0)
+            b = -b;
 
         return Quaternion.Slerp(a, b, t);
     }
@@ -442,11 +456,15 @@ public static class TransformUtils
     /// </summary>
     public static Vector3 EvaluateScaleCurve(ReadOnlySpan<AnimationKeyframe> keyframes, float time)
     {
-        if (keyframes.Length == 0) return Vector3.One;
-        if (keyframes.Length == 1) return keyframes[0].Scale;
+        if (keyframes.Length == 0)
+            return Vector3.One;
+        if (keyframes.Length == 1)
+            return keyframes[0].Scale;
 
-        if (time <= keyframes[0].Time) return keyframes[0].Scale;
-        if (time >= keyframes[^1].Time) return keyframes[^1].Scale;
+        if (time <= keyframes[0].Time)
+            return keyframes[0].Scale;
+        if (time >= keyframes[^1].Time)
+            return keyframes[^1].Scale;
 
         int segment = FindSegment(keyframes, time);
         float t = (time - keyframes[segment].Time) /
@@ -862,14 +880,22 @@ public static class TransformUtils
         {
             int offset = i * 16;
             Matrix4x4 m = Matrix4x4.Transpose(palette[i]);
-            packedData[offset + 0] = m.M11; packedData[offset + 1] = m.M12;
-            packedData[offset + 2] = m.M13; packedData[offset + 3] = m.M14;
-            packedData[offset + 4] = m.M21; packedData[offset + 5] = m.M22;
-            packedData[offset + 6] = m.M23; packedData[offset + 7] = m.M24;
-            packedData[offset + 8] = m.M31; packedData[offset + 9] = m.M32;
-            packedData[offset + 10] = m.M33; packedData[offset + 11] = m.M34;
-            packedData[offset + 12] = m.M41; packedData[offset + 13] = m.M42;
-            packedData[offset + 14] = m.M43; packedData[offset + 15] = m.M44;
+            packedData[offset + 0] = m.M11;
+            packedData[offset + 1] = m.M12;
+            packedData[offset + 2] = m.M13;
+            packedData[offset + 3] = m.M14;
+            packedData[offset + 4] = m.M21;
+            packedData[offset + 5] = m.M22;
+            packedData[offset + 6] = m.M23;
+            packedData[offset + 7] = m.M24;
+            packedData[offset + 8] = m.M31;
+            packedData[offset + 9] = m.M32;
+            packedData[offset + 10] = m.M33;
+            packedData[offset + 11] = m.M34;
+            packedData[offset + 12] = m.M41;
+            packedData[offset + 13] = m.M42;
+            packedData[offset + 14] = m.M43;
+            packedData[offset + 15] = m.M44;
         }
     }
 
@@ -893,7 +919,8 @@ public static class TransformUtils
             for (int j = 0; j < weights.Length; j++)
             {
                 float w = weights[j].Weight;
-                if (w < Epsilon) continue;
+                if (w < Epsilon)
+                    continue;
                 skinnedPos += Vector3.Transform(restPositions[v], skinningMatrices[weights[j].JointIndex]) * w;
             }
 
@@ -913,10 +940,18 @@ public static class TransformUtils
     public static Matrix4x4 BuildTRS(Vector3 translation, Quaternion rotation, Vector3 scale)
     {
         Matrix4x4 result = Matrix4x4.CreateFromQuaternion(rotation);
-        result.M11 *= scale.X; result.M12 *= scale.X; result.M13 *= scale.X;
-        result.M21 *= scale.Y; result.M22 *= scale.Y; result.M23 *= scale.Y;
-        result.M31 *= scale.Z; result.M32 *= scale.Z; result.M33 *= scale.Z;
-        result.M41 = translation.X; result.M42 = translation.Y; result.M43 = translation.Z;
+        result.M11 *= scale.X;
+        result.M12 *= scale.X;
+        result.M13 *= scale.X;
+        result.M21 *= scale.Y;
+        result.M22 *= scale.Y;
+        result.M23 *= scale.Y;
+        result.M31 *= scale.Z;
+        result.M32 *= scale.Z;
+        result.M33 *= scale.Z;
+        result.M41 = translation.X;
+        result.M42 = translation.Y;
+        result.M43 = translation.Z;
         return result;
     }
 
@@ -996,7 +1031,8 @@ public static class TransformUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector3 ComputeVelocity(Matrix4x4 previous, Matrix4x4 current, float deltaTime)
     {
-        if (deltaTime < Epsilon) return Vector3.Zero;
+        if (deltaTime < Epsilon)
+            return Vector3.Zero;
         Vector3 prevPos = new(previous.M41, previous.M42, previous.M43);
         Vector3 currPos = new(current.M41, current.M42, current.M43);
         return (currPos - prevPos) / deltaTime;
@@ -1007,15 +1043,18 @@ public static class TransformUtils
     /// </summary>
     public static Vector3 ComputeAngularVelocity(Quaternion previous, Quaternion current, float deltaTime)
     {
-        if (deltaTime < Epsilon) return Vector3.Zero;
+        if (deltaTime < Epsilon)
+            return Vector3.Zero;
 
         Quaternion delta = Quaternion.Normalize(Quaternion.Inverse(previous) * current);
-        if (delta.W < 0) delta = -delta;
+        if (delta.W < 0)
+            delta = -delta;
 
         float angle = 2f * MathF.Acos(Math.Clamp(MathF.Abs(delta.W), 0f, 1f));
         float s = MathF.Sqrt(1f - delta.W * delta.W);
 
-        if (s < Epsilon) return Vector3.Zero;
+        if (s < Epsilon)
+            return Vector3.Zero;
 
         Vector3 axis = new Vector3(delta.X, delta.Y, delta.Z) / s;
         return axis * angle / deltaTime;

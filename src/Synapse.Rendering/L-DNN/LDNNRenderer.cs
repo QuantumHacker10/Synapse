@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -20,27 +20,27 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class LDNNRenderer
     {
-        private LDNNConfig _config;
-        private RadianceCascadesManager _cascadesManager;
-        private NeuralPredictiveIrradiance _neuralPredictor;
-        private NeuralSpecularPredictor _specularPredictor;
-        private ReferencePathTracer _referencePathTracer;
-        private ScreenSpaceIrradiance _screenSpaceGI;
-        private IrradianceCacheManager _probeCache;
-        private TemporalStabilizer _temporalStabilizer;
-        private DenoisingPipeline _denoisingPipeline;
-        private VolumetricLighting _volumetricLighting;
-        private AmbientOcclusionSystem _aoSystem;
-        private LightCullingSystem _lightCulling;
-        private LDNNAnalytics _analytics;
+        private required LDNNConfig _config;
+        private required RadianceCascadesManager _cascadesManager;
+        private required NeuralPredictiveIrradiance _neuralPredictor;
+        private required NeuralSpecularPredictor _specularPredictor;
+        private required ReferencePathTracer _referencePathTracer;
+        private required ScreenSpaceIrradiance _screenSpaceGI;
+        private required IrradianceCacheManager _probeCache;
+        private required TemporalStabilizer _temporalStabilizer;
+        private required DenoisingPipeline _denoisingPipeline;
+        private required VolumetricLighting _volumetricLighting;
+        private required AmbientOcclusionSystem _aoSystem;
+        private required LightCullingSystem _lightCulling;
+        private required LDNNAnalytics _analytics;
 
-        private FrameTelemetry _telemetry;
-        private GBuffer _previousGBuffer;
-        private Vector3[] _previousGIResult;
+        private required FrameTelemetry _telemetry;
+        private required GBuffer _previousGBuffer;
+        private required Vector3[] _previousGIResult;
         private int _frameIndex;
         private bool _isInitialized;
         private bool _isShutdown;
-        private RandomNumberGenerator _rng;
+        private required RandomNumberGenerator _rng;
 
         private const float PI = MathF.PI;
         private const float TWO_PI = 2.0f * MathF.PI;
@@ -58,7 +58,8 @@ namespace GDNN.Lighting.LDNN
         /// <summary>Returns the latest per-pixel GI irradiance field from the previous frame.</summary>
         public Vector3[,]? GetLastIrradianceField(int width, int height)
         {
-            if (_previousGIResult == null || _previousGIResult.Length != width * height) return null;
+            if (_previousGIResult == null || _previousGIResult.Length != width * height)
+                return null;
             var field = new Vector3[width, height];
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++)
@@ -133,7 +134,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public void Shutdown()
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized)
+                return;
             _cascadesManager = null;
             _neuralPredictor = null;
             _specularPredictor = null;
@@ -159,7 +161,8 @@ namespace GDNN.Lighting.LDNN
         public void RenderFrame(GBuffer gbuffer, CameraState camera, List<LightConfig> lights,
             RenderContext context)
         {
-            if (!_isInitialized || _isShutdown) return;
+            if (!_isInitialized || _isShutdown)
+                return;
 
             _telemetry.Reset();
             _telemetry.Timestamp.Restart();
@@ -220,7 +223,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public int TrainFromPathTracerTeacher(GBuffer gbuffer, CameraState camera, List<LightConfig> lights)
         {
-            if (_neuralPredictor == null || _referencePathTracer == null) return 0;
+            if (_neuralPredictor == null || _referencePathTracer == null)
+                return 0;
 
             int stride = Math.Max(4, _config.TeacherPixelStride);
             int spp = Math.Max(1, _config.TeacherSamplesPerPixel);
@@ -232,7 +236,8 @@ namespace GDNN.Lighting.LDNN
                 for (int x = 0; x < gbuffer.Width; x += stride)
                 {
                     GBufferSample sample = gbuffer.GetSample(x, y);
-                    if (sample.Depth <= 0) continue;
+                    if (sample.Depth <= 0)
+                        continue;
 
                     sample = sample with
                     {
@@ -334,7 +339,8 @@ namespace GDNN.Lighting.LDNN
                 for (int y = 0; y < gbuffer.Height; y += 8)
                 {
                     int idx = gbuffer.GetIndex(x, y);
-                    if (gbuffer.Depth[idx] <= 0) continue;
+                    if (gbuffer.Depth[idx] <= 0)
+                        continue;
 
                     Vector3 worldPos = ReconstructWorldPosition(x, y, gbuffer.Depth[idx], gbuffer, camera);
                     var candidate = new ProbeCandidate
@@ -358,7 +364,8 @@ namespace GDNN.Lighting.LDNN
             CameraState camera)
         {
             Vector3 ssgi = _screenSpaceGI.Result[gbuffer.GetIndex(x, y)];
-            if (ssgi.LengthSquared() > 0.0001f) return ssgi;
+            if (ssgi.LengthSquared() > 0.0001f)
+                return ssgi;
 
             Vector3 worldPos = ReconstructWorldPosition(x, y, gbuffer.Depth[gbuffer.GetIndex(x, y)], gbuffer, camera);
             Vector3 normal = gbuffer.Normals[gbuffer.GetIndex(x, y)];
@@ -383,7 +390,8 @@ namespace GDNN.Lighting.LDNN
         public void ComputeAmbientOcclusion(GBuffer gbuffer, CameraState camera)
         {
             _aoSystem.ComputeSSAO(gbuffer, camera, 64, 1.0f);
-            if (_previousGBuffer != null) _aoSystem.TemporalAccumulate(0.9f);
+            if (_previousGBuffer != null)
+                _aoSystem.TemporalAccumulate(0.9f);
             _aoSystem.BlurAO(gbuffer, 3, 0.1f);
         }
 
@@ -472,10 +480,12 @@ namespace GDNN.Lighting.LDNN
                         {
                             int px = tx * tileSize + dx;
                             int py = ty * tileSize + dy;
-                            if (px >= gbuffer.Width || py >= gbuffer.Height) continue;
+                            if (px >= gbuffer.Width || py >= gbuffer.Height)
+                                continue;
                             int idx = gbuffer.GetIndex(px, py);
                             float depth = gbuffer.Depth[idx];
-                            if (depth <= 0) continue;
+                            if (depth <= 0)
+                                continue;
                             minDepth = MathF.Min(minDepth, depth);
                             maxDepth = MathF.Max(maxDepth, depth);
                             avgNormal += gbuffer.Normals[idx];
@@ -485,7 +495,8 @@ namespace GDNN.Lighting.LDNN
                         }
                     }
 
-                    if (pixelCount > 0) avgNormal /= pixelCount;
+                    if (pixelCount > 0)
+                        avgNormal /= pixelCount;
                     classifications[ty * tilesX + tx] = new TileClassification
                     {
                         TileIndex = ty * tilesX + tx,
@@ -508,7 +519,11 @@ namespace GDNN.Lighting.LDNN
         public void DispatchComputeShaders(string shaderName, int threadGroupsX,
             int threadGroupsY, int threadGroupsZ, Dictionary<string, object> parameters)
         {
-            _ = shaderName; _ = threadGroupsX; _ = threadGroupsY; _ = threadGroupsZ; _ = parameters;
+            _ = shaderName;
+            _ = threadGroupsX;
+            _ = threadGroupsY;
+            _ = threadGroupsZ;
+            _ = parameters;
         }
 
         /// <summary>
@@ -613,13 +628,20 @@ namespace GDNN.Lighting.LDNN
         {
             switch (light.ShadowMethod)
             {
-                case ShadowMethod.None: return 1.0f;
-                case ShadowMethod.ShadowMap: return ComputeShadowMap(light, worldPos, gbuffer, camera);
-                case ShadowMethod.VarianceShadowMap: return FilterShadowMapVSM(light, worldPos, gbuffer, camera);
-                case ShadowMethod.RayTraced: return RayTraceShadowRays(light, worldPos, normal, gbuffer, camera);
-                case ShadowMethod.NeuralPredictive: return NeuralPredictiveShadow(light, worldPos, normal, gbuffer, camera);
-                case ShadowMethod.ContactHardening: return ComputeContactHardeningShadow(light, worldPos, normal, gbuffer, camera);
-                default: return 1.0f;
+                case ShadowMethod.None:
+                    return 1.0f;
+                case ShadowMethod.ShadowMap:
+                    return ComputeShadowMap(light, worldPos, gbuffer, camera);
+                case ShadowMethod.VarianceShadowMap:
+                    return FilterShadowMapVSM(light, worldPos, gbuffer, camera);
+                case ShadowMethod.RayTraced:
+                    return RayTraceShadowRays(light, worldPos, normal, gbuffer, camera);
+                case ShadowMethod.NeuralPredictive:
+                    return NeuralPredictiveShadow(light, worldPos, normal, gbuffer, camera);
+                case ShadowMethod.ContactHardening:
+                    return ComputeContactHardeningShadow(light, worldPos, normal, gbuffer, camera);
+                default:
+                    return 1.0f;
             }
         }
 
@@ -630,7 +652,8 @@ namespace GDNN.Lighting.LDNN
         {
             Vector3 toLight = light.Type == LightType.Directional ? -light.Direction : light.Position - worldPos;
             Vector3 screenPos = camera.ProjectToScreen(worldPos + toLight);
-            if (screenPos.X < 0 || screenPos.X >= 1 || screenPos.Y < 0 || screenPos.Y >= 1) return 1.0f;
+            if (screenPos.X < 0 || screenPos.X >= 1 || screenPos.Y < 0 || screenPos.Y >= 1)
+                return 1.0f;
 
             int pixX = Math.Clamp((int)(screenPos.X * gbuffer.Width), 0, gbuffer.Width - 1);
             int pixY = Math.Clamp((int)(screenPos.Y * gbuffer.Height), 0, gbuffer.Height - 1);
@@ -658,7 +681,8 @@ namespace GDNN.Lighting.LDNN
         {
             Vector3 lightDir = light.Type == LightType.Directional ? -light.Direction : Vector3.Normalize(light.Position - worldPos);
             float NdotL = MathF.Max(0, Vector3.Dot(normal, lightDir));
-            if (NdotL < 0.001f) return 0.0f;
+            if (NdotL < 0.001f)
+                return 0.0f;
 
             int numSamples = Math.Max(1, light.ShadowSamples);
             float shadow = 0;
@@ -681,7 +705,8 @@ namespace GDNN.Lighting.LDNN
                     if (sceneDepth > 0 && sceneDepth < screenPos.Z + light.ShadowBias)
                         shadow += 1.0f;
                 }
-                else shadow += 1.0f;
+                else
+                    shadow += 1.0f;
             }
             return shadow / numSamples;
         }
@@ -757,7 +782,8 @@ namespace GDNN.Lighting.LDNN
             for (int dx = -2; dx <= 2; dx++)
                 for (int dy = -2; dy <= 2; dy++)
                 {
-                    if (dx == 0 && dy == 0) continue;
+                    if (dx == 0 && dy == 0)
+                        continue;
                     int nx = Math.Clamp(x + dx, 0, gbuffer.Width - 1);
                     int ny = Math.Clamp(y + dy, 0, gbuffer.Height - 1);
                     complexity += 1.0f - Vector3.Dot(centerNormal, gbuffer.Normals[gbuffer.GetIndex(nx, ny)]);
@@ -775,7 +801,8 @@ namespace GDNN.Lighting.LDNN
         {
             return new GBuffer
             {
-                Width = source.Width, Height = source.Height,
+                Width = source.Width,
+                Height = source.Height,
                 Depth = (float[])source.Depth.Clone(),
                 Normals = (Vector3[])source.Normals.Clone(),
                 Albedo = (Vector3[])source.Albedo.Clone(),
@@ -808,7 +835,8 @@ namespace GDNN.Lighting.LDNN
                     {
                         int idx = gbuffer.GetIndex(x, y);
                         GBufferSample sample = gbuffer.GetSample(x, y);
-                        if (sample.Depth <= 0) { _previousGIResult[idx] = Vector3.Zero; continue; }
+                        if (sample.Depth <= 0)
+                        { _previousGIResult[idx] = Vector3.Zero; continue; }
                         var features = _neuralPredictor.ExtractFeatures(sample, gbuffer, x, y, camera);
                         _previousGIResult[idx] = _neuralPredictor.ForwardPass(features);
                     }
@@ -844,7 +872,8 @@ namespace GDNN.Lighting.LDNN
                     {
                         int idx = gbuffer.GetIndex(x, y);
                         GBufferSample sample = gbuffer.GetSample(x, y);
-                        if (sample.Depth <= 0) continue;
+                        if (sample.Depth <= 0)
+                            continue;
                         Vector3 ssgi = _screenSpaceGI.Result[idx];
                         Vector3 worldPos = ReconstructWorldPosition(x, y, sample.Depth, gbuffer, camera);
                         sample = sample with { WorldPosition = worldPos };

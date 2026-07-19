@@ -3739,10 +3739,12 @@ public static class LawFactory
         foreach (var token in tokens)
         {
             var clean = token.Trim();
-            if (clean.Length == 0 || seen.Contains(clean)) continue;
+            if (clean.Length == 0 || seen.Contains(clean))
+                continue;
 
             // Skip known constants and keywords
-            if (IsKnownConstant(clean)) continue;
+            if (IsKnownConstant(clean))
+                continue;
             if (clean.Length <= 3 && !clean.Any(char.IsDigit))
             {
                 seen.Add(clean);
@@ -3924,12 +3926,14 @@ public sealed class LawRegistry
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
         var laws = JsonSerializer.Deserialize<List<LawDefinition>>(json);
-        if (laws == null) return 0;
+        if (laws == null)
+            return 0;
 
         int count = 0;
         foreach (var law in laws)
         {
-            if (string.IsNullOrWhiteSpace(law.Id)) continue;
+            if (string.IsNullOrWhiteSpace(law.Id))
+                continue;
             if (_registry.TryAdd(law.Id, law))
             {
                 _versionMap[law.Id] = _nextVersion;

@@ -13,11 +13,13 @@ namespace Synapse.Runtime
         public static void SyncDocument(RenderEngine? renderEngine, SceneDocument scene, ViewportEditorState editor, ISynapseLogger logger)
         {
             var renderer = renderEngine?.SceneRenderer;
-            if (renderer == null || !renderer.IsInitialized) return;
+            if (renderer == null || !renderer.IsInitialized)
+                return;
 
             foreach (var entity in scene.Entities)
             {
-                if (!entity.Visible) continue;
+                if (!entity.Visible)
+                    continue;
                 renderer.SyncEntityProxy(
                     entity.Id,
                     entity.Type,

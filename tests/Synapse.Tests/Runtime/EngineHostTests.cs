@@ -54,7 +54,8 @@ namespace Synapse.Tests.Runtime
             }
             finally
             {
-                if (File.Exists(path)) File.Delete(path);
+                if (File.Exists(path))
+                    File.Delete(path);
             }
         }
 

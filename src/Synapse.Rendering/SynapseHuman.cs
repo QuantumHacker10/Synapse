@@ -317,39 +317,62 @@ namespace GDNN.Rendering.ArtPipeline
             var bones = new List<HumanBone>();
             int idx = 0;
 
-            bones.Add(new HumanBone { Index = idx, Name = "Root", ParentIndex = -1, LocalPosition = Vector3.Zero, Region = HumanBodyRegion.FullBody }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "Hips", ParentIndex = 0, LocalPosition = new Vector3(0, 1.0f, 0), Region = HumanBodyRegion.Torso }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "Spine", ParentIndex = 1, LocalPosition = new Vector3(0, 0.12f, 0), Region = HumanBodyRegion.Torso }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "Spine1", ParentIndex = 2, LocalPosition = new Vector3(0, 0.12f, 0), Region = HumanBodyRegion.Torso }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "Spine2", ParentIndex = 3, LocalPosition = new Vector3(0, 0.12f, 0), Region = HumanBodyRegion.Torso }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "Neck", ParentIndex = 4, LocalPosition = new Vector3(0, 0.15f, 0), Region = HumanBodyRegion.Neck }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "Head", ParentIndex = 5, LocalPosition = new Vector3(0, 0.12f, 0), Region = HumanBodyRegion.Head }); idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "Root", ParentIndex = -1, LocalPosition = Vector3.Zero, Region = HumanBodyRegion.FullBody });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "Hips", ParentIndex = 0, LocalPosition = new Vector3(0, 1.0f, 0), Region = HumanBodyRegion.Torso });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "Spine", ParentIndex = 1, LocalPosition = new Vector3(0, 0.12f, 0), Region = HumanBodyRegion.Torso });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "Spine1", ParentIndex = 2, LocalPosition = new Vector3(0, 0.12f, 0), Region = HumanBodyRegion.Torso });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "Spine2", ParentIndex = 3, LocalPosition = new Vector3(0, 0.12f, 0), Region = HumanBodyRegion.Torso });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "Neck", ParentIndex = 4, LocalPosition = new Vector3(0, 0.15f, 0), Region = HumanBodyRegion.Neck });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "Head", ParentIndex = 5, LocalPosition = new Vector3(0, 0.12f, 0), Region = HumanBodyRegion.Head });
+            idx++;
 
-            bones.Add(new HumanBone { Index = idx, Name = "LeftShoulder", ParentIndex = 4, LocalPosition = new Vector3(0.08f, 0.06f, 0), Region = HumanBodyRegion.UpperArm }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "LeftUpperArm", ParentIndex = 7, LocalPosition = new Vector3(0.12f, 0, 0), Region = HumanBodyRegion.UpperArm }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "LeftLowerArm", ParentIndex = 8, LocalPosition = new Vector3(0.28f, 0, 0), Region = HumanBodyRegion.LowerArm }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "LeftHand", ParentIndex = 9, LocalPosition = new Vector3(0.25f, 0, 0), Region = HumanBodyRegion.Hand }); idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "LeftShoulder", ParentIndex = 4, LocalPosition = new Vector3(0.08f, 0.06f, 0), Region = HumanBodyRegion.UpperArm });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "LeftUpperArm", ParentIndex = 7, LocalPosition = new Vector3(0.12f, 0, 0), Region = HumanBodyRegion.UpperArm });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "LeftLowerArm", ParentIndex = 8, LocalPosition = new Vector3(0.28f, 0, 0), Region = HumanBodyRegion.LowerArm });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "LeftHand", ParentIndex = 9, LocalPosition = new Vector3(0.25f, 0, 0), Region = HumanBodyRegion.Hand });
+            idx++;
 
-            bones.Add(new HumanBone { Index = idx, Name = "RightShoulder", ParentIndex = 4, LocalPosition = new Vector3(-0.08f, 0.06f, 0), Region = HumanBodyRegion.UpperArm }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "RightUpperArm", ParentIndex = 11, LocalPosition = new Vector3(-0.12f, 0, 0), Region = HumanBodyRegion.UpperArm }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "RightLowerArm", ParentIndex = 12, LocalPosition = new Vector3(-0.28f, 0, 0), Region = HumanBodyRegion.LowerArm }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "RightHand", ParentIndex = 13, LocalPosition = new Vector3(-0.25f, 0, 0), Region = HumanBodyRegion.Hand }); idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "RightShoulder", ParentIndex = 4, LocalPosition = new Vector3(-0.08f, 0.06f, 0), Region = HumanBodyRegion.UpperArm });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "RightUpperArm", ParentIndex = 11, LocalPosition = new Vector3(-0.12f, 0, 0), Region = HumanBodyRegion.UpperArm });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "RightLowerArm", ParentIndex = 12, LocalPosition = new Vector3(-0.28f, 0, 0), Region = HumanBodyRegion.LowerArm });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "RightHand", ParentIndex = 13, LocalPosition = new Vector3(-0.25f, 0, 0), Region = HumanBodyRegion.Hand });
+            idx++;
 
-            bones.Add(new HumanBone { Index = idx, Name = "LeftUpperLeg", ParentIndex = 1, LocalPosition = new Vector3(0.1f, 0, 0), Region = HumanBodyRegion.UpperLeg }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "LeftLowerLeg", ParentIndex = 15, LocalPosition = new Vector3(0, -0.42f, 0), Region = HumanBodyRegion.LowerLeg }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "LeftFoot", ParentIndex = 16, LocalPosition = new Vector3(0, -0.42f, 0), Region = HumanBodyRegion.Foot }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "LeftToes", ParentIndex = 17, LocalPosition = new Vector3(0, 0, 0.12f), Region = HumanBodyRegion.Foot }); idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "LeftUpperLeg", ParentIndex = 1, LocalPosition = new Vector3(0.1f, 0, 0), Region = HumanBodyRegion.UpperLeg });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "LeftLowerLeg", ParentIndex = 15, LocalPosition = new Vector3(0, -0.42f, 0), Region = HumanBodyRegion.LowerLeg });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "LeftFoot", ParentIndex = 16, LocalPosition = new Vector3(0, -0.42f, 0), Region = HumanBodyRegion.Foot });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "LeftToes", ParentIndex = 17, LocalPosition = new Vector3(0, 0, 0.12f), Region = HumanBodyRegion.Foot });
+            idx++;
 
-            bones.Add(new HumanBone { Index = idx, Name = "RightUpperLeg", ParentIndex = 1, LocalPosition = new Vector3(-0.1f, 0, 0), Region = HumanBodyRegion.UpperLeg }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "RightLowerLeg", ParentIndex = 19, LocalPosition = new Vector3(0, -0.42f, 0), Region = HumanBodyRegion.LowerLeg }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "RightFoot", ParentIndex = 20, LocalPosition = new Vector3(0, -0.42f, 0), Region = HumanBodyRegion.Foot }); idx++;
-            bones.Add(new HumanBone { Index = idx, Name = "RightToes", ParentIndex = 21, LocalPosition = new Vector3(0, 0, 0.12f), Region = HumanBodyRegion.Foot }); idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "RightUpperLeg", ParentIndex = 1, LocalPosition = new Vector3(-0.1f, 0, 0), Region = HumanBodyRegion.UpperLeg });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "RightLowerLeg", ParentIndex = 19, LocalPosition = new Vector3(0, -0.42f, 0), Region = HumanBodyRegion.LowerLeg });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "RightFoot", ParentIndex = 20, LocalPosition = new Vector3(0, -0.42f, 0), Region = HumanBodyRegion.Foot });
+            idx++;
+            bones.Add(new HumanBone { Index = idx, Name = "RightToes", ParentIndex = 21, LocalPosition = new Vector3(0, 0, 0.12f), Region = HumanBodyRegion.Foot });
+            idx++;
 
             return new HumanSkeleton { Bones = bones.ToArray() };
         }
 
         public HumanBone GetBone(string name) => Bones?.FirstOrDefault(b => b.Name == name);
-        public HumanBone GetBone(int index) => (Bones != null && index >= 0 && index < Bones.Length) ? Bones[index] : null;
+        public HumanBone? GetBone(int index) => (Bones != null && index >= 0 && index < Bones.Length) ? Bones[index] : null;
         public int GetBoneIndex(string name) => Array.FindIndex(Bones, b => b.Name == name);
     }
 
@@ -397,8 +420,8 @@ namespace GDNN.Rendering.ArtPipeline
         public ClothingType Type { get; set; }
         public ClothingMaterial Material { get; set; }
         public string MeshPath { get; set; } = "";
-        public MeshAsset Mesh { get; set; }
-        public SubstrateMaterial MaterialInstance { get; set; }
+        public required MeshAsset Mesh { get; set; }
+        public required SubstrateMaterial MaterialInstance { get; set; }
         public Color3 PrimaryColor { get; set; } = new Color3(0.3f, 0.3f, 0.35f);
         public Color3 SecondaryColor { get; set; } = Color3.Black;
         public float Roughness { get; set; } = 0.7f;
@@ -545,12 +568,18 @@ namespace GDNN.Rendering.ArtPipeline
             HumanEthnicity? ethnicity = null,
             HumanAgeGroup? ageGroup = null)
         {
-            if (skinTone.HasValue) { _skinTone = skinTone.Value; _skinMaterial = CreateSkinMaterial(_skinTone); }
-            if (eyeColor.HasValue) { _eyeColor = eyeColor.Value; _eyeMaterial = CreateEyeMaterial(_eyeColor); }
-            if (hairStyle.HasValue) { _hairStyle = hairStyle.Value; _hairMaterial = CreateHairMaterial(_hairStyle); }
-            if (gender.HasValue) _gender = gender.Value;
-            if (ethnicity.HasValue) _ethnicity = ethnicity.Value;
-            if (ageGroup.HasValue) _ageGroup = ageGroup.Value;
+            if (skinTone.HasValue)
+            { _skinTone = skinTone.Value; _skinMaterial = CreateSkinMaterial(_skinTone); }
+            if (eyeColor.HasValue)
+            { _eyeColor = eyeColor.Value; _eyeMaterial = CreateEyeMaterial(_eyeColor); }
+            if (hairStyle.HasValue)
+            { _hairStyle = hairStyle.Value; _hairMaterial = CreateHairMaterial(_hairStyle); }
+            if (gender.HasValue)
+                _gender = gender.Value;
+            if (ethnicity.HasValue)
+                _ethnicity = ethnicity.Value;
+            if (ageGroup.HasValue)
+                _ageGroup = ageGroup.Value;
         }
 
         public void SetFaceMorph(string morphName, float weight)
@@ -768,7 +797,8 @@ namespace GDNN.Rendering.ArtPipeline
 
         public void LoadFromDirectory(string directory)
         {
-            if (!Directory.Exists(directory)) return;
+            if (!Directory.Exists(directory))
+                return;
 
             var metadataPath = Path.Combine(directory, "human.json");
             if (File.Exists(metadataPath))
@@ -894,7 +924,7 @@ namespace GDNN.Rendering.ArtPipeline
 
     internal class HumanExportData
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public HumanGender Gender { get; set; }
         public HumanEthnicity Ethnicity { get; set; }
         public HumanAgeGroup AgeGroup { get; set; }
@@ -903,7 +933,7 @@ namespace GDNN.Rendering.ArtPipeline
         public HumanHairStyle HairStyle { get; set; }
         public int ClothingCount { get; set; }
         public int AnimationCount { get; set; }
-        public int[] MorphTargetGroups { get; set; }
+        public required int[] MorphTargetGroups { get; set; }
     }
 
     // =========================================================================

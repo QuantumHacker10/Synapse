@@ -607,7 +607,8 @@ public struct Vector3D : IEquatable<Vector3D>
     {
         double dot = Math.Clamp(Dot(this, target), -1.0, 1.0);
         double theta = Math.Acos(dot);
-        if (theta < 1e-10) return LerpTo(target, t);
+        if (theta < 1e-10)
+            return LerpTo(target, t);
         double sinTheta = Math.Sin(theta);
         return this * Math.Sin((1 - t) * theta) / sinTheta + target * Math.Sin(t * theta) / sinTheta;
     }
@@ -833,10 +834,15 @@ public struct Symmetric3x3 : IEquatable<Symmetric3x3>
             d1 = new Vector3D(c * d1.X + s * d1.Y, -s * d1.X + c * d1.Y, d1.Z);
             d2 = new Vector3D(c * d2.X + s * d2.Y, -s * d2.X + c * d2.Y, d2.Z);
         }
-        if (m.XX < m.YY) { (m.XX, m.YY) = (m.YY, m.XX); (d1, d2) = (d2, d1); }
-        if (m.XX < m.ZZ) { (m.XX, m.ZZ) = (m.ZZ, m.XX); (d1, d3) = (d3, d1); }
-        if (m.YY < m.ZZ) { (m.YY, m.ZZ) = (m.ZZ, m.YY); (d2, d3) = (d3, d2); }
-        v1 = m.XX; v2 = m.YY; v3 = m.ZZ;
+        if (m.XX < m.YY)
+        { (m.XX, m.YY) = (m.YY, m.XX); (d1, d2) = (d2, d1); }
+        if (m.XX < m.ZZ)
+        { (m.XX, m.ZZ) = (m.ZZ, m.XX); (d1, d3) = (d3, d1); }
+        if (m.YY < m.ZZ)
+        { (m.YY, m.ZZ) = (m.ZZ, m.YY); (d2, d3) = (d3, d2); }
+        v1 = m.XX;
+        v2 = m.YY;
+        v3 = m.ZZ;
     }
 
     private static readonly Vector3D UnitX = Vector3D.UnitX, UnitY = Vector3D.UnitY, UnitZ = Vector3D.UnitZ;
@@ -853,7 +859,8 @@ public struct Symmetric3x3 : IEquatable<Symmetric3x3>
     /// <summary>Matrice symetrique de Cauchy-Green : C = F^T * F.</summary>
     public static Symmetric3x3 FromCauchyGreen(Matrix4x4D F)
     {
-        Matrix4x4D ft = F.Transpose(); Matrix4x4D c = ft * F;
+        Matrix4x4D ft = F.Transpose();
+        Matrix4x4D c = ft * F;
         return new Symmetric3x3(c.M11, c.M22, c.M33, c.M12, c.M13, c.M23);
     }
 
@@ -865,7 +872,8 @@ public struct Symmetric3x3 : IEquatable<Symmetric3x3>
     public readonly Symmetric3x3 Inverse()
     {
         double det = Determinant;
-        if (Math.Abs(det) < 1e-30) return Zero;
+        if (Math.Abs(det) < 1e-30)
+            return Zero;
         double inv = 1.0 / det;
         return new Symmetric3x3(
             (YY * ZZ - YZ * YZ) * inv, (XX * ZZ - XZ * XZ) * inv, (XX * YY - XY * XY) * inv,
@@ -909,7 +917,8 @@ public struct Symmetric3x3 : IEquatable<Symmetric3x3>
     /// <summary>Teste si la matrice est definie positive (toutes valeurs propres > 0).</summary>
     public readonly bool IsPositiveDefinite
     {
-        get {
+        get
+        {
             MaxEigenvalues(out double v1, out double v2, out double v3);
             return v1 > 0 && v2 > 0 && v3 > 0;
         }
@@ -918,7 +927,8 @@ public struct Symmetric3x3 : IEquatable<Symmetric3x3>
     /// <summary>Teste si la matrice est semi-definie positive.</summary>
     public readonly bool IsPositiveSemiDefinite
     {
-        get {
+        get
+        {
             MaxEigenvalues(out double v1, out double v2, out double v3);
             return v1 >= 0 && v2 >= 0 && v3 >= 0;
         }
@@ -927,7 +937,8 @@ public struct Symmetric3x3 : IEquatable<Symmetric3x3>
     /// <summary>Condition number : rapport max/min des valeurs propres.</summary>
     public readonly double ConditionNumber
     {
-        get {
+        get
+        {
             MaxEigenvalues(out double v1, out double v2, out double v3);
             double min = Math.Min(Math.Min(Math.Abs(v1), Math.Abs(v2)), Math.Abs(v3));
             double max = Math.Max(Math.Max(Math.Abs(v1), Math.Abs(v2)), Math.Abs(v3));
@@ -984,7 +995,8 @@ public struct Tensor3D : IEquatable<Tensor3D>
     /// <summary>Matrice de rotation autour d'un axe arbitraire (formule de Rodrigues).</summary>
     public static Tensor3D RotationAxis(Vector3D ax, double a)
     {
-        Vector3D u = ax.Normalized(); double c = Math.Cos(a), s = Math.Sin(a), t = 1 - c;
+        Vector3D u = ax.Normalized();
+        double c = Math.Cos(a), s = Math.Sin(a), t = 1 - c;
         return new(t * u.X * u.X + c, t * u.X * u.Y - s * u.Z, t * u.X * u.Z + s * u.Y,
             t * u.X * u.Y + s * u.Z, t * u.Y * u.Y + c, t * u.Y * u.Z - s * u.X,
             t * u.X * u.Z - s * u.Y, t * u.Y * u.Z + s * u.X, t * u.Z * u.Z + c);
@@ -1007,7 +1019,10 @@ public struct Tensor3D : IEquatable<Tensor3D>
     /// <summary>Inverse par la methode de Cramer (cofacteurs).</summary>
     public readonly Tensor3D Inverse()
     {
-        double det = Determinant; if (Math.Abs(det) < 1e-30) return Zero; double inv = 1.0 / det;
+        double det = Determinant;
+        if (Math.Abs(det) < 1e-30)
+            return Zero;
+        double inv = 1.0 / det;
         return new(
             (M22 * M33 - M23 * M32) * inv, (M13 * M32 - M12 * M33) * inv, (M12 * M23 - M13 * M22) * inv,
             (M23 * M31 - M21 * M33) * inv, (M11 * M33 - M13 * M31) * inv, (M13 * M21 - M11 * M23) * inv,
@@ -1015,7 +1030,7 @@ public struct Tensor3D : IEquatable<Tensor3D>
     }
     /// <summary>Norme de Frobenius.</summary>
     public readonly double FrobeniusNorm => Math.Sqrt(M11 * M11 + M12 * M12 + M13 * M13 + M21 * M21 + M22 * M22 + M23 * M23 + M31 * M31 + M32 * M32 + M33 * M33);
-    public readonly double FrobeniusNormSquared => M11*M11 + M12*M12 + M13*M13 + M21*M21 + M22*M22 + M23*M23 + M31*M31 + M32*M32 + M33*M33;
+    public readonly double FrobeniusNormSquared => M11 * M11 + M12 * M12 + M13 * M13 + M21 * M21 + M22 * M22 + M23 * M23 + M31 * M31 + M32 * M32 + M33 * M33;
     /// <summary>Partie symetrique : (M + M^T) / 2.</summary>
     public readonly Symmetric3x3 SymmetricPart() => new(M11, M22, M33, (M12 + M21) * 0.5, (M13 + M31) * 0.5, (M23 + M32) * 0.5);
     /// <summary>Partie antisymetrique : (M - M^T) / 2.</summary>
@@ -1029,9 +1044,15 @@ public struct Tensor3D : IEquatable<Tensor3D>
     public readonly Tensor3D Multiply(Tensor3D b)
     {
         Tensor3D r;
-        r.M11 = M11 * b.M11 + M12 * b.M21 + M13 * b.M31; r.M12 = M11 * b.M12 + M12 * b.M22 + M13 * b.M32; r.M13 = M11 * b.M13 + M12 * b.M23 + M13 * b.M33;
-        r.M21 = M21 * b.M11 + M22 * b.M21 + M23 * b.M31; r.M22 = M21 * b.M12 + M22 * b.M22 + M23 * b.M32; r.M23 = M21 * b.M13 + M22 * b.M23 + M23 * b.M33;
-        r.M31 = M31 * b.M11 + M32 * b.M21 + M33 * b.M31; r.M32 = M31 * b.M12 + M32 * b.M22 + M33 * b.M32; r.M33 = M31 * b.M13 + M32 * b.M23 + M33 * b.M33;
+        r.M11 = M11 * b.M11 + M12 * b.M21 + M13 * b.M31;
+        r.M12 = M11 * b.M12 + M12 * b.M22 + M13 * b.M32;
+        r.M13 = M11 * b.M13 + M12 * b.M23 + M13 * b.M33;
+        r.M21 = M21 * b.M11 + M22 * b.M21 + M23 * b.M31;
+        r.M22 = M21 * b.M12 + M22 * b.M22 + M23 * b.M32;
+        r.M23 = M21 * b.M13 + M22 * b.M23 + M23 * b.M33;
+        r.M31 = M31 * b.M11 + M32 * b.M21 + M33 * b.M31;
+        r.M32 = M31 * b.M12 + M32 * b.M22 + M33 * b.M32;
+        r.M33 = M31 * b.M13 + M32 * b.M23 + M33 * b.M33;
         return r;
     }
     /// <summary>Double contraction A:B = Sum(A_ij * B_ij).</summary>
@@ -1108,7 +1129,8 @@ public struct QuaternionD : IEquatable<QuaternionD>
     public readonly QuaternionD Inverse()
     {
         double ls = W * W + X * X + Y * Y + Z * Z;
-        if (ls < 1e-30) return Identity;
+        if (ls < 1e-30)
+            return Identity;
         double inv = 1.0 / ls;
         return new QuaternionD(W * inv, -X * inv, -Y * inv, -Z * inv);
     }
@@ -1123,7 +1145,8 @@ public struct QuaternionD : IEquatable<QuaternionD>
     public readonly QuaternionD Normalized()
     {
         double len = Length();
-        if (len < 1e-30) return Identity;
+        if (len < 1e-30)
+            return Identity;
         double inv = 1.0 / len;
         return new QuaternionD(W * inv, X * inv, Y * inv, Z * inv);
     }
@@ -1155,9 +1178,12 @@ public struct QuaternionD : IEquatable<QuaternionD>
     public static QuaternionD FromMatrix3x3(Tensor3D m)
     {
         double trace = m.M11 + m.M22 + m.M33;
-        if (trace > 0) { double s = 0.5 / Math.Sqrt(trace + 1.0); return new QuaternionD(0.25 / s, (m.M32 - m.M23) * s, (m.M13 - m.M31) * s, (m.M21 - m.M12) * s).Normalized(); }
-        if (m.M11 > m.M22 && m.M11 > m.M33) { double s = 2.0 * Math.Sqrt(1.0 + m.M11 - m.M22 - m.M33); return new QuaternionD((m.M32 - m.M23) / s, 0.25 * s, (m.M12 + m.M21) / s, (m.M13 + m.M31) / s).Normalized(); }
-        if (m.M22 > m.M33) { double s = 2.0 * Math.Sqrt(1.0 + m.M22 - m.M11 - m.M33); return new QuaternionD((m.M13 - m.M31) / s, (m.M12 + m.M21) / s, 0.25 * s, (m.M23 + m.M32) / s).Normalized(); }
+        if (trace > 0)
+        { double s = 0.5 / Math.Sqrt(trace + 1.0); return new QuaternionD(0.25 / s, (m.M32 - m.M23) * s, (m.M13 - m.M31) * s, (m.M21 - m.M12) * s).Normalized(); }
+        if (m.M11 > m.M22 && m.M11 > m.M33)
+        { double s = 2.0 * Math.Sqrt(1.0 + m.M11 - m.M22 - m.M33); return new QuaternionD((m.M32 - m.M23) / s, 0.25 * s, (m.M12 + m.M21) / s, (m.M13 + m.M31) / s).Normalized(); }
+        if (m.M22 > m.M33)
+        { double s = 2.0 * Math.Sqrt(1.0 + m.M22 - m.M11 - m.M33); return new QuaternionD((m.M13 - m.M31) / s, (m.M12 + m.M21) / s, 0.25 * s, (m.M23 + m.M32) / s).Normalized(); }
         double s2 = 2.0 * Math.Sqrt(1.0 + m.M33 - m.M11 - m.M22);
         return new QuaternionD((m.M21 - m.M12) / s2, (m.M13 + m.M31) / s2, (m.M23 + m.M32) / s2, 0.25 * s2).Normalized();
     }
@@ -1186,8 +1212,10 @@ public struct QuaternionD : IEquatable<QuaternionD>
     public readonly void ToAxisAngle(out Vector3D axis, out double angle)
     {
         double len = Math.Sqrt(X * X + Y * Y + Z * Z);
-        if (len < 1e-30) { axis = Vector3D.UnitY; angle = 0; return; }
-        axis = new Vector3D(X / len, Y / len, Z / len); angle = 2.0 * Math.Atan2(len, W);
+        if (len < 1e-30)
+        { axis = Vector3D.UnitY; angle = 0; return; }
+        axis = new Vector3D(X / len, Y / len, Z / len);
+        angle = 2.0 * Math.Atan2(len, W);
     }
     /// <summary>Angle de rotation en radians.</summary>
     public readonly double Angle => 2.0 * Math.Atan2(Math.Sqrt(X * X + Y * Y + Z * Z), W);
@@ -1206,8 +1234,11 @@ public struct QuaternionD : IEquatable<QuaternionD>
     public static QuaternionD Slerp(QuaternionD a, QuaternionD b, double t)
     {
         double dot = a.W * b.W + a.X * b.X + a.Y * b.Y + a.Z * b.Z;
-        QuaternionD target = b; if (dot < 0) { dot = -dot; target = new QuaternionD(-b.W, -b.X, -b.Y, -b.Z); }
-        if (dot > 0.9995) { double it = 1.0 - t; return new QuaternionD(it * a.W + t * target.W, it * a.X + t * target.X, it * a.Y + t * target.Y, it * a.Z + t * target.Z).Normalized(); }
+        QuaternionD target = b;
+        if (dot < 0)
+        { dot = -dot; target = new QuaternionD(-b.W, -b.X, -b.Y, -b.Z); }
+        if (dot > 0.9995)
+        { double it = 1.0 - t; return new QuaternionD(it * a.W + t * target.W, it * a.X + t * target.X, it * a.Y + t * target.Y, it * a.Z + t * target.Z).Normalized(); }
         double theta = Math.Acos(dot), sinTheta = Math.Sin(theta);
         return a * (Math.Sin((1 - t) * theta) / sinTheta) + target * (Math.Sin(t * theta) / sinTheta);
     }
@@ -1270,106 +1301,116 @@ public struct Matrix4x4D : IEquatable<Matrix4x4D>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Matrix4x4D(double m11, double m12, double m13, double m14, double m21, double m22, double m23, double m24, double m31, double m32, double m33, double m34, double m41, double m42, double m43, double m44)
-    { M11=m11; M12=m12; M13=m13; M14=m14; M21=m21; M22=m22; M23=m23; M24=m24; M31=m31; M32=m32; M33=m33; M34=m34; M41=m41; M42=m42; M43=m43; M44=m44; }
+    { M11 = m11; M12 = m12; M13 = m13; M14 = m14; M21 = m21; M22 = m22; M23 = m23; M24 = m24; M31 = m31; M32 = m32; M33 = m33; M34 = m34; M41 = m41; M42 = m42; M43 = m43; M44 = m44; }
 
     public static readonly Matrix4x4D Zero = default;
-    public static readonly Matrix4x4D Identity = new(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1);
+    public static readonly Matrix4x4D Identity = new(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 
-    public static Matrix4x4D Translation(double tx, double ty, double tz) => new(1,0,0,tx, 0,1,0,ty, 0,0,1,tz, 0,0,0,1);
+    public static Matrix4x4D Translation(double tx, double ty, double tz) => new(1, 0, 0, tx, 0, 1, 0, ty, 0, 0, 1, tz, 0, 0, 0, 1);
     public static Matrix4x4D Translation(Vector3D t) => Translation(t.X, t.Y, t.Z);
-    public static Matrix4x4D Scaling(double sx, double sy, double sz) => new(sx,0,0,0, 0,sy,0,0, 0,0,sz,0, 0,0,0,1);
+    public static Matrix4x4D Scaling(double sx, double sy, double sz) => new(sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, sz, 0, 0, 0, 0, 1);
     public static Matrix4x4D Scaling(Vector3D s) => Scaling(s.X, s.Y, s.Z);
-    public static Matrix4x4D RotationX(double a) { double c=Math.Cos(a), s=Math.Sin(a); return new(1,0,0,0, 0,c,-s,0, 0,s,c,0, 0,0,0,1); }
-    public static Matrix4x4D RotationY(double a) { double c=Math.Cos(a), s=Math.Sin(a); return new(c,0,s,0, 0,1,0,0, -s,0,c,0, 0,0,0,1); }
-    public static Matrix4x4D RotationZ(double a) { double c=Math.Cos(a), s=Math.Sin(a); return new(c,-s,0,0, s,c,0,0, 0,0,1,0, 0,0,0,1); }
+    public static Matrix4x4D RotationX(double a) { double c = Math.Cos(a), s = Math.Sin(a); return new(1, 0, 0, 0, 0, c, -s, 0, 0, s, c, 0, 0, 0, 0, 1); }
+    public static Matrix4x4D RotationY(double a) { double c = Math.Cos(a), s = Math.Sin(a); return new(c, 0, s, 0, 0, 1, 0, 0, -s, 0, c, 0, 0, 0, 0, 1); }
+    public static Matrix4x4D RotationZ(double a) { double c = Math.Cos(a), s = Math.Sin(a); return new(c, -s, 0, 0, s, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1); }
     public static Matrix4x4D RotationAxis(Vector3D ax, double a)
     {
-        Vector3D u=ax.Normalized(); double c=Math.Cos(a), s=Math.Sin(a), t=1-c;
-        return new(t*u.X*u.X+c, t*u.X*u.Y-s*u.Z, t*u.X*u.Z+s*u.Y, 0,
-            t*u.X*u.Y+s*u.Z, t*u.Y*u.Y+c, t*u.Y*u.Z-s*u.X, 0,
-            t*u.X*u.Z-s*u.Y, t*u.Y*u.Z+s*u.X, t*u.Z*u.Z+c, 0, 0,0,0,1);
+        Vector3D u = ax.Normalized();
+        double c = Math.Cos(a), s = Math.Sin(a), t = 1 - c;
+        return new(t * u.X * u.X + c, t * u.X * u.Y - s * u.Z, t * u.X * u.Z + s * u.Y, 0,
+            t * u.X * u.Y + s * u.Z, t * u.Y * u.Y + c, t * u.Y * u.Z - s * u.X, 0,
+            t * u.X * u.Z - s * u.Y, t * u.Y * u.Z + s * u.X, t * u.Z * u.Z + c, 0, 0, 0, 0, 1);
     }
     public static Matrix4x4D FromQuaternion(QuaternionD q) => q.ToMatrix4x4D();
     public static Matrix4x4D LookAt(Vector3D eye, Vector3D target, Vector3D up)
     {
-        Vector3D f=(target-eye).Normalized(), r=Vector3D.Cross(f,up).Normalized(), u=Vector3D.Cross(r,f);
-        return new Matrix4x4D(r.X,r.Y,r.Z,-Vector3D.Dot(r,eye), u.X,u.Y,u.Z,-Vector3D.Dot(u,eye), -f.X,-f.Y,-f.Z,Vector3D.Dot(f,eye), 0,0,0,1);
+        Vector3D f = (target - eye).Normalized(), r = Vector3D.Cross(f, up).Normalized(), u = Vector3D.Cross(r, f);
+        return new Matrix4x4D(r.X, r.Y, r.Z, -Vector3D.Dot(r, eye), u.X, u.Y, u.Z, -Vector3D.Dot(u, eye), -f.X, -f.Y, -f.Z, Vector3D.Dot(f, eye), 0, 0, 0, 1);
     }
     public static Matrix4x4D Perspective(double fovyRad, double aspect, double near, double far)
     {
-        double t=Math.Tan(fovyRad*0.5);
-        return new Matrix4x4D(1.0/(aspect*t),0,0,0, 0,1.0/t,0,0, 0,0,-(far+near)/(far-near),-(2*far*near)/(far-near), 0,0,-1,0);
+        double t = Math.Tan(fovyRad * 0.5);
+        return new Matrix4x4D(1.0 / (aspect * t), 0, 0, 0, 0, 1.0 / t, 0, 0, 0, 0, -(far + near) / (far - near), -(2 * far * near) / (far - near), 0, 0, -1, 0);
     }
     public static Matrix4x4D InfinitePerspective(double fovyRad, double aspect, double near)
     {
-        double t=Math.Tan(fovyRad*0.5);
-        return new Matrix4x4D(1.0/(aspect*t),0,0,0, 0,1.0/t,0,0, 0,0,-1,-2*near, 0,0,-1,0);
+        double t = Math.Tan(fovyRad * 0.5);
+        return new Matrix4x4D(1.0 / (aspect * t), 0, 0, 0, 0, 1.0 / t, 0, 0, 0, 0, -1, -2 * near, 0, 0, -1, 0);
     }
     public static Matrix4x4D Orthographic(double l, double r, double b, double t, double n, double f)
     {
-        double rl=r-l, tb=t-b, fn=f-n;
-        return new Matrix4x4D(2.0/rl,0,0,-(r+l)/rl, 0,2.0/tb,0,-(t+b)/tb, 0,0,-2.0/fn,-(f+n)/fn, 0,0,0,1);
+        double rl = r - l, tb = t - b, fn = f - n;
+        return new Matrix4x4D(2.0 / rl, 0, 0, -(r + l) / rl, 0, 2.0 / tb, 0, -(t + b) / tb, 0, 0, -2.0 / fn, -(f + n) / fn, 0, 0, 0, 1);
     }
 
-    public readonly double Trace => M11+M22+M33+M44;
+    public readonly double Trace => M11 + M22 + M33 + M44;
     public readonly double Determinant
     {
-        get {
-            double a=M11*(M22*(M33*M44-M34*M43)-M23*(M32*M44-M34*M42)+M24*(M32*M43-M33*M42));
-            double b=M12*(M21*(M33*M44-M34*M43)-M23*(M31*M44-M34*M41)+M24*(M31*M43-M33*M41));
-            double c=M13*(M21*(M32*M44-M34*M42)-M22*(M31*M44-M34*M41)+M24*(M31*M42-M32*M41));
-            double d=M14*(M21*(M32*M43-M33*M42)-M22*(M31*M43-M33*M41)+M23*(M31*M42-M32*M41));
-            return a-b+c-d; }
+        get
+        {
+            double a = M11 * (M22 * (M33 * M44 - M34 * M43) - M23 * (M32 * M44 - M34 * M42) + M24 * (M32 * M43 - M33 * M42));
+            double b = M12 * (M21 * (M33 * M44 - M34 * M43) - M23 * (M31 * M44 - M34 * M41) + M24 * (M31 * M43 - M33 * M41));
+            double c = M13 * (M21 * (M32 * M44 - M34 * M42) - M22 * (M31 * M44 - M34 * M41) + M24 * (M31 * M42 - M32 * M41));
+            double d = M14 * (M21 * (M32 * M43 - M33 * M42) - M22 * (M31 * M43 - M33 * M41) + M23 * (M31 * M42 - M32 * M41));
+            return a - b + c - d;
+        }
     }
-    public readonly Matrix4x4D Transpose() => new(M11,M21,M31,M41, M12,M22,M32,M42, M13,M23,M33,M43, M14,M24,M34,M44);
+    public readonly Matrix4x4D Transpose() => new(M11, M21, M31, M41, M12, M22, M32, M42, M13, M23, M33, M43, M14, M24, M34, M44);
     public readonly Matrix4x4D Inverse()
     {
-        double det=Determinant; if(Math.Abs(det)<1e-30) return Zero; double inv=1.0/det;
-        double c11=(M22*(M33*M44-M34*M43)-M23*(M32*M44-M34*M42)+M24*(M32*M43-M33*M42));
-        double c12=-(M21*(M33*M44-M34*M43)-M23*(M31*M44-M34*M41)+M24*(M31*M43-M33*M41));
-        double c13=(M21*(M32*M44-M34*M42)-M22*(M31*M44-M34*M41)+M24*(M31*M42-M32*M41));
-        double c14=-(M21*(M32*M43-M33*M42)-M22*(M31*M43-M33*M41)+M23*(M31*M42-M32*M41));
-        double c21=-(M12*(M33*M44-M34*M43)-M13*(M32*M44-M34*M42)+M14*(M32*M43-M33*M42));
-        double c22=(M11*(M33*M44-M34*M43)-M13*(M31*M44-M34*M41)+M14*(M31*M43-M33*M41));
-        double c23=-(M11*(M32*M44-M34*M42)-M12*(M31*M44-M34*M41)+M14*(M31*M42-M32*M41));
-        double c24=(M11*(M32*M43-M33*M42)-M12*(M31*M43-M33*M41)+M13*(M31*M42-M32*M41));
-        double c31=(M12*(M23*M44-M24*M43)-M13*(M22*M44-M24*M42)+M14*(M22*M43-M23*M42));
-        double c32=-(M11*(M23*M44-M24*M43)-M13*(M21*M44-M24*M41)+M14*(M21*M43-M23*M41));
-        double c33=(M11*(M22*M44-M24*M42)-M12*(M21*M44-M24*M41)+M14*(M21*M42-M22*M41));
-        double c34=-(M11*(M22*M43-M23*M42)-M12*(M21*M43-M23*M41)+M13*(M21*M42-M22*M41));
-        double c41=-(M12*(M23*M34-M24*M33)-M13*(M22*M34-M24*M32)+M14*(M22*M33-M23*M32));
-        double c42=(M11*(M23*M34-M24*M33)-M13*(M21*M34-M24*M31)+M14*(M21*M33-M23*M31));
-        double c43=-(M11*(M22*M34-M24*M32)-M12*(M21*M34-M24*M31)+M14*(M21*M32-M22*M31));
-        double c44=(M11*(M22*M33-M23*M32)-M12*(M21*M33-M23*M31)+M13*(M21*M32-M22*M31));
-        return new Matrix4x4D(c11*inv,c21*inv,c31*inv,c41*inv, c12*inv,c22*inv,c32*inv,c42*inv, c13*inv,c23*inv,c33*inv,c43*inv, c14*inv,c24*inv,c34*inv,c44*inv);
+        double det = Determinant;
+        if (Math.Abs(det) < 1e-30)
+            return Zero;
+        double inv = 1.0 / det;
+        double c11 = (M22 * (M33 * M44 - M34 * M43) - M23 * (M32 * M44 - M34 * M42) + M24 * (M32 * M43 - M33 * M42));
+        double c12 = -(M21 * (M33 * M44 - M34 * M43) - M23 * (M31 * M44 - M34 * M41) + M24 * (M31 * M43 - M33 * M41));
+        double c13 = (M21 * (M32 * M44 - M34 * M42) - M22 * (M31 * M44 - M34 * M41) + M24 * (M31 * M42 - M32 * M41));
+        double c14 = -(M21 * (M32 * M43 - M33 * M42) - M22 * (M31 * M43 - M33 * M41) + M23 * (M31 * M42 - M32 * M41));
+        double c21 = -(M12 * (M33 * M44 - M34 * M43) - M13 * (M32 * M44 - M34 * M42) + M14 * (M32 * M43 - M33 * M42));
+        double c22 = (M11 * (M33 * M44 - M34 * M43) - M13 * (M31 * M44 - M34 * M41) + M14 * (M31 * M43 - M33 * M41));
+        double c23 = -(M11 * (M32 * M44 - M34 * M42) - M12 * (M31 * M44 - M34 * M41) + M14 * (M31 * M42 - M32 * M41));
+        double c24 = (M11 * (M32 * M43 - M33 * M42) - M12 * (M31 * M43 - M33 * M41) + M13 * (M31 * M42 - M32 * M41));
+        double c31 = (M12 * (M23 * M44 - M24 * M43) - M13 * (M22 * M44 - M24 * M42) + M14 * (M22 * M43 - M23 * M42));
+        double c32 = -(M11 * (M23 * M44 - M24 * M43) - M13 * (M21 * M44 - M24 * M41) + M14 * (M21 * M43 - M23 * M41));
+        double c33 = (M11 * (M22 * M44 - M24 * M42) - M12 * (M21 * M44 - M24 * M41) + M14 * (M21 * M42 - M22 * M41));
+        double c34 = -(M11 * (M22 * M43 - M23 * M42) - M12 * (M21 * M43 - M23 * M41) + M13 * (M21 * M42 - M22 * M41));
+        double c41 = -(M12 * (M23 * M34 - M24 * M33) - M13 * (M22 * M34 - M24 * M32) + M14 * (M22 * M33 - M23 * M32));
+        double c42 = (M11 * (M23 * M34 - M24 * M33) - M13 * (M21 * M34 - M24 * M31) + M14 * (M21 * M33 - M23 * M31));
+        double c43 = -(M11 * (M22 * M34 - M24 * M32) - M12 * (M21 * M34 - M24 * M31) + M14 * (M21 * M32 - M22 * M31));
+        double c44 = (M11 * (M22 * M33 - M23 * M32) - M12 * (M21 * M33 - M23 * M31) + M13 * (M21 * M32 - M22 * M31));
+        return new Matrix4x4D(c11 * inv, c21 * inv, c31 * inv, c41 * inv, c12 * inv, c22 * inv, c32 * inv, c42 * inv, c13 * inv, c23 * inv, c33 * inv, c43 * inv, c14 * inv, c24 * inv, c34 * inv, c44 * inv);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly Vector3D TransformPoint(Vector3D p) { double w=M41*p.X+M42*p.Y+M43*p.Z+M44; if(Math.Abs(w)<1e-30) w=1e-30; return new((M11*p.X+M12*p.Y+M13*p.Z+M14)/w, (M21*p.X+M22*p.Y+M23*p.Z+M24)/w, (M31*p.X+M32*p.Y+M33*p.Z+M34)/w); }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly Vector3D TransformVector(Vector3D v) => new(M11*v.X+M12*v.Y+M13*v.Z, M21*v.X+M22*v.Y+M23*v.Z, M31*v.X+M32*v.Y+M33*v.Z);
-    public readonly Tensor3D ToTensor3D() => new(M11,M12,M13, M21,M22,M23, M31,M32,M33);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly Vector3D TransformPoint(Vector3D p) { double w = M41 * p.X + M42 * p.Y + M43 * p.Z + M44; if (Math.Abs(w) < 1e-30) w = 1e-30; return new((M11 * p.X + M12 * p.Y + M13 * p.Z + M14) / w, (M21 * p.X + M22 * p.Y + M23 * p.Z + M24) / w, (M31 * p.X + M32 * p.Y + M33 * p.Z + M34) / w); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly Vector3D TransformVector(Vector3D v) => new(M11 * v.X + M12 * v.Y + M13 * v.Z, M21 * v.X + M22 * v.Y + M23 * v.Z, M31 * v.X + M32 * v.Y + M33 * v.Z);
+    public readonly Tensor3D ToTensor3D() => new(M11, M12, M13, M21, M22, M23, M31, M32, M33);
     public readonly Vector3D GetTranslation() => new(M14, M24, M34);
     public readonly QuaternionD GetRotation() => QuaternionD.FromMatrix3x3(ToTensor3D());
     public readonly Vector3D GetScale() => new(ToTensor3D().Column(0).Length(), ToTensor3D().Column(1).Length(), ToTensor3D().Column(2).Length());
     public readonly void Decompose(out Vector3D translation, out QuaternionD rotation, out Vector3D scale)
     {
-        translation = GetTranslation(); scale = GetScale();
+        translation = GetTranslation();
+        scale = GetScale();
         Tensor3D rot = ToTensor3D();
-        if(scale.X>1e-10){rot.M11/=scale.X; rot.M12/=scale.X; rot.M13/=scale.X;}
-        if(scale.Y>1e-10){rot.M21/=scale.Y; rot.M22/=scale.Y; rot.M23/=scale.Y;}
-        if(scale.Z>1e-10){rot.M31/=scale.Z; rot.M32/=scale.Z; rot.M33/=scale.Z;}
+        if (scale.X > 1e-10)
+        { rot.M11 /= scale.X; rot.M12 /= scale.X; rot.M13 /= scale.X; }
+        if (scale.Y > 1e-10)
+        { rot.M21 /= scale.Y; rot.M22 /= scale.Y; rot.M23 /= scale.Y; }
+        if (scale.Z > 1e-10)
+        { rot.M31 /= scale.Z; rot.M32 /= scale.Z; rot.M33 /= scale.Z; }
         rotation = QuaternionD.FromMatrix3x3(rot);
     }
 
-    public readonly double FrobeniusNorm => Math.Sqrt(M11*M11+M12*M12+M13*M13+M14*M14+M21*M21+M22*M22+M23*M23+M24*M24+M31*M31+M32*M32+M33*M33+M34*M34+M41*M41+M42*M42+M43*M43+M44*M44);
+    public readonly double FrobeniusNorm => Math.Sqrt(M11 * M11 + M12 * M12 + M13 * M13 + M14 * M14 + M21 * M21 + M22 * M22 + M23 * M23 + M24 * M24 + M31 * M31 + M32 * M32 + M33 * M33 + M34 * M34 + M41 * M41 + M42 * M42 + M43 * M43 + M44 * M44);
 
-    public static Matrix4x4D operator *(Matrix4x4D a, Matrix4x4D b) { Matrix4x4D r; r.M11=a.M11*b.M11+a.M12*b.M21+a.M13*b.M31+a.M14*b.M41; r.M12=a.M11*b.M12+a.M12*b.M22+a.M13*b.M32+a.M14*b.M42; r.M13=a.M11*b.M13+a.M12*b.M23+a.M13*b.M33+a.M14*b.M43; r.M14=a.M11*b.M14+a.M12*b.M24+a.M13*b.M34+a.M14*b.M44; r.M21=a.M21*b.M11+a.M22*b.M21+a.M23*b.M31+a.M24*b.M41; r.M22=a.M21*b.M12+a.M22*b.M22+a.M23*b.M32+a.M24*b.M42; r.M23=a.M21*b.M13+a.M22*b.M23+a.M23*b.M33+a.M24*b.M43; r.M24=a.M21*b.M14+a.M22*b.M24+a.M23*b.M34+a.M24*b.M44; r.M31=a.M31*b.M11+a.M32*b.M21+a.M33*b.M31+a.M34*b.M41; r.M32=a.M31*b.M12+a.M32*b.M22+a.M33*b.M32+a.M34*b.M42; r.M33=a.M31*b.M13+a.M32*b.M23+a.M33*b.M33+a.M34*b.M43; r.M34=a.M31*b.M14+a.M32*b.M24+a.M33*b.M34+a.M34*b.M44; r.M41=a.M41*b.M11+a.M42*b.M21+a.M43*b.M31+a.M44*b.M41; r.M42=a.M41*b.M12+a.M42*b.M22+a.M43*b.M32+a.M44*b.M42; r.M43=a.M41*b.M13+a.M42*b.M23+a.M43*b.M33+a.M44*b.M43; r.M44=a.M41*b.M14+a.M42*b.M24+a.M43*b.M34+a.M44*b.M44; return r; }
-    public static Matrix4x4D operator *(Matrix4x4D m, double s) => new(m.M11*s,m.M12*s,m.M13*s,m.M14*s, m.M21*s,m.M22*s,m.M23*s,m.M24*s, m.M31*s,m.M32*s,m.M33*s,m.M34*s, m.M41*s,m.M42*s,m.M43*s,m.M44*s);
-    public static Matrix4x4D operator *(double s, Matrix4x4D m) => m*s;
-    public static Matrix4x4D operator +(Matrix4x4D a, Matrix4x4D b) => new(a.M11+b.M11,a.M12+b.M12,a.M13+b.M13,a.M14+b.M14, a.M21+b.M21,a.M22+b.M22,a.M23+b.M23,a.M24+b.M24, a.M31+b.M31,a.M32+b.M32,a.M33+b.M33,a.M34+b.M34, a.M41+b.M41,a.M42+b.M42,a.M43+b.M43,a.M44+b.M44);
-    public static Matrix4x4D operator -(Matrix4x4D a, Matrix4x4D b) => new(a.M11-b.M11,a.M12-b.M12,a.M13-b.M13,a.M14-b.M14, a.M21-b.M21,a.M22-b.M22,a.M23-b.M23,a.M24-b.M24, a.M31-b.M31,a.M32-b.M32,a.M33-b.M33,a.M34-b.M34, a.M41-b.M41,a.M42-b.M42,a.M43-b.M43,a.M44-b.M44);
-    public static Matrix4x4D operator -(Matrix4x4D m) => new(-m.M11,-m.M12,-m.M13,-m.M14, -m.M21,-m.M22,-m.M23,-m.M24, -m.M31,-m.M32,-m.M33,-m.M34, -m.M41,-m.M42,-m.M43,-m.M44);
+    public static Matrix4x4D operator *(Matrix4x4D a, Matrix4x4D b) { Matrix4x4D r; r.M11 = a.M11 * b.M11 + a.M12 * b.M21 + a.M13 * b.M31 + a.M14 * b.M41; r.M12 = a.M11 * b.M12 + a.M12 * b.M22 + a.M13 * b.M32 + a.M14 * b.M42; r.M13 = a.M11 * b.M13 + a.M12 * b.M23 + a.M13 * b.M33 + a.M14 * b.M43; r.M14 = a.M11 * b.M14 + a.M12 * b.M24 + a.M13 * b.M34 + a.M14 * b.M44; r.M21 = a.M21 * b.M11 + a.M22 * b.M21 + a.M23 * b.M31 + a.M24 * b.M41; r.M22 = a.M21 * b.M12 + a.M22 * b.M22 + a.M23 * b.M32 + a.M24 * b.M42; r.M23 = a.M21 * b.M13 + a.M22 * b.M23 + a.M23 * b.M33 + a.M24 * b.M43; r.M24 = a.M21 * b.M14 + a.M22 * b.M24 + a.M23 * b.M34 + a.M24 * b.M44; r.M31 = a.M31 * b.M11 + a.M32 * b.M21 + a.M33 * b.M31 + a.M34 * b.M41; r.M32 = a.M31 * b.M12 + a.M32 * b.M22 + a.M33 * b.M32 + a.M34 * b.M42; r.M33 = a.M31 * b.M13 + a.M32 * b.M23 + a.M33 * b.M33 + a.M34 * b.M43; r.M34 = a.M31 * b.M14 + a.M32 * b.M24 + a.M33 * b.M34 + a.M34 * b.M44; r.M41 = a.M41 * b.M11 + a.M42 * b.M21 + a.M43 * b.M31 + a.M44 * b.M41; r.M42 = a.M41 * b.M12 + a.M42 * b.M22 + a.M43 * b.M32 + a.M44 * b.M42; r.M43 = a.M41 * b.M13 + a.M42 * b.M23 + a.M43 * b.M33 + a.M44 * b.M43; r.M44 = a.M41 * b.M14 + a.M42 * b.M24 + a.M43 * b.M34 + a.M44 * b.M44; return r; }
+    public static Matrix4x4D operator *(Matrix4x4D m, double s) => new(m.M11 * s, m.M12 * s, m.M13 * s, m.M14 * s, m.M21 * s, m.M22 * s, m.M23 * s, m.M24 * s, m.M31 * s, m.M32 * s, m.M33 * s, m.M34 * s, m.M41 * s, m.M42 * s, m.M43 * s, m.M44 * s);
+    public static Matrix4x4D operator *(double s, Matrix4x4D m) => m * s;
+    public static Matrix4x4D operator +(Matrix4x4D a, Matrix4x4D b) => new(a.M11 + b.M11, a.M12 + b.M12, a.M13 + b.M13, a.M14 + b.M14, a.M21 + b.M21, a.M22 + b.M22, a.M23 + b.M23, a.M24 + b.M24, a.M31 + b.M31, a.M32 + b.M32, a.M33 + b.M33, a.M34 + b.M34, a.M41 + b.M41, a.M42 + b.M42, a.M43 + b.M43, a.M44 + b.M44);
+    public static Matrix4x4D operator -(Matrix4x4D a, Matrix4x4D b) => new(a.M11 - b.M11, a.M12 - b.M12, a.M13 - b.M13, a.M14 - b.M14, a.M21 - b.M21, a.M22 - b.M22, a.M23 - b.M23, a.M24 - b.M24, a.M31 - b.M31, a.M32 - b.M32, a.M33 - b.M33, a.M34 - b.M34, a.M41 - b.M41, a.M42 - b.M42, a.M43 - b.M43, a.M44 - b.M44);
+    public static Matrix4x4D operator -(Matrix4x4D m) => new(-m.M11, -m.M12, -m.M13, -m.M14, -m.M21, -m.M22, -m.M23, -m.M24, -m.M31, -m.M32, -m.M33, -m.M34, -m.M41, -m.M42, -m.M43, -m.M44);
 
-    public readonly bool Equals(Matrix4x4D o) => Math.Abs(M11-o.M11)<1e-10&&Math.Abs(M12-o.M12)<1e-10&&Math.Abs(M13-o.M13)<1e-10&&Math.Abs(M14-o.M14)<1e-10&&Math.Abs(M21-o.M21)<1e-10&&Math.Abs(M22-o.M22)<1e-10&&Math.Abs(M23-o.M23)<1e-10&&Math.Abs(M24-o.M24)<1e-10&&Math.Abs(M31-o.M31)<1e-10&&Math.Abs(M32-o.M32)<1e-10&&Math.Abs(M33-o.M33)<1e-10&&Math.Abs(M34-o.M34)<1e-10&&Math.Abs(M41-o.M41)<1e-10&&Math.Abs(M42-o.M42)<1e-10&&Math.Abs(M43-o.M43)<1e-10&&Math.Abs(M44-o.M44)<1e-10;
+    public readonly bool Equals(Matrix4x4D o) => Math.Abs(M11 - o.M11) < 1e-10 && Math.Abs(M12 - o.M12) < 1e-10 && Math.Abs(M13 - o.M13) < 1e-10 && Math.Abs(M14 - o.M14) < 1e-10 && Math.Abs(M21 - o.M21) < 1e-10 && Math.Abs(M22 - o.M22) < 1e-10 && Math.Abs(M23 - o.M23) < 1e-10 && Math.Abs(M24 - o.M24) < 1e-10 && Math.Abs(M31 - o.M31) < 1e-10 && Math.Abs(M32 - o.M32) < 1e-10 && Math.Abs(M33 - o.M33) < 1e-10 && Math.Abs(M34 - o.M34) < 1e-10 && Math.Abs(M41 - o.M41) < 1e-10 && Math.Abs(M42 - o.M42) < 1e-10 && Math.Abs(M43 - o.M43) < 1e-10 && Math.Abs(M44 - o.M44) < 1e-10;
     public override readonly bool Equals(object? obj) => obj is Matrix4x4D o && Equals(o);
     public override readonly int GetHashCode() => HashCode.Combine(M11, M22, M33, M44);
     public static bool operator ==(Matrix4x4D a, Matrix4x4D b) => a.Equals(b);
@@ -1396,7 +1437,7 @@ public struct BoundingBox3D : IEquatable<BoundingBox3D>
     [FieldOffset(32)] public Vector3D Max;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public BoundingBox3D(Vector3D min, Vector3D max) { Min = min; Max = max; }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public BoundingBox3D(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) { Min = new(minX,minY,minZ); Max = new(maxX,maxY,maxZ); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public BoundingBox3D(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) { Min = new(minX, minY, minZ); Max = new(maxX, maxY, maxZ); }
 
     public static readonly BoundingBox3D Empty = new(Vector3D.Zero, Vector3D.Zero);
     public static readonly BoundingBox3D Infinite = new(new(double.NegativeInfinity), new(double.PositiveInfinity));
@@ -1404,26 +1445,26 @@ public struct BoundingBox3D : IEquatable<BoundingBox3D>
     public readonly Vector3D Center => (Min + Max) * 0.5;
     public readonly Vector3D Size => Max - Min;
     public readonly Vector3D HalfSize => Size * 0.5;
-    public readonly double Volume { get { Vector3D s=Size; return s.X*s.Y*s.Z; } }
-    public readonly double SurfaceArea { get { Vector3D s=Size; return 2.0*(s.X*s.Y+s.Y*s.Z+s.Z*s.X); } }
+    public readonly double Volume { get { Vector3D s = Size; return s.X * s.Y * s.Z; } }
+    public readonly double SurfaceArea { get { Vector3D s = Size; return 2.0 * (s.X * s.Y + s.Y * s.Z + s.Z * s.X); } }
     public readonly double DiagonalLength => Size.Length();
     public readonly Vector3D Diagonal => Size;
-    public readonly double Perimeter { get { Vector3D s=Size; return 4.0*(s.X+s.Y+s.Z); } }
-    public readonly double MaxFaceArea { get { Vector3D s=Size; double xy=s.X*s.Y,yz=s.Y*s.Z,zx=s.Z*s.X; return Math.Max(Math.Max(xy,yz),zx); } }
-    public readonly int LargestAxis { get { Vector3D s=Size; if(s.X>=s.Y&&s.X>=s.Z)return 0; if(s.Y>=s.Z)return 1; return 2; } }
+    public readonly double Perimeter { get { Vector3D s = Size; return 4.0 * (s.X + s.Y + s.Z); } }
+    public readonly double MaxFaceArea { get { Vector3D s = Size; double xy = s.X * s.Y, yz = s.Y * s.Z, zx = s.Z * s.X; return Math.Max(Math.Max(xy, yz), zx); } }
+    public readonly int LargestAxis { get { Vector3D s = Size; if (s.X >= s.Y && s.X >= s.Z) return 0; if (s.Y >= s.Z) return 1; return 2; } }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly bool Contains(Vector3D p) => p.X>=Min.X&&p.X<=Max.X&&p.Y>=Min.Y&&p.Y<=Max.Y&&p.Z>=Min.Z&&p.Z<=Max.Z;
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly bool ContainsStrict(Vector3D p) => p.X>Min.X&&p.X<Max.X&&p.Y>Min.Y&&p.Y<Max.Y&&p.Z>Min.Z&&p.Z<Max.Z;
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly bool Contains(BoundingBox3D o) => o.Min.X>=Min.X&&o.Max.X<=Max.X&&o.Min.Y>=Min.Y&&o.Max.Y<=Max.Y&&o.Min.Z>=Min.Z&&o.Max.Z<=Max.Z;
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly bool Intersects(BoundingBox3D o) => Min.X<=o.Max.X&&Max.X>=o.Min.X&&Min.Y<=o.Max.Y&&Max.Y>=o.Min.Y&&Min.Z<=o.Max.Z&&Max.Z>=o.Min.Z;
-    public readonly BoundingBox3D Intersection(BoundingBox3D o) => new(Vector3D.Max(Min,o.Min), Vector3D.Min(Max,o.Max));
-    public readonly BoundingBox3D Union(BoundingBox3D o) => new(Vector3D.Min(Min,o.Min), Vector3D.Max(Max,o.Max));
-    public static BoundingBox3D FromCenterAndHalfExtents(Vector3D c, Vector3D h) => new(c-h, c+h);
-    public readonly BoundingBox3D Expanded(double m) => new(Min-new Vector3D(m), Max+new Vector3D(m));
-    public readonly BoundingBox3D Expanded(Vector3D m) => new(Min-m, Max+m);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly bool Contains(Vector3D p) => p.X >= Min.X && p.X <= Max.X && p.Y >= Min.Y && p.Y <= Max.Y && p.Z >= Min.Z && p.Z <= Max.Z;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly bool ContainsStrict(Vector3D p) => p.X > Min.X && p.X < Max.X && p.Y > Min.Y && p.Y < Max.Y && p.Z > Min.Z && p.Z < Max.Z;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly bool Contains(BoundingBox3D o) => o.Min.X >= Min.X && o.Max.X <= Max.X && o.Min.Y >= Min.Y && o.Max.Y <= Max.Y && o.Min.Z >= Min.Z && o.Max.Z <= Max.Z;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly bool Intersects(BoundingBox3D o) => Min.X <= o.Max.X && Max.X >= o.Min.X && Min.Y <= o.Max.Y && Max.Y >= o.Min.Y && Min.Z <= o.Max.Z && Max.Z >= o.Min.Z;
+    public readonly BoundingBox3D Intersection(BoundingBox3D o) => new(Vector3D.Max(Min, o.Min), Vector3D.Min(Max, o.Max));
+    public readonly BoundingBox3D Union(BoundingBox3D o) => new(Vector3D.Min(Min, o.Min), Vector3D.Max(Max, o.Max));
+    public static BoundingBox3D FromCenterAndHalfExtents(Vector3D c, Vector3D h) => new(c - h, c + h);
+    public readonly BoundingBox3D Expanded(double m) => new(Min - new Vector3D(m), Max + new Vector3D(m));
+    public readonly BoundingBox3D Expanded(Vector3D m) => new(Min - m, Max + m);
     public readonly Vector3D ClosestPoint(Vector3D p) => Vector3D.Clamp(p, Min, Max);
-    public readonly double DistanceTo(Vector3D p) => (ClosestPoint(p)-p).Length();
-    public readonly double DistanceSquaredTo(Vector3D p) => (ClosestPoint(p)-p).LengthSquared();
+    public readonly double DistanceTo(Vector3D p) => (ClosestPoint(p) - p).Length();
+    public readonly double DistanceSquaredTo(Vector3D p) => (ClosestPoint(p) - p).LengthSquared();
 
     public readonly bool Equals(BoundingBox3D o) => Min.Equals(o.Min) && Max.Equals(o.Max);
     public override readonly bool Equals(object? obj) => obj is BoundingBox3D o && Equals(o);
@@ -1451,7 +1492,7 @@ public struct Ray3D : IEquatable<Ray3D>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Ray3D(Vector3D origin, Vector3D direction) { Origin = origin; Direction = direction.Normalized(); }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Ray3D(double ox, double oy, double oz, double dx, double dy, double dz) { Origin = new Vector3D(ox,oy,oz); Direction = new Vector3D(dx,dy,dz).Normalized(); }
+    public Ray3D(double ox, double oy, double oz, double dx, double dy, double dz) { Origin = new Vector3D(ox, oy, oz); Direction = new Vector3D(dx, dy, dz).Normalized(); }
 
     /// <summary>Point sur le rayon a la distance t : P = O + t*D.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly Vector3D GetPoint(double t) => Origin + Direction * t;
@@ -1460,14 +1501,18 @@ public struct Ray3D : IEquatable<Ray3D>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool IntersectsAABB(BoundingBox3D box, out double tMin, out double tMax)
     {
-        tMin = 0; tMax = double.PositiveInfinity;
-        for (int i = 0; i < 3; i++) {
-            double orig = i==0?Origin.X:(i==1?Origin.Y:Origin.Z);
-            double dir = i==0?Direction.X:(i==1?Direction.Y:Direction.Z);
-            double bmin = i==0?box.Min.X:(i==1?box.Min.Y:box.Min.Z);
-            double bmax = i==0?box.Max.X:(i==1?box.Max.Y:box.Max.Z);
-            if (Math.Abs(dir) < 1e-15) { if (orig < bmin || orig > bmax) return false; }
-            else { double inv = 1.0/dir; double t1=(bmin-orig)*inv, t2=(bmax-orig)*inv; if(t1>t2)(t1,t2)=(t2,t1); tMin=Math.Max(tMin,t1); tMax=Math.Min(tMax,t2); if(tMin>tMax) return false; }
+        tMin = 0;
+        tMax = double.PositiveInfinity;
+        for (int i = 0; i < 3; i++)
+        {
+            double orig = i == 0 ? Origin.X : (i == 1 ? Origin.Y : Origin.Z);
+            double dir = i == 0 ? Direction.X : (i == 1 ? Direction.Y : Direction.Z);
+            double bmin = i == 0 ? box.Min.X : (i == 1 ? box.Min.Y : box.Min.Z);
+            double bmax = i == 0 ? box.Max.X : (i == 1 ? box.Max.Y : box.Max.Z);
+            if (Math.Abs(dir) < 1e-15)
+            { if (orig < bmin || orig > bmax) return false; }
+            else
+            { double inv = 1.0 / dir; double t1 = (bmin - orig) * inv, t2 = (bmax - orig) * inv; if (t1 > t2) (t1, t2) = (t2, t1); tMin = Math.Max(tMin, t1); tMax = Math.Min(tMax, t2); if (tMin > tMax) return false; }
         }
         return true;
     }
@@ -1478,7 +1523,8 @@ public struct Ray3D : IEquatable<Ray3D>
     public readonly bool IntersectPlane(Plane3D plane, out double t)
     {
         double denom = Vector3D.Dot(plane.Normal, Direction);
-        if (Math.Abs(denom) < 1e-15) { t = 0; return false; }
+        if (Math.Abs(denom) < 1e-15)
+        { t = 0; return false; }
         t = -(Vector3D.Dot(plane.Normal, Origin) + plane.Distance) / denom;
         return t >= 0;
     }
@@ -1492,7 +1538,8 @@ public struct Ray3D : IEquatable<Ray3D>
         double b = 2.0 * Vector3D.Dot(oc, Direction);
         double c = Vector3D.Dot(oc, oc) - radius * radius;
         double disc = b * b - 4.0 * a * c;
-        if (disc < 0) { tEntry = 0; tExit = 0; return false; }
+        if (disc < 0)
+        { tEntry = 0; tExit = 0; return false; }
         double sqrtD = Math.Sqrt(disc);
         tEntry = (-b - sqrtD) / (2.0 * a);
         tExit = (-b + sqrtD) / (2.0 * a);
@@ -1533,7 +1580,7 @@ public struct Plane3D : IEquatable<Plane3D>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public Plane3D(Vector3D point, Vector3D normal) { Normal = normal.Normalized(); Distance = -Vector3D.Dot(Normal, point); }
 
     /// <summary>Construit un plan a partir de 3 points non colineaires.</summary>
-    public static Plane3D FromPoints(Vector3D a, Vector3D b, Vector3D c) { Vector3D n=Vector3D.Cross(b-a,c-a).Normalized(); return new(n, -Vector3D.Dot(n,a)); }
+    public static Plane3D FromPoints(Vector3D a, Vector3D b, Vector3D c) { Vector3D n = Vector3D.Cross(b - a, c - a).Normalized(); return new(n, -Vector3D.Dot(n, a)); }
 
     /// <summary>Distance signee d'un point au plan : N.p + d.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly double SignedDistance(Vector3D point) => Vector3D.Dot(Normal, point) + Distance;
@@ -1542,7 +1589,7 @@ public struct Plane3D : IEquatable<Plane3D>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public readonly Vector3D ProjectPoint(Vector3D p) => p - Normal * SignedDistance(p);
     public readonly Plane3D Flipped => new(-Normal, -Distance);
 
-    public readonly bool Equals(Plane3D o) => Normal.Equals(o.Normal) && Math.Abs(Distance-o.Distance)<1e-10;
+    public readonly bool Equals(Plane3D o) => Normal.Equals(o.Normal) && Math.Abs(Distance - o.Distance) < 1e-10;
     public override readonly bool Equals(object? obj) => obj is Plane3D o && Equals(o);
     public override readonly int GetHashCode() => HashCode.Combine(Normal, Distance);
     public static bool operator ==(Plane3D a, Plane3D b) => a.Equals(b);
@@ -1570,31 +1617,33 @@ public struct Frustum6Planes : IEquatable<Frustum6Planes>
     public static Frustum6Planes FromViewProjection(Matrix4x4D vp)
     {
         Frustum6Planes f;
-        f.Left = Norm(new Plane3D(new Vector3D(vp.M14+vp.M11, vp.M24+vp.M21, vp.M34+vp.M31), vp.M44+vp.M41));
-        f.Right = Norm(new Plane3D(new Vector3D(vp.M14-vp.M11, vp.M24-vp.M21, vp.M34-vp.M31), vp.M44-vp.M41));
-        f.Bottom = Norm(new Plane3D(new Vector3D(vp.M14+vp.M12, vp.M24+vp.M22, vp.M34+vp.M32), vp.M44+vp.M42));
-        f.Top = Norm(new Plane3D(new Vector3D(vp.M14-vp.M12, vp.M24-vp.M22, vp.M34-vp.M32), vp.M44-vp.M42));
+        f.Left = Norm(new Plane3D(new Vector3D(vp.M14 + vp.M11, vp.M24 + vp.M21, vp.M34 + vp.M31), vp.M44 + vp.M41));
+        f.Right = Norm(new Plane3D(new Vector3D(vp.M14 - vp.M11, vp.M24 - vp.M21, vp.M34 - vp.M31), vp.M44 - vp.M41));
+        f.Bottom = Norm(new Plane3D(new Vector3D(vp.M14 + vp.M12, vp.M24 + vp.M22, vp.M34 + vp.M32), vp.M44 + vp.M42));
+        f.Top = Norm(new Plane3D(new Vector3D(vp.M14 - vp.M12, vp.M24 - vp.M22, vp.M34 - vp.M32), vp.M44 - vp.M42));
         f.Near = Norm(new Plane3D(new Vector3D(vp.M13, vp.M23, vp.M33), vp.M43));
-        f.Far = Norm(new Plane3D(new Vector3D(vp.M14-vp.M13, vp.M24-vp.M23, vp.M34-vp.M33), vp.M44-vp.M43));
+        f.Far = Norm(new Plane3D(new Vector3D(vp.M14 - vp.M13, vp.M24 - vp.M23, vp.M34 - vp.M33), vp.M44 - vp.M43));
         return f;
     }
-    private static Plane3D Norm(Plane3D p) { double len=p.Normal.Length(); return len<1e-15?p:new(p.Normal/len, p.Distance/len); }
+    private static Plane3D Norm(Plane3D p) { double len = p.Normal.Length(); return len < 1e-15 ? p : new(p.Normal / len, p.Distance / len); }
 
     /// <summary>Teste si un point est a l'interieur du frustum.</summary>
-    public readonly bool ContainsPoint(Vector3D p) => Left.SignedDistance(p)>=0&&Right.SignedDistance(p)>=0&&Bottom.SignedDistance(p)>=0&&Top.SignedDistance(p)>=0&&Near.SignedDistance(p)>=0&&Far.SignedDistance(p)>=0;
+    public readonly bool ContainsPoint(Vector3D p) => Left.SignedDistance(p) >= 0 && Right.SignedDistance(p) >= 0 && Bottom.SignedDistance(p) >= 0 && Top.SignedDistance(p) >= 0 && Near.SignedDistance(p) >= 0 && Far.SignedDistance(p) >= 0;
 
     /// <summary>Teste l'intersection avec un AABB (separation axis theorem).</summary>
     public readonly bool IntersectsAABB(BoundingBox3D box)
     {
         Span<Plane3D> planes = stackalloc Plane3D[] { Left, Right, Bottom, Top, Near, Far };
-        for(int i=0;i<6;i++) {
-            Vector3D pv = new(planes[i].Normal.X>=0?box.Max.X:box.Min.X, planes[i].Normal.Y>=0?box.Max.Y:box.Min.Y, planes[i].Normal.Z>=0?box.Max.Z:box.Min.Z);
-            if(planes[i].SignedDistance(pv)<0) return false;
+        for (int i = 0; i < 6; i++)
+        {
+            Vector3D pv = new(planes[i].Normal.X >= 0 ? box.Max.X : box.Min.X, planes[i].Normal.Y >= 0 ? box.Max.Y : box.Min.Y, planes[i].Normal.Z >= 0 ? box.Max.Z : box.Min.Z);
+            if (planes[i].SignedDistance(pv) < 0)
+                return false;
         }
         return true;
     }
 
-    public readonly bool Equals(Frustum6Planes o) => Left.Equals(o.Left)&&Right.Equals(o.Right)&&Bottom.Equals(o.Bottom)&&Top.Equals(o.Top)&&Near.Equals(o.Near)&&Far.Equals(o.Far);
+    public readonly bool Equals(Frustum6Planes o) => Left.Equals(o.Left) && Right.Equals(o.Right) && Bottom.Equals(o.Bottom) && Top.Equals(o.Top) && Near.Equals(o.Near) && Far.Equals(o.Far);
     public override readonly bool Equals(object? obj) => obj is Frustum6Planes o && Equals(o);
     public override readonly int GetHashCode() => HashCode.Combine(Left, Right, Bottom, Top, Near, Far);
     public static bool operator ==(Frustum6Planes a, Frustum6Planes b) => a.Equals(b);
@@ -1622,46 +1671,46 @@ public struct ColorHDR : IEquatable<ColorHDR>
     [FieldOffset(48)] public double SpectralHigh;
     [FieldOffset(56)] public double _pad;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public ColorHDR(double r, double g, double b, double intensity = 1.0) { R=r; G=g; B=b; Intensity=intensity; SpectralLow=r; SpectralMid=g; SpectralHigh=b; _pad=0; }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public ColorHDR(double r, double g, double b, double intensity = 1.0) { R = r; G = g; B = b; Intensity = intensity; SpectralLow = r; SpectralMid = g; SpectralHigh = b; _pad = 0; }
 
-    public static readonly ColorHDR Black = new(0,0,0,0);
-    public static readonly ColorHDR White = new(1,1,1,1);
-    public static readonly ColorHDR Red = new(1,0,0,1);
-    public static readonly ColorHDR Green = new(0,1,0,1);
-    public static readonly ColorHDR Blue = new(0,0,1,1);
-    public static readonly ColorHDR Yellow = new(1,1,0,1);
-    public static readonly ColorHDR Cyan = new(0,1,1,1);
-    public static readonly ColorHDR Magenta = new(1,0,1,1);
+    public static readonly ColorHDR Black = new(0, 0, 0, 0);
+    public static readonly ColorHDR White = new(1, 1, 1, 1);
+    public static readonly ColorHDR Red = new(1, 0, 0, 1);
+    public static readonly ColorHDR Green = new(0, 1, 0, 1);
+    public static readonly ColorHDR Blue = new(0, 0, 1, 1);
+    public static readonly ColorHDR Yellow = new(1, 1, 0, 1);
+    public static readonly ColorHDR Cyan = new(0, 1, 1, 1);
+    public static readonly ColorHDR Magenta = new(1, 0, 1, 1);
 
     /// <summary>Luminance relative (BT.709) : 0.2126*R + 0.7152*G + 0.0722*B.</summary>
     public readonly double Luminance => 0.2126 * R + 0.7152 * G + 0.0722 * B;
     public readonly double MaxComponent => Math.Max(Math.Max(R, G), B);
     public readonly double AverageComponent => (R + G + B) / 3.0;
 
-    public readonly ColorHDR Scaled(double s) => new(R*s*Intensity, G*s*Intensity, B*s*Intensity, 1.0);
+    public readonly ColorHDR Scaled(double s) => new(R * s * Intensity, G * s * Intensity, B * s * Intensity, 1.0);
     public readonly ColorHDR WithIntensity(double i) => new(R, G, B, i);
 
     /// <summary>Tonemapping Reinhard : L = 1 - exp(-E * exposure).</summary>
-    public readonly ColorHDR ToneMapReinhard(double exposure = 1.0) { double er=R*Intensity*exposure, eg=G*Intensity*exposure, eb=B*Intensity*exposure; return new(1-Math.Exp(-er), 1-Math.Exp(-eg), 1-Math.Exp(-eb), 1.0); }
+    public readonly ColorHDR ToneMapReinhard(double exposure = 1.0) { double er = R * Intensity * exposure, eg = G * Intensity * exposure, eb = B * Intensity * exposure; return new(1 - Math.Exp(-er), 1 - Math.Exp(-eg), 1 - Math.Exp(-eb), 1.0); }
     /// <summary>Tonemapping ACES Filmic : courbe S pour un contraste cinematographique.</summary>
     public readonly ColorHDR ToneMapAces()
     {
-        const double a=2.51,b=0.03,c=2.43,d=0.59,e=0.14;
-        double er=R*Intensity*0.6, eg=G*Intensity*0.6, eb=B*Intensity*0.6;
-        return new(Math.Clamp((er*(a*er+b))/(er*(c*er+d)+e),0,1), Math.Clamp((eg*(a*eg+b))/(eg*(c*eg+d)+e),0,1), Math.Clamp((eb*(a*eb+b))/(eb*(c*eb+d)+e),0,1), 1.0);
+        const double a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+        double er = R * Intensity * 0.6, eg = G * Intensity * 0.6, eb = B * Intensity * 0.6;
+        return new(Math.Clamp((er * (a * er + b)) / (er * (c * er + d) + e), 0, 1), Math.Clamp((eg * (a * eg + b)) / (eg * (c * eg + d) + e), 0, 1), Math.Clamp((eb * (a * eb + b)) / (eb * (c * eb + d) + e), 0, 1), 1.0);
     }
     /// <summary>Conversion gamma vers linear.</summary>
-    public readonly ColorHDR GammaToLinear() => new(Math.Pow(R,2.2), Math.Pow(G,2.2), Math.Pow(B,2.2), Intensity);
+    public readonly ColorHDR GammaToLinear() => new(Math.Pow(R, 2.2), Math.Pow(G, 2.2), Math.Pow(B, 2.2), Intensity);
     /// <summary>Conversion linear vers gamma.</summary>
-    public readonly ColorHDR LinearToGamma() => new(Math.Pow(Math.Max(R,0),1.0/2.2), Math.Pow(Math.Max(G,0),1.0/2.2), Math.Pow(Math.Max(B,0),1.0/2.2), Intensity);
+    public readonly ColorHDR LinearToGamma() => new(Math.Pow(Math.Max(R, 0), 1.0 / 2.2), Math.Pow(Math.Max(G, 0), 1.0 / 2.2), Math.Pow(Math.Max(B, 0), 1.0 / 2.2), Intensity);
 
-    public readonly ColorHDR Lerp(ColorHDR o, double t) { double u=1-t; return new(R*u+o.R*t, G*u+o.G*t, B*u+o.B*t, Intensity*u+o.Intensity*t); }
-    public static ColorHDR operator +(ColorHDR a, ColorHDR b) => new(a.R+b.R, a.G+b.G, a.B+b.B, (a.Intensity+b.Intensity)*0.5);
-    public static ColorHDR operator *(ColorHDR a, ColorHDR b) => new(a.R*b.R, a.G*b.G, a.B*b.B, a.Intensity*b.Intensity);
-    public static ColorHDR operator *(ColorHDR c, double s) => new(c.R*s, c.G*s, c.B*s, c.Intensity);
+    public readonly ColorHDR Lerp(ColorHDR o, double t) { double u = 1 - t; return new(R * u + o.R * t, G * u + o.G * t, B * u + o.B * t, Intensity * u + o.Intensity * t); }
+    public static ColorHDR operator +(ColorHDR a, ColorHDR b) => new(a.R + b.R, a.G + b.G, a.B + b.B, (a.Intensity + b.Intensity) * 0.5);
+    public static ColorHDR operator *(ColorHDR a, ColorHDR b) => new(a.R * b.R, a.G * b.G, a.B * b.B, a.Intensity * b.Intensity);
+    public static ColorHDR operator *(ColorHDR c, double s) => new(c.R * s, c.G * s, c.B * s, c.Intensity);
     public static ColorHDR operator *(double s, ColorHDR c) => c * s;
 
-    public readonly bool Equals(ColorHDR o) => Math.Abs(R-o.R)<1e-10&&Math.Abs(G-o.G)<1e-10&&Math.Abs(B-o.B)<1e-10&&Math.Abs(Intensity-o.Intensity)<1e-10;
+    public readonly bool Equals(ColorHDR o) => Math.Abs(R - o.R) < 1e-10 && Math.Abs(G - o.G) < 1e-10 && Math.Abs(B - o.B) < 1e-10 && Math.Abs(Intensity - o.Intensity) < 1e-10;
     public override readonly bool Equals(object? obj) => obj is ColorHDR o && Equals(o);
     public override readonly int GetHashCode() => HashCode.Combine(R, G, B, Intensity);
     public static bool operator ==(ColorHDR a, ColorHDR b) => a.Equals(b);
@@ -1703,28 +1752,28 @@ public struct IntervalD : IEquatable<IntervalD>
     public readonly bool Contains(double v) => v >= Min && v <= Max;
     public readonly bool Contains(IntervalD o) => o.Min >= Min && o.Max <= Max;
     public readonly bool Intersects(IntervalD o) => Min <= o.Max && Max >= o.Min;
-    public readonly IntervalD Intersection(IntervalD o) => new(Math.Max(Min,o.Min), Math.Min(Max,o.Max));
-    public readonly IntervalD Union(IntervalD o) => new(Math.Min(Min,o.Min), Math.Max(Max,o.Max));
+    public readonly IntervalD Intersection(IntervalD o) => new(Math.Max(Min, o.Min), Math.Min(Max, o.Max));
+    public readonly IntervalD Union(IntervalD o) => new(Math.Min(Min, o.Min), Math.Max(Max, o.Max));
 
-    public static IntervalD operator +(IntervalD a, IntervalD b) => new(a.Min+b.Min, a.Max+b.Max);
-    public static IntervalD operator -(IntervalD a, IntervalD b) => new(a.Min-b.Max, a.Max-b.Min);
-    public static IntervalD operator *(IntervalD a, IntervalD b) { double p1=a.Min*b.Min,p2=a.Min*b.Max,p3=a.Max*b.Min,p4=a.Max*b.Max; return new(Math.Min(Math.Min(p1,p2),Math.Min(p3,p4)), Math.Max(Math.Max(p1,p2),Math.Max(p3,p4))); }
-    public static IntervalD operator /(IntervalD a, IntervalD b) { if(b.Contains(0)) return Entire; double p1=a.Min/b.Min,p2=a.Min/b.Max,p3=a.Max/b.Min,p4=a.Max/b.Max; return new(Math.Min(Math.Min(p1,p2),Math.Min(p3,p4)), Math.Max(Math.Max(p1,p2),Math.Max(p3,p4))); }
-    public static IntervalD operator +(IntervalD a, double s) => new(a.Min+s, a.Max+s);
-    public static IntervalD operator -(IntervalD a, double s) => new(a.Min-s, a.Max-s);
-    public static IntervalD operator *(IntervalD a, double s) => s>=0?new(a.Min*s,a.Max*s):new(a.Max*s,a.Min*s);
-    public static IntervalD operator /(IntervalD a, double s) => a*(1.0/s);
+    public static IntervalD operator +(IntervalD a, IntervalD b) => new(a.Min + b.Min, a.Max + b.Max);
+    public static IntervalD operator -(IntervalD a, IntervalD b) => new(a.Min - b.Max, a.Max - b.Min);
+    public static IntervalD operator *(IntervalD a, IntervalD b) { double p1 = a.Min * b.Min, p2 = a.Min * b.Max, p3 = a.Max * b.Min, p4 = a.Max * b.Max; return new(Math.Min(Math.Min(p1, p2), Math.Min(p3, p4)), Math.Max(Math.Max(p1, p2), Math.Max(p3, p4))); }
+    public static IntervalD operator /(IntervalD a, IntervalD b) { if (b.Contains(0)) return Entire; double p1 = a.Min / b.Min, p2 = a.Min / b.Max, p3 = a.Max / b.Min, p4 = a.Max / b.Max; return new(Math.Min(Math.Min(p1, p2), Math.Min(p3, p4)), Math.Max(Math.Max(p1, p2), Math.Max(p3, p4))); }
+    public static IntervalD operator +(IntervalD a, double s) => new(a.Min + s, a.Max + s);
+    public static IntervalD operator -(IntervalD a, double s) => new(a.Min - s, a.Max - s);
+    public static IntervalD operator *(IntervalD a, double s) => s >= 0 ? new(a.Min * s, a.Max * s) : new(a.Max * s, a.Min * s);
+    public static IntervalD operator /(IntervalD a, double s) => a * (1.0 / s);
     public static IntervalD operator -(IntervalD a) => new(-a.Max, -a.Min);
 
-    public readonly IntervalD Sin() { double sMin=Math.Sin(Min),sMax=Math.Sin(Max); double lo=Math.Min(sMin,sMax),hi=Math.Max(sMin,sMax); if(Min<Max&&Math.PI>Min){lo=-1;hi=Math.Max(sMin,sMax);} return new(lo,hi); }
-    public readonly IntervalD Cos() { double cMin=Math.Cos(Min),cMax=Math.Cos(Max); double lo=Math.Min(cMin,cMax),hi=Math.Max(cMin,cMax); if(Min<Max&&0>Min&&0<Max) hi=1; return new(lo,hi); }
+    public readonly IntervalD Sin() { double sMin = Math.Sin(Min), sMax = Math.Sin(Max); double lo = Math.Min(sMin, sMax), hi = Math.Max(sMin, sMax); if (Min < Max && Math.PI > Min) { lo = -1; hi = Math.Max(sMin, sMax); } return new(lo, hi); }
+    public readonly IntervalD Cos() { double cMin = Math.Cos(Min), cMax = Math.Cos(Max); double lo = Math.Min(cMin, cMax), hi = Math.Max(cMin, cMax); if (Min < Max && 0 > Min && 0 < Max) hi = 1; return new(lo, hi); }
     public readonly IntervalD Exp() => new(Math.Exp(Min), Math.Exp(Max));
-    public readonly IntervalD Log() => Min>0?new(Math.Log(Min),Math.Log(Max)):Entire;
-    public readonly IntervalD Abs() => Min>=0?this:(Max<=0?new(-Max,-Min):new(0,Math.Max(-Min,Max)));
-    public readonly IntervalD Sqr() => Min>=0?new(Min*Min,Max*Max):(Max<=0?new(Max*Max,Min*Min):new(0,Math.Max(Min*Min,Max*Max)));
-    public readonly IntervalD Sqrt() => Min>=0?new(Math.Sqrt(Min),Math.Sqrt(Max)):Entire;
+    public readonly IntervalD Log() => Min > 0 ? new(Math.Log(Min), Math.Log(Max)) : Entire;
+    public readonly IntervalD Abs() => Min >= 0 ? this : (Max <= 0 ? new(-Max, -Min) : new(0, Math.Max(-Min, Max)));
+    public readonly IntervalD Sqr() => Min >= 0 ? new(Min * Min, Max * Max) : (Max <= 0 ? new(Max * Max, Min * Min) : new(0, Math.Max(Min * Min, Max * Max)));
+    public readonly IntervalD Sqrt() => Min >= 0 ? new(Math.Sqrt(Min), Math.Sqrt(Max)) : Entire;
 
-    public readonly bool Equals(IntervalD o) => Math.Abs(Min-o.Min)<1e-15&&Math.Abs(Max-o.Max)<1e-15;
+    public readonly bool Equals(IntervalD o) => Math.Abs(Min - o.Min) < 1e-15 && Math.Abs(Max - o.Max) < 1e-15;
     public override readonly bool Equals(object? obj) => obj is IntervalD o && Equals(o);
     public override readonly int GetHashCode() => HashCode.Combine(Min, Max);
     public static bool operator ==(IntervalD a, IntervalD b) => a.Equals(b);
@@ -1776,64 +1825,64 @@ public struct DiffScalar : IEquatable<DiffScalar>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar operator *(DiffScalar a, double b) => new(a.Value * b, a.Derivative * b);
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar operator *(double a, DiffScalar b) => new(a * b.Value, a * b.Derivative);
     // Division : d(a/b)/dx = (a'*b - a*b') / b^2
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar operator /(DiffScalar a, DiffScalar b) { double q=a.Value/b.Value; return new(q, (a.Derivative*b.Value-a.Value*b.Derivative)/(b.Value*b.Value)); }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar operator /(DiffScalar a, double b) => new(a.Value/b, a.Derivative/b);
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar operator /(double a, DiffScalar b) { double q=a/b.Value; return new(q, -a*b.Derivative/(b.Value*b.Value)); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar operator /(DiffScalar a, DiffScalar b) { double q = a.Value / b.Value; return new(q, (a.Derivative * b.Value - a.Value * b.Derivative) / (b.Value * b.Value)); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar operator /(DiffScalar a, double b) => new(a.Value / b, a.Derivative / b);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar operator /(double a, DiffScalar b) { double q = a / b.Value; return new(q, -a * b.Derivative / (b.Value * b.Value)); }
 
     // Puissance : d(x^n)/dx = n*x^(n-1)*dx/dx
-    public static DiffScalar Pow(DiffScalar x, double n) => new(Math.Pow(x.Value, n), n*Math.Pow(x.Value, n-1)*x.Derivative);
+    public static DiffScalar Pow(DiffScalar x, double n) => new(Math.Pow(x.Value, n), n * Math.Pow(x.Value, n - 1) * x.Derivative);
     // Racine carree : d(sqrt(x))/dx = 1/(2*sqrt(x)) * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Sqrt(DiffScalar x) { double s=Math.Sqrt(x.Value); return new(s, x.Derivative/(2*s)); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Sqrt(DiffScalar x) { double s = Math.Sqrt(x.Value); return new(s, x.Derivative / (2 * s)); }
     // Racine nieme : d(x^(1/n))/dx = (1/n)*x^(1/n-1)*dx/dx
-    public static DiffScalar NthRoot(DiffScalar x, double n) { double r=Math.Pow(x.Value, 1.0/n); return new(r, (1.0/n)*Math.Pow(x.Value, 1.0/n-1)*x.Derivative); }
+    public static DiffScalar NthRoot(DiffScalar x, double n) { double r = Math.Pow(x.Value, 1.0 / n); return new(r, (1.0 / n) * Math.Pow(x.Value, 1.0 / n - 1) * x.Derivative); }
     // Exponentielle : d(e^x)/dx = e^x * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Exp(DiffScalar x) { double e=Math.Exp(x.Value); return new(e, e*x.Derivative); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Exp(DiffScalar x) { double e = Math.Exp(x.Value); return new(e, e * x.Derivative); }
     // Logarithme : d(ln(x))/dx = (1/x) * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Log(DiffScalar x) => new(Math.Log(x.Value), x.Derivative/x.Value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Log(DiffScalar x) => new(Math.Log(x.Value), x.Derivative / x.Value);
     // Logarithme base 10 : d(log10(x))/dx = 1/(x*ln(10)) * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Log10(DiffScalar x) => new(Math.Log10(x.Value), x.Derivative/(x.Value*Math.Log(10)));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Log10(DiffScalar x) => new(Math.Log10(x.Value), x.Derivative / (x.Value * Math.Log(10)));
     // Logarithme base 2
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Log2(DiffScalar x) => new(Math.Log2(x.Value), x.Derivative/(x.Value*Math.Log(2)));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Log2(DiffScalar x) => new(Math.Log2(x.Value), x.Derivative / (x.Value * Math.Log(2)));
 
     // Trigonometrie : d(sin(x))/dx = cos(x) * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Sin(DiffScalar x) => new(Math.Sin(x.Value), Math.Cos(x.Value)*x.Derivative);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Sin(DiffScalar x) => new(Math.Sin(x.Value), Math.Cos(x.Value) * x.Derivative);
     // d(cos(x))/dx = -sin(x) * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Cos(DiffScalar x) => new(Math.Cos(x.Value), -Math.Sin(x.Value)*x.Derivative);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Cos(DiffScalar x) => new(Math.Cos(x.Value), -Math.Sin(x.Value) * x.Derivative);
     // d(tan(x))/dx = sec^2(x) * dx/dx = 1/cos^2(x) * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Tan(DiffScalar x) { double c=Math.Cos(x.Value); return new(Math.Tan(x.Value), x.Derivative/(c*c)); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Tan(DiffScalar x) { double c = Math.Cos(x.Value); return new(Math.Tan(x.Value), x.Derivative / (c * c)); }
     // Inverse trigonometrie : d(asin(x))/dx = 1/sqrt(1-x^2) * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Asin(DiffScalar x) => new(Math.Asin(x.Value), x.Derivative/Math.Sqrt(1-x.Value*x.Value));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Asin(DiffScalar x) => new(Math.Asin(x.Value), x.Derivative / Math.Sqrt(1 - x.Value * x.Value));
     // d(acos(x))/dx = -1/sqrt(1-x^2) * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Acos(DiffScalar x) => new(Math.Acos(x.Value), -x.Derivative/Math.Sqrt(1-x.Value*x.Value));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Acos(DiffScalar x) => new(Math.Acos(x.Value), -x.Derivative / Math.Sqrt(1 - x.Value * x.Value));
     // d(atan(x))/dx = 1/(1+x^2) * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Atan(DiffScalar x) => new(Math.Atan(x.Value), x.Derivative/(1+x.Value*x.Value));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Atan(DiffScalar x) => new(Math.Atan(x.Value), x.Derivative / (1 + x.Value * x.Value));
     // d(atan2(y,x))/dx = (x*dy/dx - y*dx/dx) / (x^2+y^2)
-    public static DiffScalar Atan2(DiffScalar y, DiffScalar x) => new(Math.Atan2(y.Value, x.Value), (x.Value*y.Derivative-y.Value*x.Derivative)/(x.Value*x.Value+y.Value*y.Value));
+    public static DiffScalar Atan2(DiffScalar y, DiffScalar x) => new(Math.Atan2(y.Value, x.Value), (x.Value * y.Derivative - y.Value * x.Derivative) / (x.Value * x.Value + y.Value * y.Value));
 
     // Hyperbolique
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Sinh(DiffScalar x) { double h=Math.Sinh(x.Value); return new(h, Math.Cosh(x.Value)*x.Derivative); }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Cosh(DiffScalar x) { double h=Math.Cosh(x.Value); return new(h, Math.Sinh(x.Value)*x.Derivative); }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Tanh(DiffScalar x) { double t=Math.Tanh(x.Value); return new(t, (1-t*t)*x.Derivative); }
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Asinh(DiffScalar x) => new(Math.Asinh(x.Value), x.Derivative/Math.Sqrt(x.Value*x.Value+1));
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Acosh(DiffScalar x) => new(Math.Acosh(x.Value), x.Derivative/Math.Sqrt(x.Value*x.Value-1));
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Atanh(DiffScalar x) => new(Math.Atanh(x.Value), x.Derivative/(1-x.Value*x.Value));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Sinh(DiffScalar x) { double h = Math.Sinh(x.Value); return new(h, Math.Cosh(x.Value) * x.Derivative); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Cosh(DiffScalar x) { double h = Math.Cosh(x.Value); return new(h, Math.Sinh(x.Value) * x.Derivative); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Tanh(DiffScalar x) { double t = Math.Tanh(x.Value); return new(t, (1 - t * t) * x.Derivative); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Asinh(DiffScalar x) => new(Math.Asinh(x.Value), x.Derivative / Math.Sqrt(x.Value * x.Value + 1));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Acosh(DiffScalar x) => new(Math.Acosh(x.Value), x.Derivative / Math.Sqrt(x.Value * x.Value - 1));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Atanh(DiffScalar x) => new(Math.Atanh(x.Value), x.Derivative / (1 - x.Value * x.Value));
 
     // Valeur absolue : d|x|/dx = sign(x) * dx/dx
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Abs(DiffScalar x) => new(Math.Abs(x.Value), Math.Sign(x.Value)*x.Derivative);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Abs(DiffScalar x) => new(Math.Abs(x.Value), Math.Sign(x.Value) * x.Derivative);
     // Clamp : clamp(x, a, b)
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Clamp(DiffScalar x, double a, double b) => x.Value<a?new(a,0):x.Value>b?new(b,0):x;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Clamp(DiffScalar x, double a, double b) => x.Value < a ? new(a, 0) : x.Value > b ? new(b, 0) : x;
     // Min/Max
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Max(DiffScalar a, DiffScalar b) => a.Value>=b.Value?a:b;
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Min(DiffScalar a, DiffScalar b) => a.Value<=b.Value?a:b;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Max(DiffScalar a, DiffScalar b) => a.Value >= b.Value ? a : b;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Min(DiffScalar a, DiffScalar b) => a.Value <= b.Value ? a : b;
     // Sigmoid : sigma(x) = 1/(1+e^-x), d/dx = sigma(x)*(1-sigma(x))
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Sigmoid(DiffScalar x) { double s=1.0/(1.0+Math.Exp(-x.Value)); return new(s, s*(1-s)*x.Derivative); }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Sigmoid(DiffScalar x) { double s = 1.0 / (1.0 + Math.Exp(-x.Value)); return new(s, s * (1 - s) * x.Derivative); }
     // Softplus : ln(1+e^x), d/dx = sigmoid(x)
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Softplus(DiffScalar x) => new(Math.Log(1+Math.Exp(x.Value)), Sigmoid(x).Derivative);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar Softplus(DiffScalar x) => new(Math.Log(1 + Math.Exp(x.Value)), Sigmoid(x).Derivative);
     // GELU approx : 0.5*x*(1+erf(x/sqrt(2)))
     // ReLU : max(0, x)
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar ReLU(DiffScalar x) => x.Value>0?x:new(0,0);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar ReLU(DiffScalar x) => x.Value > 0 ? x : new(0, 0);
     // LeakyReLU : max(alpha*x, x)
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar LeakyReLU(DiffScalar x, double alpha=0.01) => x.Value>0?x:new(alpha*x.Value, alpha*x.Derivative);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] public static DiffScalar LeakyReLU(DiffScalar x, double alpha = 0.01) => x.Value > 0 ? x : new(alpha * x.Value, alpha * x.Derivative);
 
     /// <summary>Chain rule : compose this with f(x) : d/dx f(g(x)) = f'(g(x)) * g'(x).</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1847,7 +1896,7 @@ public struct DiffScalar : IEquatable<DiffScalar>
     public readonly DiffScalar2 WithSecondDerivative(double secondDerivative) => new(Value, Derivative, secondDerivative);
 
     // Equality
-    public readonly bool Equals(DiffScalar o) => Math.Abs(Value-o.Value)<1e-15 && Math.Abs(Derivative-o.Derivative)<1e-15;
+    public readonly bool Equals(DiffScalar o) => Math.Abs(Value - o.Value) < 1e-15 && Math.Abs(Derivative - o.Derivative) < 1e-15;
     public override readonly bool Equals(object? obj) => obj is DiffScalar o && Equals(o);
     public override readonly int GetHashCode() => HashCode.Combine(Value, Derivative);
     public static bool operator ==(DiffScalar a, DiffScalar b) => a.Equals(b);
@@ -1959,7 +2008,8 @@ public sealed class DiffExpression
     public int AddOperation(Func<DiffScalar[], DiffScalar> fn, params int[] inputIndices)
     {
         var inputs = new DiffScalar[inputIndices.Length];
-        for (int i = 0; i < inputIndices.Length; i++) inputs[i] = _tapes[inputIndices[i]];
+        for (int i = 0; i < inputIndices.Length; i++)
+            inputs[i] = _tapes[inputIndices[i]];
         _tapes.Add(fn(inputs));
         _operations.Add((fn, inputIndices));
         return _nextIndex++;
@@ -1972,7 +2022,8 @@ public sealed class DiffExpression
     public double[] ComputeGradients()
     {
         var result = new double[_tapes.Count];
-        for (int i = 0; i < _tapes.Count; i++) result[i] = _tapes[i].Derivative;
+        for (int i = 0; i < _tapes.Count; i++)
+            result[i] = _tapes[i].Derivative;
         return result;
     }
 
@@ -1985,7 +2036,8 @@ public sealed class DiffExpression
         {
             var (fn, inputIndices) = _operations[i];
             var inputs = new DiffScalar[inputIndices.Length];
-            for (int j = 0; j < inputIndices.Length; j++) inputs[j] = _tapes[inputIndices[j]];
+            for (int j = 0; j < inputIndices.Length; j++)
+                inputs[j] = _tapes[inputIndices[j]];
             _tapes[_tapes.Count - _operations.Count + i] = fn(inputs);
         }
     }
@@ -2004,10 +2056,10 @@ public sealed class DiffExpression
         int aI = expr.AddConstant(a);
         int bI = expr.AddConstant(b);
         int cI = expr.AddConstant(c);
-        int x2 = expr.AddOperation(d => d[0]*d[0], x);
-        int ax2 = expr.AddOperation(d => d[0]*d[1], aI, x2);
-        int bx = expr.AddOperation(d => d[0]*d[1], bI, x);
-        expr.AddOperation(d => d[0]+d[1]+d[2], ax2, bx, cI);
+        int x2 = expr.AddOperation(d => d[0] * d[0], x);
+        int ax2 = expr.AddOperation(d => d[0] * d[1], aI, x2);
+        int bx = expr.AddOperation(d => d[0] * d[1], bI, x);
+        expr.AddOperation(d => d[0] + d[1] + d[2], ax2, bx, cI);
         return expr;
     }
 
@@ -2058,7 +2110,7 @@ public struct FieldGradient
     /// <summary>Divergence de la vitesse : nabla.v = dvx/dx + dvy/dy + dvz/dz.</summary>
     public readonly double VelocityDivergence => VelocityGradientX.X + VelocityGradientY.Y + VelocityGradientZ.Z;
     /// <summary>Rotationnel de la vitesse : nabla x v.</summary>
-    public readonly Vector3D VelocityCurl => new(VelocityGradientZ.Y-VelocityGradientY.Z, VelocityGradientX.Z-VelocityGradientZ.X, VelocityGradientY.X-VelocityGradientX.Y);
+    public readonly Vector3D VelocityCurl => new(VelocityGradientZ.Y - VelocityGradientY.Z, VelocityGradientX.Z - VelocityGradientZ.X, VelocityGradientY.X - VelocityGradientX.Y);
     /// <summary>Laplacien de la temperature : nabla^2 T.</summary>
     public readonly double TemperatureLaplacian => TemperatureGradient.X + TemperatureGradient.Y + TemperatureGradient.Z;
     /// <summary>Force de gradient de pression : -nabla p.</summary>
@@ -2066,19 +2118,19 @@ public struct FieldGradient
     /// <summary>Gradient de concentration (magnitude).</summary>
     public readonly double ConcentrationMagnitude => ConcentrationGradient.Length();
     /// <summary>Tenseur gradient complet de vitesse (3x3).</summary>
-    public readonly Tensor3D VelocityTensor => new(VelocityGradientX.X,VelocityGradientX.Y,VelocityGradientX.Z, VelocityGradientY.X,VelocityGradientY.Y,VelocityGradientY.Z, VelocityGradientZ.X,VelocityGradientZ.Y,VelocityGradientZ.Z);
+    public readonly Tensor3D VelocityTensor => new(VelocityGradientX.X, VelocityGradientX.Y, VelocityGradientX.Z, VelocityGradientY.X, VelocityGradientY.Y, VelocityGradientY.Z, VelocityGradientZ.X, VelocityGradientZ.Y, VelocityGradientZ.Z);
     /// <summary>Tenseur de deformation (partie symetrique du gradient de vitesse).</summary>
     public readonly Symmetric3x3 StrainRateTensor => VelocityTensor.SymmetricPart();
     /// <summary>Taux de dissipation visqueuse : phi = mu * (dvi/dxj + dvj/dxi)^2.</summary>
-    public readonly double ViscousDissipation(double mu) { var s=StrainRateTensor; return mu*(2*(s.XX*s.XX+s.YY*s.YY+s.ZZ*s.ZZ)+s.XY*s.XY+s.XZ*s.XZ+s.YZ*s.YZ); }
+    public readonly double ViscousDissipation(double mu) { var s = StrainRateTensor; return mu * (2 * (s.XX * s.XX + s.YY * s.YY + s.ZZ * s.ZZ) + s.XY * s.XY + s.XZ * s.XZ + s.YZ * s.YZ); }
     /// <summary>Energie cinetique turbulente (approximation).</summary>
-    public readonly double TurbulentKineticEnergy { get { var s=StrainRateTensor; return 0.5*s.DoubleContract(new(s.XX,s.YY,s.ZZ)); } }
+    public readonly double TurbulentKineticEnergy { get { var s = StrainRateTensor; return 0.5 * s.DoubleContract(new(s.XX, s.YY, s.ZZ)); } }
     /// <summary>Norme du gradient de temperature.</summary>
     public readonly double TemperatureGradientMagnitude => TemperatureGradient.Length();
     /// <summary>Direction du gradient de temperature.</summary>
     public readonly Vector3D TemperatureGradientDirection => TemperatureGradient.Normalized();
 
-    public static FieldGradient Lerp(FieldGradient a, FieldGradient b, double t) { double u=1-t; return new FieldGradient { TemperatureGradient=a.TemperatureGradient*u+b.TemperatureGradient*t, PressureGradient=a.PressureGradient*u+b.PressureGradient*t, VelocityGradientX=a.VelocityGradientX*u+b.VelocityGradientX*t, VelocityGradientY=a.VelocityGradientY*u+b.VelocityGradientY*t, VelocityGradientZ=a.VelocityGradientZ*u+b.VelocityGradientZ*t, ConcentrationGradient=a.ConcentrationGradient*u+b.ConcentrationGradient*t }; }
+    public static FieldGradient Lerp(FieldGradient a, FieldGradient b, double t) { double u = 1 - t; return new FieldGradient { TemperatureGradient = a.TemperatureGradient * u + b.TemperatureGradient * t, PressureGradient = a.PressureGradient * u + b.PressureGradient * t, VelocityGradientX = a.VelocityGradientX * u + b.VelocityGradientX * t, VelocityGradientY = a.VelocityGradientY * u + b.VelocityGradientY * t, VelocityGradientZ = a.VelocityGradientZ * u + b.VelocityGradientZ * t, ConcentrationGradient = a.ConcentrationGradient * u + b.ConcentrationGradient * t }; }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2222,28 +2274,28 @@ public unsafe struct MaterialProperties
     public readonly double MaxHeatFlux(double temperatureGradient) => ThermalConductivity * Math.Abs(temperatureGradient);
 
     // === Materiaux predefinis ===
-    public static MaterialProperties Default => new() { Density=1000, YoungModulus=200e9, PoissonRatio=0.3, YieldStrength=250e6, ThermalConductivity=50, SpecificHeat=500, ThermalExpansion=12e-6, ElectricalConductivity=1e7, RefractiveIndex=1.5, SurfaceTension=0.072 };
-    public static MaterialProperties Steel => new() { Metallic=0.95, Roughness=0.4, RefractiveIndex=2.5, Density=7850, YoungModulus=200e9, PoissonRatio=0.3, YieldStrength=250e6, ThermalConductivity=50, SpecificHeat=500, ThermalExpansion=12e-6, ElectricalConductivity=1.4e7, FractureToughness=50e6 };
-    public static MaterialProperties TitaniumAlloy => new() { Metallic=0.9, Roughness=0.35, RefractiveIndex=2.0, Density=4500, YoungModulus=114e9, PoissonRatio=0.34, YieldStrength=880e6, ThermalConductivity=6.7, SpecificHeat=526, ThermalExpansion=8.6e-6, ElectricalConductivity=5.8e5, FractureToughness=75e6 };
-    public static MaterialProperties CarbonFiber => new() { Metallic=0.1, Roughness=0.6, RefractiveIndex=1.6, Density=1600, YoungModulus=230e9, PoissonRatio=0.2, YieldStrength=3500e6, ThermalConductivity=7, SpecificHeat=710, ThermalExpansion=-0.5e-6, ElectricalConductivity=1e4, FractureToughness=25e6 };
-    public static MaterialProperties Water => new() { Albedo0=0.01, Albedo1=0.02, Albedo2=0.95, Metallic=0, Roughness=0.05, RefractiveIndex=1.33, Density=1000, ThermalConductivity=0.6, SpecificHeat=4186, ThermalExpansion=2.1e-4, SurfaceTension=0.072, Viscosity=1e-3 };
-    public static MaterialProperties Biological => new() { Albedo0=0.8, Albedo1=0.3, Albedo2=0.3, Metallic=0, Roughness=0.8, RefractiveIndex=1.4, Density=1060, YoungModulus=1e6, PoissonRatio=0.45, YieldStrength=1e5, ThermalConductivity=0.5, SpecificHeat=3500, ThermalExpansion=1e-4, ElectricalConductivity=0.3, Viscosity=0.01 };
-    public static MaterialProperties Aluminum => new() { Metallic=0.91, Roughness=0.25, RefractiveIndex=1.44, Density=2700, YoungModulus=69e9, PoissonRatio=0.33, YieldStrength=276e6, ThermalConductivity=237, SpecificHeat=897, ThermalExpansion=23.1e-6, ElectricalConductivity=3.77e7, FractureToughness=29e6 };
-    public static MaterialProperties Copper => new() { Metallic=0.97, Roughness=0.2, RefractiveIndex=0.62, Density=8960, YoungModulus=130e9, PoissonRatio=0.34, YieldStrength=210e6, ThermalConductivity=401, SpecificHeat=385, ThermalExpansion=16.5e-6, ElectricalConductivity=5.96e7, FractureToughness=30e6 };
-    public static MaterialProperties Glass => new() { Metallic=0.0, Roughness=0.05, RefractiveIndex=1.52, Density=2500, YoungModulus=70e9, PoissonRatio=0.22, YieldStrength=33e6, ThermalConductivity=1.05, SpecificHeat=840, ThermalExpansion=9e-6, ElectricalConductivity=1e-14, FractureToughness=0.7e6 };
-    public static MaterialProperties Concrete => new() { Metallic=0.0, Roughness=0.8, RefractiveIndex=1.5, Density=2400, YoungModulus=30e9, PoissonRatio=0.2, YieldStrength=30e6, ThermalConductivity=1.7, SpecificHeat=880, ThermalExpansion=12e-6, ElectricalConductivity=1e-4, FractureToughness=1.0e6 };
-    public static MaterialProperties Wood => new() { Metallic=0.0, Roughness=0.7, RefractiveIndex=1.5, Density=600, YoungModulus=12e9, PoissonRatio=0.35, YieldStrength=40e6, ThermalConductivity=0.16, SpecificHeat=1700, ThermalExpansion=5e-6, ElectricalConductivity=1e-10 };
-    public static MaterialProperties Rubber => new() { Metallic=0.0, Roughness=0.9, RefractiveIndex=1.52, Density=1100, YoungModulus=0.05e9, PoissonRatio=0.49, YieldStrength=15e6, ThermalConductivity=0.16, SpecificHeat=2010, ThermalExpansion=200e-6, ElectricalConductivity=1e-13 };
-    public static MaterialProperties Gold => new() { Metallic=1.0, Roughness=0.15, RefractiveIndex=0.18, Density=19300, YoungModulus=79e9, PoissonRatio=0.44, YieldStrength=35e6, ThermalConductivity=318, SpecificHeat=129, ThermalExpansion=14.2e-6, ElectricalConductivity=4.52e7 };
-    public static MaterialProperties Silicon => new() { Metallic=0.5, Roughness=0.3, RefractiveIndex=4.0, Density=2330, YoungModulus=130e9, PoissonRatio=0.28, YieldStrength=7e9, ThermalConductivity=149, SpecificHeat=700, ThermalExpansion=2.6e-6, ElectricalConductivity=1e3 };
-    public static MaterialProperties Diamond => new() { Metallic=0.0, Roughness=0.01, RefractiveIndex=2.42, Density=3510, YoungModulus=1050e9, PoissonRatio=0.07, YieldStrength=60e9, ThermalConductivity=2200, SpecificHeat=509, ThermalExpansion=1e-6, ElectricalConductivity=1e-13, FractureToughness=5.0e6 };
-    public static MaterialProperties Lead => new() { Metallic=0.85, Roughness=0.5, RefractiveIndex=2.01, Density=11340, YoungModulus=16e9, PoissonRatio=0.44, YieldStrength=12e6, ThermalConductivity=35, SpecificHeat=128, ThermalExpansion=29e-6, ElectricalConductivity=4.5e6 };
-    public static MaterialProperties Platinum => new() { Metallic=0.95, Roughness=0.2, RefractiveIndex=2.33, Density=21450, YoungModulus=168e9, PoissonRatio=0.38, YieldStrength=240e6, ThermalConductivity=71.6, SpecificHeat=133, ThermalExpansion=8.9e-6, ElectricalConductivity=9.4e6 };
-    public static MaterialProperties Nylon => new() { Metallic=0.0, Roughness=0.6, RefractiveIndex=1.53, Density=1150, YoungModulus=2.5e9, PoissonRatio=0.4, YieldStrength=50e6, ThermalConductivity=0.25, SpecificHeat=1670, ThermalExpansion=80e-6, ElectricalConductivity=1e-12 };
-    public static MaterialProperties Air => new() { Density=1.225, SpecificHeat=1005, ThermalConductivity=0.025, Viscosity=1.8e-5, RefractiveIndex=1.0003, ElectricalConductivity=0 };
-    public static MaterialProperties Mercury => new() { Metallic=1.0, Roughness=0.1, RefractiveIndex=1.73, Density=13546, Viscosity=0.00155, ThermalConductivity=8.3, SpecificHeat=139, ThermalExpansion=18e-6, ElectricalConductivity=1.04e6, SurfaceTension=0.487 };
+    public static MaterialProperties Default => new() { Density = 1000, YoungModulus = 200e9, PoissonRatio = 0.3, YieldStrength = 250e6, ThermalConductivity = 50, SpecificHeat = 500, ThermalExpansion = 12e-6, ElectricalConductivity = 1e7, RefractiveIndex = 1.5, SurfaceTension = 0.072 };
+    public static MaterialProperties Steel => new() { Metallic = 0.95, Roughness = 0.4, RefractiveIndex = 2.5, Density = 7850, YoungModulus = 200e9, PoissonRatio = 0.3, YieldStrength = 250e6, ThermalConductivity = 50, SpecificHeat = 500, ThermalExpansion = 12e-6, ElectricalConductivity = 1.4e7, FractureToughness = 50e6 };
+    public static MaterialProperties TitaniumAlloy => new() { Metallic = 0.9, Roughness = 0.35, RefractiveIndex = 2.0, Density = 4500, YoungModulus = 114e9, PoissonRatio = 0.34, YieldStrength = 880e6, ThermalConductivity = 6.7, SpecificHeat = 526, ThermalExpansion = 8.6e-6, ElectricalConductivity = 5.8e5, FractureToughness = 75e6 };
+    public static MaterialProperties CarbonFiber => new() { Metallic = 0.1, Roughness = 0.6, RefractiveIndex = 1.6, Density = 1600, YoungModulus = 230e9, PoissonRatio = 0.2, YieldStrength = 3500e6, ThermalConductivity = 7, SpecificHeat = 710, ThermalExpansion = -0.5e-6, ElectricalConductivity = 1e4, FractureToughness = 25e6 };
+    public static MaterialProperties Water => new() { Albedo0 = 0.01, Albedo1 = 0.02, Albedo2 = 0.95, Metallic = 0, Roughness = 0.05, RefractiveIndex = 1.33, Density = 1000, ThermalConductivity = 0.6, SpecificHeat = 4186, ThermalExpansion = 2.1e-4, SurfaceTension = 0.072, Viscosity = 1e-3 };
+    public static MaterialProperties Biological => new() { Albedo0 = 0.8, Albedo1 = 0.3, Albedo2 = 0.3, Metallic = 0, Roughness = 0.8, RefractiveIndex = 1.4, Density = 1060, YoungModulus = 1e6, PoissonRatio = 0.45, YieldStrength = 1e5, ThermalConductivity = 0.5, SpecificHeat = 3500, ThermalExpansion = 1e-4, ElectricalConductivity = 0.3, Viscosity = 0.01 };
+    public static MaterialProperties Aluminum => new() { Metallic = 0.91, Roughness = 0.25, RefractiveIndex = 1.44, Density = 2700, YoungModulus = 69e9, PoissonRatio = 0.33, YieldStrength = 276e6, ThermalConductivity = 237, SpecificHeat = 897, ThermalExpansion = 23.1e-6, ElectricalConductivity = 3.77e7, FractureToughness = 29e6 };
+    public static MaterialProperties Copper => new() { Metallic = 0.97, Roughness = 0.2, RefractiveIndex = 0.62, Density = 8960, YoungModulus = 130e9, PoissonRatio = 0.34, YieldStrength = 210e6, ThermalConductivity = 401, SpecificHeat = 385, ThermalExpansion = 16.5e-6, ElectricalConductivity = 5.96e7, FractureToughness = 30e6 };
+    public static MaterialProperties Glass => new() { Metallic = 0.0, Roughness = 0.05, RefractiveIndex = 1.52, Density = 2500, YoungModulus = 70e9, PoissonRatio = 0.22, YieldStrength = 33e6, ThermalConductivity = 1.05, SpecificHeat = 840, ThermalExpansion = 9e-6, ElectricalConductivity = 1e-14, FractureToughness = 0.7e6 };
+    public static MaterialProperties Concrete => new() { Metallic = 0.0, Roughness = 0.8, RefractiveIndex = 1.5, Density = 2400, YoungModulus = 30e9, PoissonRatio = 0.2, YieldStrength = 30e6, ThermalConductivity = 1.7, SpecificHeat = 880, ThermalExpansion = 12e-6, ElectricalConductivity = 1e-4, FractureToughness = 1.0e6 };
+    public static MaterialProperties Wood => new() { Metallic = 0.0, Roughness = 0.7, RefractiveIndex = 1.5, Density = 600, YoungModulus = 12e9, PoissonRatio = 0.35, YieldStrength = 40e6, ThermalConductivity = 0.16, SpecificHeat = 1700, ThermalExpansion = 5e-6, ElectricalConductivity = 1e-10 };
+    public static MaterialProperties Rubber => new() { Metallic = 0.0, Roughness = 0.9, RefractiveIndex = 1.52, Density = 1100, YoungModulus = 0.05e9, PoissonRatio = 0.49, YieldStrength = 15e6, ThermalConductivity = 0.16, SpecificHeat = 2010, ThermalExpansion = 200e-6, ElectricalConductivity = 1e-13 };
+    public static MaterialProperties Gold => new() { Metallic = 1.0, Roughness = 0.15, RefractiveIndex = 0.18, Density = 19300, YoungModulus = 79e9, PoissonRatio = 0.44, YieldStrength = 35e6, ThermalConductivity = 318, SpecificHeat = 129, ThermalExpansion = 14.2e-6, ElectricalConductivity = 4.52e7 };
+    public static MaterialProperties Silicon => new() { Metallic = 0.5, Roughness = 0.3, RefractiveIndex = 4.0, Density = 2330, YoungModulus = 130e9, PoissonRatio = 0.28, YieldStrength = 7e9, ThermalConductivity = 149, SpecificHeat = 700, ThermalExpansion = 2.6e-6, ElectricalConductivity = 1e3 };
+    public static MaterialProperties Diamond => new() { Metallic = 0.0, Roughness = 0.01, RefractiveIndex = 2.42, Density = 3510, YoungModulus = 1050e9, PoissonRatio = 0.07, YieldStrength = 60e9, ThermalConductivity = 2200, SpecificHeat = 509, ThermalExpansion = 1e-6, ElectricalConductivity = 1e-13, FractureToughness = 5.0e6 };
+    public static MaterialProperties Lead => new() { Metallic = 0.85, Roughness = 0.5, RefractiveIndex = 2.01, Density = 11340, YoungModulus = 16e9, PoissonRatio = 0.44, YieldStrength = 12e6, ThermalConductivity = 35, SpecificHeat = 128, ThermalExpansion = 29e-6, ElectricalConductivity = 4.5e6 };
+    public static MaterialProperties Platinum => new() { Metallic = 0.95, Roughness = 0.2, RefractiveIndex = 2.33, Density = 21450, YoungModulus = 168e9, PoissonRatio = 0.38, YieldStrength = 240e6, ThermalConductivity = 71.6, SpecificHeat = 133, ThermalExpansion = 8.9e-6, ElectricalConductivity = 9.4e6 };
+    public static MaterialProperties Nylon => new() { Metallic = 0.0, Roughness = 0.6, RefractiveIndex = 1.53, Density = 1150, YoungModulus = 2.5e9, PoissonRatio = 0.4, YieldStrength = 50e6, ThermalConductivity = 0.25, SpecificHeat = 1670, ThermalExpansion = 80e-6, ElectricalConductivity = 1e-12 };
+    public static MaterialProperties Air => new() { Density = 1.225, SpecificHeat = 1005, ThermalConductivity = 0.025, Viscosity = 1.8e-5, RefractiveIndex = 1.0003, ElectricalConductivity = 0 };
+    public static MaterialProperties Mercury => new() { Metallic = 1.0, Roughness = 0.1, RefractiveIndex = 1.73, Density = 13546, Viscosity = 0.00155, ThermalConductivity = 8.3, SpecificHeat = 139, ThermalExpansion = 18e-6, ElectricalConductivity = 1.04e6, SurfaceTension = 0.487 };
 
-    public void Serialize(float* dest) { fixed(double* a=Albedo){for(int i=0;i<3;i++)dest[i]=(float)a[i];} dest[3]=(float)Metallic;dest[4]=(float)Roughness;dest[5]=(float)RefractiveIndex;dest[6]=(float)AbsorptionCoeff;dest[7]=(float)ScatteringCoeff;dest[8]=(float)Density;dest[9]=(float)YoungModulus;dest[10]=(float)PoissonRatio;dest[11]=(float)YieldStrength;dest[12]=(float)ThermalConductivity;dest[13]=(float)SpecificHeat;dest[14]=(float)ThermalExpansion;dest[15]=(float)ElectricalConductivity; }
+    public void Serialize(float* dest) { fixed (double* a = Albedo) { for (int i = 0; i < 3; i++) dest[i] = (float)a[i]; } dest[3] = (float)Metallic; dest[4] = (float)Roughness; dest[5] = (float)RefractiveIndex; dest[6] = (float)AbsorptionCoeff; dest[7] = (float)ScatteringCoeff; dest[8] = (float)Density; dest[9] = (float)YoungModulus; dest[10] = (float)PoissonRatio; dest[11] = (float)YieldStrength; dest[12] = (float)ThermalConductivity; dest[13] = (float)SpecificHeat; dest[14] = (float)ThermalExpansion; dest[15] = (float)ElectricalConductivity; }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2278,18 +2330,18 @@ public struct StochasticState
     [FieldOffset(112)] public double Skewness;            // Asymetrie de la distribution
     [FieldOffset(120)] public double Kurtosis;            // Aplatissement (excedent)
 
-    public static StochasticState Default => new() { ProcessType=StochasticProcess.Deterministic, Diffusion=1.0 };
+    public static StochasticState Default => new() { ProcessType = StochasticProcess.Deterministic, Diffusion = 1.0 };
     public readonly double StandardDeviation() => Math.Sqrt(Math.Max(0, Variance));
-    public readonly double CoefficientOfVariation() => Mean!=0?StandardDeviation()/Math.Abs(Mean):0;
-    public readonly double ConfidenceInterval95 => 1.96*StandardDeviation();
-    public readonly double ConfidenceInterval99 => 2.576*StandardDeviation();
+    public readonly double CoefficientOfVariation() => Mean != 0 ? StandardDeviation() / Math.Abs(Mean) : 0;
+    public readonly double ConfidenceInterval95 => 1.96 * StandardDeviation();
+    public readonly double ConfidenceInterval99 => 2.576 * StandardDeviation();
 
     /// <summary>Evolution d'Ornstein-Uhlenbeck : dx = theta*(mu-x)*dt + sigma*dW.</summary>
-    public readonly StochasticState StepOU(double dt) => new() { Mean=LongTermMean+(Mean-LongTermMean)*Math.Exp(-MeanReversion*dt), Variance=Diffusion*Diffusion/(2*MeanReversion)*(1-Math.Exp(-2*MeanReversion*dt)), Drift=Drift, Diffusion=Diffusion, JumpIntensity=JumpIntensity, JumpMean=JumpMean, JumpVariance=JumpVariance, CorrelationTime=CorrelationTime, LongTermMean=LongTermMean, MeanReversion=MeanReversion, ProcessType=ProcessType, Volatility=Volatility };
+    public readonly StochasticState StepOU(double dt) => new() { Mean = LongTermMean + (Mean - LongTermMean) * Math.Exp(-MeanReversion * dt), Variance = Diffusion * Diffusion / (2 * MeanReversion) * (1 - Math.Exp(-2 * MeanReversion * dt)), Drift = Drift, Diffusion = Diffusion, JumpIntensity = JumpIntensity, JumpMean = JumpMean, JumpVariance = JumpVariance, CorrelationTime = CorrelationTime, LongTermMean = LongTermMean, MeanReversion = MeanReversion, ProcessType = ProcessType, Volatility = Volatility };
     /// <summary>Evolution de Geometric Brownian Motion : dS = mu*S*dt + sigma*S*dW.</summary>
-    public readonly StochasticState StepGBM(double dt) { double drift=(Drift-0.5*Diffusion*Diffusion)*dt; double vol=Diffusion*Math.Sqrt(dt); return new() { Mean=Mean*Math.Exp(drift), Variance=Variance*Math.Exp(2*Drift+vol*vol)*(Math.Exp(vol*vol)-1), Drift=Drift, Diffusion=Diffusion, ProcessType=ProcessType, Volatility=Volatility }; }
+    public readonly StochasticState StepGBM(double dt) { double drift = (Drift - 0.5 * Diffusion * Diffusion) * dt; double vol = Diffusion * Math.Sqrt(dt); return new() { Mean = Mean * Math.Exp(drift), Variance = Variance * Math.Exp(2 * Drift + vol * vol) * (Math.Exp(vol * vol) - 1), Drift = Drift, Diffusion = Diffusion, ProcessType = ProcessType, Volatility = Volatility }; }
 
-    public static StochasticState Lerp(StochasticState a, StochasticState b, double t) { double u=1-t; return new StochasticState { Mean=a.Mean*u+b.Mean*t, Variance=a.Variance*u+b.Variance*t, Drift=a.Drift*u+b.Drift*t, Diffusion=a.Diffusion*u+b.Diffusion*t, JumpIntensity=a.JumpIntensity*u+b.JumpIntensity*t, CorrelationTime=a.CorrelationTime*u+b.CorrelationTime*t, LongTermMean=a.LongTermMean*u+b.LongTermMean*t, MeanReversion=a.MeanReversion*u+b.MeanReversion*t, Entropy=a.Entropy*u+b.Entropy*t, ProcessType=t<0.5?a.ProcessType:b.ProcessType, Volatility=a.Volatility*u+b.Volatility*t }; }
+    public static StochasticState Lerp(StochasticState a, StochasticState b, double t) { double u = 1 - t; return new StochasticState { Mean = a.Mean * u + b.Mean * t, Variance = a.Variance * u + b.Variance * t, Drift = a.Drift * u + b.Drift * t, Diffusion = a.Diffusion * u + b.Diffusion * t, JumpIntensity = a.JumpIntensity * u + b.JumpIntensity * t, CorrelationTime = a.CorrelationTime * u + b.CorrelationTime * t, LongTermMean = a.LongTermMean * u + b.LongTermMean * t, MeanReversion = a.MeanReversion * u + b.MeanReversion * t, Entropy = a.Entropy * u + b.Entropy * t, ProcessType = t < 0.5 ? a.ProcessType : b.ProcessType, Volatility = a.Volatility * u + b.Volatility * t }; }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -2334,13 +2386,13 @@ public sealed class PhysicsConstraint
     public double ComputeLoss(PhysicsState state, FieldGradient gradient) => Weight * AdaptiveWeight * Residual(state, gradient) * Residual(state, gradient);
 
     /// <summary>Factory : cree une contrainte de conservation de la masse.</summary>
-    public static PhysicsConstraint ConservationOfMass(double tolerance = 1e-6) => new() { Name="MassConservation", TargetLayer=FieldLayer.Fluid, Tolerance=tolerance, Residual=(s,g)=>g.VelocityDivergence*s.Density+s.Density*g.VelocityDivergence, Description="d(rho)/dt + div(rho*v) = 0" };
+    public static PhysicsConstraint ConservationOfMass(double tolerance = 1e-6) => new() { Name = "MassConservation", TargetLayer = FieldLayer.Fluid, Tolerance = tolerance, Residual = (s, g) => g.VelocityDivergence * s.Density + s.Density * g.VelocityDivergence, Description = "d(rho)/dt + div(rho*v) = 0" };
 
     /// <summary>Factory : cree une contrainte de conservation de la quantite de mouvement (Navier-Stokes).</summary>
-    public static PhysicsConstraint MomentumConservation(double viscosity) => new() { Name="MomentumConservation", TargetLayer=FieldLayer.Fluid, Weight=viscosity, Residual=(s,g)=>s.Density*g.VelocityDivergence+viscosity*g.VelocityTensor.Trace, Description="rho*(dv/dt + v.grad(v)) = -grad(p) + mu*laplacian(v)" };
+    public static PhysicsConstraint MomentumConservation(double viscosity) => new() { Name = "MomentumConservation", TargetLayer = FieldLayer.Fluid, Weight = viscosity, Residual = (s, g) => s.Density * g.VelocityDivergence + viscosity * g.VelocityTensor.Trace, Description = "rho*(dv/dt + v.grad(v)) = -grad(p) + mu*laplacian(v)" };
 
     /// <summary>Factory : cree une contrainte de conservation de l'energie.</summary>
-    public static PhysicsConstraint EnergyConservation(double thermalDiffusivity) => new() { Name="EnergyConservation", TargetLayer=FieldLayer.Thermal, Weight=thermalDiffusivity, Residual=(s,g)=>g.TemperatureLaplacian*thermalDiffusivity, Description="dT/dt + v.grad(T) = alpha*laplacian(T)" };
+    public static PhysicsConstraint EnergyConservation(double thermalDiffusivity) => new() { Name = "EnergyConservation", TargetLayer = FieldLayer.Thermal, Weight = thermalDiffusivity, Residual = (s, g) => g.TemperatureLaplacian * thermalDiffusivity, Description = "dT/dt + v.grad(T) = alpha*laplacian(T)" };
 
     public override string ToString() => $"Constraint[{Name}] weight={Weight:F2} (hard={IsHardConstraint})";
 }
@@ -2362,11 +2414,11 @@ public unsafe struct FieldSampleResult
     [FieldOffset(0)] public PhysicsState State;
     [FieldOffset(256)] public StochasticState Stochastic;
     [FieldOffset(384)] public FieldGradient Gradient;
-    [FieldOffset(384+192-4)] public float SdfValue;       // Distance signee au champ SDF
-    [FieldOffset(384+192-3)] public float Confidence;     // Confiance du reseau neuronal
-    [FieldOffset(384+192-2)] public ushort ActiveLod;     // Niveau de detail actif (LOD)
-    [FieldOffset(384+192-1)] public byte Representation;  // 0=poly, 1=neuralSDF, 2=physics
-    [FieldOffset(384+192)] public byte Flags;
+    [FieldOffset(384 + 192 - 4)] public float SdfValue;       // Distance signee au champ SDF
+    [FieldOffset(384 + 192 - 3)] public float Confidence;     // Confiance du reseau neuronal
+    [FieldOffset(384 + 192 - 2)] public ushort ActiveLod;     // Niveau de detail actif (LOD)
+    [FieldOffset(384 + 192 - 1)] public byte Representation;  // 0=poly, 1=neuralSDF, 2=physics
+    [FieldOffset(384 + 192)] public byte Flags;
 
     public static readonly FieldSampleResult Default = default;
     public readonly bool IsEmpty => State.Norm < 1e-20 && Stochastic.Mean == 0;
@@ -2433,11 +2485,11 @@ public sealed class SimulationConfig
     public double SmallestCellDimension => Math.Min(Math.Min(CellSizeX, CellSizeY), CellSizeZ);
     public double LargestCellDimension => Math.Max(Math.Max(CellSizeX, CellSizeY), CellSizeZ);
 
-    public Vector3D GridToWorld(int ix, int iy, int iz) => new(DomainOffsetX+ix*CellSizeX, DomainOffsetY+iy*CellSizeY, DomainOffsetZ+iz*CellSizeZ);
-    public void WorldToGrid(Vector3D w, out int ix, out int iy, out int iz) { ix=Math.Clamp((int)((w.X-DomainOffsetX)/CellSizeX),0,GridResolutionX-1); iy=Math.Clamp((int)((w.Y-DomainOffsetY)/CellSizeY),0,GridResolutionY-1); iz=Math.Clamp((int)((w.Z-DomainOffsetZ)/CellSizeZ),0,GridResolutionZ-1); }
-    public bool IsValidIndex(int ix, int iy, int iz) => ix>=0&&ix<GridResolutionX&&iy>=0&&iy<GridResolutionY&&iz>=0&&iz<GridResolutionZ;
-    public int FlattenIndex(int ix, int iy, int iz) => ix+GridResolutionX*(iy+GridResolutionY*iz);
-    public void UnflattenIndex(int flat, out int ix, out int iy, out int iz) { iz=flat/(GridResolutionX*GridResolutionY); int rem=flat%(GridResolutionX*GridResolutionY); iy=rem/GridResolutionX; ix=rem%GridResolutionX; }
+    public Vector3D GridToWorld(int ix, int iy, int iz) => new(DomainOffsetX + ix * CellSizeX, DomainOffsetY + iy * CellSizeY, DomainOffsetZ + iz * CellSizeZ);
+    public void WorldToGrid(Vector3D w, out int ix, out int iy, out int iz) { ix = Math.Clamp((int)((w.X - DomainOffsetX) / CellSizeX), 0, GridResolutionX - 1); iy = Math.Clamp((int)((w.Y - DomainOffsetY) / CellSizeY), 0, GridResolutionY - 1); iz = Math.Clamp((int)((w.Z - DomainOffsetZ) / CellSizeZ), 0, GridResolutionZ - 1); }
+    public bool IsValidIndex(int ix, int iy, int iz) => ix >= 0 && ix < GridResolutionX && iy >= 0 && iy < GridResolutionY && iz >= 0 && iz < GridResolutionZ;
+    public int FlattenIndex(int ix, int iy, int iz) => ix + GridResolutionX * (iy + GridResolutionY * iz);
+    public void UnflattenIndex(int flat, out int ix, out int iy, out int iz) { iz = flat / (GridResolutionX * GridResolutionY); int rem = flat % (GridResolutionX * GridResolutionY); iy = rem / GridResolutionX; ix = rem % GridResolutionX; }
 
     public override string ToString() => $"SimConfig[{GridResolutionX}x{GridResolutionY}x{GridResolutionZ}] dt={TimeStep} domain=[{DomainSizeX},{DomainSizeY},{DomainSizeZ}] cells={TotalCells:N0}";
 }
@@ -2521,12 +2573,16 @@ public partial struct PhysicsState
     public double PVdW_Iterative(double n, double T, double P, double R, double a, double b)
     {
         double v = n * R * T / P;
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 50; i++)
+        {
             double f = P - n * R * T / (v - b * n) + a * n * n / (v * v);
             double df = -n * R * T / ((v - b * n) * (v - b * n)) + 2.0 * a * n * n / (v * v * v);
-            double dv = f / df; v -= dv;
-            if (Math.Abs(dv) < 1e-14 * Math.Abs(v)) break;
-            if (v < b * n * 1.01) v = b * n * 1.01;
+            double dv = f / df;
+            v -= dv;
+            if (Math.Abs(dv) < 1e-14 * Math.Abs(v))
+                break;
+            if (v < b * n * 1.01)
+                v = b * n * 1.01;
         }
         return v;
     }
@@ -2534,8 +2590,10 @@ public partial struct PhysicsState
     public double PPengRobinson(double n, double T, double V, double R, double a, double b, double omega)
     {
         double kappa = 0.37464 + 1.54226 * omega - 0.26992 * omega * omega;
-        double Tc = a / (0.45724 * R * R); double Tr = T / Tc;
-        double alpha = (1.0 + kappa * (1.0 - Math.Sqrt(Tr))); alpha *= alpha;
+        double Tc = a / (0.45724 * R * R);
+        double Tr = T / Tc;
+        double alpha = (1.0 + kappa * (1.0 - Math.Sqrt(Tr)));
+        alpha *= alpha;
         return n * R * T / (V - b * n) - a * alpha * n * n / (V * V + 2.0 * b * V - b * b);
     }
     public double PBWR(double n, double T, double V, double R, double A0, double B0, double C0, double a, double b, double c, double alpha, double gamma)
@@ -2600,42 +2658,57 @@ public partial struct PhysicsState
     // ── 12.5 EVOLUTION / TIME INTEGRATION ──
     public Vector3D RungeKutta4(Func<double, Vector3D, Vector3D> f, double t, Vector3D y, double h)
     {
-        var k1 = f(t, y); var k2 = f(t + h * 0.5, y + k1 * (h * 0.5));
-        var k3 = f(t + h * 0.5, y + k2 * (h * 0.5)); var k4 = f(t + h, y + k3 * h);
+        var k1 = f(t, y);
+        var k2 = f(t + h * 0.5, y + k1 * (h * 0.5));
+        var k3 = f(t + h * 0.5, y + k2 * (h * 0.5));
+        var k4 = f(t + h, y + k3 * h);
         return y + (k1 + k2 * 2.0 + k3 * 2.0 + k4) * (h / 6.0);
     }
     public void VelocityVerlet(ref Vector3D pos, ref Vector3D vel, Func<Vector3D, Vector3D> acc, double h)
     {
-        var a = acc(pos); pos = pos + vel * h + a * (0.5 * h * h); var an = acc(pos); vel = vel + (a + an) * (0.5 * h);
+        var a = acc(pos);
+        pos = pos + vel * h + a * (0.5 * h * h);
+        var an = acc(pos);
+        vel = vel + (a + an) * (0.5 * h);
     }
     public void Leapfrog(ref Vector3D pos, ref Vector3D vHalf, Func<Vector3D, Vector3D> acc, double h)
     {
-        pos = pos + vHalf * h; vHalf = vHalf + acc(pos) * h;
+        pos = pos + vHalf * h;
+        vHalf = vHalf + acc(pos) * h;
     }
     public void SymplecticEuler(ref Vector3D pos, ref Vector3D vel, Func<Vector3D, Vector3D> acc, double h)
     {
-        vel = vel + acc(pos) * h; pos = pos + vel * h;
+        vel = vel + acc(pos) * h;
+        pos = pos + vel * h;
     }
     public Vector3D StormerVerlet(Vector3D pos, Vector3D posPrev, Func<Vector3D, Vector3D> acc, double h)
         => pos * 2.0 - posPrev + acc(pos) * (h * h);
     public void YoshidaSuzuki4(ref Vector3D pos, ref Vector3D vel, Func<Vector3D, Vector3D> acc, double h)
     {
-        double w1 = 1.0 / (2.0 - Math.Pow(2.0, 1.0 / 3.0)); double w0 = 1.0 - 2.0 * w1;
-        VelocityVerlet(ref pos, ref vel, acc, h * w1); VelocityVerlet(ref pos, ref vel, acc, h * w0); VelocityVerlet(ref pos, ref vel, acc, h * w1);
+        double w1 = 1.0 / (2.0 - Math.Pow(2.0, 1.0 / 3.0));
+        double w0 = 1.0 - 2.0 * w1;
+        VelocityVerlet(ref pos, ref vel, acc, h * w1);
+        VelocityVerlet(ref pos, ref vel, acc, h * w0);
+        VelocityVerlet(ref pos, ref vel, acc, h * w1);
     }
     public (Vector3D pos, Vector3D vel, double H) HMCStep(Vector3D pos, Vector3D mom, Func<Vector3D, double> PE, Func<Vector3D, Vector3D> force, double h, int steps)
     {
         double H0 = 0.5 * mom.LengthSquared() + PE(pos);
-        for (int i = 0; i < steps; i++) { mom = mom + force(pos) * (h * 0.5); pos = pos + mom * h; mom = mom + force(pos) * (h * 0.5); }
+        for (int i = 0; i < steps; i++)
+        { mom = mom + force(pos) * (h * 0.5); pos = pos + mom * h; mom = mom + force(pos) * (h * 0.5); }
         return (pos, mom, 0.5 * mom.LengthSquared() + PE(pos));
     }
     public (Vector3D pos, Vector3D vel) LangevinBAOAB(Vector3D pos, Vector3D vel, Func<Vector3D, Vector3D> force, double m, double gamma, double T, double kB, double h, Random rng)
     {
-        double hh = h * 0.5; vel = vel + force(pos) * (hh / m);
-        double c1 = Math.Exp(-gamma * hh); vel = vel * c1;
+        double hh = h * 0.5;
+        vel = vel + force(pos) * (hh / m);
+        double c1 = Math.Exp(-gamma * hh);
+        vel = vel * c1;
         double noise = Math.Sqrt((1.0 - c1 * c1) * kB * T / m);
         vel = vel + new Vector3D(NormalSample(rng), NormalSample(rng), NormalSample(rng)) * noise;
-        vel = vel * c1; pos = pos + vel * hh; vel = vel + force(pos) * (hh / m);
+        vel = vel * c1;
+        pos = pos + vel * hh;
+        vel = vel + force(pos) * (hh / m);
         return (pos, vel);
     }
     public Vector3D BrownianStep(Vector3D pos, Func<Vector3D, Vector3D> force, double gamma, double T, double kB, double h, Random rng)
@@ -2643,13 +2716,14 @@ public partial struct PhysicsState
     private static double NormalSample(Random rng) { double u1 = rng.NextDouble(), u2 = rng.NextDouble(); return Math.Sqrt(-2.0 * Math.Log(u1 + 1e-300)) * Math.Cos(2.0 * Math.PI * u2); }
     public (Vector3D state, double newH) AdaptiveRKF45(Func<double, Vector3D, Vector3D> f, double t, Vector3D y, double h, double tol, double hMin, double hMax)
     {
-        var k1 = f(t, y); var k2 = f(t + h * 0.25, y + k1 * (h * 0.25));
-        var k3 = f(t + h * 0.375, y + k1 * (h * 3.0/32) + k2 * (h * 9.0/32));
-        var k4 = f(t + h * 12.0/13, y + k1 * (h * 1932.0/2197) - k2 * (h * 7200.0/2197) + k3 * (h * 7296.0/2197));
-        var k5 = f(t + h, y + k1 * (h * 439.0/216) - k2 * (h * 8.0) + k3 * (h * 3680.0/513) - k4 * (h * 845.0/4104));
-        var k6 = f(t + h * 0.5, y - k1 * (h * 8.0/27) + k2 * (h * 2.0) - k3 * (h * 3544.0/2565) + k4 * (h * 1859.0/4104) - k5 * (h * 11.0/40));
-        var y4 = y + k1 * (h * 25.0/216) + k3 * (h * 1408.0/2565) + k4 * (h * 2197.0/4104) + k5 * (-h / 5.0);
-        var y5 = y + k1 * (h * 16.0/135) + k3 * (h * 6656.0/12825) + k4 * (h * 28561.0/56430) + k5 * (-h * 9.0/50) + k6 * (h * 2.0/55);
+        var k1 = f(t, y);
+        var k2 = f(t + h * 0.25, y + k1 * (h * 0.25));
+        var k3 = f(t + h * 0.375, y + k1 * (h * 3.0 / 32) + k2 * (h * 9.0 / 32));
+        var k4 = f(t + h * 12.0 / 13, y + k1 * (h * 1932.0 / 2197) - k2 * (h * 7200.0 / 2197) + k3 * (h * 7296.0 / 2197));
+        var k5 = f(t + h, y + k1 * (h * 439.0 / 216) - k2 * (h * 8.0) + k3 * (h * 3680.0 / 513) - k4 * (h * 845.0 / 4104));
+        var k6 = f(t + h * 0.5, y - k1 * (h * 8.0 / 27) + k2 * (h * 2.0) - k3 * (h * 3544.0 / 2565) + k4 * (h * 1859.0 / 4104) - k5 * (h * 11.0 / 40));
+        var y4 = y + k1 * (h * 25.0 / 216) + k3 * (h * 1408.0 / 2565) + k4 * (h * 2197.0 / 4104) + k5 * (-h / 5.0);
+        var y5 = y + k1 * (h * 16.0 / 135) + k3 * (h * 6656.0 / 12825) + k4 * (h * 28561.0 / 56430) + k5 * (-h * 9.0 / 50) + k6 * (h * 2.0 / 55);
         double err = Math.Max((y5 - y4).Length(), 1e-15);
         double newH = Math.Max(hMin, Math.Min(hMax, h * Math.Pow(tol / err, 0.2)));
         return err <= tol ? (y5, newH) : AdaptiveRKF45(f, t, y, newH, tol, hMin, hMax);
@@ -2672,7 +2746,10 @@ public partial struct PhysicsState
     public double PowerCalc(Vector3D F, Vector3D v) => Vector3D.Dot(F, v);
     public double WorkAlongPath(Func<Vector3D, Vector3D> field, Vector3D[] path)
     {
-        double w = 0; for (int i = 0; i < path.Length - 1; i++) { var mid = (path[i] + path[i + 1]) * 0.5; w += Vector3D.Dot(field(mid), path[i + 1] - path[i]); } return w;
+        double w = 0;
+        for (int i = 0; i < path.Length - 1; i++)
+        { var mid = (path[i] + path[i + 1]) * 0.5; w += Vector3D.Dot(field(mid), path[i + 1] - path[i]); }
+        return w;
     }
 
     // ── 12.6 PHASE & EQUILIBRIUM ──
@@ -2703,49 +2780,51 @@ public partial struct PhysicsState
     public double Divergence(Vector3D[,,] F, int ix, int iy, int iz, double dx, double dy, double dz)
     {
         int nx = F.GetLength(0), ny = F.GetLength(1), nz = F.GetLength(2);
-        double dFx = (ix + 1 < nx ? F[ix+1,iy,iz].X : F[ix,iy,iz].X) - (ix > 0 ? F[ix-1,iy,iz].X : F[ix,iy,iz].X);
-        double dFy = (iy + 1 < ny ? F[ix,iy+1,iz].Y : F[ix,iy,iz].Y) - (iy > 0 ? F[ix,iy-1,iz].Y : F[ix,iy,iz].Y);
-        double dFz = (iz + 1 < nz ? F[ix,iy,iz+1].Z : F[ix,iy,iz].Z) - (iz > 0 ? F[ix,iy,iz-1].Z : F[ix,iy,iz].Z);
+        double dFx = (ix + 1 < nx ? F[ix + 1, iy, iz].X : F[ix, iy, iz].X) - (ix > 0 ? F[ix - 1, iy, iz].X : F[ix, iy, iz].X);
+        double dFy = (iy + 1 < ny ? F[ix, iy + 1, iz].Y : F[ix, iy, iz].Y) - (iy > 0 ? F[ix, iy - 1, iz].Y : F[ix, iy, iz].Y);
+        double dFz = (iz + 1 < nz ? F[ix, iy, iz + 1].Z : F[ix, iy, iz].Z) - (iz > 0 ? F[ix, iy, iz - 1].Z : F[ix, iy, iz].Z);
         return dFx / (2.0 * dx) + dFy / (2.0 * dy) + dFz / (2.0 * dz);
     }
     public Vector3D Curl(Vector3D[,,] F, int ix, int iy, int iz, double dx, double dy, double dz)
     {
         int nx = F.GetLength(0), ny = F.GetLength(1), nz = F.GetLength(2);
-        double dFzdy = ((iy+1<ny?F[ix,iy+1,iz].Z:F[ix,iy,iz].Z)-(iy>0?F[ix,iy-1,iz].Z:F[ix,iy,iz].Z))/(2.0*dy);
-        double dFydz = ((iz+1<nz?F[ix,iy,iz+1].Y:F[ix,iy,iz].Y)-(iz>0?F[ix,iy,iz-1].Y:F[ix,iy,iz].Y))/(2.0*dz);
-        double dFxdz = ((iz+1<nz?F[ix,iy,iz+1].X:F[ix,iy,iz].X)-(iz>0?F[ix,iy,iz-1].X:F[ix,iy,iz].X))/(2.0*dz);
-        double dFzdx = ((ix+1<nx?F[ix+1,iy,iz].Z:F[ix,iy,iz].Z)-(ix>0?F[ix-1,iy,iz].Z:F[ix,iy,iz].Z))/(2.0*dx);
-        double dFydx = ((ix+1<nx?F[ix+1,iy,iz].Y:F[ix,iy,iz].Y)-(ix>0?F[ix-1,iy,iz].Y:F[ix,iy,iz].Y))/(2.0*dx);
-        double dFxdy = ((iy+1<ny?F[ix,iy+1,iz].X:F[ix,iy,iz].X)-(iy>0?F[ix,iy-1,iz].X:F[ix,iy,iz].X))/(2.0*dy);
+        double dFzdy = ((iy + 1 < ny ? F[ix, iy + 1, iz].Z : F[ix, iy, iz].Z) - (iy > 0 ? F[ix, iy - 1, iz].Z : F[ix, iy, iz].Z)) / (2.0 * dy);
+        double dFydz = ((iz + 1 < nz ? F[ix, iy, iz + 1].Y : F[ix, iy, iz].Y) - (iz > 0 ? F[ix, iy, iz - 1].Y : F[ix, iy, iz].Y)) / (2.0 * dz);
+        double dFxdz = ((iz + 1 < nz ? F[ix, iy, iz + 1].X : F[ix, iy, iz].X) - (iz > 0 ? F[ix, iy, iz - 1].X : F[ix, iy, iz].X)) / (2.0 * dz);
+        double dFzdx = ((ix + 1 < nx ? F[ix + 1, iy, iz].Z : F[ix, iy, iz].Z) - (ix > 0 ? F[ix - 1, iy, iz].Z : F[ix, iy, iz].Z)) / (2.0 * dx);
+        double dFydx = ((ix + 1 < nx ? F[ix + 1, iy, iz].Y : F[ix, iy, iz].Y) - (ix > 0 ? F[ix - 1, iy, iz].Y : F[ix, iy, iz].Y)) / (2.0 * dx);
+        double dFxdy = ((iy + 1 < ny ? F[ix, iy + 1, iz].X : F[ix, iy, iz].X) - (iy > 0 ? F[ix, iy - 1, iz].X : F[ix, iy, iz].X)) / (2.0 * dy);
         return new Vector3D(dFzdy - dFydz, dFxdz - dFzdx, dFydx - dFxdy);
     }
     public Vector3D Gradient(double[,,] f, int ix, int iy, int iz, double dx, double dy, double dz)
     {
         int nx = f.GetLength(0), ny = f.GetLength(1), nz = f.GetLength(2);
-        double dFx = ((ix+1<nx?f[ix+1,iy,iz]:f[ix,iy,iz])-(ix>0?f[ix-1,iy,iz]:f[ix,iy,iz]))/(2.0*dx);
-        double dFy = ((iy+1<ny?f[ix,iy+1,iz]:f[ix,iy,iz])-(iy>0?f[ix,iy-1,iz]:f[ix,iy,iz]))/(2.0*dy);
-        double dFz = ((iz+1<nz?f[ix,iy,iz+1]:f[ix,iy,iz])-(iz>0?f[ix,iy,iz-1]:f[ix,iy,iz]))/(2.0*dz);
+        double dFx = ((ix + 1 < nx ? f[ix + 1, iy, iz] : f[ix, iy, iz]) - (ix > 0 ? f[ix - 1, iy, iz] : f[ix, iy, iz])) / (2.0 * dx);
+        double dFy = ((iy + 1 < ny ? f[ix, iy + 1, iz] : f[ix, iy, iz]) - (iy > 0 ? f[ix, iy - 1, iz] : f[ix, iy, iz])) / (2.0 * dy);
+        double dFz = ((iz + 1 < nz ? f[ix, iy, iz + 1] : f[ix, iy, iz]) - (iz > 0 ? f[ix, iy, iz - 1] : f[ix, iy, iz])) / (2.0 * dz);
         return new Vector3D(dFx, dFy, dFz);
     }
     public double Laplacian(double[,,] f, int ix, int iy, int iz, double dx, double dy, double dz)
     {
-        int nx = f.GetLength(0), ny = f.GetLength(1), nz = f.GetLength(2); double c = f[ix,iy,iz];
-        return ((ix+1<nx?f[ix+1,iy,iz]:c)-2.0*c+(ix>0?f[ix-1,iy,iz]:c))/(dx*dx)
-            + ((iy+1<ny?f[ix,iy+1,iz]:c)-2.0*c+(iy>0?f[ix,iy-1,iz]:c))/(dy*dy)
-            + ((iz+1<nz?f[ix,iy,iz+1]:c)-2.0*c+(iz>0?f[ix,iy,iz-1]:c))/(dz*dz);
+        int nx = f.GetLength(0), ny = f.GetLength(1), nz = f.GetLength(2);
+        double c = f[ix, iy, iz];
+        return ((ix + 1 < nx ? f[ix + 1, iy, iz] : c) - 2.0 * c + (ix > 0 ? f[ix - 1, iy, iz] : c)) / (dx * dx)
+            + ((iy + 1 < ny ? f[ix, iy + 1, iz] : c) - 2.0 * c + (iy > 0 ? f[ix, iy - 1, iz] : c)) / (dy * dy)
+            + ((iz + 1 < nz ? f[ix, iy, iz + 1] : c) - 2.0 * c + (iz > 0 ? f[ix, iy, iz - 1] : c)) / (dz * dz);
     }
     public double AdvectionUpwind(double[,,] f, Vector3D vel, int ix, int iy, int iz, double dx, double dy, double dz)
     {
-        int nx = f.GetLength(0), ny = f.GetLength(1), nz = f.GetLength(2); double c = f[ix,iy,iz];
-        double dphidx = vel.X > 0 ? (ix > 0 ? c - f[ix-1,iy,iz] : 0) / dx : (ix+1<nx ? f[ix+1,iy,iz] - c : 0) / dx;
-        double dphidy = vel.Y > 0 ? (iy > 0 ? c - f[ix,iy-1,iz] : 0) / dy : (iy+1<ny ? f[ix,iy+1,iz] - c : 0) / dy;
-        double dphidz = vel.Z > 0 ? (iz > 0 ? c - f[ix,iy,iz-1] : 0) / dz : (iz+1<nz ? f[ix,iy,iz+1] - c : 0) / dz;
+        int nx = f.GetLength(0), ny = f.GetLength(1), nz = f.GetLength(2);
+        double c = f[ix, iy, iz];
+        double dphidx = vel.X > 0 ? (ix > 0 ? c - f[ix - 1, iy, iz] : 0) / dx : (ix + 1 < nx ? f[ix + 1, iy, iz] - c : 0) / dx;
+        double dphidy = vel.Y > 0 ? (iy > 0 ? c - f[ix, iy - 1, iz] : 0) / dy : (iy + 1 < ny ? f[ix, iy + 1, iz] - c : 0) / dy;
+        double dphidz = vel.Z > 0 ? (iz > 0 ? c - f[ix, iy, iz - 1] : 0) / dz : (iz + 1 < nz ? f[ix, iy, iz + 1] - c : 0) / dz;
         return -(vel.X * dphidx + vel.Y * dphidy + vel.Z * dphidz);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double DiffusionExplicit(double[,,] f, double alpha, int ix, int iy, int iz, double dx, double dy, double dz) => alpha * Laplacian(f, ix, iy, iz, dx, dy, dz);
     public double WaveEquation(double[,,] fCur, double[,,] fPrev, double c, int ix, int iy, int iz, double dx, double dy, double dz, double dt)
-        => 2.0 * fCur[ix,iy,iz] - fPrev[ix,iy,iz] + c * c * dt * dt * Laplacian(fCur, ix, iy, iz, dx, dy, dz);
+        => 2.0 * fCur[ix, iy, iz] - fPrev[ix, iy, iz] + c * c * dt * dt * Laplacian(fCur, ix, iy, iz, dx, dy, dz);
 
     // ── 12.8 PARTICLE & RELATIVISTIC PHYSICS ──
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2793,7 +2872,7 @@ public partial struct PhysicsState
     public double TripleScalar(Vector3D a, Vector3D b, Vector3D c) => Vector3D.Dot(a, Vector3D.Cross(b, c));
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3D VectorTriple(Vector3D a, Vector3D b, Vector3D c) => b * Vector3D.Dot(a, c) - c * Vector3D.Dot(a, b);
-    public Tensor3D OuterProduct(Vector3D a, Vector3D b) => new Tensor3D(a.X*b.X,a.X*b.Y,a.X*b.Z,a.Y*b.X,a.Y*b.Y,a.Y*b.Z,a.Z*b.X,a.Z*b.Y,a.Z*b.Z);
+    public Tensor3D OuterProduct(Vector3D a, Vector3D b) => new Tensor3D(a.X * b.X, a.X * b.Y, a.X * b.Z, a.Y * b.X, a.Y * b.Y, a.Y * b.Z, a.Z * b.X, a.Z * b.Y, a.Z * b.Z);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3D Project(Vector3D a, Vector3D b) { double d = Vector3D.Dot(b, b); return d < 1e-30 ? Vector3D.Zero : b * (Vector3D.Dot(a, b) / d); }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2801,8 +2880,10 @@ public partial struct PhysicsState
     public double AngleBetween(Vector3D a, Vector3D b) { double c = Math.Max(-1, Math.Min(1, Vector3D.Dot(a.Normalized(), b.Normalized()))); return Math.Acos(c); }
     public double SignedAngleAxis(Vector3D a, Vector3D b, Vector3D axis)
     {
-        var ax = Project(a, axis.Normalized()); var bx = Project(b, axis.Normalized());
-        var ap = a - ax; var bp = b - bx;
+        var ax = Project(a, axis.Normalized());
+        var bx = Project(b, axis.Normalized());
+        var ap = a - ax;
+        var bp = b - bx;
         return Math.Atan2(Vector3D.Dot(axis, Vector3D.Cross(ap, bp)), Vector3D.Dot(ap, bp));
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2830,16 +2911,16 @@ public partial struct PhysicsState
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double DistanceSq(Vector3D a, Vector3D b) => (b - a).LengthSquared();
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double ManhattanDist(Vector3D a, Vector3D b) => Math.Abs(a.X-b.X)+Math.Abs(a.Y-b.Y)+Math.Abs(a.Z-b.Z);
+    public double ManhattanDist(Vector3D a, Vector3D b) => Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y) + Math.Abs(a.Z - b.Z);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double ChebyshevDist(Vector3D a, Vector3D b) => Math.Max(Math.Max(Math.Abs(a.X-b.X),Math.Abs(a.Y-b.Y)),Math.Abs(a.Z-b.Z));
-    public double MinkowskiDist(Vector3D a, Vector3D b, double p) => Math.Pow(Math.Pow(Math.Abs(a.X-b.X),p)+Math.Pow(Math.Abs(a.Y-b.Y),p)+Math.Pow(Math.Abs(a.Z-b.Z),p),1.0/p);
+    public double ChebyshevDist(Vector3D a, Vector3D b) => Math.Max(Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y)), Math.Abs(a.Z - b.Z));
+    public double MinkowskiDist(Vector3D a, Vector3D b, double p) => Math.Pow(Math.Pow(Math.Abs(a.X - b.X), p) + Math.Pow(Math.Abs(a.Y - b.Y), p) + Math.Pow(Math.Abs(a.Z - b.Z), p), 1.0 / p);
     public Vector3D HermiteInterp(Vector3D p0, Vector3D m0, Vector3D p1, Vector3D m1, double t)
-    { double t2=t*t, t3=t2*t; return p0*(2*t3-3*t2+1)+m0*(t3-2*t2+t)+p1*(-2*t3+3*t2)+m1*(t3-t2); }
+    { double t2 = t * t, t3 = t2 * t; return p0 * (2 * t3 - 3 * t2 + 1) + m0 * (t3 - 2 * t2 + t) + p1 * (-2 * t3 + 3 * t2) + m1 * (t3 - t2); }
     public Vector3D CatmullRom(Vector3D p0, Vector3D p1, Vector3D p2, Vector3D p3, double t, double tau)
-    { double t2=t*t, t3=t2*t; return (p1*2+(p2-p0)*tau*t+(p0*2-p1*5+p2*4-p3)*tau*t2+(-p1+p2*3-p3+p0*-1)*tau*t3)*0.5; }
+    { double t2 = t * t, t3 = t2 * t; return (p1 * 2 + (p2 - p0) * tau * t + (p0 * 2 - p1 * 5 + p2 * 4 - p3) * tau * t2 + (-p1 + p2 * 3 - p3 + p0 * -1) * tau * t3) * 0.5; }
     public Vector3D Bezier(Vector3D p0, Vector3D p1, Vector3D p2, Vector3D p3, double t)
-    { double u=1-t, u2=u*u, u3=u2*u, t2=t*t, t3=t2*t; return p0*u3+p1*(3*u2*t)+p2*(3*u*t2)+p3*t3; }
+    { double u = 1 - t, u2 = u * u, u3 = u2 * u, t2 = t * t, t3 = t2 * t; return p0 * u3 + p1 * (3 * u2 * t) + p2 * (3 * u * t2) + p3 * t3; }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Fade(double t) => t * t * t * (t * (t * 6 - 15) + 10);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2852,61 +2933,74 @@ public partial struct PhysicsState
     public Vector3D TriangleCentroid(Vector3D a, Vector3D b, Vector3D c) => (a + b + c) * (1.0 / 3.0);
     public (double u, double v, double w) Barycentric(Vector3D p, Vector3D a, Vector3D b, Vector3D c)
     {
-        var v0 = b - a; var v1 = c - a; var v2 = p - a;
+        var v0 = b - a;
+        var v1 = c - a;
+        var v2 = p - a;
         double d00 = Vector3D.Dot(v0, v0), d01 = Vector3D.Dot(v0, v1), d11 = Vector3D.Dot(v1, v1);
         double d20 = Vector3D.Dot(v2, v0), d21 = Vector3D.Dot(v2, v1);
         double den = d00 * d11 - d01 * d01;
-        if (Math.Abs(den) < 1e-30) return (1.0/3, 1.0/3, 1.0/3);
-        double v = (d11*d20-d01*d21)/den; double w = (d00*d21-d01*d20)/den;
-        return (1-v-w, v, w);
+        if (Math.Abs(den) < 1e-30)
+            return (1.0 / 3, 1.0 / 3, 1.0 / 3);
+        double v = (d11 * d20 - d01 * d21) / den;
+        double w = (d00 * d21 - d01 * d20) / den;
+        return (1 - v - w, v, w);
     }
-    public bool PointInTriangle(Vector3D p, Vector3D a, Vector3D b, Vector3D c) { var (u,v,w) = Barycentric(p,a,b,c); return u >= -1e-6 && v >= -1e-6 && w >= -1e-6; }
+    public bool PointInTriangle(Vector3D p, Vector3D a, Vector3D b, Vector3D c) { var (u, v, w) = Barycentric(p, a, b, c); return u >= -1e-6 && v >= -1e-6 && w >= -1e-6; }
     public Vector3D ClosestPointSegment(Vector3D p, Vector3D a, Vector3D b)
-    { var ab = b-a; double t = Math.Max(0, Math.Min(1, Vector3D.Dot(p-a, ab)/Vector3D.Dot(ab, ab))); return a+ab*t; }
-    public double DistPointSegment(Vector3D p, Vector3D a, Vector3D b) => (p-ClosestPointSegment(p,a,b)).Length();
+    { var ab = b - a; double t = Math.Max(0, Math.Min(1, Vector3D.Dot(p - a, ab) / Vector3D.Dot(ab, ab))); return a + ab * t; }
+    public double DistPointSegment(Vector3D p, Vector3D a, Vector3D b) => (p - ClosestPointSegment(p, a, b)).Length();
     public Vector3D ClosestPointTriangle(Vector3D p, Vector3D a, Vector3D b, Vector3D c)
     {
-        var (u,v,w) = Barycentric(p,a,b,c);
-        if (u>=0&&v>=0&&w>=0) return p;
-        var best = ClosestPointSegment(p,a,b); double bestD = (p-best).LengthSquared();
-        var cand = ClosestPointSegment(p,b,c); double d = (p-cand).LengthSquared(); if (d<bestD){best=cand;bestD=d;}
-        cand = ClosestPointSegment(p,c,a); d = (p-cand).LengthSquared(); if (d<bestD) best=cand;
+        var (u, v, w) = Barycentric(p, a, b, c);
+        if (u >= 0 && v >= 0 && w >= 0)
+            return p;
+        var best = ClosestPointSegment(p, a, b);
+        double bestD = (p - best).LengthSquared();
+        var cand = ClosestPointSegment(p, b, c);
+        double d = (p - cand).LengthSquared();
+        if (d < bestD)
+        { best = cand; bestD = d; }
+        cand = ClosestPointSegment(p, c, a);
+        d = (p - cand).LengthSquared();
+        if (d < bestD)
+            best = cand;
         return best;
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double SignedVolumeTetra(Vector3D a, Vector3D b, Vector3D c, Vector3D d) => Vector3D.Dot(a-d, Vector3D.Cross(b-d, c-d))/6.0;
-    public double HullVolume(Vector3D[] verts, (int i,int j,int k)[] tris)
-    { double v=0; var o=verts[0]; foreach(var t in tris) v+=SignedVolumeTetra(verts[t.i],verts[t.j],verts[t.k],o); return Math.Abs(v); }
-    public double MeshArea(Vector3D[] verts, (int i,int j,int k)[] tris) { double a=0; foreach(var t in tris) a+=TriangleArea(verts[t.i],verts[t.j],verts[t.k]); return a; }
+    public double SignedVolumeTetra(Vector3D a, Vector3D b, Vector3D c, Vector3D d) => Vector3D.Dot(a - d, Vector3D.Cross(b - d, c - d)) / 6.0;
+    public double HullVolume(Vector3D[] verts, (int i, int j, int k)[] tris)
+    { double v = 0; var o = verts[0]; foreach (var t in tris) v += SignedVolumeTetra(verts[t.i], verts[t.j], verts[t.k], o); return Math.Abs(v); }
+    public double MeshArea(Vector3D[] verts, (int i, int j, int k)[] tris) { double a = 0; foreach (var t in tris) a += TriangleArea(verts[t.i], verts[t.j], verts[t.k]); return a; }
     public Symmetric3x3 InertiaTensor((double m, Vector3D r)[] particles)
     {
-        double ixx=0,iyy=0,izz=0,ixy=0,ixz=0,iyz=0;
-        foreach(var (m,r) in particles){ ixx+=m*(r.Y*r.Y+r.Z*r.Z); iyy+=m*(r.X*r.X+r.Z*r.Z); izz+=m*(r.X*r.X+r.Y*r.Y); ixy-=m*r.X*r.Y; ixz-=m*r.X*r.Z; iyz-=m*r.Y*r.Z; }
-        return new Symmetric3x3(ixx,ixy,ixz,iyy,iyz,izz);
+        double ixx = 0, iyy = 0, izz = 0, ixy = 0, ixz = 0, iyz = 0;
+        foreach (var (m, r) in particles)
+        { ixx += m * (r.Y * r.Y + r.Z * r.Z); iyy += m * (r.X * r.X + r.Z * r.Z); izz += m * (r.X * r.X + r.Y * r.Y); ixy -= m * r.X * r.Y; ixz -= m * r.X * r.Z; iyz -= m * r.Y * r.Z; }
+        return new Symmetric3x3(ixx, ixy, ixz, iyy, iyz, izz);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3D PrincipalMoments(Symmetric3x3 I) { I.MaxEigenvalues(out double v1, out double v2, out double v3); return new Vector3D(v1, v2, v3); }
-    public Vector3D CenterOfMass((double m, Vector3D r)[] p) { double M=0; Vector3D s=Vector3D.Zero; foreach(var(m,r)in p){M+=m;s=s+r*m;} return M>1e-30?s*(1/M):Vector3D.Zero; }
+    public Vector3D CenterOfMass((double m, Vector3D r)[] p) { double M = 0; Vector3D s = Vector3D.Zero; foreach (var (m, r) in p) { M += m; s = s + r * m; } return M > 1e-30 ? s * (1 / M) : Vector3D.Zero; }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double ReducedMass(double m1, double m2) => m1 * m2 / (m1 + m2);
     public Vector3D GravForce(double m1, double m2, Vector3D r1, Vector3D r2, double G)
-    { var d=r2-r1; double dsq=d.LengthSquared(); return dsq<1e-30?Vector3D.Zero:d.Normalized()*(G*m1*m2/dsq); }
+    { var d = r2 - r1; double dsq = d.LengthSquared(); return dsq < 1e-30 ? Vector3D.Zero : d.Normalized() * (G * m1 * m2 / dsq); }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double GravPE(double m1, double m2, double r, double G) => -G * m1 * m2 / r;
     public Vector3D CoulombF(double q1, double q2, Vector3D r1, Vector3D r2, double ke)
-    { var d=r2-r1; double dsq=d.LengthSquared(); return dsq<1e-30?Vector3D.Zero:d.Normalized()*(ke*q1*q2/dsq); }
+    { var d = r2 - r1; double dsq = d.LengthSquared(); return dsq < 1e-30 ? Vector3D.Zero : d.Normalized() * (ke * q1 * q2 / dsq); }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double CoulombV(double q, double r, double ke) => ke * q / r;
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3D HookesLaw(double k, Vector3D x) => x * (-k);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double SpringPE(double k, Vector3D x) => 0.5 * k * x.LengthSquared();
-    public Vector3D DampedOscillator(double m, double c, double k, Vector3D x, Vector3D v) => (x*(-k)+v*(-c))*(1.0/m);
+    public Vector3D DampedOscillator(double m, double c, double k, Vector3D x, Vector3D v) => (x * (-k) + v * (-c)) * (1.0 / m);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double NatFreq(double k, double m) => Math.Sqrt(k / m);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double DampRatio(double c, double k, double m) => c / (2.0 * Math.Sqrt(k * m));
-    public double DampedPeriod(double k, double m, double c) { double w0=Math.Sqrt(k/m); double z=c/(2*Math.Sqrt(k*m)); return 2*Math.PI/(w0*Math.Sqrt(1-z*z)); }
+    public double DampedPeriod(double k, double m, double c) { double w0 = Math.Sqrt(k / m); double z = c / (2 * Math.Sqrt(k * m)); return 2 * Math.PI / (w0 * Math.Sqrt(1 - z * z)); }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double ResonanceAmp(double F0, double c, double w0) => F0 / (c * w0);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2917,36 +3011,43 @@ public partial struct PhysicsState
     public double PrecessionFreq(double m, double g, double r, double I, double w) => m * g * r / (I * w);
 
     // ── 12.10 RANDOM & NOISE ──
-    public Vector3D RandomUnitVector(Random rng) {
+    public Vector3D RandomUnitVector(Random rng)
+    {
         double theta = 2.0 * Math.PI * rng.NextDouble();
         double phi = Math.Acos(2.0 * rng.NextDouble() - 1.0);
-        return new Vector3D(Math.Sin(phi)*Math.Cos(theta), Math.Sin(phi)*Math.Sin(theta), Math.Cos(phi));
+        return new Vector3D(Math.Sin(phi) * Math.Cos(theta), Math.Sin(phi) * Math.Sin(theta), Math.Cos(phi));
     }
-    public Vector3D RandomPointInSphere(Random rng) {
-        double u = rng.NextDouble(); double r = Math.Pow(u, 1.0/3.0);
+    public Vector3D RandomPointInSphere(Random rng)
+    {
+        double u = rng.NextDouble();
+        double r = Math.Pow(u, 1.0 / 3.0);
         return RandomUnitVector(rng) * r;
     }
     public Vector3D RandomPointOnSphere(Random rng) => RandomUnitVector(rng);
-    public double PerlinNoise3D(double x, double y, double z) {
-        int xi=(int)Math.Floor(x), yi=(int)Math.Floor(y), zi=(int)Math.Floor(z);
-        double xf=x-xi, yf=y-yi, zf=z-zi;
-        double u=Fade(xf), v=Fade(yf), w2=Fade(zf);
-        int h000=PerlinHash(xi,yi,zi), h100=PerlinHash(xi+1,yi,zi), h010=PerlinHash(xi,yi+1,zi), h110=PerlinHash(xi+1,yi+1,zi);
-        int h001=PerlinHash(xi,yi,zi+1), h101=PerlinHash(xi+1,yi,zi+1), h011=PerlinHash(xi,yi+1,zi+1), h111=PerlinHash(xi+1,yi+1,zi+1);
-        double x1=LerpUnclamped(Grad(h000,xf,yf,zf),Grad(h100,xf-1,yf,zf),u);
-        double x2=LerpUnclamped(Grad(h010,xf,yf-1,zf),Grad(h110,xf-1,yf-1,zf),u);
-        double y1=LerpUnclamped(x1,x2,v);
-        x1=LerpUnclamped(Grad(h001,xf,yf,zf-1),Grad(h101,xf-1,yf,zf-1),u);
-        x2=LerpUnclamped(Grad(h011,xf,yf-1,zf-1),Grad(h111,xf-1,yf-1,zf-1),u);
-        double y2=LerpUnclamped(x1,x2,v);
-        return LerpUnclamped(y1,y2,w2);
+    public double PerlinNoise3D(double x, double y, double z)
+    {
+        int xi = (int)Math.Floor(x), yi = (int)Math.Floor(y), zi = (int)Math.Floor(z);
+        double xf = x - xi, yf = y - yi, zf = z - zi;
+        double u = Fade(xf), v = Fade(yf), w2 = Fade(zf);
+        int h000 = PerlinHash(xi, yi, zi), h100 = PerlinHash(xi + 1, yi, zi), h010 = PerlinHash(xi, yi + 1, zi), h110 = PerlinHash(xi + 1, yi + 1, zi);
+        int h001 = PerlinHash(xi, yi, zi + 1), h101 = PerlinHash(xi + 1, yi, zi + 1), h011 = PerlinHash(xi, yi + 1, zi + 1), h111 = PerlinHash(xi + 1, yi + 1, zi + 1);
+        double x1 = LerpUnclamped(Grad(h000, xf, yf, zf), Grad(h100, xf - 1, yf, zf), u);
+        double x2 = LerpUnclamped(Grad(h010, xf, yf - 1, zf), Grad(h110, xf - 1, yf - 1, zf), u);
+        double y1 = LerpUnclamped(x1, x2, v);
+        x1 = LerpUnclamped(Grad(h001, xf, yf, zf - 1), Grad(h101, xf - 1, yf, zf - 1), u);
+        x2 = LerpUnclamped(Grad(h011, xf, yf - 1, zf - 1), Grad(h111, xf - 1, yf - 1, zf - 1), u);
+        double y2 = LerpUnclamped(x1, x2, v);
+        return LerpUnclamped(y1, y2, w2);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int PerlinHash(int x, int y, int z) { int h=x*374761393+y*668265263+z*1274126177; h=(h^(h>>13))*1274126177; return h^(h>>16); }
+    private static int PerlinHash(int x, int y, int z) { int h = x * 374761393 + y * 668265263 + z * 1274126177; h = (h ^ (h >> 13)) * 1274126177; return h ^ (h >> 16); }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static double Grad(int hash, double x, double y, double z) {
-        int h=hash&15; double u=h<8?x:y; double v=h<4?y:h==12||h==14?x:z;
-        return ((h&1)==0?u:-u)+((h&2)==0?v:-v);
+    private static double Grad(int hash, double x, double y, double z)
+    {
+        int h = hash & 15;
+        double u = h < 8 ? x : y;
+        double v = h < 4 ? y : h == 12 || h == 14 ? x : z;
+        return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
     }
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static double LerpUnclamped(double a, double b, double t) => a + t * (b - a);
@@ -3167,28 +3268,48 @@ public static class UnitConverter
     /// <summary>Convert energy from one unit to another.</summary>
     public static double ConvertEnergy(double value, string from, string to)
     {
-        double toSI = from.ToLower() switch {
-            "j" or "joule" => 1.0, "kj" or "kilojoule" => 1e3, "mj" or "megajoule" => 1e6,
-            "cal" or "calorie" => 4.184, "kcal" or "kilocalorie" => 4184.0,
+        double toSI = from.ToLower() switch
+        {
+            "j" or "joule" => 1.0,
+            "kj" or "kilojoule" => 1e3,
+            "mj" or "megajoule" => 1e6,
+            "cal" or "calorie" => 4.184,
+            "kcal" or "kilocalorie" => 4184.0,
             "ev" or "electronvolt" => 1.602176634e-19,
-            "kev" => 1.602176634e-16, "mev" => 1.602176634e-13,
-            "gev" => 1.602176634e-10, "tev" => 1.602176634e-7,
-            "btu" => 1055.06, "kwh" or "kilowatthour" => 3.6e6,
-            "erg" => 1e-7, "hartree" => 4.3597447222071e-18,
-            "wh" or "watthour" => 3600.0, "mwh" or "megawatthour" => 3.6e9,
-            "therm" => 1.055e8, "foe" => 1e44,
+            "kev" => 1.602176634e-16,
+            "mev" => 1.602176634e-13,
+            "gev" => 1.602176634e-10,
+            "tev" => 1.602176634e-7,
+            "btu" => 1055.06,
+            "kwh" or "kilowatthour" => 3.6e6,
+            "erg" => 1e-7,
+            "hartree" => 4.3597447222071e-18,
+            "wh" or "watthour" => 3600.0,
+            "mwh" or "megawatthour" => 3.6e9,
+            "therm" => 1.055e8,
+            "foe" => 1e44,
             _ => 1.0
         };
-        double fromSI = to.ToLower() switch {
-            "j" or "joule" => 1.0, "kj" or "kilojoule" => 1e3, "mj" or "megajoule" => 1e6,
-            "cal" or "calorie" => 4.184, "kcal" or "kilocalorie" => 4184.0,
+        double fromSI = to.ToLower() switch
+        {
+            "j" or "joule" => 1.0,
+            "kj" or "kilojoule" => 1e3,
+            "mj" or "megajoule" => 1e6,
+            "cal" or "calorie" => 4.184,
+            "kcal" or "kilocalorie" => 4184.0,
             "ev" or "electronvolt" => 1.602176634e-19,
-            "kev" => 1.602176634e-16, "mev" => 1.602176634e-13,
-            "gev" => 1.602176634e-10, "tev" => 1.602176634e-7,
-            "btu" => 1055.06, "kwh" or "kilowatthour" => 3.6e6,
-            "erg" => 1e-7, "hartree" => 4.3597447222071e-18,
-            "wh" or "watthour" => 3600.0, "mwh" or "megawatthour" => 3.6e9,
-            "therm" => 1.055e8, "foe" => 1e44,
+            "kev" => 1.602176634e-16,
+            "mev" => 1.602176634e-13,
+            "gev" => 1.602176634e-10,
+            "tev" => 1.602176634e-7,
+            "btu" => 1055.06,
+            "kwh" or "kilowatthour" => 3.6e6,
+            "erg" => 1e-7,
+            "hartree" => 4.3597447222071e-18,
+            "wh" or "watthour" => 3600.0,
+            "mwh" or "megawatthour" => 3.6e9,
+            "therm" => 1.055e8,
+            "foe" => 1e44,
             _ => 1.0
         };
         return value * toSI / fromSI;
@@ -3197,26 +3318,46 @@ public static class UnitConverter
     /// <summary>Convert length from one unit to another.</summary>
     public static double ConvertLength(double value, string from, string to)
     {
-        double toSI = from.ToLower() switch {
-            "m" or "meter" => 1.0, "km" or "kilometer" => 1e3, "cm" or "centimeter" => 1e-2,
-            "mm" or "millimeter" => 1e-3, "um" or "micrometer" or "micron" => 1e-6,
-            "nm" or "nanometer" => 1e-9, "pm" or "picometer" => 1e-12,
+        double toSI = from.ToLower() switch
+        {
+            "m" or "meter" => 1.0,
+            "km" or "kilometer" => 1e3,
+            "cm" or "centimeter" => 1e-2,
+            "mm" or "millimeter" => 1e-3,
+            "um" or "micrometer" or "micron" => 1e-6,
+            "nm" or "nanometer" => 1e-9,
+            "pm" or "picometer" => 1e-12,
             "fm" or "femtometer" or "fermi" => 1e-15,
-            "a" or "angstrom" => 1e-10, "au" or "astronomicalunit" => 1.495978707e11,
-            "ly" or "lightyear" => 9.4607304725808e15, "pc" or "parsec" => 3.08567758149137e16,
-            "in" or "inch" => 0.0254, "ft" or "foot" => 0.3048, "yd" or "yard" => 0.9144,
-            "mi" or "mile" => 1609.344, "nmi" or "nauticalmile" => 1852.0,
+            "a" or "angstrom" => 1e-10,
+            "au" or "astronomicalunit" => 1.495978707e11,
+            "ly" or "lightyear" => 9.4607304725808e15,
+            "pc" or "parsec" => 3.08567758149137e16,
+            "in" or "inch" => 0.0254,
+            "ft" or "foot" => 0.3048,
+            "yd" or "yard" => 0.9144,
+            "mi" or "mile" => 1609.344,
+            "nmi" or "nauticalmile" => 1852.0,
             _ => 1.0
         };
-        double fromSI = to.ToLower() switch {
-            "m" or "meter" => 1.0, "km" or "kilometer" => 1e3, "cm" or "centimeter" => 1e-2,
-            "mm" or "millimeter" => 1e-3, "um" or "micrometer" or "micron" => 1e-6,
-            "nm" or "nanometer" => 1e-9, "pm" or "picometer" => 1e-12,
+        double fromSI = to.ToLower() switch
+        {
+            "m" or "meter" => 1.0,
+            "km" or "kilometer" => 1e3,
+            "cm" or "centimeter" => 1e-2,
+            "mm" or "millimeter" => 1e-3,
+            "um" or "micrometer" or "micron" => 1e-6,
+            "nm" or "nanometer" => 1e-9,
+            "pm" or "picometer" => 1e-12,
             "fm" or "femtometer" or "fermi" => 1e-15,
-            "a" or "angstrom" => 1e-10, "au" or "astronomicalunit" => 1.495978707e11,
-            "ly" or "lightyear" => 9.4607304725808e15, "pc" or "parsec" => 3.08567758149137e16,
-            "in" or "inch" => 0.0254, "ft" or "foot" => 0.3048, "yd" or "yard" => 0.9144,
-            "mi" or "mile" => 1609.344, "nmi" or "nauticalmile" => 1852.0,
+            "a" or "angstrom" => 1e-10,
+            "au" or "astronomicalunit" => 1.495978707e11,
+            "ly" or "lightyear" => 9.4607304725808e15,
+            "pc" or "parsec" => 3.08567758149137e16,
+            "in" or "inch" => 0.0254,
+            "ft" or "foot" => 0.3048,
+            "yd" or "yard" => 0.9144,
+            "mi" or "mile" => 1609.344,
+            "nmi" or "nauticalmile" => 1852.0,
             _ => 1.0
         };
         return value * toSI / fromSI;
@@ -3225,25 +3366,41 @@ public static class UnitConverter
     /// <summary>Convert mass from one unit to another.</summary>
     public static double ConvertMass(double value, string from, string to)
     {
-        double toSI = from.ToLower() switch {
-            "kg" or "kilogram" => 1.0, "g" or "gram" => 1e-3, "mg" or "milligram" => 1e-6,
-            "ug" or "microgram" => 1e-9, "ng" or "nanogram" => 1e-12,
-            "t" or "tonne" or "metricton" => 1e3, "lb" or "pound" => 0.45359237,
-            "oz" or "ounce" => 0.028349523125, "st" or "stone" => 6.35029318,
+        double toSI = from.ToLower() switch
+        {
+            "kg" or "kilogram" => 1.0,
+            "g" or "gram" => 1e-3,
+            "mg" or "milligram" => 1e-6,
+            "ug" or "microgram" => 1e-9,
+            "ng" or "nanogram" => 1e-12,
+            "t" or "tonne" or "metricton" => 1e3,
+            "lb" or "pound" => 0.45359237,
+            "oz" or "ounce" => 0.028349523125,
+            "st" or "stone" => 6.35029318,
             "amu" or "u" or "atomicmassunit" => 1.66053906660e-27,
-            "gr" or "grain" => 6.479891e-5, "slug" => 14.593903,
-            "ct" or "carat" => 2e-4, "shortton" => 907.18474,
+            "gr" or "grain" => 6.479891e-5,
+            "slug" => 14.593903,
+            "ct" or "carat" => 2e-4,
+            "shortton" => 907.18474,
             "longton" => 1016.0469088,
             _ => 1.0
         };
-        double fromSI = to.ToLower() switch {
-            "kg" or "kilogram" => 1.0, "g" or "gram" => 1e-3, "mg" or "milligram" => 1e-6,
-            "ug" or "microgram" => 1e-9, "ng" or "nanogram" => 1e-12,
-            "t" or "tonne" or "metricton" => 1e3, "lb" or "pound" => 0.45359237,
-            "oz" or "ounce" => 0.028349523125, "st" or "stone" => 6.35029318,
+        double fromSI = to.ToLower() switch
+        {
+            "kg" or "kilogram" => 1.0,
+            "g" or "gram" => 1e-3,
+            "mg" or "milligram" => 1e-6,
+            "ug" or "microgram" => 1e-9,
+            "ng" or "nanogram" => 1e-12,
+            "t" or "tonne" or "metricton" => 1e3,
+            "lb" or "pound" => 0.45359237,
+            "oz" or "ounce" => 0.028349523125,
+            "st" or "stone" => 6.35029318,
             "amu" or "u" or "atomicmassunit" => 1.66053906660e-27,
-            "gr" or "grain" => 6.479891e-5, "slug" => 14.593903,
-            "ct" or "carat" => 2e-4, "shortton" => 907.18474,
+            "gr" or "grain" => 6.479891e-5,
+            "slug" => 14.593903,
+            "ct" or "carat" => 2e-4,
+            "shortton" => 907.18474,
             "longton" => 1016.0469088,
             _ => 1.0
         };
@@ -3253,23 +3410,37 @@ public static class UnitConverter
     /// <summary>Convert pressure from one unit to another.</summary>
     public static double ConvertPressure(double value, string from, string to)
     {
-        double toSI = from.ToLower() switch {
-            "pa" or "pascal" => 1.0, "kpa" or "kilopascal" => 1e3,
-            "mpa" or "megapascal" => 1e6, "gpa" or "gigapascal" => 1e9,
-            "bar" => 1e5, "mbar" or "millibar" => 100.0,
-            "atm" or "atmosphere" => 101325.0, "torr" or "mmhg" => 133.32236842,
-            "psi" => 6894.757, "inhg" => 3386.389,
-            "cmh2o" => 98.0665, "mh2o" => 9806.65,
+        double toSI = from.ToLower() switch
+        {
+            "pa" or "pascal" => 1.0,
+            "kpa" or "kilopascal" => 1e3,
+            "mpa" or "megapascal" => 1e6,
+            "gpa" or "gigapascal" => 1e9,
+            "bar" => 1e5,
+            "mbar" or "millibar" => 100.0,
+            "atm" or "atmosphere" => 101325.0,
+            "torr" or "mmhg" => 133.32236842,
+            "psi" => 6894.757,
+            "inhg" => 3386.389,
+            "cmh2o" => 98.0665,
+            "mh2o" => 9806.65,
             "dynecm2" or "ba" or "barye" => 0.1,
             _ => 1.0
         };
-        double fromSI = to.ToLower() switch {
-            "pa" or "pascal" => 1.0, "kpa" or "kilopascal" => 1e3,
-            "mpa" or "megapascal" => 1e6, "gpa" or "gigapascal" => 1e9,
-            "bar" => 1e5, "mbar" or "millibar" => 100.0,
-            "atm" or "atmosphere" => 101325.0, "torr" or "mmhg" => 133.32236842,
-            "psi" => 6894.757, "inhg" => 3386.389,
-            "cmh2o" => 98.0665, "mh2o" => 9806.65,
+        double fromSI = to.ToLower() switch
+        {
+            "pa" or "pascal" => 1.0,
+            "kpa" or "kilopascal" => 1e3,
+            "mpa" or "megapascal" => 1e6,
+            "gpa" or "gigapascal" => 1e9,
+            "bar" => 1e5,
+            "mbar" or "millibar" => 100.0,
+            "atm" or "atmosphere" => 101325.0,
+            "torr" or "mmhg" => 133.32236842,
+            "psi" => 6894.757,
+            "inhg" => 3386.389,
+            "cmh2o" => 98.0665,
+            "mh2o" => 9806.65,
             "dynecm2" or "ba" or "barye" => 0.1,
             _ => 1.0
         };
@@ -3279,22 +3450,26 @@ public static class UnitConverter
     /// <summary>Convert speed from one unit to another.</summary>
     public static double ConvertSpeed(double value, string from, string to)
     {
-        double toSI = from.ToLower() switch {
+        double toSI = from.ToLower() switch
+        {
             "ms" or "mps" or "meterspersecond" => 1.0,
-            "kmh" or "kph" or "kilometersperhour" => 1.0/3.6,
+            "kmh" or "kph" or "kilometersperhour" => 1.0 / 3.6,
             "mph" or "milesperhour" => 0.44704,
             "kn" or "knot" => 0.514444,
             "fts" or "feetpersecond" => 0.3048,
-            "mach" => 343.0, "c" or "light" or "speedoflight" => 299792458.0,
+            "mach" => 343.0,
+            "c" or "light" or "speedoflight" => 299792458.0,
             _ => 1.0
         };
-        double fromSI = to.ToLower() switch {
+        double fromSI = to.ToLower() switch
+        {
             "ms" or "mps" or "meterspersecond" => 1.0,
-            "kmh" or "kph" or "kilometersperhour" => 1.0/3.6,
+            "kmh" or "kph" or "kilometersperhour" => 1.0 / 3.6,
             "mph" or "milesperhour" => 0.44704,
             "kn" or "knot" => 0.514444,
             "fts" or "feetpersecond" => 0.3048,
-            "mach" => 343.0, "c" or "light" or "speedoflight" => 299792458.0,
+            "mach" => 343.0,
+            "c" or "light" or "speedoflight" => 299792458.0,
             _ => 1.0
         };
         return value * toSI / fromSI;
@@ -3311,39 +3486,39 @@ public static class UnitConverter
         public int Amount { get; }
         public int LuminousIntensity { get; }
         public Dimension(int m, int l, int t, int i, int th, int n, int j)
-            { Mass=m; Length=l; Time=t; Current=i; Temperature=th; Amount=n; LuminousIntensity=j; }
-        public static readonly Dimension Dimensionless = new(0,0,0,0,0,0,0);
-        public static readonly Dimension LengthDim = new(0,1,0,0,0,0,0);
-        public static readonly Dimension MassDim = new(1,0,0,0,0,0,0);
-        public static readonly Dimension TimeDim = new(0,0,1,0,0,0,0);
-        public static readonly Dimension CurrentDim = new(0,0,0,1,0,0,0);
-        public static readonly Dimension TemperatureDim = new(0,0,0,0,1,0,0);
-        public static readonly Dimension AmountDim = new(0,0,0,0,0,1,0);
-        public static readonly Dimension ForceDim = new(1,1,-2,0,0,0,0);
-        public static readonly Dimension EnergyDim = new(1,2,-2,0,0,0,0);
-        public static readonly Dimension PowerDim = new(1,2,-3,0,0,0,0);
-        public static readonly Dimension PressureDim = new(1,-1,-2,0,0,0,0);
-        public static readonly Dimension VelocityDim = new(0,1,-1,0,0,0,0);
-        public static readonly Dimension AccelerationDim = new(0,1,-2,0,0,0,0);
-        public static readonly Dimension ChargeDim = new(0,0,1,1,0,0,0);
-        public static readonly Dimension VoltageDim = new(1,2,-3,-1,0,0,0);
-        public static readonly Dimension FrequencyDim = new(0,0,-1,0,0,0,0);
-        public static readonly Dimension AreaDim = new(0,2,0,0,0,0,0);
-        public static readonly Dimension VolumeDim = new(0,3,0,0,0,0,0);
-        public static readonly Dimension MomentumDim = new(1,1,-1,0,0,0,0);
-        public static readonly Dimension AngularMomentumDim = new(1,2,-1,0,0,0,0);
-        public static readonly Dimension ViscosityDim = new(1,-1,-1,0,0,0,0);
-        public static readonly Dimension KinematicViscosityDim = new(0,2,-1,0,0,0,0);
-        public static readonly Dimension ThermalConductivityDim = new(1,1,-3,0,-1,0,0);
-        public static readonly Dimension SpecificHeatDim = new(0,2,-2,0,-1,0,0);
-        public static readonly Dimension ElectricFieldDim = new(1,1,-3,-1,0,0,0);
-        public static readonly Dimension MagneticFieldDim = new(1,0,-2,-1,0,0,0);
+        { Mass = m; Length = l; Time = t; Current = i; Temperature = th; Amount = n; LuminousIntensity = j; }
+        public static readonly Dimension Dimensionless = new(0, 0, 0, 0, 0, 0, 0);
+        public static readonly Dimension LengthDim = new(0, 1, 0, 0, 0, 0, 0);
+        public static readonly Dimension MassDim = new(1, 0, 0, 0, 0, 0, 0);
+        public static readonly Dimension TimeDim = new(0, 0, 1, 0, 0, 0, 0);
+        public static readonly Dimension CurrentDim = new(0, 0, 0, 1, 0, 0, 0);
+        public static readonly Dimension TemperatureDim = new(0, 0, 0, 0, 1, 0, 0);
+        public static readonly Dimension AmountDim = new(0, 0, 0, 0, 0, 1, 0);
+        public static readonly Dimension ForceDim = new(1, 1, -2, 0, 0, 0, 0);
+        public static readonly Dimension EnergyDim = new(1, 2, -2, 0, 0, 0, 0);
+        public static readonly Dimension PowerDim = new(1, 2, -3, 0, 0, 0, 0);
+        public static readonly Dimension PressureDim = new(1, -1, -2, 0, 0, 0, 0);
+        public static readonly Dimension VelocityDim = new(0, 1, -1, 0, 0, 0, 0);
+        public static readonly Dimension AccelerationDim = new(0, 1, -2, 0, 0, 0, 0);
+        public static readonly Dimension ChargeDim = new(0, 0, 1, 1, 0, 0, 0);
+        public static readonly Dimension VoltageDim = new(1, 2, -3, -1, 0, 0, 0);
+        public static readonly Dimension FrequencyDim = new(0, 0, -1, 0, 0, 0, 0);
+        public static readonly Dimension AreaDim = new(0, 2, 0, 0, 0, 0, 0);
+        public static readonly Dimension VolumeDim = new(0, 3, 0, 0, 0, 0, 0);
+        public static readonly Dimension MomentumDim = new(1, 1, -1, 0, 0, 0, 0);
+        public static readonly Dimension AngularMomentumDim = new(1, 2, -1, 0, 0, 0, 0);
+        public static readonly Dimension ViscosityDim = new(1, -1, -1, 0, 0, 0, 0);
+        public static readonly Dimension KinematicViscosityDim = new(0, 2, -1, 0, 0, 0, 0);
+        public static readonly Dimension ThermalConductivityDim = new(1, 1, -3, 0, -1, 0, 0);
+        public static readonly Dimension SpecificHeatDim = new(0, 2, -2, 0, -1, 0, 0);
+        public static readonly Dimension ElectricFieldDim = new(1, 1, -3, -1, 0, 0, 0);
+        public static readonly Dimension MagneticFieldDim = new(1, 0, -2, -1, 0, 0, 0);
         public override string ToString() => $"M^{Mass} L^{Length} T^{Time} I^{Current} Θ^{Temperature} N^{Amount} J^{LuminousIntensity}";
-        public static Dimension operator *(Dimension a, Dimension b) => new(a.Mass+b.Mass, a.Length+b.Length, a.Time+b.Time, a.Current+b.Current, a.Temperature+b.Temperature, a.Amount+b.Amount, a.LuminousIntensity+b.LuminousIntensity);
-        public static Dimension operator /(Dimension a, Dimension b) => new(a.Mass-b.Mass, a.Length-b.Length, a.Time-b.Time, a.Current-b.Current, a.Temperature-b.Temperature, a.Amount-b.Amount, a.LuminousIntensity-b.LuminousIntensity);
+        public static Dimension operator *(Dimension a, Dimension b) => new(a.Mass + b.Mass, a.Length + b.Length, a.Time + b.Time, a.Current + b.Current, a.Temperature + b.Temperature, a.Amount + b.Amount, a.LuminousIntensity + b.LuminousIntensity);
+        public static Dimension operator /(Dimension a, Dimension b) => new(a.Mass - b.Mass, a.Length - b.Length, a.Time - b.Time, a.Current - b.Current, a.Temperature - b.Temperature, a.Amount - b.Amount, a.LuminousIntensity - b.LuminousIntensity);
         public static Dimension operator -(Dimension d) => new(-d.Mass, -d.Length, -d.Time, -d.Current, -d.Temperature, -d.Amount, -d.LuminousIntensity);
-        public static bool operator ==(Dimension a, Dimension b) => a.Mass==b.Mass && a.Length==b.Length && a.Time==b.Time && a.Current==b.Current && a.Temperature==b.Temperature && a.Amount==b.Amount && a.LuminousIntensity==b.LuminousIntensity;
-        public static bool operator !=(Dimension a, Dimension b) => !(a==b);
+        public static bool operator ==(Dimension a, Dimension b) => a.Mass == b.Mass && a.Length == b.Length && a.Time == b.Time && a.Current == b.Current && a.Temperature == b.Temperature && a.Amount == b.Amount && a.LuminousIntensity == b.LuminousIntensity;
+        public static bool operator !=(Dimension a, Dimension b) => !(a == b);
         public override bool Equals(object obj) => obj is Dimension d && this == d;
         public override int GetHashCode() => HashCode.Combine(Mass, Length, Time, Current, Temperature, Amount, LuminousIntensity);
     }
@@ -3395,12 +3570,30 @@ public static class MaterialDatabase
             double lambda, double cp, double alpha, double Tm, double Tb, double Ts, double Sy,
             double H, double sigma, double n, double Eg, double ft, double fl, double damp, double mu, double eps, double pr)
         {
-            Name=name; Category=cat; Density=rho; YoungsModulus=E; PoissonsRatio=nu; ShearModulus=G;
-            BulkModulus=K; ThermalConductivity=lambda; SpecificHeat=cp; ThermalExpansion=alpha;
-            MeltingPoint=Tm; BoilingPoint=Tb; TensileStrength=Ts; YieldStrength=Sy; Hardness=H;
-            ElectricalConductivity=sigma; RefractiveIndex=n; BandGap=Eg;
-            PoissonRatio=pr; FractureToughness=ft; FatigueLimit=fl; DampingCapacity=damp;
-            MagneticPermeability=mu; DielectricConstant=eps;
+            Name = name;
+            Category = cat;
+            Density = rho;
+            YoungsModulus = E;
+            PoissonsRatio = nu;
+            ShearModulus = G;
+            BulkModulus = K;
+            ThermalConductivity = lambda;
+            SpecificHeat = cp;
+            ThermalExpansion = alpha;
+            MeltingPoint = Tm;
+            BoilingPoint = Tb;
+            TensileStrength = Ts;
+            YieldStrength = Sy;
+            Hardness = H;
+            ElectricalConductivity = sigma;
+            RefractiveIndex = n;
+            BandGap = Eg;
+            PoissonRatio = pr;
+            FractureToughness = ft;
+            FatigueLimit = fl;
+            DampingCapacity = damp;
+            MagneticPermeability = mu;
+            DielectricConstant = eps;
         }
     }
 
@@ -3409,7 +3602,8 @@ public static class MaterialDatabase
     private static readonly Dictionary<string, List<MaterialEntry>> _byCategory = new();
     static MaterialDatabase()
     {
-        void Add(MaterialEntry m) { _materials[m.Name] = m; _all.Add(m); if (!_byCategory.ContainsKey(m.Category)) _byCategory[m.Category] = new(); _byCategory[m.Category].Add(m); }
+        void Add(MaterialEntry m)
+        { _materials[m.Name] = m; _all.Add(m); if (!_byCategory.ContainsKey(m.Category)) _byCategory[m.Category] = new(); _byCategory[m.Category].Add(m); }
         // ── METALS ──
         Add(new("Steel AISI 1045", "Metal", 7850, 205e9, 0.29, 80e9, 160e9, 50, 480, 11e-6, 1700, 3100, 585e6, 310e6, 5.5, 4.0e6, 1.458, 0, 0.29, 60, 205e6, 0.01, 100, 1));
         Add(new("Steel AISI 304", "Metal", 8000, 193e9, 0.29, 75e9, 150e9, 16.2, 500, 17.3e-6, 1697, 3100, 515e6, 215e6, 6, 1.45e6, 1.447, 0, 0.29, 120, 210e6, 0.012, 100, 1));
@@ -3530,35 +3724,40 @@ public static class MaterialDatabase
     /// <summary>Get material with density closest to given value.</summary>
     public static MaterialEntry ClosestByDensity(double targetDensity)
     {
-        MaterialEntry best = _all[0]; double bestDist = double.MaxValue;
-        foreach (var m in _all) { double d = Math.Abs(m.Density - targetDensity); if (d < bestDist) { bestDist = d; best = m; } }
+        MaterialEntry best = _all[0];
+        double bestDist = double.MaxValue;
+        foreach (var m in _all)
+        { double d = Math.Abs(m.Density - targetDensity); if (d < bestDist) { bestDist = d; best = m; } }
         return best;
     }
 
     /// <summary>Get material with Young's modulus closest to given value.</summary>
     public static MaterialEntry ClosestByYoungsModulus(double targetE)
     {
-        MaterialEntry best = _all[0]; double bestDist = double.MaxValue;
-        foreach (var m in _all) { double d = Math.Abs(m.YoungsModulus - targetE); if (d < bestDist) { bestDist = d; best = m; } }
+        MaterialEntry best = _all[0];
+        double bestDist = double.MaxValue;
+        foreach (var m in _all)
+        { double d = Math.Abs(m.YoungsModulus - targetE); if (d < bestDist) { bestDist = d; best = m; } }
         return best;
     }
 
     /// <summary>Interpolate material properties between two materials by blend factor t ∈ [0,1].</summary>
     public static MaterialEntry Interpolate(MaterialEntry a, MaterialEntry b, double t)
     {
-        t = Math.Max(0, Math.Min(1, t)); double u = 1 - t;
+        t = Math.Max(0, Math.Min(1, t));
+        double u = 1 - t;
         return new MaterialEntry($"{a.Name}_{b.Name}", a.Category,
-            u*a.Density+t*b.Density, u*a.YoungsModulus+t*b.YoungsModulus, u*a.PoissonsRatio+t*b.PoissonsRatio,
-            u*a.ShearModulus+t*b.ShearModulus, u*a.BulkModulus+t*b.BulkModulus,
-            u*a.ThermalConductivity+t*b.ThermalConductivity, u*a.SpecificHeat+t*b.SpecificHeat,
-            u*a.ThermalExpansion+t*b.ThermalExpansion, u*a.MeltingPoint+t*b.MeltingPoint,
-            u*a.BoilingPoint+t*b.BoilingPoint, u*a.TensileStrength+t*b.TensileStrength,
-            u*a.YieldStrength+t*b.YieldStrength, u*a.Hardness+t*b.Hardness,
-            u*a.ElectricalConductivity+t*b.ElectricalConductivity, u*a.RefractiveIndex+t*b.RefractiveIndex,
-            u*a.BandGap+t*b.BandGap, u*a.PoissonRatio+t*b.PoissonRatio,
-            u*a.FractureToughness+t*b.FractureToughness, u*a.FatigueLimit+t*b.FatigueLimit,
-            u*a.DampingCapacity+t*b.DampingCapacity, u*a.MagneticPermeability+t*b.MagneticPermeability,
-            u*a.DielectricConstant+t*b.DielectricConstant);
+            u * a.Density + t * b.Density, u * a.YoungsModulus + t * b.YoungsModulus, u * a.PoissonsRatio + t * b.PoissonsRatio,
+            u * a.ShearModulus + t * b.ShearModulus, u * a.BulkModulus + t * b.BulkModulus,
+            u * a.ThermalConductivity + t * b.ThermalConductivity, u * a.SpecificHeat + t * b.SpecificHeat,
+            u * a.ThermalExpansion + t * b.ThermalExpansion, u * a.MeltingPoint + t * b.MeltingPoint,
+            u * a.BoilingPoint + t * b.BoilingPoint, u * a.TensileStrength + t * b.TensileStrength,
+            u * a.YieldStrength + t * b.YieldStrength, u * a.Hardness + t * b.Hardness,
+            u * a.ElectricalConductivity + t * b.ElectricalConductivity, u * a.RefractiveIndex + t * b.RefractiveIndex,
+            u * a.BandGap + t * b.BandGap, u * a.PoissonRatio + t * b.PoissonRatio,
+            u * a.FractureToughness + t * b.FractureToughness, u * a.FatigueLimit + t * b.FatigueLimit,
+            u * a.DampingCapacity + t * b.DampingCapacity, u * a.MagneticPermeability + t * b.MagneticPermeability,
+            u * a.DielectricConstant + t * b.DielectricConstant);
     }
 
     /// <summary>Get all available materials.</summary>
@@ -3593,7 +3792,8 @@ public class OctreeNode
         if (IsLeaf)
         {
             ParticleIndices.Add(particleIndex);
-            if (ParticleIndices.Count > MaxLeafParticles && Depth < MaxDepth) Subdivide();
+            if (ParticleIndices.Count > MaxLeafParticles && Depth < MaxDepth)
+                Subdivide();
         }
         else
         {
@@ -3620,39 +3820,53 @@ public class OctreeNode
         }
         var indices = new List<int>(ParticleIndices);
         ParticleIndices.Clear();
-        foreach (var idx in indices) Insert(idx, Vector3D.Zero, 0); // re-insert (simplified)
+        foreach (var idx in indices)
+            Insert(idx, Vector3D.Zero, 0); // re-insert (simplified)
     }
 
     private int GetChildIndex(Vector3D pos)
     {
         var center = Bounds.Center;
         int idx = 0;
-        if (pos.X >= center.X) idx |= 1;
-        if (pos.Y >= center.Y) idx |= 2;
-        if (pos.Z >= center.Z) idx |= 4;
+        if (pos.X >= center.X)
+            idx |= 1;
+        if (pos.Y >= center.Y)
+            idx |= 2;
+        if (pos.Z >= center.Z)
+            idx |= 4;
         return idx;
     }
 
     public void RangeQuery(BoundingBox3D queryBounds, List<int> results)
     {
-        if (!Bounds.Intersects(queryBounds)) return;
-        if (IsLeaf) { results.AddRange(ParticleIndices); return; }
-        foreach (var child in Children) child?.RangeQuery(queryBounds, results);
+        if (!Bounds.Intersects(queryBounds))
+            return;
+        if (IsLeaf)
+        { results.AddRange(ParticleIndices); return; }
+        foreach (var child in Children)
+            child?.RangeQuery(queryBounds, results);
     }
 
     public void RadiusQuery(Vector3D center, double radius, List<int> results)
     {
         double rSq = radius * radius;
-        if (Bounds.DistanceSquaredTo(center) > rSq) return;
-        if (IsLeaf) { results.AddRange(ParticleIndices); return; }
-        foreach (var child in Children) child?.RadiusQuery(center, radius, results);
+        if (Bounds.DistanceSquaredTo(center) > rSq)
+            return;
+        if (IsLeaf)
+        { results.AddRange(ParticleIndices); return; }
+        foreach (var child in Children)
+            child?.RadiusQuery(center, radius, results);
     }
 
     public int DepthFirstTraversal(Func<OctreeNode, bool> visit)
     {
         int visited = 1;
-        if (!visit(this)) return visited;
-        if (!IsLeaf) foreach (var child in Children) if (child != null) visited += child.DepthFirstTraversal(visit);
+        if (!visit(this))
+            return visited;
+        if (!IsLeaf)
+            foreach (var child in Children)
+                if (child != null)
+                    visited += child.DepthFirstTraversal(visit);
         return visited;
     }
 
@@ -3671,7 +3885,7 @@ public class KdTree
     {
         public int PointIndex;
         public int Axis;
-        public KdNode Left, Right;
+        public required KdNode Left, Right;
         public BoundingBox3D Bounds;
     }
 
@@ -3686,13 +3900,16 @@ public class KdTree
     {
         _points = points;
         _indices = new int[points.Count];
-        for (int i = 0; i < points.Count; i++) _indices[i] = i;
-        if (points.Count > 0) _root = Build(0, points.Count - 1, 0);
+        for (int i = 0; i < points.Count; i++)
+            _indices[i] = i;
+        if (points.Count > 0)
+            _root = Build(0, points.Count - 1, 0);
     }
 
-    private KdNode Build(int lo, int hi, int depth)
+    private KdNode? Build(int lo, int hi, int depth)
     {
-        if (lo > hi) return null;
+        if (lo > hi)
+            return null;
         int axis = depth % 3;
         int mid = (lo + hi) / 2;
         SortByAxis(lo, hi, mid, axis);
@@ -3708,8 +3925,10 @@ public class KdTree
         {
             int minIdx = i;
             for (int j = i + 1; j <= hi; j++)
-                if (GetComponent(_indices[j], axis) < GetComponent(_indices[minIdx], axis)) minIdx = j;
-            if (minIdx != i) { int t = _indices[i]; _indices[i] = _indices[minIdx]; _indices[minIdx] = t; }
+                if (GetComponent(_indices[j], axis) < GetComponent(_indices[minIdx], axis))
+                    minIdx = j;
+            if (minIdx != i)
+            { int t = _indices[i]; _indices[i] = _indices[minIdx]; _indices[minIdx] = t; }
         }
     }
 
@@ -3727,7 +3946,8 @@ public class KdTree
 
     private void KNearestSearch(KdNode node, Vector3D query, int k, List<(int, double)> results)
     {
-        if (node == null) return;
+        if (node == null)
+            return;
         double dx = query.X - _points[node.PointIndex].X;
         double dy = query.Y - _points[node.PointIndex].Y;
         double dz = query.Z - _points[node.PointIndex].Z;
@@ -3735,8 +3955,10 @@ public class KdTree
         if (results.Count < k || distSq < results[0].Item2)
         {
             results.Add((node.PointIndex, distSq));
-            if (results.Count > k) results.Sort((a, b) => b.Item2.CompareTo(a.Item2));
-            if (results.Count > k) results.RemoveAt(0);
+            if (results.Count > k)
+                results.Sort((a, b) => b.Item2.CompareTo(a.Item2));
+            if (results.Count > k)
+                results.RemoveAt(0);
         }
         double diff = GetComponent(node.PointIndex, node.Axis) - (node.Axis == 0 ? query.X : node.Axis == 1 ? query.Y : query.Z);
         var near = diff < 0 ? node.Right : node.Left;
@@ -3756,17 +3978,20 @@ public class KdTree
 
     private void RangeSearch(KdNode node, Vector3D center, double rSq, List<int> results)
     {
-        if (node == null) return;
+        if (node == null)
+            return;
         double dx = center.X - _points[node.PointIndex].X;
         double dy = center.Y - _points[node.PointIndex].Y;
         double dz = center.Z - _points[node.PointIndex].Z;
         double distSq = dx * dx + dy * dy + dz * dz;
-        if (distSq <= rSq) results.Add(node.PointIndex);
+        if (distSq <= rSq)
+            results.Add(node.PointIndex);
         double diff = GetComponent(node.PointIndex, node.Axis) - (node.Axis == 0 ? center.X : node.Axis == 1 ? center.Y : center.Z);
         var near = diff < 0 ? node.Right : node.Left;
         var far = diff < 0 ? node.Left : node.Right;
         RangeSearch(near, center, rSq, results);
-        if (diff * diff <= rSq) RangeSearch(far, center, rSq, results);
+        if (diff * diff <= rSq)
+            RangeSearch(far, center, rSq, results);
     }
 
     /// <summary>Find the single closest point.</summary>
@@ -3789,7 +4014,8 @@ public class GridHash
     {
         _points = points;
         _cellSize = cellSize;
-        for (int i = 0; i < points.Count; i++) Insert(i, points[i]);
+        for (int i = 0; i < points.Count; i++)
+            Insert(i, points[i]);
     }
 
     public GridHash(double cellSize) { _cellSize = cellSize; _points = new(); }
@@ -3798,7 +4024,8 @@ public class GridHash
     {
         _points.Add(point);
         long hash = Hash(point);
-        if (!_cells.TryGetValue(hash, out var list)) { list = new List<int>(); _cells[hash] = list; }
+        if (!_cells.TryGetValue(hash, out var list))
+        { list = new List<int>(); _cells[hash] = list; }
         list.Add(index);
     }
 
@@ -3837,7 +4064,8 @@ public class GridHash
                         {
                             var p = _points[idx];
                             double dSq = (p - center).LengthSquared();
-                            if (dSq <= rSq) results.Add(idx);
+                            if (dSq <= rSq)
+                                results.Add(idx);
                         }
                     }
                 }
@@ -3849,22 +4077,24 @@ public class GridHash
     /// <summary>Find the nearest neighbor to a query point.</summary>
     public int NearestNeighbor(Vector3D query)
     {
-        int best = -1; double bestDist = double.MaxValue;
+        int best = -1;
+        double bestDist = double.MaxValue;
         int baseIx = (int)Math.Floor(query.X / _cellSize);
         int baseIy = (int)Math.Floor(query.Y / _cellSize);
         int baseIz = (int)Math.Floor(query.Z / _cellSize);
         for (int dx = -1; dx <= 1; dx++)
-        for (int dy = -1; dy <= 1; dy++)
-        for (int dz = -1; dz <= 1; dz++)
-        {
-            long hash = HashCell(baseIx + dx, baseIy + dy, baseIz + dz);
-            if (_cells.TryGetValue(hash, out var list))
-                foreach (var idx in list)
+            for (int dy = -1; dy <= 1; dy++)
+                for (int dz = -1; dz <= 1; dz++)
                 {
-                    double dSq = (_points[idx] - query).LengthSquared();
-                    if (dSq < bestDist) { bestDist = dSq; best = idx; }
+                    long hash = HashCell(baseIx + dx, baseIy + dy, baseIz + dz);
+                    if (_cells.TryGetValue(hash, out var list))
+                        foreach (var idx in list)
+                        {
+                            double dSq = (_points[idx] - query).LengthSquared();
+                            if (dSq < bestDist)
+                            { bestDist = dSq; best = idx; }
+                        }
                 }
-        }
         return best;
     }
 
@@ -3912,7 +4142,8 @@ public class ConservationEnforcer
     {
         drift = Math.Abs(currentEnergy - _initialEnergy) / Math.Max(Math.Abs(_initialEnergy), 1.0);
         _maxEnergyDrift = Math.Max(_maxEnergyDrift, drift);
-        if (drift > _tolerance) { _violationCount++; return false; }
+        if (drift > _tolerance)
+        { _violationCount++; return false; }
         return true;
     }
 
@@ -3920,7 +4151,8 @@ public class ConservationEnforcer
     {
         drift = (current - _initialLinearMomentum).Length() / Math.Max(_initialLinearMomentum.Length(), 1.0);
         _maxMomentumDrift = Math.Max(_maxMomentumDrift, drift);
-        if (drift > _tolerance) { _violationCount++; return false; }
+        if (drift > _tolerance)
+        { _violationCount++; return false; }
         return true;
     }
 
@@ -3928,13 +4160,15 @@ public class ConservationEnforcer
     {
         drift = (current - _initialAngularMomentum).Length() / Math.Max(_initialAngularMomentum.Length(), 1.0);
         _maxMomentumDrift = Math.Max(_maxMomentumDrift, drift);
-        if (drift > _tolerance) { _violationCount++; return false; }
+        if (drift > _tolerance)
+        { _violationCount++; return false; }
         return true;
     }
 
     public Vector3D CorrectLinearMomentum(Vector3D current, double totalMass)
     {
-        if (totalMass < 1e-30) return current;
+        if (totalMass < 1e-30)
+            return current;
         var correction = (_initialLinearMomentum - current) / totalMass;
         return current + correction;
     }
@@ -3958,13 +4192,15 @@ public class CholeskySolver
         for (int i = 0; i < _n; i++)
         {
             double sum = 0;
-            for (int k = 0; k < i; k++) sum += _L[i, k] * _L[i, k];
+            for (int k = 0; k < i; k++)
+                sum += _L[i, k] * _L[i, k];
             double diag = A[i, i] - sum;
             _L[i, i] = diag > 0 ? Math.Sqrt(diag) : 1e-30;
             for (int j = i + 1; j < _n; j++)
             {
                 sum = 0;
-                for (int k = 0; k < i; k++) sum += _L[j, k] * _L[i, k];
+                for (int k = 0; k < i; k++)
+                    sum += _L[j, k] * _L[i, k];
                 _L[j, i] = (A[j, i] - sum) / _L[i, i];
             }
         }
@@ -3973,16 +4209,19 @@ public class CholeskySolver
     public double[] Solve(double[] b)
     {
         var y = new double[_n];
-        for (int i = 0; i < _n; i++) { double s = 0; for (int k = 0; k < i; k++) s += _L[i, k] * y[k]; y[i] = (b[i] - s) / _L[i, i]; }
+        for (int i = 0; i < _n; i++)
+        { double s = 0; for (int k = 0; k < i; k++) s += _L[i, k] * y[k]; y[i] = (b[i] - s) / _L[i, i]; }
         var x = new double[_n];
-        for (int i = _n - 1; i >= 0; i--) { double s = 0; for (int k = i + 1; k < _n; k++) s += _L[k, i] * x[k]; x[i] = (y[i] - s) / _L[i, i]; }
+        for (int i = _n - 1; i >= 0; i--)
+        { double s = 0; for (int k = i + 1; k < _n; k++) s += _L[k, i] * x[k]; x[i] = (y[i] - s) / _L[i, i]; }
         return x;
     }
 
     public double[,] Inverse()
     {
         var inv = new double[_n, _n];
-        for (int i = 0; i < _n; i++) { var e = new double[_n]; e[i] = 1; var col = Solve(e); for (int j = 0; j < _n; j++) inv[j, i] = col[j]; }
+        for (int i = 0; i < _n; i++)
+        { var e = new double[_n]; e[i] = 1; var col = Solve(e); for (int j = 0; j < _n; j++) inv[j, i] = col[j]; }
         return inv;
     }
 
@@ -4003,11 +4242,16 @@ public class KalmanFilter
 
     public KalmanFilter(int stateDim, int measDim)
     {
-        _n = stateDim; _m = measDim;
-        _x = new double[_n, 1]; _P = new double[_n, _n];
-        _Q = new double[_n, _n]; _R = new double[_m, _m];
-        _F = new double[_n, _n]; _H = new double[_m, _n];
-        for (int i = 0; i < _n; i++) _F[i, i] = 1;
+        _n = stateDim;
+        _m = measDim;
+        _x = new double[_n, 1];
+        _P = new double[_n, _n];
+        _Q = new double[_n, _n];
+        _R = new double[_m, _m];
+        _F = new double[_n, _n];
+        _H = new double[_m, _n];
+        for (int i = 0; i < _n; i++)
+            _F[i, i] = 1;
     }
 
     public void SetState(double[] state) { for (int i = 0; i < _n; i++) _x[i, 0] = state[i]; }
@@ -4023,13 +4267,17 @@ public class KalmanFilter
         _x = MatMul(_F, _x);
         // P = F*P*F' + Q
         _P = MatAdd(MatMul(MatMul(_F, _P), Transpose(_F)), _Q);
-        var result = new double[_n]; for (int i = 0; i < _n; i++) result[i] = _x[i, 0];
+        var result = new double[_n];
+        for (int i = 0; i < _n; i++)
+            result[i] = _x[i, 0];
         return result;
     }
 
     public double[] Update(double[] measurement)
     {
-        var z = new double[_m, 1]; for (int i = 0; i < _m; i++) z[i, 0] = measurement[i];
+        var z = new double[_m, 1];
+        for (int i = 0; i < _m; i++)
+            z[i, 0] = measurement[i];
         // y = z - H*x
         var Hx = MatMul(_H, _x);
         var y = MatSub(z, Hx);
@@ -4042,7 +4290,9 @@ public class KalmanFilter
         // P = (I - K*H)*P
         var I = Identity(_n);
         _P = MatMul(MatSub(I, MatMul(K, _H)), _P);
-        var result = new double[_n]; for (int i = 0; i < _n; i++) result[i] = _x[i, 0];
+        var result = new double[_n];
+        for (int i = 0; i < _n; i++)
+            result[i] = _x[i, 0];
         return result;
     }
 
@@ -4053,7 +4303,9 @@ public class KalmanFilter
     {
         int m = A.GetLength(0), n = B.GetLength(1), p = A.GetLength(1);
         var C = new double[m, n];
-        for (int i = 0; i < m; i++) for (int j = 0; j < n; j++) { double s = 0; for (int k = 0; k < p; k++) s += A[i, k] * B[k, j]; C[i, j] = s; }
+        for (int i = 0; i < m; i++)
+            for (int j = 0; j < n; j++)
+            { double s = 0; for (int k = 0; k < p; k++) s += A[i, k] * B[k, j]; C[i, j] = s; }
         return C;
     }
     private static double[,] MatAdd(double[,] A, double[,] B)
@@ -4073,7 +4325,8 @@ public static class FourierTransform
     public static (double[] real, double[] imag) DFT(double[] input)
     {
         int n = input.Length;
-        var re = new double[n]; var im = new double[n];
+        var re = new double[n];
+        var im = new double[n];
         for (int k = 0; k < n; k++)
         {
             double sumRe = 0, sumIm = 0;
@@ -4083,7 +4336,8 @@ public static class FourierTransform
                 sumRe += input[j] * Math.Cos(angle);
                 sumIm += input[j] * Math.Sin(angle);
             }
-            re[k] = sumRe; im[k] = sumIm;
+            re[k] = sumRe;
+            im[k] = sumIm;
         }
         return (re, im);
     }
@@ -4110,7 +4364,8 @@ public static class FourierTransform
     public static double[] PowerSpectrum(double[] real, double[] imag)
     {
         var ps = new double[real.Length];
-        for (int i = 0; i < real.Length; i++) ps[i] = real[i] * real[i] + imag[i] * imag[i];
+        for (int i = 0; i < real.Length; i++)
+            ps[i] = real[i] * real[i] + imag[i] * imag[i];
         return ps;
     }
 
@@ -4118,7 +4373,8 @@ public static class FourierTransform
     public static double[] MagnitudeSpectrum(double[] real, double[] imag)
     {
         var mag = new double[real.Length];
-        for (int i = 0; i < real.Length; i++) mag[i] = Math.Sqrt(real[i] * real[i] + imag[i] * imag[i]);
+        for (int i = 0; i < real.Length; i++)
+            mag[i] = Math.Sqrt(real[i] * real[i] + imag[i] * imag[i]);
         return mag;
     }
 
@@ -4126,7 +4382,8 @@ public static class FourierTransform
     public static double[] PhaseSpectrum(double[] real, double[] imag)
     {
         var phase = new double[real.Length];
-        for (int i = 0; i < real.Length; i++) phase[i] = Math.Atan2(imag[i], real[i]);
+        for (int i = 0; i < real.Length; i++)
+            phase[i] = Math.Atan2(imag[i], real[i]);
         return phase;
     }
 
@@ -4149,7 +4406,8 @@ public static class FourierTransform
         for (int lag = 0; lag < n; lag++)
         {
             double sum = 0;
-            for (int i = 0; i < n - lag; i++) sum += input[i] * input[i + lag];
+            for (int i = 0; i < n - lag; i++)
+                sum += input[i] * input[i + lag];
             result[lag] = sum / (n - lag);
         }
         return result;
@@ -4189,7 +4447,8 @@ public static class FourierTransform
     private static double BesselI0(double x)
     {
         double sum = 1, term = 1;
-        for (int k = 1; k < 25; k++) { term *= (x * x) / (4.0 * k * k); sum += term; }
+        for (int k = 1; k < 25; k++)
+        { term *= (x * x) / (4.0 * k * k); sum += term; }
         return sum;
     }
 }

@@ -255,23 +255,26 @@ public sealed class NeuralPolygonizer
 
         Span<float> d = stackalloc float[8];
         for (int z = 0; z < resolution; z++)
-        for (int y = 0; y < resolution; y++)
-        for (int x = 0; x < resolution; x++)
-        {
-            bool anyNeg = false, anyPos = false;
-            for (int i = 0; i < 8; i++)
-            {
-                d[i] = samples[
-                    (x + (i & 1)) + corners * ((y + ((i >> 1) & 1)) + corners * (z + ((i >> 2) & 1)))];
-                if (d[i] < 0) anyNeg = true; else anyPos = true;
-            }
-            if (!anyNeg || !anyPos)
-                continue;
+            for (int y = 0; y < resolution; y++)
+                for (int x = 0; x < resolution; x++)
+                {
+                    bool anyNeg = false, anyPos = false;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        d[i] = samples[
+                            (x + (i & 1)) + corners * ((y + ((i >> 1) & 1)) + corners * (z + ((i >> 2) & 1)))];
+                        if (d[i] < 0)
+                            anyNeg = true;
+                        else
+                            anyPos = true;
+                    }
+                    if (!anyNeg || !anyPos)
+                        continue;
 
-            cells.Add((x, y, z));
-            for (int i = 0; i < 8; i++)
-                cellDistances.Add(d[i]);
-        }
+                    cells.Add((x, y, z));
+                    for (int i = 0; i < 8; i++)
+                        cellDistances.Add(d[i]);
+                }
 
         return total;
     }
@@ -314,16 +317,16 @@ public sealed class NeuralPolygonizer
 
             int hx = Math.Max(1, sx / 2), hy = Math.Max(1, sy / 2), hz = Math.Max(1, sz / 2);
             for (int oz = 0; oz < 2; oz++)
-            for (int oy = 0; oy < 2; oy++)
-            for (int ox = 0; ox < 2; ox++)
-            {
-                int cx0 = x0 + ox * hx, cy0 = y0 + oy * hy, cz0 = z0 + oz * hz;
-                int csx = ox == 0 ? hx : sx - hx;
-                int csy = oy == 0 ? hy : sy - hy;
-                int csz = oz == 0 ? hz : sz - hz;
-                if (csx > 0 && csy > 0 && csz > 0)
-                    RecurseNode(cx0, cy0, cz0, csx, csy, csz);
-            }
+                for (int oy = 0; oy < 2; oy++)
+                    for (int ox = 0; ox < 2; ox++)
+                    {
+                        int cx0 = x0 + ox * hx, cy0 = y0 + oy * hy, cz0 = z0 + oz * hz;
+                        int csx = ox == 0 ? hx : sx - hx;
+                        int csy = oy == 0 ? hy : sy - hy;
+                        int csz = oz == 0 ? hz : sz - hz;
+                        if (csx > 0 && csy > 0 && csz > 0)
+                            RecurseNode(cx0, cy0, cz0, csx, csy, csz);
+                    }
         }
 
         void ProcessBlock(int x0, int y0, int z0, int sx, int sy, int sz)
@@ -332,16 +335,16 @@ public sealed class NeuralPolygonizer
             scratchPoints.Clear();
             scratchKeys.Clear();
             for (int z = z0; z <= z0 + sz; z++)
-            for (int y = y0; y <= y0 + sy; y++)
-            for (int x = x0; x <= x0 + sx; x++)
-            {
-                long key = CornerKey(x, y, z, resolution);
-                if (cornerCache.ContainsKey(key))
-                    continue;
-                cornerCache[key] = float.NaN; // réservé, évite les doublons dans ce lot
-                scratchKeys.Add(key);
-                scratchPoints.Add(min + new Vector3(x * cellSize.X, y * cellSize.Y, z * cellSize.Z));
-            }
+                for (int y = y0; y <= y0 + sy; y++)
+                    for (int x = x0; x <= x0 + sx; x++)
+                    {
+                        long key = CornerKey(x, y, z, resolution);
+                        if (cornerCache.ContainsKey(key))
+                            continue;
+                        cornerCache[key] = float.NaN; // réservé, évite les doublons dans ce lot
+                        scratchKeys.Add(key);
+                        scratchPoints.Add(min + new Vector3(x * cellSize.X, y * cellSize.Y, z * cellSize.Z));
+                    }
 
             if (scratchPoints.Count > 0)
             {
@@ -355,22 +358,25 @@ public sealed class NeuralPolygonizer
 
             Span<float> d = stackalloc float[8];
             for (int z = z0; z < z0 + sz; z++)
-            for (int y = y0; y < y0 + sy; y++)
-            for (int x = x0; x < x0 + sx; x++)
-            {
-                bool anyNeg = false, anyPos = false;
-                for (int i = 0; i < 8; i++)
-                {
-                    d[i] = cornerCache[CornerKey(x + (i & 1), y + ((i >> 1) & 1), z + ((i >> 2) & 1), resolution)];
-                    if (d[i] < 0) anyNeg = true; else anyPos = true;
-                }
-                if (!anyNeg || !anyPos)
-                    continue;
+                for (int y = y0; y < y0 + sy; y++)
+                    for (int x = x0; x < x0 + sx; x++)
+                    {
+                        bool anyNeg = false, anyPos = false;
+                        for (int i = 0; i < 8; i++)
+                        {
+                            d[i] = cornerCache[CornerKey(x + (i & 1), y + ((i >> 1) & 1), z + ((i >> 2) & 1), resolution)];
+                            if (d[i] < 0)
+                                anyNeg = true;
+                            else
+                                anyPos = true;
+                        }
+                        if (!anyNeg || !anyPos)
+                            continue;
 
-                cells.Add((x, y, z));
-                for (int i = 0; i < 8; i++)
-                    cellDistances.Add(d[i]);
-            }
+                        cells.Add((x, y, z));
+                        for (int i = 0; i < 8; i++)
+                            cellDistances.Add(d[i]);
+                    }
         }
     }
 
@@ -433,13 +439,19 @@ public sealed class NeuralPolygonizer
                 continue;
             n = Vector3.Normalize(n);
 
-            a00 += n.X * n.X; a01 += n.X * n.Y; a02 += n.X * n.Z;
-            a11 += n.Y * n.Y; a12 += n.Y * n.Z; a22 += n.Z * n.Z;
+            a00 += n.X * n.X;
+            a01 += n.X * n.Y;
+            a02 += n.X * n.Z;
+            a11 += n.Y * n.Y;
+            a12 += n.Y * n.Z;
+            a22 += n.Z * n.Z;
             atb += n * Vector3.Dot(n, p);
         }
 
         float reg = QefRegularization;
-        a00 += reg; a11 += reg; a22 += reg;
+        a00 += reg;
+        a11 += reg;
+        a22 += reg;
         atb += massPoint * reg;
 
         // Inversion 3x3 symétrique par cofacteurs.

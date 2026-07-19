@@ -386,7 +386,8 @@ namespace GDNN.Rendering.PostProcess
 
         public static void Apply(HDRFrameBuffer input, HDRFrameBuffer output, BloomConfig config)
         {
-            if (!config.Enabled) return;
+            if (!config.Enabled)
+                return;
 
             int w = input.Width;
             int h = input.Height;
@@ -522,7 +523,8 @@ namespace GDNN.Rendering.PostProcess
     {
         public static void Apply(HDRFrameBuffer colorBuffer, DepthBuffer depthBuffer, HDRFrameBuffer output, DOFConfig config, float aspectRatio)
         {
-            if (!config.Enabled) return;
+            if (!config.Enabled)
+                return;
 
             int w = colorBuffer.Width;
             int h = colorBuffer.Height;
@@ -652,7 +654,8 @@ namespace GDNN.Rendering.PostProcess
                 for (int x = 0; x < buffer.Width; x++)
                 {
                     Vector4 center = temp.GetPixel(x, y);
-                    if (center.X + center.Y + center.Z < 0.01f) continue;
+                    if (center.X + center.Y + center.Z < 0.01f)
+                        continue;
 
                     Vector4 sum = center;
                     float weightSum = 1.0f;
@@ -704,7 +707,8 @@ namespace GDNN.Rendering.PostProcess
                 kernel[i + radius] = val;
                 sum += val;
             }
-            for (int i = 0; i < kernel.Length; i++) kernel[i] /= sum;
+            for (int i = 0; i < kernel.Length; i++)
+                kernel[i] /= sum;
             return kernel;
         }
     }
@@ -717,7 +721,8 @@ namespace GDNN.Rendering.PostProcess
     {
         public static void Apply(HDRFrameBuffer colorBuffer, VelocityBuffer velocityBuffer, DepthBuffer depthBuffer, HDRFrameBuffer output, MotionBlurConfig config)
         {
-            if (!config.Enabled) return;
+            if (!config.Enabled)
+                return;
 
             int w = colorBuffer.Width;
             int h = colorBuffer.Height;
@@ -806,7 +811,8 @@ namespace GDNN.Rendering.PostProcess
                                   DepthBuffer depth, TAAConfig config, Matrix4x4 prevViewProj, Matrix4x4 viewProj,
                                   int width, int height)
         {
-            if (!config.Enabled) return;
+            if (!config.Enabled)
+                return;
 
             EnsureHistory(width, height);
 
@@ -925,7 +931,8 @@ namespace GDNN.Rendering.PostProcess
         public static void Apply(HDRFrameBuffer colorBuffer, DepthBuffer depthBuffer, HDRFrameBuffer output,
                                   SSRConfig config, Matrix4x4 view, Matrix4x4 proj, int width, int height)
         {
-            if (!config.Enabled) return;
+            if (!config.Enabled)
+                return;
 
             int stepMultiplier = config.Quality switch
             {
@@ -1027,7 +1034,8 @@ namespace GDNN.Rendering.PostProcess
                 currentPos = origin + direction * (maxDistance * i / maxSteps);
                 Vector4 clipPos = Vector4.Transform(new Vector4(currentPos, 1.0f), viewProj);
 
-                if (clipPos.W <= 0) return false;
+                if (clipPos.W <= 0)
+                    return false;
 
                 float ndcX = clipPos.X / clipPos.W;
                 float ndcY = clipPos.Y / clipPos.W;
@@ -1036,7 +1044,8 @@ namespace GDNN.Rendering.PostProcess
                 int sx = (int)((ndcX * 0.5f + 0.5f) * width);
                 int sy = (int)((ndcY * 0.5f + 0.5f) * height);
 
-                if (sx < 0 || sx >= width || sy < 0 || sy >= height) return false;
+                if (sx < 0 || sx >= width || sy < 0 || sy >= height)
+                    return false;
 
                 float sceneDepth = depthBuffer.GetDepth(sx, sy);
                 float rayDepth = ndcZ;

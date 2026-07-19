@@ -179,7 +179,8 @@ public sealed class NeuralGeometryPipeline
 
     private void StoreChainInCache()
     {
-        if (_cache == null) return;
+        if (_cache == null)
+            return;
 
         try
         {

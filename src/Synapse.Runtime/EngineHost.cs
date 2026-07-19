@@ -117,7 +117,8 @@ namespace Synapse.Runtime
         /// </summary>
         public void InitializeModules()
         {
-            if (_modulesInitialized) return;
+            if (_modulesInitialized)
+                return;
 
             _lawCompiler = new LivingLawCompiler();
             _physicsField = CreateSeedField(16);
@@ -143,7 +144,8 @@ namespace Synapse.Runtime
         /// <summary>Creates a standalone GLFW render surface.</summary>
         public void InitializeRender(int width, int height, bool enableValidation = true)
         {
-            if (_renderInitialized) return;
+            if (_renderInitialized)
+                return;
             InitializeModules();
 
             _renderEngine = new RenderEngine();
@@ -156,7 +158,8 @@ namespace Synapse.Runtime
         /// <summary>Embeds Vulkan into a native window handle (Windows only; falls back to GLFW elsewhere).</summary>
         public void InitializeRenderFromHwnd(IntPtr hwnd, int width, int height, bool enableValidation = true)
         {
-            if (_renderInitialized) return;
+            if (_renderInitialized)
+                return;
             if (!OperatingSystem.IsWindows())
             {
                 _logger.Warn("EngineHost", "HWND embedding unsupported on this OS — using GLFW");
@@ -224,7 +227,8 @@ namespace Synapse.Runtime
         /// <summary>Applies the active living law to the physics field for one timestep.</summary>
         public void TickPhysics(float dt)
         {
-            if (_lawCompiler == null || _physicsField == null || string.IsNullOrEmpty(_activeLawId)) return;
+            if (_lawCompiler == null || _physicsField == null || string.IsNullOrEmpty(_activeLawId))
+                return;
 
             var budget = TimeSpan.FromMilliseconds(_config.PhysicsBudgetMs);
             var start = Environment.TickCount64;
@@ -246,7 +250,8 @@ namespace Synapse.Runtime
         /// <summary>Advances sentient entities when <see cref="SimulationPlaying"/> is true.</summary>
         public async Task TickSimulationAsync(float dt, CancellationToken cancellationToken)
         {
-            if (!_simulationPlaying || _sentience == null) return;
+            if (!_simulationPlaying || _sentience == null)
+                return;
             try
             {
                 await _sentience.UpdateAsync(dt).ConfigureAwait(false);
@@ -260,15 +265,18 @@ namespace Synapse.Runtime
         /// <summary>Submits one Vulkan frame when the render engine is initialized and not paused.</summary>
         public void TickRender()
         {
-            if (_renderEngine == null || !_renderInitialized) return;
-            if (_renderEngine.IsPaused) return;
+            if (_renderEngine == null || !_renderInitialized)
+                return;
+            if (_renderEngine.IsPaused)
+                return;
             _renderEngine.RenderFrame();
         }
 
         /// <summary>Feeds frame timing into the adaptive quality manager.</summary>
         public void TickQuality(float dt, float frameMs)
         {
-            if (_quality == null) return;
+            if (_quality == null)
+                return;
             _quality.ReportFrame(frameMs, 0, 0, frameMs);
             _quality.Update(dt);
         }
@@ -418,7 +426,8 @@ namespace Synapse.Runtime
             InitializeModules();
             var removed = _scene.Entities.RemoveAll(e => e.Id == id) > 0;
             _sentience?.RemoveEntity(id);
-            if (removed) SyncSceneToRenderer();
+            if (removed)
+                SyncSceneToRenderer();
             return removed;
         }
 
@@ -536,7 +545,8 @@ namespace Synapse.Runtime
         /// <summary>Left-click: pick entity or begin gizmo drag. Right-click: orbit camera.</summary>
         public void HandleViewportPointerDown(float x, float y, int width, int height, bool rightButton)
         {
-            if (_renderEngine?.SceneRenderer == null || !_renderInitialized) return;
+            if (_renderEngine?.SceneRenderer == null || !_renderInitialized)
+                return;
 
             var (camPos, camFront, camUp, yaw, pitch, fov) = _renderEngine.GetCamera();
             GetFramebufferSize(out int fbW, out int fbH, width, height);
@@ -582,7 +592,8 @@ namespace Synapse.Runtime
         /// <summary>Drag gizmo or orbit camera.</summary>
         public void HandleViewportPointerMove(float x, float y, int width, int height)
         {
-            if (_renderEngine == null || !_renderInitialized) return;
+            if (_renderEngine == null || !_renderInitialized)
+                return;
 
             if (_viewportEditor.IsOrbitingCamera)
             {
@@ -594,9 +605,11 @@ namespace Synapse.Runtime
                 return;
             }
 
-            if (!_viewportEditor.IsDragging) return;
+            if (!_viewportEditor.IsDragging)
+                return;
             var entity = _scene.Entities.Find(e => e.Id == _viewportEditor.SelectedEntityId);
-            if (entity == null) return;
+            if (entity == null)
+                return;
 
             GetFramebufferSize(out int fbW, out int fbH, width, height);
             var view = Matrix4x4.CreateLookAt(_renderEngine.GetCamera().Position,
@@ -636,7 +649,8 @@ namespace Synapse.Runtime
         {
             InitializeModules();
             var entity = _scene.Entities.Find(e => e.Id == id);
-            if (entity == null) return false;
+            if (entity == null)
+                return false;
 
             entity.Name = name;
             entity.Position = Vec3.From(position);
@@ -648,7 +662,8 @@ namespace Synapse.Runtime
         /// <summary>Pushes scene entities, lights, and camera hints to the render pipeline.</summary>
         public void SyncSceneToRenderer()
         {
-            if (_renderEngine?.SceneRenderer == null) return;
+            if (_renderEngine?.SceneRenderer == null)
+                return;
             SceneRenderBridge.SyncDocument(_renderEngine, _scene, _viewportEditor, _logger);
 
             if (_renderInitialized)
@@ -664,14 +679,16 @@ namespace Synapse.Runtime
 
         private void ApplyEvolutionToScene()
         {
-            if (_evolution?.GetBestGenome() == null) return;
+            if (_evolution?.GetBestGenome() == null)
+                return;
             SceneRenderBridge.ApplyEvolutionVisual(
                 _renderEngine, _scene, _evolutionGeneration, _bestFitness, _logger);
         }
 
         private void ApplySceneToSimulation(SceneDocument scene)
         {
-            if (_sentience == null) return;
+            if (_sentience == null)
+                return;
 
             foreach (var existing in _sentience.GetAllEntities().ToList())
                 _sentience.RemoveEntity(existing.EntityId);
@@ -690,7 +707,8 @@ namespace Synapse.Runtime
 
         private void EnsureLawCompiled(string? lawId, string? expression)
         {
-            if (_lawCompiler == null || string.IsNullOrWhiteSpace(lawId)) return;
+            if (_lawCompiler == null || string.IsNullOrWhiteSpace(lawId))
+                return;
             var result = ActivateLaw(lawId, expression);
             if (!result.Success)
                 _logger.Warn("Physics", $"Unable to activate law '{lawId}': {result.Message}");
@@ -723,15 +741,15 @@ namespace Synapse.Runtime
             var field = new PhysicsField(size, "runtime");
             float cx = size / 2f;
             for (int z = 0; z < size; z++)
-            for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                float dx = x - cx, dy = y - cx, dz = z - cx;
-                float r = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
-                field.Temperature[x, y, z] = 300f + 80f * MathF.Exp(-r * r / (size * size * 0.25f));
-                field.Density[x, y, z] = 1.225f;
-                field.Pressure[x, y, z] = 101325f;
-            }
+                for (int y = 0; y < size; y++)
+                    for (int x = 0; x < size; x++)
+                    {
+                        float dx = x - cx, dy = y - cx, dz = z - cx;
+                        float r = MathF.Sqrt(dx * dx + dy * dy + dz * dz);
+                        field.Temperature[x, y, z] = 300f + 80f * MathF.Exp(-r * r / (size * size * 0.25f));
+                        field.Density[x, y, z] = 1.225f;
+                        field.Pressure[x, y, z] = 101325f;
+                    }
             return field;
         }
 
@@ -741,12 +759,12 @@ namespace Synapse.Runtime
             int n = 0;
             int step = Math.Max(1, field.GridSize / 4);
             for (int z = 0; z < field.GridSize; z += step)
-            for (int y = 0; y < field.GridSize; y += step)
-            for (int x = 0; x < field.GridSize; x += step)
-            {
-                sum += field.Temperature[x, y, z];
-                n++;
-            }
+                for (int y = 0; y < field.GridSize; y += step)
+                    for (int x = 0; x < field.GridSize; x += step)
+                    {
+                        sum += field.Temperature[x, y, z];
+                        n++;
+                    }
             return n == 0 ? 0 : sum / n;
         }
 
@@ -787,7 +805,8 @@ namespace Synapse.Runtime
         {
             CancelEvolution();
             _evolutionCts?.Dispose();
-            if (_evolution != null) await _evolution.DisposeAsync();
+            if (_evolution != null)
+                await _evolution.DisposeAsync();
             _llmRouter?.Dispose();
             _quality?.Dispose();
             _renderEngine?.Dispose();

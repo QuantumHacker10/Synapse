@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -71,8 +71,10 @@ namespace GDNN.Llm
         /// <returns>Rendered string with variables substituted.</returns>
         public string Render(string template, IReadOnlyDictionary<string, string> variables)
         {
-            if (string.IsNullOrEmpty(template)) return string.Empty;
-            if (variables == null || variables.Count == 0) return template;
+            if (string.IsNullOrEmpty(template))
+                return string.Empty;
+            if (variables == null || variables.Count == 0)
+                return template;
 
             var result = template;
             foreach (var (key, value) in variables)
@@ -223,7 +225,8 @@ namespace GDNN.Llm
         /// <returns>List of variable names found in the template.</returns>
         public IReadOnlyList<string> ExtractVariables(string template)
         {
-            if (string.IsNullOrEmpty(template)) return Array.Empty<string>();
+            if (string.IsNullOrEmpty(template))
+                return Array.Empty<string>();
 
             var matches = Regex.Matches(template, @"\{\{(\w+)\}\}");
             return matches.Select(m => m.Groups[1].Value)
@@ -238,7 +241,8 @@ namespace GDNN.Llm
         /// <returns>SHA-256 hash string.</returns>
         public static string ComputeTemplateHash(string template)
         {
-            if (string.IsNullOrEmpty(template)) return "";
+            if (string.IsNullOrEmpty(template))
+                return "";
             using var sha = SHA256.Create();
             var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(template));
             return Convert.ToHexString(bytes).ToLowerInvariant();

@@ -70,7 +70,8 @@ namespace Synapse.Studio.Views
 
         private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
         {
-            if (App.Host == null) return;
+            if (App.Host == null)
+                return;
             var pt = e.GetPosition(this);
             var props = e.GetCurrentPoint(this).Properties;
             App.Host.HandleViewportPointerDown((float)pt.X, (float)pt.Y, _width, _height, props.IsRightButtonPressed);
@@ -79,7 +80,8 @@ namespace Synapse.Studio.Views
 
         private void OnPointerMoved(object? sender, PointerEventArgs e)
         {
-            if (App.Host == null) return;
+            if (App.Host == null)
+                return;
             if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed &&
                 !e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
                 return;
@@ -94,7 +96,8 @@ namespace Synapse.Studio.Views
 
         private void StartEngine(IntPtr hwnd, bool embedded)
         {
-            if (_engineStarted || App.Host == null || App.Orchestrator == null) return;
+            if (_engineStarted || App.Host == null || App.Orchestrator == null)
+                return;
 
             try
             {
@@ -107,8 +110,10 @@ namespace Synapse.Studio.Views
                 _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
                 _timer.Tick += async (_, _) =>
                 {
-                    if (App.Orchestrator == null) return;
-                    try { await App.Orchestrator.TickAsync(); }
+                    if (App.Orchestrator == null)
+                        return;
+                    try
+                    { await App.Orchestrator.TickAsync(); }
                     catch (Exception ex) { App.Logger.Warn("Viewport", ex.Message); }
                 };
                 _timer.Start();

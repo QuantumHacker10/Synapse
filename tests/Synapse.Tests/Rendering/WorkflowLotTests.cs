@@ -1,9 +1,9 @@
+using System.Numerics;
 using FluentAssertions;
 using GDNN.Core.NeuralNetwork;
 using GDNN.Evaluation;
 using GDNN.Rendering.MeshIO;
 using GDNN.Rendering.PostProcess;
-using System.Numerics;
 using Xunit;
 
 namespace Synapse.Tests.Rendering;
@@ -75,9 +75,11 @@ public class GlTFExporterTests
         }
         finally
         {
-            if (File.Exists(gltfPath)) File.Delete(gltfPath);
+            if (File.Exists(gltfPath))
+                File.Delete(gltfPath);
             var binPath = Path.ChangeExtension(gltfPath, ".bin");
-            if (File.Exists(binPath)) File.Delete(binPath);
+            if (File.Exists(binPath))
+                File.Delete(binPath);
         }
     }
 
@@ -97,7 +99,8 @@ public class GlTFExporterTests
         }
         finally
         {
-            if (File.Exists(glbPath)) File.Delete(glbPath);
+            if (File.Exists(glbPath))
+                File.Delete(glbPath);
         }
     }
 }

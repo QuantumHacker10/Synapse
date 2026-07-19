@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: NativeBuffer.cs
 // PATH: Memory/NativeBuffer.cs
@@ -28,10 +10,26 @@ using System.Threading.Tasks;
 // Native memory buffer wrapper with aligned allocation, typed access, and Span views.
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Memory;
 
@@ -313,7 +311,8 @@ public sealed unsafe class NativeBuffer<T> : IDisposable where T : unmanaged
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (newLength < 0)
             throw new ArgumentOutOfRangeException(nameof(newLength));
-        if (newLength == _length) return;
+        if (newLength == _length)
+            return;
 
         if (newLength == 0)
         {
@@ -364,7 +363,8 @@ public sealed unsafe class NativeBuffer<T> : IDisposable where T : unmanaged
     /// <param name="capacity">Minimum capacity required.</param>
     public void EnsureCapacity(int capacity)
     {
-        if (_length >= capacity) return;
+        if (_length >= capacity)
+            return;
         int newCapacity = Math.Max(capacity, _length * 2);
         Resize(newCapacity);
     }
@@ -375,7 +375,8 @@ public sealed unsafe class NativeBuffer<T> : IDisposable where T : unmanaged
     public void Clear()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_length == 0) return;
+        if (_length == 0)
+            return;
         NativeMemory.Clear(_pointer, (nuint)(_length * sizeof(T)));
         _version++;
     }
@@ -477,7 +478,8 @@ public sealed unsafe class NativeBuffer<T> : IDisposable where T : unmanaged
     /// <param name="other">The other buffer to swap with.</param>
     public void Swap(NativeBuffer<T> other)
     {
-        if (other == null) throw new ArgumentNullException(nameof(other));
+        if (other == null)
+            throw new ArgumentNullException(nameof(other));
 
         var tempPointer = _pointer;
         _pointer = other._pointer;
@@ -539,7 +541,8 @@ public sealed unsafe class NativeBuffer<T> : IDisposable where T : unmanaged
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
 
         if (_rawPointer != null)
@@ -699,8 +702,10 @@ public sealed unsafe class NativeByteBuffer : IDisposable
     public void Resize(int newByteLength)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (newByteLength < 0) throw new ArgumentOutOfRangeException(nameof(newByteLength));
-        if (newByteLength == _byteLength) return;
+        if (newByteLength < 0)
+            throw new ArgumentOutOfRangeException(nameof(newByteLength));
+        if (newByteLength == _byteLength)
+            return;
 
         int copyLength = Math.Min(_byteLength, newByteLength);
         int totalBytes = newByteLength + _alignment;
@@ -732,7 +737,8 @@ public sealed unsafe class NativeByteBuffer : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         if (_rawPointer != null)
         {

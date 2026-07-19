@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -19,15 +19,15 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class RadianceCascadesManager
     {
-        private CascadeConfig _config;
-        private CascadeLevelConfig[] _levels;
-        private Vector3[][] _cascadeData;
-        private Vector3[][] _temporalHistory;
-        private float[][] _varianceData;
-        private int[][] _sampleCounts;
-        private int[] _resolutionPerLevel;
-        private float[] _importancePerLevel;
-        private float[] _timeAllocationPerLevel;
+        private required CascadeConfig _config;
+        private required CascadeLevelConfig[] _levels;
+        private required Vector3[][] _cascadeData;
+        private required Vector3[][] _temporalHistory;
+        private required float[][] _varianceData;
+        private required int[][] _sampleCounts;
+        private required int[] _resolutionPerLevel;
+        private required float[] _importancePerLevel;
+        private required float[] _timeAllocationPerLevel;
         private int _totalLevels;
         private int _frameIndex;
         private bool _isInitialized;
@@ -103,7 +103,8 @@ namespace GDNN.Lighting.LDNN
 
         private float ComputeMinTraceDistance(int level)
         {
-            if (level == 0) return 0.0f;
+            if (level == 0)
+                return 0.0f;
             return _config.DistanceScale * MathF.Pow(2.0f, level);
         }
 
@@ -267,8 +268,10 @@ namespace GDNN.Lighting.LDNN
         public void RenderCascadesLevel(int level, GBuffer gbuffer, CameraState camera,
             List<LightConfig> lights, RandomNumberGenerator rng)
         {
-            if (level < 0 || level >= _totalLevels) return;
-            if (!_levels[level].IsActive) return;
+            if (level < 0 || level >= _totalLevels)
+                return;
+            if (!_levels[level].IsActive)
+                return;
 
             int resolution = _resolutionPerLevel[level];
             float maxDist = _levels[level].MaxTraceDistance;
@@ -560,7 +563,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public void HandleDisocclusion(GBuffer currentGBuffer, GBuffer previousGBuffer, float threshold)
         {
-            if (previousGBuffer == null) return;
+            if (previousGBuffer == null)
+                return;
 
             for (int level = 0; level < _totalLevels; level++)
             {
@@ -594,7 +598,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public void AdaptiveLevelAllocation(float[] importanceScores)
         {
-            if (importanceScores == null || importanceScores.Length < _totalLevels) return;
+            if (importanceScores == null || importanceScores.Length < _totalLevels)
+                return;
 
             float totalImportance = 0;
             for (int i = 0; i < _totalLevels; i++)
@@ -637,7 +642,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public Vector3[,] GenerateCascadeDebugVisualization(int level, int face)
         {
-            if (level < 0 || level >= _totalLevels) return new Vector3[0, 0];
+            if (level < 0 || level >= _totalLevels)
+                return new Vector3[0, 0];
 
             int res = _resolutionPerLevel[level];
             var visualization = new Vector3[res, res];
@@ -664,7 +670,8 @@ namespace GDNN.Lighting.LDNN
             for (int i = 0; i < _totalLevels; i++)
             {
                 totalMemory += _cascadeData[i].Length * 12;
-                if (_levels[i].IsActive) totalActiveLevels++;
+                if (_levels[i].IsActive)
+                    totalActiveLevels++;
                 totalImportance += _importancePerLevel[i];
             }
 
@@ -684,7 +691,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public Vector3[] GetCascadeData(int level)
         {
-            if (level < 0 || level >= _totalLevels) return Array.Empty<Vector3>();
+            if (level < 0 || level >= _totalLevels)
+                return Array.Empty<Vector3>();
             return _cascadeData[level];
         }
 
@@ -693,7 +701,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public int GetLevelResolution(int level)
         {
-            if (level < 0 || level >= _totalLevels) return 0;
+            if (level < 0 || level >= _totalLevels)
+                return 0;
             return _resolutionPerLevel[level];
         }
     }

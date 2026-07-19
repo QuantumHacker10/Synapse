@@ -11,7 +11,8 @@ namespace Synapse.Runtime
         public static BehaviorTreeBlueprint Compile(BlueprintDocument doc)
         {
             var (ok, msg) = doc.Validate();
-            if (!ok) throw new InvalidOperationException(msg);
+            if (!ok)
+                throw new InvalidOperationException(msg);
 
             var entry = doc.Nodes.First(n => n.Kind == BlueprintNodeKind.Entry);
             var visited = new HashSet<Guid>();
@@ -29,9 +30,11 @@ namespace Synapse.Runtime
             Guid nodeId,
             HashSet<Guid> visited)
         {
-            if (!visited.Add(nodeId)) return null;
+            if (!visited.Add(nodeId))
+                return null;
             var node = doc.Nodes.FirstOrDefault(n => n.Id == nodeId);
-            if (node == null) return null;
+            if (node == null)
+                return null;
 
             if (node.Kind == BlueprintNodeKind.Exit)
                 return null;
@@ -44,16 +47,20 @@ namespace Synapse.Runtime
                 .ToList();
 
             var children = new List<BehaviorTreeBlueprint>();
-            if (self != null) children.Add(self);
+            if (self != null)
+                children.Add(self);
 
             foreach (var nextId in nextIds)
             {
                 var child = BuildExecChain(doc, nextId, visited);
-                if (child != null) children.Add(child);
+                if (child != null)
+                    children.Add(child);
             }
 
-            if (children.Count == 0) return self;
-            if (children.Count == 1) return children[0];
+            if (children.Count == 0)
+                return self;
+            if (children.Count == 1)
+                return children[0];
 
             return new BehaviorTreeBlueprint
             {

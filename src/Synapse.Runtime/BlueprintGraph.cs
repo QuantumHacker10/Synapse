@@ -55,7 +55,8 @@ namespace Synapse.Runtime
             {
                 Kind = BlueprintNodeKind.Entry,
                 Title = "Entry",
-                X = 40, Y = 80,
+                X = 40,
+                Y = 80,
                 Outputs = { new BlueprintPin { Name = "Exec", IsInput = false } }
             };
             var action = new BlueprintNode
@@ -63,7 +64,8 @@ namespace Synapse.Runtime
                 Kind = BlueprintNodeKind.Action,
                 Title = "Patrol",
                 Payload = "patrol",
-                X = 260, Y = 80,
+                X = 260,
+                Y = 80,
                 Inputs = { new BlueprintPin { Name = "Exec", IsInput = true } },
                 Outputs = { new BlueprintPin { Name = "Then", IsInput = false } }
             };
@@ -71,7 +73,8 @@ namespace Synapse.Runtime
             {
                 Kind = BlueprintNodeKind.Exit,
                 Title = "Exit",
-                X = 480, Y = 80,
+                X = 480,
+                Y = 80,
                 Inputs = { new BlueprintPin { Name = "Exec", IsInput = true } }
             };
             return new BlueprintDocument
@@ -133,11 +136,13 @@ namespace Synapse.Runtime
 
         private static BehaviorTreeBlueprint? FindFirstAction(BehaviorTreeBlueprint node)
         {
-            if (node.NodeType == BehaviorNodeType.Action) return node;
+            if (node.NodeType == BehaviorNodeType.Action)
+                return node;
             foreach (var child in node.Children)
             {
                 var found = FindFirstAction(child);
-                if (found != null) return found;
+                if (found != null)
+                    return found;
             }
             return null;
         }
@@ -165,7 +170,9 @@ namespace Synapse.Runtime
         {
             _strokes.Add(new SculptStroke
             {
-                X = x, Y = y, Z = z,
+                X = x,
+                Y = y,
+                Z = z,
                 Radius = BrushRadius,
                 Strength = BrushStrength,
                 Invert = Invert
@@ -183,7 +190,8 @@ namespace Synapse.Runtime
                 float dx = x - s.X, dy = y - s.Y, dz = z - s.Z;
                 float d2 = dx * dx + dy * dy + dz * dz;
                 float r2 = s.Radius * s.Radius;
-                if (d2 >= r2) continue;
+                if (d2 >= r2)
+                    continue;
                 float w = 1f - d2 / r2;
                 w = w * w;
                 sum += (s.Invert ? -s.Strength : s.Strength) * w;

@@ -281,7 +281,8 @@ public sealed class DeepMicroMLP : ISdfNetwork, IDisposable
 
         gradient = new Vector3(dx, dy, dz);
         float length = gradient.Length();
-        if (length > 0) gradient /= length;
+        if (length > 0)
+            gradient /= length;
 
         return d;
     }
@@ -311,7 +312,8 @@ public sealed class DeepMicroMLP : ISdfNetwork, IDisposable
     {
         if (points.Length != distancesOut.Length)
             throw new ArgumentException("Points and distances must have the same length.");
-        if (points.Length == 0) return;
+        if (points.Length == 0)
+            return;
 
         int batch = points.Length;
         int encDim = EncodedDimension;

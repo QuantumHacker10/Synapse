@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -240,7 +240,8 @@ namespace GDNN.Llm
             lock (_lock)
             {
                 Refill();
-                if (_tokens >= tokens) return TimeSpan.Zero;
+                if (_tokens >= tokens)
+                    return TimeSpan.Zero;
                 double deficit = tokens - _tokens;
                 double seconds = deficit / _refillRate * _refillInterval.TotalSeconds;
                 return TimeSpan.FromSeconds(Math.Ceiling(seconds));

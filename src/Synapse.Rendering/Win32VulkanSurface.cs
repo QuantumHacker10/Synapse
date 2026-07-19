@@ -89,7 +89,8 @@ namespace GDNN.Platform
 
         public static void ResizeChild(IntPtr hwnd, int width, int height)
         {
-            if (hwnd == IntPtr.Zero) return;
+            if (hwnd == IntPtr.Zero)
+                return;
             SetWindowPos(hwnd, IntPtr.Zero, 0, 0, Math.Max(1, width), Math.Max(1, height), SWP_NOZORDER | SWP_NOACTIVATE);
         }
 

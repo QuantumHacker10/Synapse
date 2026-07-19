@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -42,7 +42,8 @@ namespace GDNN.Lighting.LDNN
 
         public Vector3 Predict(GBufferSample sample, CameraState camera)
         {
-            if (!_initialized) return Vector3.Zero;
+            if (!_initialized)
+                return Vector3.Zero;
 
             Vector3 viewDir = Vector3.Normalize(camera.Position - sample.WorldPosition);
             float NdotV = MathF.Max(0, Vector3.Dot(sample.Normal, viewDir));
@@ -78,7 +79,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public Vector3 PredictRefraction(GBufferSample sample, CameraState camera)
         {
-            if (!sample.IsTranslucent) return Vector3.Zero;
+            if (!sample.IsTranslucent)
+                return Vector3.Zero;
             Vector3 reflection = Predict(sample, camera);
             // Simple transmission remainder: albedo-tinted, inverse of reflection strength.
             float reflectStrength = Math.Clamp(reflection.Length(), 0, 1);

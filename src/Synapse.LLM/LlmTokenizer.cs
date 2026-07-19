@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -127,7 +127,8 @@ namespace GDNN.Llm
             var vocab = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var line in File.ReadLines(vocabFilePath))
             {
-                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
                 var parts = line.Split('\t', 2);
                 if (parts.Length == 2 && int.TryParse(parts[1], out var id))
                     vocab[parts[0]] = id;
@@ -140,7 +141,8 @@ namespace GDNN.Llm
             {
                 foreach (var line in File.ReadLines(bpeFilePath))
                 {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    if (string.IsNullOrWhiteSpace(line))
+                        continue;
                     var parts = line.Split(' ', 2);
                     if (parts.Length == 2)
                         bpeRanks.Add((parts[0], parts[1]));
@@ -162,13 +164,16 @@ namespace GDNN.Llm
             if (string.IsNullOrEmpty(text))
             {
                 var empty = new List<int>();
-                if (addBos) empty.Add(_vocab.GetValueOrDefault(_bosToken, 0));
-                if (addEos) empty.Add(_vocab.GetValueOrDefault(_eosToken, 1));
+                if (addBos)
+                    empty.Add(_vocab.GetValueOrDefault(_bosToken, 0));
+                if (addEos)
+                    empty.Add(_vocab.GetValueOrDefault(_eosToken, 1));
                 return empty.ToArray();
             }
 
             var tokenIds = new List<int>();
-            if (addBos) tokenIds.Add(_vocab.GetValueOrDefault(_bosToken, 0));
+            if (addBos)
+                tokenIds.Add(_vocab.GetValueOrDefault(_bosToken, 0));
 
             var segments = text.Split(_specialTokens.ToArray(), StringSplitOptions.None);
             foreach (var segment in segments)
@@ -193,7 +198,8 @@ namespace GDNN.Llm
                 }
             }
 
-            if (addEos) tokenIds.Add(_vocab.GetValueOrDefault(_eosToken, 1));
+            if (addEos)
+                tokenIds.Add(_vocab.GetValueOrDefault(_eosToken, 1));
             return tokenIds.ToArray();
         }
 
@@ -205,14 +211,16 @@ namespace GDNN.Llm
         /// <returns>Decoded string.</returns>
         public string Decode(int[] tokenIds, bool skipSpecial = true)
         {
-            if (tokenIds == null || tokenIds.Length == 0) return string.Empty;
+            if (tokenIds == null || tokenIds.Length == 0)
+                return string.Empty;
 
             var sb = new StringBuilder();
             foreach (var id in tokenIds)
             {
                 if (_reverseVocab.TryGetValue(id, out var token))
                 {
-                    if (skipSpecial && _specialTokens.Contains(token)) continue;
+                    if (skipSpecial && _specialTokens.Contains(token))
+                        continue;
                     sb.Append(token.Replace("Ġ", " ").Replace("Ċ", "\n"));
                 }
             }
@@ -226,7 +234,8 @@ namespace GDNN.Llm
         /// <returns>Approximate token count.</returns>
         public int CountTokens(string text)
         {
-            if (string.IsNullOrEmpty(text)) return 0;
+            if (string.IsNullOrEmpty(text))
+                return 0;
             return Encode(text).Length;
         }
 
@@ -276,7 +285,8 @@ namespace GDNN.Llm
         /// <returns>Truncated token IDs.</returns>
         public int[] Truncate(int[] tokenIds, int maxLength, TruncationStrategy strategy = TruncationStrategy.Tail)
         {
-            if (tokenIds == null || tokenIds.Length <= maxLength) return tokenIds ?? Array.Empty<int>();
+            if (tokenIds == null || tokenIds.Length <= maxLength)
+                return tokenIds ?? Array.Empty<int>();
 
             return strategy switch
             {
@@ -376,7 +386,8 @@ namespace GDNN.Llm
 
         private List<string> ApplyBpe(string word)
         {
-            if (string.IsNullOrEmpty(word)) return new List<string>();
+            if (string.IsNullOrEmpty(word))
+                return new List<string>();
 
             var chars = word.Select(c => c.ToString()).ToList();
 

@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: AnimationBlender.cs
 // PATH: Animation/AnimationBlender.cs
@@ -24,11 +6,27 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Animation
 {
@@ -294,7 +292,8 @@ namespace GDNN.Animation
         {
             for (int i = 0; i < _layerCount; i++)
             {
-                if (!_layers[i].Enabled || _layers[i].Clip == null) continue;
+                if (!_layers[i].Enabled || _layers[i].Clip == null)
+                    continue;
 
                 ref BlendLayer layer = ref _layers[i];
                 layer.ElapsedTime += deltaTime * layer.PlaybackSpeed;
@@ -313,7 +312,8 @@ namespace GDNN.Animation
 
         public void BlendAllLayers(Skeleton targetSkeleton)
         {
-            if (targetSkeleton == null) throw new ArgumentNullException(nameof(targetSkeleton));
+            if (targetSkeleton == null)
+                throw new ArgumentNullException(nameof(targetSkeleton));
 
             bool first = true;
 
@@ -394,7 +394,8 @@ namespace GDNN.Animation
         public void CrossfadeTo(string stateName, float fadeDuration)
         {
             int idx = FindState(stateName);
-            if (idx < 0) throw new ArgumentException($"State '{stateName}' not found.");
+            if (idx < 0)
+                throw new ArgumentException($"State '{stateName}' not found.");
             CrossfadeTo(idx, fadeDuration);
         }
 
@@ -419,7 +420,8 @@ namespace GDNN.Animation
 
         public void ApplyCrossfades(Skeleton targetSkeleton)
         {
-            if (targetSkeleton == null) return;
+            if (targetSkeleton == null)
+                return;
 
             if (_crossfadeCount == 0)
             {
@@ -492,8 +494,10 @@ namespace GDNN.Animation
                 for (int t = 0; t < _states[i].Transitions.Length; t++)
                 {
                     ref StateTransition tr = ref _states[i].Transitions[t];
-                    if (tr.FromState > stateIndex) tr.FromState--;
-                    if (tr.ToState > stateIndex) tr.ToState--;
+                    if (tr.FromState > stateIndex)
+                        tr.FromState--;
+                    if (tr.ToState > stateIndex)
+                        tr.ToState--;
                 }
             }
 
@@ -532,7 +536,8 @@ namespace GDNN.Animation
         public void SetCurrentState(string name)
         {
             int idx = FindState(name);
-            if (idx < 0) throw new ArgumentException($"State '{name}' not found.");
+            if (idx < 0)
+                throw new ArgumentException($"State '{name}' not found.");
             _currentStateIndex = idx;
         }
 
@@ -566,7 +571,8 @@ namespace GDNN.Animation
         {
             UpdateCrossfades(deltaTime);
 
-            if (_currentStateIndex < 0 || _currentStateIndex >= _stateCount) return;
+            if (_currentStateIndex < 0 || _currentStateIndex >= _stateCount)
+                return;
 
             ref AnimationState current = ref _states[_currentStateIndex];
             if (current.Clip != null)
@@ -618,8 +624,10 @@ namespace GDNN.Animation
 
         public void ApplyAdditiveClip(Skeleton targetSkeleton, AnimationClip additiveClip, float time, float weight)
         {
-            if (targetSkeleton == null) throw new ArgumentNullException(nameof(targetSkeleton));
-            if (additiveClip == null) throw new ArgumentNullException(nameof(additiveClip));
+            if (targetSkeleton == null)
+                throw new ArgumentNullException(nameof(targetSkeleton));
+            if (additiveClip == null)
+                throw new ArgumentNullException(nameof(additiveClip));
 
             for (int j = 0; j < targetSkeleton.JointCount; j++)
             {
@@ -654,10 +662,12 @@ namespace GDNN.Animation
 
         public void ApplyLayeredBlending(Skeleton targetSkeleton)
         {
-            if (targetSkeleton == null) return;
+            if (targetSkeleton == null)
+                return;
 
             int[] sortedLayers = new int[_layerCount];
-            for (int i = 0; i < _layerCount; i++) sortedLayers[i] = i;
+            for (int i = 0; i < _layerCount; i++)
+                sortedLayers[i] = i;
             Array.Sort(sortedLayers, (a, b) => _layers[a].Order.CompareTo(_layers[b].Order));
 
             bool hasBase = false;
@@ -665,7 +675,8 @@ namespace GDNN.Animation
             for (int idx = 0; idx < _layerCount; idx++)
             {
                 int layerIdx = sortedLayers[idx];
-                if (!_layers[layerIdx].Enabled || _layers[layerIdx].Clip == null) continue;
+                if (!_layers[layerIdx].Enabled || _layers[layerIdx].Clip == null)
+                    continue;
 
                 ref BlendLayer layer = ref _layers[layerIdx];
 
@@ -703,8 +714,10 @@ namespace GDNN.Animation
 
         public void UpdateAimIK(float deltaTime)
         {
-            if (!_aimIK.Enabled || _ownerSkeleton == null) return;
-            if (_aimIK.AimJointIndex < 0 || _aimIK.AimJointIndex >= _ownerSkeleton.JointCount) return;
+            if (!_aimIK.Enabled || _ownerSkeleton == null)
+                return;
+            if (_aimIK.AimJointIndex < 0 || _aimIK.AimJointIndex >= _ownerSkeleton.JointCount)
+                return;
 
             _aimIK.DesiredAimDirection = Vector3.Normalize(
                 _aimIK.TargetPosition - _ownerSkeleton.GetJoint(_aimIK.AimJointIndex).LocalTranslation);
@@ -723,13 +736,17 @@ namespace GDNN.Animation
 
         public void ApplyAimIK(Skeleton targetSkeleton)
         {
-            if (!_aimIK.Enabled || _ownerSkeleton == null) return;
-            if (targetSkeleton == null) return;
+            if (!_aimIK.Enabled || _ownerSkeleton == null)
+                return;
+            if (targetSkeleton == null)
+                return;
 
-            if (_aimIK.AimJointIndex < 0 || _aimIK.AimJointIndex >= targetSkeleton.JointCount) return;
+            if (_aimIK.AimJointIndex < 0 || _aimIK.AimJointIndex >= targetSkeleton.JointCount)
+                return;
 
             float weight = _aimIK.Weight;
-            if (weight <= 0f) return;
+            if (weight <= 0f)
+                return;
 
             Vector3 aimDir = Vector3.Normalize(_aimIK.CurrentAimDirection);
 
@@ -738,10 +755,12 @@ namespace GDNN.Animation
             dot = Math.Clamp(dot, -1f, 1f);
             float angle = MathF.Acos(dot);
 
-            if (angle < 0.001f) return;
+            if (angle < 0.001f)
+                return;
 
             Vector3 axis = Vector3.Cross(forward, aimDir);
-            if (axis.LengthSquared() < 1e-6f) return;
+            if (axis.LengthSquared() < 1e-6f)
+                return;
 
             axis = Vector3.Normalize(axis);
             Quaternion aimRotation = Quaternion.CreateFromAxisAngle(axis, angle * weight);
@@ -833,7 +852,8 @@ namespace GDNN.Animation
 
         public void SampleBlendTree(float parameter, Skeleton targetSkeleton)
         {
-            if (targetSkeleton == null || _blendTree.Root.ChildCount == 0) return;
+            if (targetSkeleton == null || _blendTree.Root.ChildCount == 0)
+                return;
 
             float[] weights = new float[_blendTree.Root.ChildCount];
             ComputeBlendTreeWeights1D(parameter, weights);
@@ -842,7 +862,8 @@ namespace GDNN.Animation
 
         public void SampleBlendTree2D(Vector2 parameter, Skeleton targetSkeleton)
         {
-            if (targetSkeleton == null || _blendTree.Root.ChildCount == 0) return;
+            if (targetSkeleton == null || _blendTree.Root.ChildCount == 0)
+                return;
 
             float[] weights = new float[_blendTree.Root.ChildCount];
 
@@ -869,7 +890,8 @@ namespace GDNN.Animation
         {
             var children = _blendTree.Root.Children;
             int count = _blendTree.Root.ChildCount;
-            if (count == 0) return;
+            if (count == 0)
+                return;
 
             if (count == 1)
             {
@@ -883,7 +905,8 @@ namespace GDNN.Animation
 
             if (range < 1e-6f)
             {
-                for (int i = 0; i < count; i++) weights[i] = 1f / count;
+                for (int i = 0; i < count; i++)
+                    weights[i] = 1f / count;
                 return;
             }
 
@@ -896,7 +919,8 @@ namespace GDNN.Animation
                 float t1 = (children[i + 1].Threshold - minThreshold) / range;
                 float segmentRange = t1 - t0;
 
-                if (segmentRange < 1e-6f) continue;
+                if (segmentRange < 1e-6f)
+                    continue;
 
                 if (normalized >= t0 && normalized <= t1)
                 {
@@ -917,7 +941,8 @@ namespace GDNN.Animation
         {
             var children = _blendTree.Root.Children;
             int count = _blendTree.Root.ChildCount;
-            if (count == 0) return;
+            if (count == 0)
+                return;
 
             float paramLen = parameter.Length();
             if (paramLen < 1e-6f)
@@ -959,7 +984,8 @@ namespace GDNN.Animation
         {
             var children = _blendTree.Root.Children;
             int count = _blendTree.Root.ChildCount;
-            if (count == 0) return;
+            if (count == 0)
+                return;
 
             float paramLen = parameter.Length();
             if (paramLen < 1e-6f)
@@ -999,7 +1025,8 @@ namespace GDNN.Animation
         {
             var children = _blendTree.Root.Children;
             int count = _blendTree.Root.ChildCount;
-            if (count == 0) return;
+            if (count == 0)
+                return;
 
             float totalWeight = 0f;
 
@@ -1026,7 +1053,8 @@ namespace GDNN.Animation
 
             for (int i = 0; i < count; i++)
             {
-                if (weights[i] <= 0.001f || children[i].Clip == null) continue;
+                if (weights[i] <= 0.001f || children[i].Clip == null)
+                    continue;
 
                 if (first)
                 {

@@ -166,7 +166,9 @@ public static class MeshletCodec
 
     private static void WriteVector3(BinaryWriter w, Vector3 v)
     {
-        w.Write(v.X); w.Write(v.Y); w.Write(v.Z);
+        w.Write(v.X);
+        w.Write(v.Y);
+        w.Write(v.Z);
     }
 
     private static Vector3 ReadVector3(BinaryReader r)
@@ -241,8 +243,12 @@ public sealed class MeshletPageFile : IDisposable
         {
             w.Write(key.Level);
             w.Write(key.Index);
-            w.Write(bounds.Min.X); w.Write(bounds.Min.Y); w.Write(bounds.Min.Z);
-            w.Write(bounds.Max.X); w.Write(bounds.Max.Y); w.Write(bounds.Max.Z);
+            w.Write(bounds.Min.X);
+            w.Write(bounds.Min.Y);
+            w.Write(bounds.Min.Z);
+            w.Write(bounds.Max.X);
+            w.Write(bounds.Max.Y);
+            w.Write(bounds.Max.Z);
             w.Write(error);
             w.Write(offset);
             w.Write(data.Length);
@@ -302,7 +308,8 @@ public sealed class MeshletPageFile : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         _stream.Dispose();
     }
@@ -458,7 +465,8 @@ public sealed class MeshletStreamer : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         lock (_lock)
         {

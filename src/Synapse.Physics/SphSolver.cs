@@ -83,14 +83,22 @@ public sealed class SphParticleSystem
     public SphParticleSystem(int count)
     {
         Count = count;
-        Px = new float[count]; Py = new float[count]; Pz = new float[count];
-        Vx = new float[count]; Vy = new float[count]; Vz = new float[count];
-        Fx = new float[count]; Fy = new float[count]; Fz = new float[count];
+        Px = new float[count];
+        Py = new float[count];
+        Pz = new float[count];
+        Vx = new float[count];
+        Vy = new float[count];
+        Vz = new float[count];
+        Fx = new float[count];
+        Fy = new float[count];
+        Fz = new float[count];
         Density = new float[count];
         Pressure = new float[count];
         Lambda = new float[count];
         ColorFieldMagnitude = new float[count];
-        SurfaceNormalX = new float[count]; SurfaceNormalY = new float[count]; SurfaceNormalZ = new float[count];
+        SurfaceNormalX = new float[count];
+        SurfaceNormalY = new float[count];
+        SurfaceNormalZ = new float[count];
         ParticleType = new int[count];
     }
 }
@@ -130,7 +138,7 @@ public sealed class SphSolver
     /// </summary>
     public void InitializeCube(float minX, float minY, float minZ, float spacing)
     {
-        int side = (int)MathF.Ceiling(MathF.Pow(_cfg.NumParticles, 1f/3f));
+        int side = (int)MathF.Ceiling(MathF.Pow(_cfg.NumParticles, 1f / 3f));
         float cx = (minX + side * spacing) * 0.5f;
         float cy = (minY + side * spacing) * 0.5f;
         float cz = (minZ + side * spacing) * 0.5f;
@@ -200,7 +208,8 @@ public sealed class SphSolver
 
             for (int j = 0; j < n; j++)
             {
-                if (i == j) continue;
+                if (i == j)
+                    continue;
                 float dx = px - _particles.Px[j];
                 float dy = py - _particles.Py[j];
                 float dz = pz - _particles.Pz[j];
@@ -265,13 +274,15 @@ public sealed class SphSolver
 
             for (int j = 0; j < n; j++)
             {
-                if (i == j) continue;
+                if (i == j)
+                    continue;
                 float dx = px - _particles.Px[j];
                 float dy = py - _particles.Py[j];
                 float dz = pz - _particles.Pz[j];
                 float r2 = dx * dx + dy * dy + dz * dz;
 
-                if (r2 >= _h2 || r2 < 1e-10f) continue;
+                if (r2 >= _h2 || r2 < 1e-10f)
+                    continue;
                 float r = MathF.Sqrt(r2);
 
                 // Pressure force (symmetric)
@@ -322,7 +333,8 @@ public sealed class SphSolver
 
         for (int i = 0; i < n; i++)
         {
-            if (_particles.ParticleType[i] == 1) continue; // Fixed boundary
+            if (_particles.ParticleType[i] == 1)
+                continue; // Fixed boundary
 
             // Acceleration
             float ax = _particles.Fx[i] / mass;
@@ -356,12 +368,14 @@ public sealed class SphSolver
 
                     for (int j = 0; j < n; j++)
                     {
-                        if (i == j) continue;
+                        if (i == j)
+                            continue;
                         float dx = px - _particles.Px[j];
                         float dy = py - _particles.Py[j];
                         float dz = pz - _particles.Pz[j];
                         float r2 = dx * dx + dy * dy + dz * dz;
-                        if (r2 >= _h2) continue;
+                        if (r2 >= _h2)
+                            continue;
 
                         float w = WendlandC2(MathF.Sqrt(r2), _cfg.SmoothingRadius);
                         xsx += (_particles.Vx[j] - vx) * w;
@@ -399,7 +413,8 @@ public sealed class SphSolver
 
         for (int i = 0; i < n; i++)
         {
-            if (_particles.ParticleType[i] == 1) continue;
+            if (_particles.ParticleType[i] == 1)
+                continue;
 
             if (_particles.Px[i] < minBound)
             { _particles.Px[i] = minBound; _particles.Vx[i] *= -bounce; }
@@ -423,7 +438,8 @@ public sealed class SphSolver
     private float WendlandC2(float r, float h)
     {
         float q = r / h;
-        if (q >= 1f) return 0f;
+        if (q >= 1f)
+            return 0f;
         float t = 1f - 0.5f * q;
         return _kernelNorm * t * t * t * (2f * q + 1f);
     }
@@ -432,7 +448,8 @@ public sealed class SphSolver
     private float WendlandC2Gradient(float r, float h)
     {
         float q = r / h;
-        if (q >= 1f || q < 1e-10f) return 0f;
+        if (q >= 1f || q < 1e-10f)
+            return 0f;
         float t = 1f - 0.5f * q;
         return _kernelNorm * (-5f * q * t * t) / h;
     }
@@ -441,7 +458,8 @@ public sealed class SphSolver
     private float WendlandC2Laplacian(float r, float h)
     {
         float q = r / h;
-        if (q >= 1f || q < 1e-10f) return 0f;
+        if (q >= 1f || q < 1e-10f)
+            return 0f;
         return _kernelNorm * (5f * (1f - q)) / (h * h);
     }
 }

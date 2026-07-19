@@ -100,7 +100,9 @@ public static class SpirvToolchain
         }
         finally
         {
-            try { Directory.Delete(tempDir, recursive: true); } catch { /* ignore */ }
+            try
+            { Directory.Delete(tempDir, recursive: true); }
+            catch { /* ignore */ }
         }
     }
 
@@ -169,7 +171,9 @@ public static class SpirvToolchain
         }
         finally
         {
-            try { Directory.Delete(tempDir, recursive: true); } catch { /* ignore */ }
+            try
+            { Directory.Delete(tempDir, recursive: true); }
+            catch { /* ignore */ }
         }
     }
 
@@ -206,13 +210,15 @@ public static class SpirvToolchain
     private static string? FindOnPath(string fileName)
     {
         string? pathEnv = Environment.GetEnvironmentVariable("PATH");
-        if (string.IsNullOrEmpty(pathEnv)) return null;
+        if (string.IsNullOrEmpty(pathEnv))
+            return null;
         foreach (string dir in pathEnv.Split(Path.PathSeparator))
         {
             try
             {
                 string candidate = Path.Combine(dir.Trim(), fileName);
-                if (File.Exists(candidate)) return candidate;
+                if (File.Exists(candidate))
+                    return candidate;
             }
             catch { /* ignore bad PATH entries */ }
         }
@@ -222,7 +228,8 @@ public static class SpirvToolchain
     private static string? FirstExisting(params string[] paths)
     {
         foreach (string p in paths)
-            if (File.Exists(p)) return p;
+            if (File.Exists(p))
+                return p;
         return null;
     }
 }

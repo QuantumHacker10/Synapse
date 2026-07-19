@@ -36,7 +36,9 @@ namespace Synapse.Tests.Core
             }
             finally
             {
-                try { Directory.Delete(root, recursive: true); } catch { /* ignore */ }
+                try
+                { Directory.Delete(root, recursive: true); }
+                catch { /* ignore */ }
             }
         }
 
@@ -53,7 +55,9 @@ namespace Synapse.Tests.Core
             }
             finally
             {
-                try { Directory.Delete(root, recursive: true); } catch { /* ignore */ }
+                try
+                { Directory.Delete(root, recursive: true); }
+                catch { /* ignore */ }
             }
         }
 

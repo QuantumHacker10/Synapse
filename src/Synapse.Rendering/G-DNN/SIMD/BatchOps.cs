@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: BatchOps.cs
 // PATH: SIMD/BatchOps.cs
@@ -28,12 +10,28 @@ using System.Threading.Tasks;
 // High-performance SIMD batch processing for neural network evaluation.
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.SIMD;
 
@@ -568,12 +566,15 @@ public static unsafe class BatchOps
     /// <param name="values">Input values. Overwritten with softmax output.</param>
     public static void SoftmaxInPlace(Span<float> values)
     {
-        if (values.Length == 0) return;
-        if (values.Length == 1) { values[0] = 1.0f; return; }
+        if (values.Length == 0)
+            return;
+        if (values.Length == 1)
+        { values[0] = 1.0f; return; }
 
         float maxVal = values[0];
         for (int idx = 1; idx < values.Length; idx++)
-            if (values[idx] > maxVal) maxVal = values[idx];
+            if (values[idx] > maxVal)
+                maxVal = values[idx];
 
         float sum = 0;
         int i = 0;
@@ -631,11 +632,13 @@ public static unsafe class BatchOps
     /// </summary>
     public static void LogSoftmaxInPlace(Span<float> values)
     {
-        if (values.Length == 0) return;
+        if (values.Length == 0)
+            return;
 
         float maxVal = values[0];
         for (int i = 1; i < values.Length; i++)
-            if (values[i] > maxVal) maxVal = values[i];
+            if (values[i] > maxVal)
+                maxVal = values[i];
 
         float sum = 0;
         for (int i = 0; i < values.Length; i++)
@@ -799,12 +802,15 @@ public static unsafe class BatchOps
         float min = float.MaxValue, max = float.MinValue;
         for (int i = 0; i < weights.Length; i++)
         {
-            if (weights[i] < min) min = weights[i];
-            if (weights[i] > max) max = weights[i];
+            if (weights[i] < min)
+                min = weights[i];
+            if (weights[i] > max)
+                max = weights[i];
         }
 
         float range = max - min;
-        if (range < 1e-10f) range = 1.0f;
+        if (range < 1e-10f)
+            range = 1.0f;
         scale = range / 255.0f;
         zeroPoint = (sbyte)Math.Clamp((int)MathF.Round(-min / scale), -128, 127);
 
@@ -890,7 +896,8 @@ public static unsafe class BatchOps
             for (int i = wStart; i < wEnd; i++)
             {
                 float abs = MathF.Abs(weights[i]);
-                if (abs > maxAbs) maxAbs = abs;
+                if (abs > maxAbs)
+                    maxAbs = abs;
             }
 
             int sharedExp = maxAbs > 0 ? (int)MathF.Floor(MathF.Log2(maxAbs)) : 0;
@@ -924,7 +931,8 @@ public static unsafe class BatchOps
         int blockSize = 8)
     {
         int blockCount = weights.Length / blockSize;
-        if (weights.Length % blockSize != 0) blockCount++;
+        if (weights.Length % blockSize != 0)
+            blockCount++;
 
         int cIdx = 0;
         for (int block = 0; block < blockCount; block++)
@@ -1152,7 +1160,8 @@ public static unsafe class BatchOps
     /// <returns>The index of the maximum value.</returns>
     public static int ArgMax(ReadOnlySpan<float> values)
     {
-        if (values.Length == 0) return -1;
+        if (values.Length == 0)
+            return -1;
 
         int maxIdx = 0;
         float maxVal = values[0];
@@ -1174,7 +1183,8 @@ public static unsafe class BatchOps
     /// </summary>
     public static int ArgMin(ReadOnlySpan<float> values)
     {
-        if (values.Length == 0) return -1;
+        if (values.Length == 0)
+            return -1;
 
         int minIdx = 0;
         float minVal = values[0];
@@ -1200,14 +1210,16 @@ public static unsafe class BatchOps
     /// <param name="topValues">Output values (must be at least k).</param>
     public static void TopK(ReadOnlySpan<float> values, int k, Span<int> indices, Span<float> topValues)
     {
-        if (k > values.Length) k = values.Length;
+        if (k > values.Length)
+            k = values.Length;
         if (indices.Length < k || topValues.Length < k)
             throw new ArgumentException("Output spans too small for specified k.");
 
         var tempIndices = new int[values.Length];
         var tempValues = new float[values.Length];
         values.CopyTo(tempValues);
-        for (int i = 0; i < tempValues.Length; i++) tempIndices[i] = i;
+        for (int i = 0; i < tempValues.Length; i++)
+            tempIndices[i] = i;
 
         for (int i = 0; i < k; i++)
         {
@@ -1259,7 +1271,8 @@ public static unsafe class BatchOps
     /// <param name="rng">Random number generator.</param>
     public static void DropoutInPlace(Span<float> values, float dropoutRate, Random rng)
     {
-        if (dropoutRate <= 0) return;
+        if (dropoutRate <= 0)
+            return;
         float scale = 1.0f / (1.0f - dropoutRate);
 
         for (int i = 0; i < values.Length; i++)
@@ -1288,7 +1301,8 @@ public static unsafe class BatchOps
             sumSq += gradients[idx] * gradients[idx];
 
         float globalNorm = MathF.Sqrt(sumSq);
-        if (globalNorm <= maxNorm) return globalNorm;
+        if (globalNorm <= maxNorm)
+            return globalNorm;
 
         float scale = maxNorm / globalNorm;
         int i = 0;
@@ -1523,7 +1537,8 @@ public static unsafe class BatchOps
     /// </summary>
     public static float ReduceMean(ReadOnlySpan<float> values)
     {
-        if (values.Length == 0) return 0;
+        if (values.Length == 0)
+            return 0;
         return ReduceSum(values) / values.Length;
     }
 
@@ -1532,7 +1547,8 @@ public static unsafe class BatchOps
     /// </summary>
     public static float ReduceVariance(ReadOnlySpan<float> values)
     {
-        if (values.Length == 0) return 0;
+        if (values.Length == 0)
+            return 0;
         float mean = ReduceMean(values);
         float sumSq = 0;
         for (int i = 0; i < values.Length; i++)
@@ -1548,7 +1564,8 @@ public static unsafe class BatchOps
     /// </summary>
     public static int ReduceArgMax(ReadOnlySpan<float> values)
     {
-        if (values.Length == 0) return -1;
+        if (values.Length == 0)
+            return -1;
 
         int maxIdx = 0;
         float maxVal = values[0];

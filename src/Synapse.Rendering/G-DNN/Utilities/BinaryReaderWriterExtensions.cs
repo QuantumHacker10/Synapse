@@ -1,34 +1,32 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: BinaryReaderWriterExtensions.cs
 // PATH: Utilities/BinaryReaderWriterExtensions.cs
 // ============================================================
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Utilities;
 
@@ -147,10 +145,22 @@ public static class BinaryReaderWriterExtensions
     /// </summary>
     public static void Write(this BinaryWriter writer, Matrix4x4 value)
     {
-        writer.Write(value.M11); writer.Write(value.M12); writer.Write(value.M13); writer.Write(value.M14);
-        writer.Write(value.M21); writer.Write(value.M22); writer.Write(value.M23); writer.Write(value.M24);
-        writer.Write(value.M31); writer.Write(value.M32); writer.Write(value.M33); writer.Write(value.M34);
-        writer.Write(value.M41); writer.Write(value.M42); writer.Write(value.M43); writer.Write(value.M44);
+        writer.Write(value.M11);
+        writer.Write(value.M12);
+        writer.Write(value.M13);
+        writer.Write(value.M14);
+        writer.Write(value.M21);
+        writer.Write(value.M22);
+        writer.Write(value.M23);
+        writer.Write(value.M24);
+        writer.Write(value.M31);
+        writer.Write(value.M32);
+        writer.Write(value.M33);
+        writer.Write(value.M34);
+        writer.Write(value.M41);
+        writer.Write(value.M42);
+        writer.Write(value.M43);
+        writer.Write(value.M44);
     }
 
     /// <summary>
@@ -159,10 +169,22 @@ public static class BinaryReaderWriterExtensions
     public static Matrix4x4 ReadMatrix4x4(this BinaryReader reader)
     {
         Matrix4x4 m;
-        m.M11 = reader.ReadSingle(); m.M12 = reader.ReadSingle(); m.M13 = reader.ReadSingle(); m.M14 = reader.ReadSingle();
-        m.M21 = reader.ReadSingle(); m.M22 = reader.ReadSingle(); m.M23 = reader.ReadSingle(); m.M24 = reader.ReadSingle();
-        m.M31 = reader.ReadSingle(); m.M32 = reader.ReadSingle(); m.M33 = reader.ReadSingle(); m.M34 = reader.ReadSingle();
-        m.M41 = reader.ReadSingle(); m.M42 = reader.ReadSingle(); m.M43 = reader.ReadSingle(); m.M44 = reader.ReadSingle();
+        m.M11 = reader.ReadSingle();
+        m.M12 = reader.ReadSingle();
+        m.M13 = reader.ReadSingle();
+        m.M14 = reader.ReadSingle();
+        m.M21 = reader.ReadSingle();
+        m.M22 = reader.ReadSingle();
+        m.M23 = reader.ReadSingle();
+        m.M24 = reader.ReadSingle();
+        m.M31 = reader.ReadSingle();
+        m.M32 = reader.ReadSingle();
+        m.M33 = reader.ReadSingle();
+        m.M34 = reader.ReadSingle();
+        m.M41 = reader.ReadSingle();
+        m.M42 = reader.ReadSingle();
+        m.M43 = reader.ReadSingle();
+        m.M44 = reader.ReadSingle();
         return m;
     }
 
@@ -171,10 +193,22 @@ public static class BinaryReaderWriterExtensions
     /// </summary>
     public static void WriteHalf(this BinaryWriter writer, Matrix4x4 value)
     {
-        WriteHalf(writer, value.M11); WriteHalf(writer, value.M12); WriteHalf(writer, value.M13); WriteHalf(writer, value.M14);
-        WriteHalf(writer, value.M21); WriteHalf(writer, value.M22); WriteHalf(writer, value.M23); WriteHalf(writer, value.M24);
-        WriteHalf(writer, value.M31); WriteHalf(writer, value.M32); WriteHalf(writer, value.M33); WriteHalf(writer, value.M34);
-        WriteHalf(writer, value.M41); WriteHalf(writer, value.M42); WriteHalf(writer, value.M43); WriteHalf(writer, value.M44);
+        WriteHalf(writer, value.M11);
+        WriteHalf(writer, value.M12);
+        WriteHalf(writer, value.M13);
+        WriteHalf(writer, value.M14);
+        WriteHalf(writer, value.M21);
+        WriteHalf(writer, value.M22);
+        WriteHalf(writer, value.M23);
+        WriteHalf(writer, value.M24);
+        WriteHalf(writer, value.M31);
+        WriteHalf(writer, value.M32);
+        WriteHalf(writer, value.M33);
+        WriteHalf(writer, value.M34);
+        WriteHalf(writer, value.M41);
+        WriteHalf(writer, value.M42);
+        WriteHalf(writer, value.M43);
+        WriteHalf(writer, value.M44);
     }
 
     /// <summary>
@@ -183,10 +217,22 @@ public static class BinaryReaderWriterExtensions
     public static Matrix4x4 ReadMatrix4x4Half(this BinaryReader reader)
     {
         Matrix4x4 m;
-        m.M11 = ReadHalf(reader); m.M12 = ReadHalf(reader); m.M13 = ReadHalf(reader); m.M14 = ReadHalf(reader);
-        m.M21 = ReadHalf(reader); m.M22 = ReadHalf(reader); m.M23 = ReadHalf(reader); m.M24 = ReadHalf(reader);
-        m.M31 = ReadHalf(reader); m.M32 = ReadHalf(reader); m.M33 = ReadHalf(reader); m.M34 = ReadHalf(reader);
-        m.M41 = ReadHalf(reader); m.M42 = ReadHalf(reader); m.M43 = ReadHalf(reader); m.M44 = ReadHalf(reader);
+        m.M11 = ReadHalf(reader);
+        m.M12 = ReadHalf(reader);
+        m.M13 = ReadHalf(reader);
+        m.M14 = ReadHalf(reader);
+        m.M21 = ReadHalf(reader);
+        m.M22 = ReadHalf(reader);
+        m.M23 = ReadHalf(reader);
+        m.M24 = ReadHalf(reader);
+        m.M31 = ReadHalf(reader);
+        m.M32 = ReadHalf(reader);
+        m.M33 = ReadHalf(reader);
+        m.M34 = ReadHalf(reader);
+        m.M41 = ReadHalf(reader);
+        m.M42 = ReadHalf(reader);
+        m.M43 = ReadHalf(reader);
+        m.M44 = ReadHalf(reader);
         return m;
     }
 
@@ -817,22 +863,32 @@ public static class BinaryReaderWriterExtensions
 
         byte index = 0;
         float maxVal = absX;
-        if (absY > maxVal) { index = 1; maxVal = absY; }
-        if (absZ > maxVal) { index = 2; maxVal = absZ; }
-        if (absW > maxVal) { index = 3; }
+        if (absY > maxVal)
+        { index = 1; maxVal = absY; }
+        if (absZ > maxVal)
+        { index = 2; maxVal = absZ; }
+        if (absW > maxVal)
+        { index = 3; }
 
         // Ensure the largest component is positive for unique representation
         if (((index == 0 ? q.X : index == 1 ? q.Y : index == 2 ? q.Z : q.W) < 0))
         {
-            q.X = -q.X; q.Y = -q.Y; q.Z = -q.Z; q.W = -q.W;
+            q.X = -q.X;
+            q.Y = -q.Y;
+            q.Z = -q.Z;
+            q.W = -q.W;
         }
 
         Span<float> components = stackalloc float[3];
         int compIdx = 0;
-        if (index != 0) components[compIdx++] = q.X;
-        if (index != 1) components[compIdx++] = q.Y;
-        if (index != 2) components[compIdx++] = q.Z;
-        if (index != 3) components[compIdx++] = q.W;
+        if (index != 0)
+            components[compIdx++] = q.X;
+        if (index != 1)
+            components[compIdx++] = q.Y;
+        if (index != 2)
+            components[compIdx++] = q.Z;
+        if (index != 3)
+            components[compIdx++] = q.W;
 
         writer.Write(index);
         for (int i = 0; i < 3; i++)
@@ -858,10 +914,14 @@ public static class BinaryReaderWriterExtensions
         // Reconstruct the full quaternion
         float x = 0, y = 0, z = 0, w = 0;
         int compIdx = 0;
-        if (index != 0) x = components[compIdx++];
-        if (index != 1) y = components[compIdx++];
-        if (index != 2) z = components[compIdx++];
-        if (index != 3) w = components[compIdx++];
+        if (index != 0)
+            x = components[compIdx++];
+        if (index != 1)
+            y = components[compIdx++];
+        if (index != 2)
+            z = components[compIdx++];
+        if (index != 3)
+            w = components[compIdx++];
 
         // Compute the missing component
         float sum = 1f - (x * x + y * y + z * z + w * w);
@@ -997,7 +1057,8 @@ public static class BinaryReaderWriterExtensions
     /// </summary>
     public static void WriteHash128(this BinaryWriter writer, ReadOnlySpan<byte> hash)
     {
-        if (hash.Length != 16) throw new ArgumentException("Hash must be 16 bytes.");
+        if (hash.Length != 16)
+            throw new ArgumentException("Hash must be 16 bytes.");
         writer.Write(hash);
     }
 
@@ -1011,7 +1072,8 @@ public static class BinaryReaderWriterExtensions
     /// </summary>
     public static void WriteHash256(this BinaryWriter writer, ReadOnlySpan<byte> hash)
     {
-        if (hash.Length != 32) throw new ArgumentException("Hash must be 32 bytes.");
+        if (hash.Length != 32)
+            throw new ArgumentException("Hash must be 32 bytes.");
         writer.Write(hash);
     }
 

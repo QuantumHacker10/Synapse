@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: AssetStreamer.cs
 // PATH: Streaming/AssetStreamer.cs
@@ -24,16 +6,32 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics;
 using System.IO;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Numerics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using System.Threading.Tasks;
 using GDNN.Core.NeuralNetwork;
 
@@ -954,7 +952,8 @@ namespace GDNN.Streaming
 
                 foreach (var depId in entry.Dependencies)
                 {
-                    if (cancellationToken.IsCancellationRequested) return;
+                    if (cancellationToken.IsCancellationRequested)
+                        return;
 
                     if (_assets.TryGetValue(depId, out var depEntry))
                     {
@@ -964,7 +963,8 @@ namespace GDNN.Streaming
                             && depEntry.State != AssetLoadingState.Unloaded)
                         {
                             await Task.Delay(50, cancellationToken).ConfigureAwait(false);
-                            if (++waitCount > 600) break;
+                            if (++waitCount > 600)
+                                break;
                         }
 
                         if (depEntry.State == AssetLoadingState.Failed)
@@ -1014,7 +1014,8 @@ namespace GDNN.Streaming
                     ProgressPercent = 50
                 });
 
-                if (cancellationToken.IsCancellationRequested) return;
+                if (cancellationToken.IsCancellationRequested)
+                    return;
 
                 byte[] decompressed = await Task.Run(
                     () => _compression.Decompress(compressedData).ToArray(), cancellationToken)
@@ -1030,7 +1031,8 @@ namespace GDNN.Streaming
                     ProgressPercent = 70
                 });
 
-                if (cancellationToken.IsCancellationRequested) return;
+                if (cancellationToken.IsCancellationRequested)
+                    return;
 
                 NeuralAsset asset = await Task.Run(
                     () => DecodeAsset(decompressed, entry), cancellationToken)
@@ -1044,7 +1046,8 @@ namespace GDNN.Streaming
                     ProgressPercent = 90
                 });
 
-                if (cancellationToken.IsCancellationRequested) return;
+                if (cancellationToken.IsCancellationRequested)
+                    return;
 
                 await UploadToGpuAsync(asset, cancellationToken).ConfigureAwait(false);
 
@@ -1154,7 +1157,8 @@ namespace GDNN.Streaming
         /// </summary>
         private async Task WaitForBandwidthAsync(CancellationToken cancellationToken)
         {
-            if (_config.MaxBandwidthBytesPerSecond <= 0) return;
+            if (_config.MaxBandwidthBytesPerSecond <= 0)
+                return;
 
             double currentBps = _bandwidthTracker.GetCurrentBandwidth();
             while (currentBps > _config.MaxBandwidthBytesPerSecond)
@@ -1201,7 +1205,8 @@ namespace GDNN.Streaming
                     continue;
 
                 long targetFree = currentMem - (long)(_config.MemoryBudgetBytes * 0.7);
-                if (targetFree <= 0) continue;
+                if (targetFree <= 0)
+                    continue;
 
                 var expiredCandidates = _assets.Values
                     .Where(e => e.State == AssetLoadingState.Loaded
@@ -1214,7 +1219,8 @@ namespace GDNN.Streaming
                 long freed = 0;
                 foreach (var candidate in expiredCandidates)
                 {
-                    if (freed >= targetFree) break;
+                    if (freed >= targetFree)
+                        break;
 
                     if (UnloadAsset(candidate.AssetId))
                     {
@@ -1243,7 +1249,8 @@ namespace GDNN.Streaming
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             _shutdownCts.Cancel();

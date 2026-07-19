@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: WarpSpace.cs
 // PATH: Evaluation/WarpSpace.cs
@@ -24,11 +6,26 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using GDNN.Rendering.Compat;
 
 namespace GDNN.Evaluation
@@ -277,14 +274,17 @@ namespace GDNN.Evaluation
         /// <summary>Gets interpolated pose at a given time.</summary>
         public Pose Interpolate(float time)
         {
-            if (Keyframes.Count == 0) return new Pose();
-            if (Keyframes.Count == 1) return Keyframes[0];
+            if (Keyframes.Count == 0)
+                return new Pose();
+            if (Keyframes.Count == 1)
+                return Keyframes[0];
 
             // Clamp or wrap time
             if (Loop)
             {
                 time = time % Duration;
-                if (time < 0) time += Duration;
+                if (time < 0)
+                    time += Duration;
             }
             else
             {
@@ -355,7 +355,8 @@ namespace GDNN.Evaluation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float InverseLerp(float a, float b, float value)
         {
-            if (MathF.Abs(b - a) < 1e-8f) return 0;
+            if (MathF.Abs(b - a) < 1e-8f)
+                return 0;
             return (value - a) / (b - a);
         }
     }
@@ -399,7 +400,8 @@ namespace GDNN.Evaluation
         /// <returns>Index of the added joint.</returns>
         public int AddJoint(Joint joint)
         {
-            if (joint == null) throw new ArgumentNullException(nameof(joint));
+            if (joint == null)
+                throw new ArgumentNullException(nameof(joint));
             int index = _joints.Count;
             joint.Id = index;
             _joints.Add(joint);
@@ -547,7 +549,8 @@ namespace GDNN.Evaluation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SkinVertexLBSContribution(Vector3 vertex, int jointIndex, float weight, ref Vector3 result)
         {
-            if (weight < 1e-8f || jointIndex < 0 || jointIndex >= _joints.Count) return;
+            if (weight < 1e-8f || jointIndex < 0 || jointIndex >= _joints.Count)
+                return;
 
             var joint = _joints[jointIndex];
             // Transform: bindInverse * currentWorld * vertex
@@ -582,7 +585,8 @@ namespace GDNN.Evaluation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SkinNormalLBSContribution(Vector3 normal, int jointIndex, float weight, ref Vector3 result)
         {
-            if (weight < 1e-8f || jointIndex < 0 || jointIndex >= _joints.Count) return;
+            if (weight < 1e-8f || jointIndex < 0 || jointIndex >= _joints.Count)
+                return;
 
             var joint = _joints[jointIndex];
             // Normal transform: transpose(inverse(currentWorld * bindInverse))
@@ -648,7 +652,8 @@ namespace GDNN.Evaluation
         private void AddDQSContribution(int jointIndex, float weight,
             ref DualQuaternion result, ref float totalWeight)
         {
-            if (weight < 1e-8f || jointIndex < 0 || jointIndex >= _joints.Count) return;
+            if (weight < 1e-8f || jointIndex < 0 || jointIndex >= _joints.Count)
+                return;
 
             var joint = _joints[jointIndex];
             var bindDQ = DualQuaternion.FromMatrix(joint.BindPoseWorld);
@@ -744,7 +749,8 @@ namespace GDNN.Evaluation
 
             foreach (int joint in joints)
             {
-                if (count >= 4) break;
+                if (count >= 4)
+                    break;
 
                 float wA = GetWeightForJoint(a, joint);
                 float wB = GetWeightForJoint(b, joint);
@@ -775,19 +781,27 @@ namespace GDNN.Evaluation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void AddUniqueJoint(BoneWeight weight, HashSet<int> joints)
         {
-            if (weight.Weight0 > 1e-6f) joints.Add(weight.Joint0);
-            if (weight.Weight1 > 1e-6f) joints.Add(weight.Joint1);
-            if (weight.Weight2 > 1e-6f) joints.Add(weight.Joint2);
-            if (weight.Weight3 > 1e-6f) joints.Add(weight.Joint3);
+            if (weight.Weight0 > 1e-6f)
+                joints.Add(weight.Joint0);
+            if (weight.Weight1 > 1e-6f)
+                joints.Add(weight.Joint1);
+            if (weight.Weight2 > 1e-6f)
+                joints.Add(weight.Joint2);
+            if (weight.Weight3 > 1e-6f)
+                joints.Add(weight.Joint3);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float GetWeightForJoint(BoneWeight weight, int joint)
         {
-            if (weight.Joint0 == joint) return weight.Weight0;
-            if (weight.Joint1 == joint) return weight.Weight1;
-            if (weight.Joint2 == joint) return weight.Weight2;
-            if (weight.Joint3 == joint) return weight.Weight3;
+            if (weight.Joint0 == joint)
+                return weight.Weight0;
+            if (weight.Joint1 == joint)
+                return weight.Weight1;
+            if (weight.Joint2 == joint)
+                return weight.Weight2;
+            if (weight.Joint3 == joint)
+                return weight.Weight3;
             return 0;
         }
 
@@ -797,7 +811,8 @@ namespace GDNN.Evaluation
         /// <param name="clip">Animation clip to add.</param>
         public void AddAnimation(AnimationClip clip)
         {
-            if (clip == null) throw new ArgumentNullException(nameof(clip));
+            if (clip == null)
+                throw new ArgumentNullException(nameof(clip));
             _animations.Add(clip);
         }
 
@@ -845,14 +860,18 @@ namespace GDNN.Evaluation
             if (poses.Length != weights.Length)
                 throw new ArgumentException("Poses and weights must have the same length.");
 
-            if (poses.Length == 0) return new Pose();
-            if (poses.Length == 1) return poses[0];
+            if (poses.Length == 0)
+                return new Pose();
+            if (poses.Length == 1)
+                return poses[0];
 
             // Normalize weights
             float totalWeight = 0;
-            for (int i = 0; i < weights.Length; i++) totalWeight += weights[i];
+            for (int i = 0; i < weights.Length; i++)
+                totalWeight += weights[i];
 
-            if (totalWeight < 1e-8f) return poses[0];
+            if (totalWeight < 1e-8f)
+                return poses[0];
 
             int maxJoints = 0;
             for (int i = 0; i < poses.Length; i++)
@@ -1089,7 +1108,8 @@ namespace GDNN.Evaluation
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _joints.Clear();
             _vertexWeights.Clear();

@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: StackAllocator.cs
 // PATH: Memory/StackAllocator.cs
@@ -28,10 +10,26 @@ using System.Threading.Tasks;
 // Fixed-size stack allocator for frame-based allocations with zero GC pressure.
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Memory;
 
@@ -609,9 +607,12 @@ public sealed unsafe class StackAllocator : IDisposable
     public static int AlignmentOf<T>() where T : unmanaged
     {
         int size = sizeof(T);
-        if (size >= 8) return 8;
-        if (size >= 4) return 4;
-        if (size >= 2) return 2;
+        if (size >= 8)
+            return 8;
+        if (size >= 4)
+            return 4;
+        if (size >= 2)
+            return 2;
         return 1;
     }
 
@@ -663,7 +664,8 @@ public sealed unsafe class StackAllocator : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
 
         if (_basePointer != null)
@@ -858,7 +860,8 @@ public sealed class StackAllocatorRegistry : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
 
         foreach (var kvp in _allocators)

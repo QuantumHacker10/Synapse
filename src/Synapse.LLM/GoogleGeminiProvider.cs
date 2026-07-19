@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -203,8 +203,10 @@ namespace GDNN.Llm
                 {
                     _currentCts.Token.ThrowIfCancellationRequested();
                     var line = await reader.ReadLineAsync(_currentCts.Token);
-                    if (string.IsNullOrEmpty(line)) continue;
-                    if (!line.StartsWith("data: ")) continue;
+                    if (string.IsNullOrEmpty(line))
+                        continue;
+                    if (!line.StartsWith("data: "))
+                        continue;
 
                     var data = line.Substring(6).Trim();
                     List<string> geminiTexts = new();
@@ -324,7 +326,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public int EstimateTokens(string text)
         {
-            if (string.IsNullOrEmpty(text)) return 0;
+            if (string.IsNullOrEmpty(text))
+                return 0;
             return (int)Math.Ceiling(text.Length / 4.0);
         }
 
@@ -338,7 +341,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
         {
-            if (_disposed || string.IsNullOrEmpty(_apiKey)) return false;
+            if (_disposed || string.IsNullOrEmpty(_apiKey))
+                return false;
             try
             {
                 var url = $"{_baseUrl}/models?key={_apiKey}";
@@ -372,7 +376,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public async Task<HealthCheckStatus> CheckHealthAsync(CancellationToken cancellationToken = default)
         {
-            if (_disposed) return HealthCheckStatus.Unhealthy;
+            if (_disposed)
+                return HealthCheckStatus.Unhealthy;
             try
             {
                 var available = await IsAvailableAsync(cancellationToken);
@@ -384,11 +389,13 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _currentCts?.Cancel();
             _currentCts?.Dispose();
-            if (_ownsHttpClient) _httpClient.Dispose();
+            if (_ownsHttpClient)
+                _httpClient.Dispose();
         }
 
         // ─── Private Helpers ───────────────────────────────────────────────

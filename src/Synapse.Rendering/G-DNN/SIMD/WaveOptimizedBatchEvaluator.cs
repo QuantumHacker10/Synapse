@@ -310,7 +310,8 @@ public sealed unsafe class WaveOptimizedBatchEvaluator : IDisposable
 
             float maxVal = float.MinValue;
             for (int i = waveStart; i < waveEnd; i++)
-                if (input[i] > maxVal) maxVal = input[i];
+                if (input[i] > maxVal)
+                    maxVal = input[i];
 
             waveMaxima[waveIdx] = maxVal;
         }
@@ -469,7 +470,8 @@ public sealed unsafe class WaveOptimizedBatchEvaluator : IDisposable
             for (int c = 0; c < 8; c++)
             {
                 float sdf = network.Evaluate(corners[c]);
-                if (sdf < minSdf) minSdf = sdf;
+                if (sdf < minSdf)
+                    minSdf = sdf;
             }
 
             lowerBounds[i] = minSdf;
@@ -481,9 +483,12 @@ public sealed unsafe class WaveOptimizedBatchEvaluator : IDisposable
     /// </summary>
     public int GetOptimalWaveSize()
     {
-        if (Avx512F.IsSupported) return 16;  // 512-bit / 32-bit = 16
-        if (Avx2.IsSupported) return 8;      // 256-bit / 32-bit = 8
-        if (Sse.IsSupported) return 4;       // 128-bit / 32-bit = 4
+        if (Avx512F.IsSupported)
+            return 16;  // 512-bit / 32-bit = 16
+        if (Avx2.IsSupported)
+            return 8;      // 256-bit / 32-bit = 8
+        if (Sse.IsSupported)
+            return 4;       // 128-bit / 32-bit = 4
         return 1;
     }
 
@@ -492,11 +497,15 @@ public sealed unsafe class WaveOptimizedBatchEvaluator : IDisposable
     /// </summary>
     public string GetSimdCapabilities()
     {
-        if (_hasAvx512) return "AVX-512 (16-wide SIMD)";
-        if (Avx2.IsSupported) return "AVX2 (8-wide SIMD)";
-        if (Sse.IsSupported) return "SSE (4-wide SIMD)";
+        if (_hasAvx512)
+            return "AVX-512 (16-wide SIMD)";
+        if (Avx2.IsSupported)
+            return "AVX2 (8-wide SIMD)";
+        if (Sse.IsSupported)
+            return "SSE (4-wide SIMD)";
 #if NET6_0_OR_GREATER
-        if (System.Runtime.Intrinsics.Arm.AdvSimd.IsSupported) return "NEON (4-wide SIMD)";
+        if (System.Runtime.Intrinsics.Arm.AdvSimd.IsSupported)
+            return "NEON (4-wide SIMD)";
 #endif
         return "Scalar (1-wide)";
     }
@@ -513,7 +522,8 @@ public sealed unsafe class WaveOptimizedBatchEvaluator : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         GC.SuppressFinalize(this);
     }
@@ -556,7 +566,8 @@ public static class WaveIntrinsics
     {
         float maxVal = value;
         for (int i = 0; i < waveValues.Length; i++)
-            if (waveValues[i] > maxVal) maxVal = waveValues[i];
+            if (waveValues[i] > maxVal)
+                maxVal = waveValues[i];
         return maxVal;
     }
 
@@ -568,7 +579,8 @@ public static class WaveIntrinsics
     {
         float minVal = value;
         for (int i = 0; i < waveValues.Length; i++)
-            if (waveValues[i] < minVal) minVal = waveValues[i];
+            if (waveValues[i] < minVal)
+                minVal = waveValues[i];
         return minVal;
     }
 
@@ -625,7 +637,8 @@ public static class WaveIntrinsics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int FirstSetLane(uint ballotMask)
     {
-        if (ballotMask == 0) return -1;
+        if (ballotMask == 0)
+            return -1;
         return BitOperations.TrailingZeroCount(ballotMask);
     }
 
@@ -635,7 +648,8 @@ public static class WaveIntrinsics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int LastSetLane(uint ballotMask)
     {
-        if (ballotMask == 0) return -1;
+        if (ballotMask == 0)
+            return -1;
         return 31 - BitOperations.LeadingZeroCount(ballotMask);
     }
 }

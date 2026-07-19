@@ -160,21 +160,24 @@ namespace GDNN.Rendering.Bridge
 
         public float GetOutputPixelR(int x, int y)
         {
-            if (x < 0 || x >= _width || y < 0 || y >= _height) return 0;
+            if (x < 0 || x >= _width || y < 0 || y >= _height)
+                return 0;
             var pixel = _outputBuffer.GetPixel(x, y);
             return pixel.X;
         }
 
         public float GetOutputPixelG(int x, int y)
         {
-            if (x < 0 || x >= _width || y < 0 || y >= _height) return 0;
+            if (x < 0 || x >= _width || y < 0 || y >= _height)
+                return 0;
             var pixel = _outputBuffer.GetPixel(x, y);
             return pixel.Y;
         }
 
         public float GetOutputPixelB(int x, int y)
         {
-            if (x < 0 || x >= _width || y < 0 || y >= _height) return 0;
+            if (x < 0 || x >= _width || y < 0 || y >= _height)
+                return 0;
             var pixel = _outputBuffer.GetPixel(x, y);
             return pixel.Z;
         }
@@ -185,7 +188,8 @@ namespace GDNN.Rendering.Bridge
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _pipeline?.Dispose();
             _hdrBuffer?.Dispose();

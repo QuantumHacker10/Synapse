@@ -13,7 +13,8 @@ namespace GDNN.Platform
 
         public static void EnsureRegistered()
         {
-            if (_registered) return;
+            if (_registered)
+                return;
             NativeLibrary.SetDllImportResolver(typeof(NativeLibraryResolver).Assembly, Resolve);
             _registered = true;
         }
@@ -47,7 +48,8 @@ namespace GDNN.Platform
 
         public static IntPtr GetExport(IntPtr library, string name)
         {
-            if (library == IntPtr.Zero) return IntPtr.Zero;
+            if (library == IntPtr.Zero)
+                return IntPtr.Zero;
             return NativeLibrary.TryGetExport(library, name, out var export) ? export : IntPtr.Zero;
         }
 

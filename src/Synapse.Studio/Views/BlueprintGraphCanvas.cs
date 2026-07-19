@@ -54,7 +54,8 @@ namespace Synapse.Studio.Views
         {
             base.Render(context);
             var doc = Document;
-            if (doc == null) return;
+            if (doc == null)
+                return;
 
             context.FillRectangle(new SolidColorBrush(Color.Parse("#0E1218")), Bounds);
 
@@ -100,19 +101,22 @@ namespace Synapse.Studio.Views
             base.OnPointerPressed(e);
             Focus();
             var doc = Document;
-            if (doc == null) return;
+            if (doc == null)
+                return;
             var pos = e.GetPosition(this);
 
             foreach (var node in doc.Nodes)
             {
                 var rect = new Rect(node.X + _pan.X, node.Y + _pan.Y, 150, 56);
-                if (!rect.Contains(pos)) continue;
+                if (!rect.Contains(pos))
+                    continue;
 
                 SelectedNodeId = node.Id;
 
                 if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
                 {
-                    if (_connectFromId == null) _connectFromId = node.Id;
+                    if (_connectFromId == null)
+                        _connectFromId = node.Id;
                     else if (_connectFromId != node.Id)
                     {
                         doc.Edges.Add(new BlueprintEdge
@@ -143,13 +147,15 @@ namespace Synapse.Studio.Views
         {
             base.OnPointerMoved(e);
             var doc = Document;
-            if (doc == null || !_draggingNode || _dragNodeId == null) return;
+            if (doc == null || !_draggingNode || _dragNodeId == null)
+                return;
 
             var pos = e.GetPosition(this);
             var delta = pos - _dragStart;
             _dragStart = pos;
             var node = doc.Nodes.Find(n => n.Id == _dragNodeId);
-            if (node == null) return;
+            if (node == null)
+                return;
             node.X += (float)delta.X;
             node.Y += (float)delta.Y;
             InvalidateVisual();

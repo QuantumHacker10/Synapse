@@ -30,7 +30,7 @@ namespace GDNN.Rendering.Compute
     public class ComputeBuffer : IDisposable
     {
         public IntPtr Handle { get; set; }
-        public VulkanBuffer Buffer { get; set; }
+        public required VulkanBuffer Buffer { get; set; }
         public uint ElementCount { get; set; }
         public uint Stride { get; set; }
         public bool IsStorageBuffer { get; set; }
@@ -38,7 +38,8 @@ namespace GDNN.Rendering.Compute
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             Buffer?.Dispose();
         }
@@ -47,14 +48,15 @@ namespace GDNN.Rendering.Compute
     public class ComputeTexture : IDisposable
     {
         public IntPtr Handle { get; set; }
-        public VulkanTexture Texture { get; set; }
+        public required VulkanTexture Texture { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
         private bool _disposed;
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             Texture?.Dispose();
         }
@@ -63,16 +65,16 @@ namespace GDNN.Rendering.Compute
     public class ComputeJob
     {
         public int JobId { get; set; }
-        public string KernelName { get; set; }
+        public required string KernelName { get; set; }
         public uint GroupCountX { get; set; }
         public uint GroupCountY { get; set; }
         public uint GroupCountZ { get; set; }
-        public float[] PushConstants { get; set; }
-        public ComputeBuffer[] Buffers { get; set; }
-        public ComputeTexture[] Textures { get; set; }
-        public ManualResetEventSlim CompletionEvent { get; set; }
+        public required float[] PushConstants { get; set; }
+        public required ComputeBuffer[] Buffers { get; set; }
+        public required ComputeTexture[] Textures { get; set; }
+        public required ManualResetEventSlim CompletionEvent { get; set; }
         public bool IsCompleted { get; set; }
-        public Exception Error { get; set; }
+        public required Exception Error { get; set; }
     }
 
     public class ComputeDispatcher : IDisposable
@@ -163,10 +165,12 @@ namespace GDNN.Rendering.Compute
 
         private void ExecuteJobCPU(ComputeJob job)
         {
-            if (job.Buffers == null || job.Buffers.Length == 0) return;
+            if (job.Buffers == null || job.Buffers.Length == 0)
+                return;
 
             var kernel = _kernels.GetValueOrDefault(job.KernelName);
-            if (kernel == null) return;
+            if (kernel == null)
+                return;
 
             switch (kernel.KernelType)
             {
@@ -193,7 +197,8 @@ namespace GDNN.Rendering.Compute
 
         private void ExecuteBlurJob(ComputeJob job, ComputePipelineDesc kernel)
         {
-            if (job.Buffers.Length < 2) return;
+            if (job.Buffers.Length < 2)
+                return;
             var input = job.Buffers[0];
             var output = job.Buffers[1];
 
@@ -204,8 +209,10 @@ namespace GDNN.Rendering.Compute
             int width = (int)job.GroupCountX * (int)kernel.LocalSizeX;
             int height = (int)job.GroupCountY * (int)kernel.LocalSizeY;
 
-            if (width <= 0) width = 1;
-            if (height <= 0) height = 1;
+            if (width <= 0)
+                width = 1;
+            if (height <= 0)
+                height = 1;
 
             float sigma = job.PushConstants?.Length > 0 ? job.PushConstants[0] : 3.0f;
             int radius = Math.Max(1, (int)(sigma * 2));
@@ -248,7 +255,8 @@ namespace GDNN.Rendering.Compute
 
         private void ExecuteTonemapJob(ComputeJob job)
         {
-            if (job.Buffers.Length < 2) return;
+            if (job.Buffers.Length < 2)
+                return;
             var input = job.Buffers[0];
             var output = job.Buffers[1];
 
@@ -274,7 +282,8 @@ namespace GDNN.Rendering.Compute
 
         private void ExecuteBloomJob(ComputeJob job, ComputePipelineDesc kernel)
         {
-            if (job.Buffers.Length < 2) return;
+            if (job.Buffers.Length < 2)
+                return;
             bool downsample = kernel.Name.Contains("down");
             var input = job.Buffers[0];
             var output = job.Buffers[1];
@@ -282,13 +291,17 @@ namespace GDNN.Rendering.Compute
             float[] inputData = ReadBuffer(input);
             int srcW = (int)job.GroupCountX * (int)kernel.LocalSizeX;
             int srcH = (int)job.GroupCountY * (int)kernel.LocalSizeY;
-            if (srcW <= 0) srcW = 1;
-            if (srcH <= 0) srcH = 1;
+            if (srcW <= 0)
+                srcW = 1;
+            if (srcH <= 0)
+                srcH = 1;
 
             int dstW = downsample ? srcW / 2 : srcW * 2;
             int dstH = downsample ? srcH / 2 : srcH * 2;
-            if (dstW <= 0) dstW = 1;
-            if (dstH <= 0) dstH = 1;
+            if (dstW <= 0)
+                dstW = 1;
+            if (dstH <= 0)
+                dstH = 1;
 
             float[] outputData = new float[dstW * dstH * 4];
 
@@ -327,7 +340,8 @@ namespace GDNN.Rendering.Compute
 
         private void ExecuteConvolutionJob(ComputeJob job)
         {
-            if (job.Buffers.Length < 3) return;
+            if (job.Buffers.Length < 3)
+                return;
             var input = job.Buffers[0];
             var kernelBuf = job.Buffers[1];
             var output = job.Buffers[2];
@@ -368,7 +382,8 @@ namespace GDNN.Rendering.Compute
 
         private void ExecuteReductionJob(ComputeJob job)
         {
-            if (job.Buffers.Length < 1) return;
+            if (job.Buffers.Length < 1)
+                return;
             var input = job.Buffers[0];
             float[] data = ReadBuffer(input);
 
@@ -382,7 +397,8 @@ namespace GDNN.Rendering.Compute
 
         private void ExecuteGenericJob(ComputeJob job)
         {
-            if (job.Buffers.Length < 2) return;
+            if (job.Buffers.Length < 2)
+                return;
             var input = job.Buffers[0];
             var output = job.Buffers[1];
 
@@ -407,7 +423,8 @@ namespace GDNN.Rendering.Compute
             x = Math.Clamp(x, 0, width - 1);
             y = Math.Clamp(y, 0, height - 1);
             int idx = (y * width + x) * 4;
-            if (idx + 3 >= data.Length) return Vector4.Zero;
+            if (idx + 3 >= data.Length)
+                return Vector4.Zero;
             return new Vector4(data[idx], data[idx + 1], data[idx + 2], data[idx + 3]);
         }
 
@@ -421,7 +438,8 @@ namespace GDNN.Rendering.Compute
                 kernel[i + radius] = val;
                 sum += val;
             }
-            for (int i = 0; i < kernel.Length; i++) kernel[i] /= sum;
+            for (int i = 0; i < kernel.Length; i++)
+                kernel[i] /= sum;
             return kernel;
         }
 
@@ -433,7 +451,8 @@ namespace GDNN.Rendering.Compute
 
         private float[] ReadBuffer(ComputeBuffer buf)
         {
-            if (buf.Buffer == null) return Array.Empty<float>();
+            if (buf.Buffer == null)
+                return Array.Empty<float>();
             try
             {
                 var mapped = buf.Buffer.Map();
@@ -448,7 +467,8 @@ namespace GDNN.Rendering.Compute
 
         private void WriteBuffer(ComputeBuffer buf, float[] data)
         {
-            if (buf.Buffer == null) return;
+            if (buf.Buffer == null)
+                return;
             try
             {
                 var mapped = buf.Buffer.Map();
@@ -487,20 +507,23 @@ namespace GDNN.Rendering.Compute
         public bool IsJobComplete(int jobId)
         {
             foreach (var job in _completedJobs)
-                if (job.JobId == jobId) return true;
+                if (job.JobId == jobId)
+                    return true;
             return false;
         }
 
-        public ComputeJob WaitForJob(int jobId, int timeoutMs = 5000)
+        public ComputeJob? WaitForJob(int jobId, int timeoutMs = 5000)
         {
             foreach (var job in _completedJobs)
-                if (job.JobId == jobId) return job;
+                if (job.JobId == jobId)
+                    return job;
 
             var sw = System.Diagnostics.Stopwatch.StartNew();
             while (sw.ElapsedMilliseconds < timeoutMs)
             {
                 foreach (var job in _completedJobs)
-                    if (job.JobId == jobId) return job;
+                    if (job.JobId == jobId)
+                        return job;
                 Thread.Sleep(1);
             }
 
@@ -510,7 +533,8 @@ namespace GDNN.Rendering.Compute
         public void DispatchBlur(ComputeBuffer input, ComputeBuffer output, float sigma, bool horizontal)
         {
             string kernel = horizontal ? "blur_h" : "blur_v";
-            if (!_kernels.ContainsKey(kernel)) return;
+            if (!_kernels.ContainsKey(kernel))
+                return;
 
             var desc = _kernels[kernel];
             uint groupsX = (uint)MathF.Ceiling(1.0f / desc.LocalSizeX);
@@ -520,7 +544,8 @@ namespace GDNN.Rendering.Compute
 
         public void DispatchTonemap(ComputeBuffer input, ComputeBuffer output, float exposure, float gamma)
         {
-            if (!_kernels.ContainsKey("tonemap")) return;
+            if (!_kernels.ContainsKey("tonemap"))
+                return;
             var desc = _kernels["tonemap"];
             uint groupsX = (uint)MathF.Ceiling(1.0f / desc.LocalSizeX);
             uint groupsY = (uint)MathF.Ceiling(1.0f / desc.LocalSizeY);
@@ -529,7 +554,8 @@ namespace GDNN.Rendering.Compute
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _running = false;
             _computeThread?.Join(1000);

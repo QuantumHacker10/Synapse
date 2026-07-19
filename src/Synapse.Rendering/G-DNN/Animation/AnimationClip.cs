@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: AnimationClip.cs
 // PATH: Animation/AnimationClip.cs
@@ -24,12 +6,28 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Animation
 {
@@ -399,9 +397,12 @@ namespace GDNN.Animation
 
         private static float GetTime<T>(T keyframe)
         {
-            if (keyframe is Vector3Keyframe v3) return v3.Time;
-            if (keyframe is QuaternionKeyframe q) return q.Time;
-            if (keyframe is Keyframe k) return k.Time;
+            if (keyframe is Vector3Keyframe v3)
+                return v3.Time;
+            if (keyframe is QuaternionKeyframe q)
+                return q.Time;
+            if (keyframe is Keyframe k)
+                return k.Time;
             return 0f;
         }
 
@@ -435,14 +436,16 @@ namespace GDNN.Animation
 
         public void SampleAtTime(float time, Skeleton skeleton)
         {
-            if (skeleton == null) throw new ArgumentNullException(nameof(skeleton));
+            if (skeleton == null)
+                throw new ArgumentNullException(nameof(skeleton));
 
             time = ClampTime(time);
 
             for (int ch = 0; ch < _channelCount; ch++)
             {
                 int jointIdx = _jointIndices[ch];
-                if (jointIdx < 0 || jointIdx >= skeleton.JointCount) continue;
+                if (jointIdx < 0 || jointIdx >= skeleton.JointCount)
+                    continue;
 
                 JointAnimationData data = _jointData[ch];
                 Vector3 pos = data.HasPosition ? SamplePosition(data, time) : skeleton.GetJoint(jointIdx).LocalTranslation;
@@ -495,8 +498,10 @@ namespace GDNN.Animation
                 return channel.Values[channel.KeyframeCount - 1];
 
             int idx = FindKeyframeIndex(channel, time);
-            if (idx < 0) return channel.Values[0];
-            if (idx >= channel.KeyframeCount - 1) return channel.Values[channel.KeyframeCount - 1];
+            if (idx < 0)
+                return channel.Values[0];
+            if (idx >= channel.KeyframeCount - 1)
+                return channel.Values[channel.KeyframeCount - 1];
 
             float t0 = channel.Times[idx];
             float t1 = channel.Times[idx + 1];
@@ -558,11 +563,13 @@ namespace GDNN.Animation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float ClampTime(float time)
         {
-            if (Duration <= 0f) return 0f;
+            if (Duration <= 0f)
+                return 0f;
             if (Loop)
             {
                 time = time % Duration;
-                if (time < 0f) time += Duration;
+                if (time < 0f)
+                    time += Duration;
             }
             else
             {
@@ -575,7 +582,8 @@ namespace GDNN.Animation
 
         public static void ComputeTangents(KeyframeChannel channel)
         {
-            if (channel.KeyframeCount < 2) return;
+            if (channel.KeyframeCount < 2)
+                return;
 
             for (int i = 0; i < channel.KeyframeCount; i++)
             {
@@ -636,7 +644,8 @@ namespace GDNN.Animation
 
         public void CompressUniformSampling(float samplingRate)
         {
-            if (samplingRate <= 0f || Duration <= 0f) return;
+            if (samplingRate <= 0f || Duration <= 0f)
+                return;
 
             int sampleCount = (int)(Duration * samplingRate) + 1;
 
@@ -668,7 +677,8 @@ namespace GDNN.Animation
 
         private void ResampleChannel(KeyframeChannel channel, int targetCount)
         {
-            if (channel.KeyframeCount == 0) return;
+            if (channel.KeyframeCount == 0)
+                return;
             targetCount = Math.Min(targetCount, MaxKeyframesPerChannel);
 
             float[] newTimes = new float[targetCount];
@@ -724,7 +734,8 @@ namespace GDNN.Animation
 
         private static KeyframeChannel SimplifyChannel(KeyframeChannel channel, float tolerance)
         {
-            if (channel.KeyframeCount <= 2) return channel;
+            if (channel.KeyframeCount <= 2)
+                return channel;
 
             bool[] keep = new bool[channel.KeyframeCount];
             keep[0] = true;
@@ -735,10 +746,12 @@ namespace GDNN.Animation
             int newCount = 0;
             for (int i = 0; i < channel.KeyframeCount; i++)
             {
-                if (keep[i]) newCount++;
+                if (keep[i])
+                    newCount++;
             }
 
-            if (newCount >= channel.KeyframeCount) return channel;
+            if (newCount >= channel.KeyframeCount)
+                return channel;
 
             KeyframeChannel result = new KeyframeChannel(newCount);
             result.Interpolation = channel.Interpolation;
@@ -761,7 +774,8 @@ namespace GDNN.Animation
 
         private static void SimplifyRecursive(KeyframeChannel channel, int start, int end, float tolerance, bool[] keep)
         {
-            if (end - start < 2) return;
+            if (end - start < 2)
+                return;
 
             float maxError = 0f;
             int maxIndex = start;
@@ -817,7 +831,8 @@ namespace GDNN.Animation
                 {
                     (_events[i], _events[i - 1]) = (_events[i - 1], _events[i]);
                 }
-                else break;
+                else
+                    break;
             }
         }
 
@@ -844,7 +859,8 @@ namespace GDNN.Animation
             int count = 0;
             for (int i = 0; i < _eventCount && count < triggeredEvents.Length; i++)
             {
-                if (_events[i].HasFired != 0) continue;
+                if (_events[i].HasFired != 0)
+                    continue;
 
                 bool wasBefore = previousTime < _events[i].Time;
                 bool isAfter = currentTime >= _events[i].Time;
@@ -870,10 +886,12 @@ namespace GDNN.Animation
 
         public Vector3 ExtractRootMotionDelta(float previousTime, float currentTime)
         {
-            if (!ExtractRootMotion) return Vector3.Zero;
+            if (!ExtractRootMotion)
+                return Vector3.Zero;
 
             JointAnimationData? data = GetJointData(RootMotionJointIndex);
-            if (data == null || !data.HasPosition) return Vector3.Zero;
+            if (data == null || !data.HasPosition)
+                return Vector3.Zero;
 
             Vector3 previousPos = SamplePosition(data, ClampTime(previousTime));
             Vector3 currentPos = SamplePosition(data, ClampTime(currentTime));
@@ -883,10 +901,12 @@ namespace GDNN.Animation
 
         public Quaternion ExtractRootRotationDelta(float previousTime, float currentTime)
         {
-            if (!ExtractRootMotion) return Quaternion.Identity;
+            if (!ExtractRootMotion)
+                return Quaternion.Identity;
 
             JointAnimationData? data = GetJointData(RootMotionJointIndex);
-            if (data == null || !data.HasRotation) return Quaternion.Identity;
+            if (data == null || !data.HasRotation)
+                return Quaternion.Identity;
 
             Quaternion previousRot = SampleRotation(data, ClampTime(previousTime));
             Quaternion currentRot = SampleRotation(data, ClampTime(currentTime));
@@ -897,10 +917,12 @@ namespace GDNN.Animation
 
         public void RemoveRootMotionFromData()
         {
-            if (!ExtractRootMotion) return;
+            if (!ExtractRootMotion)
+                return;
 
             JointAnimationData? data = GetJointData(RootMotionJointIndex);
-            if (data == null) return;
+            if (data == null)
+                return;
 
             data.HasPosition = false;
             data.Position.X.KeyframeCount = 0;
@@ -912,14 +934,16 @@ namespace GDNN.Animation
 
         public void BlendWith(AnimationClip other, float weight, float time)
         {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
             weight = Math.Clamp(weight, 0f, 1f);
 
             for (int ch = 0; ch < _channelCount; ch++)
             {
                 int jointIdx = _jointIndices[ch];
                 int otherCh = other.FindChannelIndex(jointIdx);
-                if (otherCh < 0) continue;
+                if (otherCh < 0)
+                    continue;
 
                 JointAnimationData thisData = _jointData[ch];
                 JointAnimationData otherData = other._jointData[otherCh];
@@ -1071,9 +1095,12 @@ namespace GDNN.Animation
                 writer.Write(data.HasRotation);
                 writer.Write(data.HasScale);
 
-                if (data.HasPosition) WritePositionChannel(writer, data.Position);
-                if (data.HasRotation) WriteRotationChannel(writer, data.Rotation);
-                if (data.HasScale) WriteScaleChannel(writer, data.Scale);
+                if (data.HasPosition)
+                    WritePositionChannel(writer, data.Position);
+                if (data.HasRotation)
+                    WriteRotationChannel(writer, data.Rotation);
+                if (data.HasScale)
+                    WriteScaleChannel(writer, data.Scale);
             }
 
             for (int i = 0; i < _eventCount; i++)
@@ -1095,18 +1122,27 @@ namespace GDNN.Animation
                 throw new ArgumentException("Data too short.");
 
             int offset = 0;
-            uint magic = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)); offset += 4;
+            uint magic = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset));
+            offset += 4;
             if (magic != 0x41434C50)
                 throw new InvalidDataException("Invalid animation clip magic.");
 
-            uint version = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)); offset += 4;
-            float duration = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset))); offset += 4;
-            float frameRate = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset))); offset += 4;
-            bool loop = data[offset] != 0; offset += 1;
-            bool extractRoot = data[offset] != 0; offset += 1;
-            int rootJoint = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)); offset += 4;
-            uint channelCount = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)); offset += 4;
-            uint eventCount = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)); offset += 4;
+            uint version = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset));
+            offset += 4;
+            float duration = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)));
+            offset += 4;
+            float frameRate = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)));
+            offset += 4;
+            bool loop = data[offset] != 0;
+            offset += 1;
+            bool extractRoot = data[offset] != 0;
+            offset += 1;
+            int rootJoint = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset));
+            offset += 4;
+            uint channelCount = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset));
+            offset += 4;
+            uint eventCount = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset));
+            offset += 4;
 
             var clip = new AnimationClip("Deserialized", duration, frameRate)
             {
@@ -1117,28 +1153,40 @@ namespace GDNN.Animation
 
             for (int ch = 0; ch < (int)channelCount; ch++)
             {
-                int jointIdx = (int)BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)); offset += 4;
-                bool hasPos = data[offset] != 0; offset += 1;
-                bool hasRot = data[offset] != 0; offset += 1;
-                bool hasScl = data[offset] != 0; offset += 1;
+                int jointIdx = (int)BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset));
+                offset += 4;
+                bool hasPos = data[offset] != 0;
+                offset += 1;
+                bool hasRot = data[offset] != 0;
+                offset += 1;
+                bool hasScl = data[offset] != 0;
+                offset += 1;
 
                 var jointData = clip.GetOrCreateJointData(jointIdx);
                 jointData.HasPosition = hasPos;
                 jointData.HasRotation = hasRot;
                 jointData.HasScale = hasScl;
 
-                if (hasPos) { ReadPositionChannel(data, ref offset, jointData.Position); }
-                if (hasRot) { ReadRotationChannel(data, ref offset, jointData.Rotation); }
-                if (hasScl) { ReadScaleChannel(data, ref offset, jointData.Scale); }
+                if (hasPos)
+                { ReadPositionChannel(data, ref offset, jointData.Position); }
+                if (hasRot)
+                { ReadRotationChannel(data, ref offset, jointData.Rotation); }
+                if (hasScl)
+                { ReadScaleChannel(data, ref offset, jointData.Scale); }
             }
 
             for (int i = 0; i < (int)eventCount; i++)
             {
-                float time = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset))); offset += 4;
-                int eventType = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)); offset += 4;
-                int intParam = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)); offset += 4;
-                float floatParam = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset))); offset += 4;
-                int strOffset = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)); offset += 4;
+                float time = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)));
+                offset += 4;
+                int eventType = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset));
+                offset += 4;
+                int intParam = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset));
+                offset += 4;
+                float floatParam = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)));
+                offset += 4;
+                int strOffset = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset));
+                offset += 4;
 
                 clip.AddEvent(time, eventType, intParam, floatParam, strOffset);
             }
@@ -1205,16 +1253,22 @@ namespace GDNN.Animation
 
         private static void ReadScalarChannel(ReadOnlySpan<byte> data, ref int offset, KeyframeChannel ch)
         {
-            uint count = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)); offset += 4;
-            ch.Interpolation = (InterpolationMode)data[offset]; offset += 1;
+            uint count = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset));
+            offset += 4;
+            ch.Interpolation = (InterpolationMode)data[offset];
+            offset += 1;
             ch.KeyframeCount = (int)count;
 
             for (int i = 0; i < (int)count; i++)
             {
-                ch.Times[i] = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset))); offset += 4;
-                ch.Values[i] = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset))); offset += 4;
-                ch.InTangents[i] = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset))); offset += 4;
-                ch.OutTangents[i] = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset))); offset += 4;
+                ch.Times[i] = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)));
+                offset += 4;
+                ch.Values[i] = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)));
+                offset += 4;
+                ch.InTangents[i] = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)));
+                offset += 4;
+                ch.OutTangents[i] = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)));
+                offset += 4;
             }
         }
 

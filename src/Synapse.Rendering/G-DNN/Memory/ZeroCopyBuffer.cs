@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: ZeroCopyBuffer.cs
 // PATH: Memory/ZeroCopyBuffer.cs
@@ -28,13 +10,29 @@ using System.Threading.Tasks;
 // Zero-copy buffer for CPU-GPU data sharing with memory-mapped and circular variants.
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
+using System.IO;
+using System.IO.Compression;
 using System.IO.MemoryMappedFiles;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 using GDNN.Rendering.Compat;
 
 namespace GDNN.Memory;
@@ -407,7 +405,8 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
 
         int available = AvailableToWrite;
         int toWrite = Math.Min(data.Length, available);
-        if (toWrite == 0) return 0;
+        if (toWrite == 0)
+            return 0;
 
         int writePos = _writePosition;
         int firstChunk = Math.Min(toWrite, _capacity - writePos);
@@ -440,7 +439,8 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
 
         int available = AvailableToRead;
         int toRead = Math.Min(destination.Length, available);
-        if (toRead == 0) return 0;
+        if (toRead == 0)
+            return 0;
 
         int readPos = _readPosition;
         int firstChunk = Math.Min(toRead, _capacity - readPos);
@@ -471,7 +471,8 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
 
         int available = AvailableToRead;
         int toPeek = Math.Min(destination.Length, available);
-        if (toPeek == 0) return 0;
+        if (toPeek == 0)
+            return 0;
 
         int readPos = _readPosition;
         int firstChunk = Math.Min(toPeek, _capacity - readPos);
@@ -497,7 +498,8 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
     {
         int available = AvailableToRead;
         int toSkip = Math.Min(count, available);
-        if (toSkip == 0) return 0;
+        if (toSkip == 0)
+            return 0;
 
         Interlocked.Exchange(ref _readPosition, (_readPosition + toSkip) % _capacity);
         Interlocked.Add(ref _totalBytesRead, toSkip);
@@ -663,7 +665,8 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
 
         if (_rawPointer != null)
@@ -732,7 +735,8 @@ public sealed unsafe class MappedBuffer : IDisposable
     /// <exception cref="FileNotFoundException">If the file doesn't exist and createIfMissing was false.</exception>
     public unsafe void Open()
     {
-        if (_isOpen) return;
+        if (_isOpen)
+            return;
 
         if (!File.Exists(_filePath))
         {
@@ -814,7 +818,8 @@ public sealed unsafe class MappedBuffer : IDisposable
     /// </summary>
     public void Close()
     {
-        if (!_isOpen) return;
+        if (!_isOpen)
+            return;
         _isOpen = false;
 
         _accessor?.Dispose();
@@ -829,7 +834,8 @@ public sealed unsafe class MappedBuffer : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         Close();
     }
@@ -1008,7 +1014,8 @@ public sealed unsafe class SPSCRingBuffer<T> : IDisposable where T : unmanaged
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
 
         if (_rawBuffer != null)

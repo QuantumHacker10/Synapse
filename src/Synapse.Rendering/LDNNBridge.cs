@@ -214,7 +214,8 @@ namespace GDNN.Rendering.Bridge
         public void ApplyLlmLighting(LightingParams parameters)
         {
             ArgumentNullException.ThrowIfNull(parameters);
-            if (!_initialized || _ldnn == null || _config == null) return;
+            if (!_initialized || _ldnn == null || _config == null)
+                return;
 
             SetLights(LlmSceneApplicator.ApplyLighting(parameters));
             _config.VolumeFogConfig = LlmSceneApplicator.ApplyFog(parameters, _config.VolumeFogConfig);
@@ -301,7 +302,8 @@ namespace GDNN.Rendering.Bridge
         /// <summary>Placeholder ambient-occlusion query (returns 1 = fully lit).</summary>
         public float ComputeAO(int px, int py)
         {
-            if (px < 0 || px >= _width || py < 0 || py >= _height) return 1.0f;
+            if (px < 0 || px >= _width || py < 0 || py >= _height)
+                return 1.0f;
             return 1.0f;
         }
 
@@ -390,7 +392,8 @@ namespace GDNN.Rendering.Bridge
         /// <summary>Shuts down the L-DNN renderer and releases GPU resources.</summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_initialized)
             {

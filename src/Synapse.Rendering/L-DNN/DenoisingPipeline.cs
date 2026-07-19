@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -17,10 +17,10 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class DenoisingPipeline
     {
-        private DenoiseConfig _config;
-        private Vector3[] _tempBufferA;
-        private Vector3[] _tempBufferB;
-        private float[] _varianceBuffer;
+        private required DenoiseConfig _config;
+        private required Vector3[] _tempBufferA;
+        private required Vector3[] _tempBufferB;
+        private required float[] _varianceBuffer;
         private int _width;
         private int _height;
         private bool _isInitialized;
@@ -238,7 +238,8 @@ namespace GDNN.Lighting.LDNN
                             int nIdx = gbuffer.GetIndex(nx, ny);
 
                             float normalSim = MathF.Max(0, Vector3.Dot(centerNormal, gbuffer.Normals[nIdx]));
-                            if (normalSim < 0.7f) continue;
+                            if (normalSim < 0.7f)
+                                continue;
 
                             meanP += gbuffer.Normals[nIdx];
                             meanI += input[nIdx];
@@ -263,7 +264,8 @@ namespace GDNN.Lighting.LDNN
                                 int nIdx = gbuffer.GetIndex(nx, ny);
 
                                 float normalSim = MathF.Max(0, Vector3.Dot(centerNormal, gbuffer.Normals[nIdx]));
-                                if (normalSim < 0.7f) continue;
+                                if (normalSim < 0.7f)
+                                    continue;
 
                                 Vector3 diffP = gbuffer.Normals[nIdx] - meanP;
                                 Vector3 diffI = input[nIdx] - meanI;

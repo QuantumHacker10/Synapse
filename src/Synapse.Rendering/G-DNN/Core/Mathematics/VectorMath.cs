@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: VectorMath.cs
 // PATH: Core/Mathematics/VectorMath.cs
@@ -24,12 +6,28 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Core.Mathematics;
 
@@ -73,7 +71,8 @@ public static class VectorMath
         };
 
         Span<int> p = stackalloc int[PermutationSize];
-        for (int i = 0; i < PermutationSize; i++) p[i] = i;
+        for (int i = 0; i < PermutationSize; i++)
+            p[i] = i;
 
         var rng = new Random(42);
         for (int i = PermutationSize - 1; i > 0; i--)
@@ -521,7 +520,8 @@ public static class VectorMath
     {
         Vector3 ab = segB - segA;
         float lenSq = ab.LengthSquared();
-        if (lenSq < 1e-10f) return Vector3.Distance(point, segA);
+        if (lenSq < 1e-10f)
+            return Vector3.Distance(point, segA);
 
         float t = MathF.Max(0, MathF.Min(1f, Vector3.Dot(point - segA, ab) / lenSq));
         Vector3 closest = segA + t * ab;
@@ -538,7 +538,8 @@ public static class VectorMath
     {
         Vector3 ab = segB - segA;
         float lenSq = ab.LengthSquared();
-        if (lenSq < 1e-10f) return Vector3.DistanceSquared(point, segA);
+        if (lenSq < 1e-10f)
+            return Vector3.DistanceSquared(point, segA);
 
         float t = MathF.Max(0, MathF.Min(1f, Vector3.Dot(point - segA, ab) / lenSq));
         Vector3 closest = segA + t * ab;
@@ -741,8 +742,10 @@ public static class VectorMath
         float y0 = y - Y0;
 
         int i1, j1;
-        if (x0 > y0) { i1 = 1; j1 = 0; }
-        else { i1 = 0; j1 = 1; }
+        if (x0 > y0)
+        { i1 = 1; j1 = 0; }
+        else
+        { i1 = 0; j1 = 1; }
 
         float x1 = x0 - i1 + G2;
         float y1 = y0 - j1 + G2;
@@ -804,15 +807,21 @@ public static class VectorMath
 
         if (x0 >= y0)
         {
-            if (y0 >= z0) { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
-            else if (x0 >= z0) { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 0; k2 = 1; }
-            else { i1 = 0; j1 = 0; k1 = 1; i2 = 1; j2 = 0; k2 = 1; }
+            if (y0 >= z0)
+            { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
+            else if (x0 >= z0)
+            { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 0; k2 = 1; }
+            else
+            { i1 = 0; j1 = 0; k1 = 1; i2 = 1; j2 = 0; k2 = 1; }
         }
         else
         {
-            if (y0 < z0) { i1 = 0; j1 = 0; k1 = 1; i2 = 0; j2 = 1; k2 = 1; }
-            else if (x0 < z0) { i1 = 0; j1 = 1; k1 = 0; i2 = 0; j2 = 1; k2 = 1; }
-            else { i1 = 0; j1 = 1; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
+            if (y0 < z0)
+            { i1 = 0; j1 = 0; k1 = 1; i2 = 0; j2 = 1; k2 = 1; }
+            else if (x0 < z0)
+            { i1 = 0; j1 = 1; k1 = 0; i2 = 0; j2 = 1; k2 = 1; }
+            else
+            { i1 = 0; j1 = 1; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
         }
 
         float x1 = x0 - i1 + G3;
@@ -832,16 +841,20 @@ public static class VectorMath
         float n0 = 0f, n1 = 0f, n2 = 0f, n3 = 0f;
 
         float t0 = 0.6f - x0 * x0 - y0 * y0 - z0 * z0;
-        if (t0 > 0) { t0 *= t0; n0 = t0 * t0 * DotGrad3D(_gradients3D[_permutation[ii + _permutation[jj + _permutation[kk] & 255] & 255] % 12], x0, y0, z0); }
+        if (t0 > 0)
+        { t0 *= t0; n0 = t0 * t0 * DotGrad3D(_gradients3D[_permutation[ii + _permutation[jj + _permutation[kk] & 255] & 255] % 12], x0, y0, z0); }
 
         float t1 = 0.6f - x1 * x1 - y1 * y1 - z1 * z1;
-        if (t1 > 0) { t1 *= t1; n1 = t1 * t1 * DotGrad3D(_gradients3D[_permutation[ii + i1 + _permutation[jj + j1 + _permutation[kk + k1 & 255] & 255] & 255] % 12], x1, y1, z1); }
+        if (t1 > 0)
+        { t1 *= t1; n1 = t1 * t1 * DotGrad3D(_gradients3D[_permutation[ii + i1 + _permutation[jj + j1 + _permutation[kk + k1 & 255] & 255] & 255] % 12], x1, y1, z1); }
 
         float t2 = 0.6f - x2 * x2 - y2 * y2 - z2 * z2;
-        if (t2 > 0) { t2 *= t2; n2 = t2 * t2 * DotGrad3D(_gradients3D[_permutation[ii + i2 + _permutation[jj + j2 + _permutation[kk + k2 & 255] & 255] & 255] % 12], x2, y2, z2); }
+        if (t2 > 0)
+        { t2 *= t2; n2 = t2 * t2 * DotGrad3D(_gradients3D[_permutation[ii + i2 + _permutation[jj + j2 + _permutation[kk + k2 & 255] & 255] & 255] % 12], x2, y2, z2); }
 
         float t3 = 0.6f - x3 * x3 - y3 * y3 - z3 * z3;
-        if (t3 > 0) { t3 *= t3; n3 = t3 * t3 * DotGrad3D(_gradients3D[_permutation[ii + 1 + _permutation[jj + 1 + _permutation[kk + 1 & 255] & 255] & 255] % 12], x3, y3, z3); }
+        if (t3 > 0)
+        { t3 *= t3; n3 = t3 * t3 * DotGrad3D(_gradients3D[_permutation[ii + 1 + _permutation[jj + 1 + _permutation[kk + 1 & 255] & 255] & 255] % 12], x3, y3, z3); }
 
         return 32f * (n0 + n1 + n2 + n3);
     }
@@ -874,7 +887,8 @@ public static class VectorMath
                     cx + Hash(cx, cy) * InvMaxByte,
                     cy + Hash(cy, cx) * InvMaxByte);
                 float dist = distanceFunc(new Vector2(fx - dx, fy - dy), featurePoint - new Vector2(cx, cy));
-                if (dist < minDist) minDist = dist;
+                if (dist < minDist)
+                    minDist = dist;
             }
         }
 
@@ -949,7 +963,8 @@ public static class VectorMath
     {
         float u1 = rng.NextSingle();
         float u2 = rng.NextSingle();
-        if (u1 + u2 > 1f) { u1 = 1f - u1; u2 = 1f - u2; }
+        if (u1 + u2 > 1f)
+        { u1 = 1f - u1; u2 = 1f - u2; }
         return v0 + u1 * (v1 - v0) + u2 * (v2 - v0);
     }
 
@@ -1000,7 +1015,8 @@ public static class VectorMath
     {
         float dot = Vector3.Dot(v, normal);
         float k = 1f - etaRatio * etaRatio * (1f - dot * dot);
-        if (k < 0f) return Vector3.Zero;
+        if (k < 0f)
+            return Vector3.Zero;
         return etaRatio * v - (etaRatio * dot + MathF.Sqrt(k)) * normal;
     }
 
@@ -1018,7 +1034,8 @@ public static class VectorMath
     {
         Vector3 ab = segB - segA;
         float lenSq = ab.LengthSquared();
-        if (lenSq < 1e-10f) return segA;
+        if (lenSq < 1e-10f)
+            return segA;
         float t = MathF.Max(0, MathF.Min(1f, Vector3.Dot(point - segA, ab) / lenSq));
         return segA + t * ab;
     }
@@ -1037,7 +1054,8 @@ public static class VectorMath
         float d21 = Vector3.Dot(v2, v1);
 
         float denom = d00 * d11 - d01 * d01;
-        if (MathF.Abs(denom) < 1e-10f) return new Vector3(1f, 0f, 0f);
+        if (MathF.Abs(denom) < 1e-10f)
+            return new Vector3(1f, 0f, 0f);
 
         float v = (d11 * d20 - d01 * d21) / denom;
         float w = (d00 * d21 - d01 * d20) / denom;
@@ -1078,15 +1096,18 @@ public static class VectorMath
 
         Vector3 closestOnEdge0 = ClosestPointOnSegment(point, v0, v1);
         float d = Vector3.DistanceSquared(point, closestOnEdge0);
-        if (d < bestDist) { bestDist = d; bestPoint = closestOnEdge0; }
+        if (d < bestDist)
+        { bestDist = d; bestPoint = closestOnEdge0; }
 
         Vector3 closestOnEdge1 = ClosestPointOnSegment(point, v1, v2);
         d = Vector3.DistanceSquared(point, closestOnEdge1);
-        if (d < bestDist) { bestDist = d; bestPoint = closestOnEdge1; }
+        if (d < bestDist)
+        { bestDist = d; bestPoint = closestOnEdge1; }
 
         Vector3 closestOnEdge2 = ClosestPointOnSegment(point, v2, v0);
         d = Vector3.DistanceSquared(point, closestOnEdge2);
-        if (d < bestDist) { bestDist = d; bestPoint = closestOnEdge2; }
+        if (d < bestDist)
+        { bestDist = d; bestPoint = closestOnEdge2; }
 
         closestPoint = bestPoint;
         return MathF.Sqrt(bestDist);
@@ -1523,12 +1544,14 @@ public static class VectorMath
         int n = points.Length;
         if (n <= 2)
         {
-            for (int i = 0; i < n; i++) hullIndices[i] = i;
+            for (int i = 0; i < n; i++)
+                hullIndices[i] = i;
             return n;
         }
 
         Span<int> sorted = stackalloc int[n];
-        for (int i = 0; i < n; i++) sorted[i] = i;
+        for (int i = 0; i < n; i++)
+            sorted[i] = i;
 
         // Sort by x, then by y
         for (int i = 0; i < n - 1; i++)
@@ -1553,8 +1576,10 @@ public static class VectorMath
                 Vector2 b = points[hullIndices[k - 2]];
                 Vector2 c = points[sorted[i]];
                 float cross = (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
-                if (cross <= 0) k--;
-                else break;
+                if (cross <= 0)
+                    k--;
+                else
+                    break;
             }
             hullIndices[k++] = sorted[i];
         }
@@ -1568,8 +1593,10 @@ public static class VectorMath
                 Vector2 b = points[hullIndices[k - 2]];
                 Vector2 c = points[sorted[i]];
                 float cross = (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
-                if (cross <= 0) k--;
-                else break;
+                if (cross <= 0)
+                    k--;
+                else
+                    break;
             }
             hullIndices[k++] = sorted[i];
         }
@@ -1732,7 +1759,8 @@ public static class VectorMath
         }
 
         area *= 0.5f;
-        if (MathF.Abs(area) < 1e-10f) return vertices[0];
+        if (MathF.Abs(area) < 1e-10f)
+            return vertices[0];
         centroid /= 6f * area;
         return centroid;
     }
@@ -1804,17 +1832,20 @@ public static class VectorMath
 
             if (MathF.Abs(dir) < 1e-10f)
             {
-                if (orig < min || orig > max) return false;
+                if (orig < min || orig > max)
+                    return false;
             }
             else
             {
                 float invD = 1f / dir;
                 float t0 = (min - orig) * invD;
                 float t1 = (max - orig) * invD;
-                if (t0 > t1) (t0, t1) = (t1, t0);
+                if (t0 > t1)
+                    (t0, t1) = (t1, t0);
                 tmin = MathF.Max(tmin, t0);
                 tmax = MathF.Min(tmax, t1);
-                if (tmin > tmax) return false;
+                if (tmin > tmax)
+                    return false;
             }
         }
 

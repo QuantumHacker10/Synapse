@@ -69,13 +69,14 @@ namespace GDNN.Rendering.RayTracing
     {
         public IntPtr Handle { get; set; }
         public RTAccelerationStructureType Type { get; set; }
-        public VulkanBuffer Buffer { get; set; }
+        public required VulkanBuffer Buffer { get; set; }
         public ulong CompactSize { get; set; }
         private bool _disposed;
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             Buffer?.Dispose();
         }
@@ -84,7 +85,7 @@ namespace GDNN.Rendering.RayTracing
     public class RShaderBindingTable : IDisposable
     {
         public IntPtr Handle { get; set; }
-        public VulkanBuffer Buffer { get; set; }
+        public required VulkanBuffer Buffer { get; set; }
         public ulong RayGenOffset { get; set; }
         public ulong MissOffset { get; set; }
         public ulong HitGroupOffset { get; set; }
@@ -95,7 +96,8 @@ namespace GDNN.Rendering.RayTracing
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             Buffer?.Dispose();
         }
@@ -193,7 +195,8 @@ namespace GDNN.Rendering.RayTracing
                     {
                         for (int kx = -radius; kx <= radius; kx++)
                         {
-                            if (kx == 0 && ky == 0) continue;
+                            if (kx == 0 && ky == 0)
+                                continue;
                             int sx = x + kx;
                             int sy = y + ky;
                             int sidx = (sy * w + sx) * 4;
@@ -243,7 +246,8 @@ namespace GDNN.Rendering.RayTracing
                         float dd = MathF.Abs(cd - nd);
                         float dn = 1.0f - Vector3.Dot(cn, nn);
                         maxDiff = MathF.Max(maxDiff, dd + dn * 0.5f);
-                        if (dd < 0.01f && dn < 0.1f) dirs++;
+                        if (dd < 0.01f && dn < 0.1f)
+                            dirs++;
                     }
 
                     if (dirs < 2)
@@ -341,7 +345,8 @@ namespace GDNN.Rendering.RayTracing
 
         public void BuildBottomLevelAS()
         {
-            if (!_rtSupported || _geometries.Count == 0) return;
+            if (!_rtSupported || _geometries.Count == 0)
+                return;
 
             _bottomLevelAS = new RTAccelerationStructure
             {
@@ -372,7 +377,8 @@ namespace GDNN.Rendering.RayTracing
 
         public void BuildTopLevelAS()
         {
-            if (!_rtSupported || _bottomLevelAS == null || _instances.Count == 0) return;
+            if (!_rtSupported || _bottomLevelAS == null || _instances.Count == 0)
+                return;
 
             _topLevelAS = new RTAccelerationStructure
             {
@@ -403,7 +409,8 @@ namespace GDNN.Rendering.RayTracing
 
         public void BuildShaderBindingTable()
         {
-            if (!_rtSupported) return;
+            if (!_rtSupported)
+                return;
 
             uint handleSize = 64;
             uint alignment = 64;
@@ -443,7 +450,8 @@ namespace GDNN.Rendering.RayTracing
                              float[] lightPosition, float[] lightColor, float[] lightIntensity,
                              int lightCount, int maxBounces = 3, int samplesPerPixel = 1)
         {
-            if (!_rtSupported || colorBuffer == null) return;
+            if (!_rtSupported || colorBuffer == null)
+                return;
 
             int pixelCount = width * height;
             float[] irradiance = new float[pixelCount * 4];
@@ -494,7 +502,8 @@ namespace GDNN.Rendering.RayTracing
                                 toLight /= lightDist;
 
                                 float ndotl = MathF.Max(0, Vector3.Dot(hitNormal, toLight));
-                                if (ndotl <= 0) continue;
+                                if (ndotl <= 0)
+                                    continue;
 
                                 float attenuation = lInt / (1.0f + lightDist * lightDist * 0.01f);
                                 Vector3 brdf = EvaluatePBR(hitAlbedo, hitRoughness, hitMetallic, hitNormal, -rayDir, toLight);
@@ -544,12 +553,14 @@ namespace GDNN.Rendering.RayTracing
             roughness = 0.5f;
             metallic = 0.0f;
 
-            if (px < 0 || px >= w || py < 0 || py >= h) return false;
+            if (px < 0 || px >= w || py < 0 || py >= h)
+                return false;
 
             int idx = py * w + px;
             float sceneDepth = depthBuffer[idx];
 
-            if (sceneDepth <= 0 || sceneDepth >= 1.0f) return false;
+            if (sceneDepth <= 0 || sceneDepth >= 1.0f)
+                return false;
 
             float linearDepth = 0.1f * 100.0f / (100.0f - sceneDepth * (100.0f - 0.1f));
             t = linearDepth;
@@ -626,7 +637,8 @@ namespace GDNN.Rendering.RayTracing
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _bottomLevelAS?.Dispose();
             _topLevelAS?.Dispose();

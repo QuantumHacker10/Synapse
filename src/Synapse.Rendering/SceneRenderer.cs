@@ -7,8 +7,8 @@ using System.Runtime.InteropServices;
 using GDNN.Lighting.LDNN;
 using GDNN.Materials.SubstrateOmega;
 using GDNN.Rendering;
-using GDNN.Rendering.Compat;
 using GDNN.Rendering.Bridge;
+using GDNN.Rendering.Compat;
 using GDNN.Rendering.LOD;
 using GDNN.Rendering.MeshIO;
 using GDNN.Rendering.RayTracing;
@@ -288,7 +288,8 @@ namespace GDNN.Rendering.Engine
 
                 _depthImages[i] = _rhi.CreateTexture(new TextureDescription
                 {
-                    Width = extent.Width, Height = extent.Height,
+                    Width = extent.Width,
+                    Height = extent.Height,
                     Format = VulkanFormat.D32Sfloat,
                     Usage = ImageUsageFlag.DepthStencilAttachment,
                     Tiling = ImageTiling.Optimal,
@@ -301,7 +302,8 @@ namespace GDNN.Rendering.Engine
         private VulkanTexture CreateGBufferColorTarget(Extent2D extent)
             => _rhi.CreateTexture(new TextureDescription
             {
-                Width = extent.Width, Height = extent.Height,
+                Width = extent.Width,
+                Height = extent.Height,
                 Format = VulkanFormat.R16G16B16A16Sfloat,
                 Usage = ImageUsageFlag.ColorAttachment | ImageUsageFlag.Sampled | ImageUsageFlag.TransferSrc,
                 Tiling = ImageTiling.Optimal,
@@ -358,7 +360,8 @@ namespace GDNN.Rendering.Engine
             });
 
             var layouts = new IntPtr[MAX_FRAMES_IN_FLIGHT];
-            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) layouts[i] = _gbufferDescriptorSetLayout.Handle;
+            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+                layouts[i] = _gbufferDescriptorSetLayout.Handle;
 
             _gbufferDescriptorSets = _rhi.AllocateDescriptorSets(new DescriptorSetAllocation { Pool = _gbufferDescriptorPool.Handle, Layouts = layouts });
         }
@@ -402,14 +405,20 @@ namespace GDNN.Rendering.Engine
                 ViewportState = new PipelineViewportStateCreateInfo { ViewportCount = 1, ScissorCount = 1 },
                 RasterizationState = new PipelineRasterizationStateCreateInfo
                 {
-                    DepthClampEnable = false, RasterizerDiscardEnable = false,
-                    PolygonMode = PolygonMode.Fill, CullMode = CullModeFlag.Back,
-                    FrontFace = FrontFace.CounterClockwise, DepthBiasEnable = false, LineWidth = 1.0f
+                    DepthClampEnable = false,
+                    RasterizerDiscardEnable = false,
+                    PolygonMode = PolygonMode.Fill,
+                    CullMode = CullModeFlag.Back,
+                    FrontFace = FrontFace.CounterClockwise,
+                    DepthBiasEnable = false,
+                    LineWidth = 1.0f
                 },
                 MultisampleState = new PipelineMultisampleStateCreateInfo { RasterizationSamples = SampleCountFlag.Count1 },
                 DepthStencilState = new PipelineDepthStencilStateCreateInfo
                 {
-                    DepthTestEnable = true, DepthWriteEnable = true, DepthCompareOp = CompareOp.LessOrEqual
+                    DepthTestEnable = true,
+                    DepthWriteEnable = true,
+                    DepthCompareOp = CompareOp.LessOrEqual
                 },
                 ColorBlendState = new PipelineColorBlendStateCreateInfo { Attachments = colorBlendAttachments },
                 DynamicState = new PipelineDynamicStateCreateInfo
@@ -507,7 +516,8 @@ namespace GDNN.Rendering.Engine
             });
 
             var layouts = new IntPtr[MAX_FRAMES_IN_FLIGHT];
-            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) layouts[i] = _lightingDescriptorSetLayout.Handle;
+            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+                layouts[i] = _lightingDescriptorSetLayout.Handle;
 
             _lightingDescriptorSets = _rhi.AllocateDescriptorSets(new DescriptorSetAllocation { Pool = _lightingDescriptorPool.Handle, Layouts = layouts });
 
@@ -586,11 +596,13 @@ namespace GDNN.Rendering.Engine
 
         private unsafe void UploadGiIrradianceTexture(Vector3[,] irradiance)
         {
-            if (!_initialized || _giIrradianceTexture == null || irradiance == null) return;
+            if (!_initialized || _giIrradianceTexture == null || irradiance == null)
+                return;
 
             int w = irradiance.GetLength(0);
             int h = irradiance.GetLength(1);
-            if (w <= 0 || h <= 0) return;
+            if (w <= 0 || h <= 0)
+                return;
 
             if (w != _width || h != _height)
                 return;
@@ -722,14 +734,19 @@ namespace GDNN.Rendering.Engine
                 ViewportState = new PipelineViewportStateCreateInfo { ViewportCount = 1, ScissorCount = 1 },
                 RasterizationState = new PipelineRasterizationStateCreateInfo
                 {
-                    DepthClampEnable = false, RasterizerDiscardEnable = false,
-                    PolygonMode = PolygonMode.Fill, CullMode = CullModeFlag.Back,
-                    FrontFace = FrontFace.CounterClockwise, DepthBiasEnable = false, LineWidth = 1.0f
+                    DepthClampEnable = false,
+                    RasterizerDiscardEnable = false,
+                    PolygonMode = PolygonMode.Fill,
+                    CullMode = CullModeFlag.Back,
+                    FrontFace = FrontFace.CounterClockwise,
+                    DepthBiasEnable = false,
+                    LineWidth = 1.0f
                 },
                 MultisampleState = new PipelineMultisampleStateCreateInfo { RasterizationSamples = SampleCountFlag.Count1 },
                 DepthStencilState = new PipelineDepthStencilStateCreateInfo
                 {
-                    DepthTestEnable = false, DepthWriteEnable = false
+                    DepthTestEnable = false,
+                    DepthWriteEnable = false
                 },
                 ColorBlendState = new PipelineColorBlendStateCreateInfo
                 {
@@ -839,7 +856,8 @@ namespace GDNN.Rendering.Engine
             });
 
             var layouts = new IntPtr[MAX_FRAMES_IN_FLIGHT];
-            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) layouts[i] = _shadowDescriptorSetLayout.Handle;
+            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+                layouts[i] = _shadowDescriptorSetLayout.Handle;
 
             _shadowDescriptorSets = _rhi.AllocateDescriptorSets(new DescriptorSetAllocation { Pool = _shadowDescriptorPool.Handle, Layouts = layouts });
 
@@ -890,16 +908,23 @@ namespace GDNN.Rendering.Engine
                 ViewportState = new PipelineViewportStateCreateInfo { ViewportCount = 1, ScissorCount = 1 },
                 RasterizationState = new PipelineRasterizationStateCreateInfo
                 {
-                    DepthClampEnable = false, RasterizerDiscardEnable = false,
-                    PolygonMode = PolygonMode.Fill, CullMode = CullModeFlag.Front,
-                    FrontFace = FrontFace.CounterClockwise, DepthBiasEnable = true,
-                    DepthBiasConstantFactor = 1.25f, DepthBiasSlopeFactor = 1.75f,
-                    DepthBiasClamp = 0.0f, LineWidth = 1.0f
+                    DepthClampEnable = false,
+                    RasterizerDiscardEnable = false,
+                    PolygonMode = PolygonMode.Fill,
+                    CullMode = CullModeFlag.Front,
+                    FrontFace = FrontFace.CounterClockwise,
+                    DepthBiasEnable = true,
+                    DepthBiasConstantFactor = 1.25f,
+                    DepthBiasSlopeFactor = 1.75f,
+                    DepthBiasClamp = 0.0f,
+                    LineWidth = 1.0f
                 },
                 MultisampleState = new PipelineMultisampleStateCreateInfo { RasterizationSamples = SampleCountFlag.Count1 },
                 DepthStencilState = new PipelineDepthStencilStateCreateInfo
                 {
-                    DepthTestEnable = true, DepthWriteEnable = true, DepthCompareOp = CompareOp.LessOrEqual
+                    DepthTestEnable = true,
+                    DepthWriteEnable = true,
+                    DepthCompareOp = CompareOp.LessOrEqual
                 },
                 ColorBlendState = new PipelineColorBlendStateCreateInfo { Attachments = Array.Empty<PipelineColorBlendAttachmentState>() },
                 DynamicState = new PipelineDynamicStateCreateInfo
@@ -987,7 +1012,8 @@ namespace GDNN.Rendering.Engine
         public void ApplyLlmLighting(LightingParams parameters)
         {
             ArgumentNullException.ThrowIfNull(parameters);
-            if (!_initialized) return;
+            if (!_initialized)
+                return;
 
             var lights = LlmSceneApplicator.ApplyLighting(parameters);
             foreach (var light in lights)
@@ -1009,7 +1035,8 @@ namespace GDNN.Rendering.Engine
         /// <summary>Creates or updates a visible proxy mesh for a scene entity (Genome, Volume, Character, Mesh).</summary>
         public void SyncEntityProxy(Guid id, string type, Vector3 position, Vector3 scale, Vector3 rotationEuler = default)
         {
-            if (!_initialized) return;
+            if (!_initialized)
+                return;
             if (type.Equals("Light", StringComparison.OrdinalIgnoreCase) ||
                 type.Equals("Camera", StringComparison.OrdinalIgnoreCase) ||
                 type.Equals("Empty", StringComparison.OrdinalIgnoreCase))
@@ -1058,7 +1085,8 @@ namespace GDNN.Rendering.Engine
         }
         public void SyncEditorGizmos(bool showGrid, bool showGizmos, Guid selectedEntityId, Vector3 selectedPosition, Vector3 selectedScale)
         {
-            if (!_initialized) return;
+            if (!_initialized)
+                return;
 
             ClearGizmoProxies();
 
@@ -1104,7 +1132,8 @@ namespace GDNN.Rendering.Engine
         /// <summary>Reads GPU G-buffer attachments from the previous submitted frame.</summary>
         public void ConsumePendingGBufferReadback()
         {
-            if (_pendingGBufferSnapshot == null || !_initialized) return;
+            if (_pendingGBufferSnapshot == null || !_initialized)
+                return;
 
             var snap = _pendingGBufferSnapshot;
             _pendingGBufferSnapshot = null;
@@ -1117,8 +1146,10 @@ namespace GDNN.Rendering.Engine
         /// <summary>Schedules a full G-buffer GPU readback after the frame fence signals.</summary>
         public void ScheduleGBufferReadback(uint imageIndex, int frameIndex)
         {
-            if (!_initialized || _gBufferReadback == null) return;
-            if (_gbufferAlbedo == null || imageIndex >= _gbufferAlbedo.Length) return;
+            if (!_initialized || _gBufferReadback == null)
+                return;
+            if (_gbufferAlbedo == null || imageIndex >= _gbufferAlbedo.Length)
+                return;
 
             int w = (int)_rhi.Swapchain.Extent.Width;
             int h = (int)_rhi.Swapchain.Extent.Height;
@@ -1138,7 +1169,8 @@ namespace GDNN.Rendering.Engine
         /// <summary>Copies deferred scene lights into the L-DNN bridge and refreshes GPU lighting.</summary>
         public void PushLightsToGlobalIllumination()
         {
-            if (!_initialized) return;
+            if (!_initialized)
+                return;
 
             var configs = new List<LightConfig>();
             foreach (var light in _sceneLights)
@@ -1163,7 +1195,8 @@ namespace GDNN.Rendering.Engine
 
         private void RefreshDynamicLightingFromScene()
         {
-            if (_sceneLights.Count == 0) return;
+            if (_sceneLights.Count == 0)
+                return;
 
             var primary = _sceneLights[0];
             _dynamicLightDir = Vector3.Normalize(-primary.Direction);
@@ -1173,17 +1206,20 @@ namespace GDNN.Rendering.Engine
         private void RebuildLightingPipelineIfNeeded()
         {
             var hash = new Vector3(_dynamicLightDir.X, _dynamicAmbient + _giBoost, _dynamicLightDir.Z);
-            if (Vector3.DistanceSquared(hash, _lastLightingHash) < 1e-6f) return;
+            if (Vector3.DistanceSquared(hash, _lastLightingHash) < 1e-6f)
+                return;
             _lastLightingHash = hash;
             CreateLightingPipeline();
         }
 
         public bool LoadMeshFromFile(string filePath, int materialIndex = 0, Matrix4x4? worldMatrix = null)
         {
-            if (!File.Exists(filePath)) return false;
+            if (!File.Exists(filePath))
+                return false;
 
             var asset = _meshLoader.LoadSync(filePath);
-            if (asset == null) return false;
+            if (asset == null)
+                return false;
 
             foreach (var prim in asset.Primitives)
             {
@@ -1233,7 +1269,8 @@ namespace GDNN.Rendering.Engine
 
         public void UploadSceneGeometry()
         {
-            if (_sceneMeshes.Count == 0) return;
+            if (_sceneMeshes.Count == 0)
+                return;
 
             int totalVertices = 0;
             int totalIndices = 0;
@@ -1322,7 +1359,8 @@ namespace GDNN.Rendering.Engine
             });
 
             var mapped = staging.Map();
-            fixed (byte* src = data) { System.Buffer.MemoryCopy(src, (void*)mapped, data.Length, data.Length); }
+            fixed (byte* src = data)
+            { System.Buffer.MemoryCopy(src, (void*)mapped, data.Length, data.Length); }
             staging.Unmap();
 
             var cmd = _rhi.CreateCommandBuffer();
@@ -1447,7 +1485,8 @@ namespace GDNN.Rendering.Engine
             Vector3 cameraForward,
             Vector3 cameraRight)
         {
-            if (!_initialized) return;
+            if (!_initialized)
+                return;
 
             var up = Vector3.Normalize(Vector3.Cross(cameraRight, cameraForward));
             var aspect = _height > 0 ? (float)_width / _height : 16f / 9f;
@@ -1471,7 +1510,8 @@ namespace GDNN.Rendering.Engine
 
         private void ApplyGiBoostFromIrradiance(Vector3[,] irradiance)
         {
-            if (irradiance == null || irradiance.GetLength(0) == 0) return;
+            if (irradiance == null || irradiance.GetLength(0) == 0)
+                return;
 
             double sum = 0;
             int w = irradiance.GetLength(0);
@@ -1487,7 +1527,8 @@ namespace GDNN.Rendering.Engine
                 }
             }
 
-            if (samples == 0) return;
+            if (samples == 0)
+                return;
             _giBoost = Math.Clamp((float)(sum / samples) * 0.15f, 0f, 0.45f);
             UploadGiIrradianceTexture(irradiance);
             RebuildLightingPipelineIfNeeded();
@@ -1500,7 +1541,8 @@ namespace GDNN.Rendering.Engine
         /// </summary>
         public void RenderHybridRayTracingTeacher()
         {
-            if (_rtPipeline == null || !_rtPipeline.IsSupported) return;
+            if (_rtPipeline == null || !_rtPipeline.IsSupported)
+                return;
 
             int pixelCount = _width * _height;
             var color = new float[pixelCount * 4];
@@ -1540,7 +1582,8 @@ namespace GDNN.Rendering.Engine
 
         public void RenderPostProcess(float aspectRatio)
         {
-            if (!_initialized) return;
+            if (!_initialized)
+                return;
             _postProcessBridge.Process(aspectRatio);
         }
 
@@ -1689,15 +1732,20 @@ namespace GDNN.Rendering.Engine
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
             {
-                _cameraUBOs[i]?.Unmap(); _cameraUBOs[i]?.Dispose();
-                _modelUBOs[i]?.Unmap(); _modelUBOs[i]?.Dispose();
-                _materialUBOs[i]?.Unmap(); _materialUBOs[i]?.Dispose();
-                _shadowUBOs[i]?.Unmap(); _shadowUBOs[i]?.Dispose();
+                _cameraUBOs[i]?.Unmap();
+                _cameraUBOs[i]?.Dispose();
+                _modelUBOs[i]?.Unmap();
+                _modelUBOs[i]?.Dispose();
+                _materialUBOs[i]?.Unmap();
+                _materialUBOs[i]?.Dispose();
+                _shadowUBOs[i]?.Unmap();
+                _shadowUBOs[i]?.Dispose();
             }
 
             _vertexBuffer?.Dispose();
@@ -1724,17 +1772,34 @@ namespace GDNN.Rendering.Engine
 
             _gbufferSampler?.Dispose();
 
-            foreach (var fb in _gbufferFramebuffers) fb?.Dispose();
-            foreach (var fb in _lightingFramebuffers) fb?.Dispose();
-            foreach (var fb in _shadowFramebuffers) fb?.Dispose();
+            foreach (var fb in _gbufferFramebuffers)
+                fb?.Dispose();
+            foreach (var fb in _lightingFramebuffers)
+                fb?.Dispose();
+            foreach (var fb in _shadowFramebuffers)
+                fb?.Dispose();
 
-            if (_gbufferAlbedo != null) foreach (var t in _gbufferAlbedo) t?.Dispose();
-            if (_gbufferNormals != null) foreach (var t in _gbufferNormals) t?.Dispose();
-            if (_gbufferDepth != null) foreach (var t in _gbufferDepth) t?.Dispose();
-            if (_gbufferMaterial != null) foreach (var t in _gbufferMaterial) t?.Dispose();
-            if (_gbufferVelocity != null) foreach (var t in _gbufferVelocity) t?.Dispose();
-            if (_depthImages != null) foreach (var t in _depthImages) t?.Dispose();
-            if (_shadowDepthImages != null) foreach (var t in _shadowDepthImages) t?.Dispose();
+            if (_gbufferAlbedo != null)
+                foreach (var t in _gbufferAlbedo)
+                    t?.Dispose();
+            if (_gbufferNormals != null)
+                foreach (var t in _gbufferNormals)
+                    t?.Dispose();
+            if (_gbufferDepth != null)
+                foreach (var t in _gbufferDepth)
+                    t?.Dispose();
+            if (_gbufferMaterial != null)
+                foreach (var t in _gbufferMaterial)
+                    t?.Dispose();
+            if (_gbufferVelocity != null)
+                foreach (var t in _gbufferVelocity)
+                    t?.Dispose();
+            if (_depthImages != null)
+                foreach (var t in _depthImages)
+                    t?.Dispose();
+            if (_shadowDepthImages != null)
+                foreach (var t in _shadowDepthImages)
+                    t?.Dispose();
             _rtPipeline?.Dispose();
             _gBufferReadback?.Dispose();
 
@@ -1748,9 +1813,9 @@ namespace GDNN.Rendering.Engine
 
         private class SceneMeshData
         {
-            public float[] VertexData;
+            public required float[] VertexData;
             public int VertexStride;
-            public uint[] IndexData;
+            public required uint[] IndexData;
             public int MaterialIndex;
             public Matrix4x4 WorldMatrix;
         }

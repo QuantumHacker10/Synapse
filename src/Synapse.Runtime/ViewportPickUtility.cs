@@ -60,16 +60,19 @@ namespace Synapse.Runtime
 
                 if (MathF.Abs(dir) < 1e-6f)
                 {
-                    if (origin < bMin || origin > bMax) return false;
+                    if (origin < bMin || origin > bMax)
+                        return false;
                     continue;
                 }
 
                 float t1 = (bMin - origin) / dir;
                 float t2 = (bMax - origin) / dir;
-                if (t1 > t2) (t1, t2) = (t2, t1);
+                if (t1 > t2)
+                    (t1, t2) = (t2, t1);
                 tMin = MathF.Max(tMin, t1);
                 tMax = MathF.Min(tMax, t2);
-                if (tMin > tMax) return false;
+                if (tMin > tMax)
+                    return false;
             }
 
             distance = tMin;
@@ -90,7 +93,8 @@ namespace Synapse.Runtime
             var end = origin + axis * length;
             var ab = end - origin;
             float abLen2 = ab.LengthSquared();
-            if (abLen2 < 1e-8f) return false;
+            if (abLen2 < 1e-8f)
+                return false;
 
             var ao = ray.Origin - origin;
             float t = Math.Clamp(Vector3.Dot(ao, ab) / abLen2, 0f, 1f);
@@ -99,7 +103,8 @@ namespace Synapse.Runtime
             float b = Vector3.Dot(oc, ray.Direction);
             float c = oc.LengthSquared() - radius * radius;
             float disc = b * b - c;
-            if (disc < 0f) return false;
+            if (disc < 0f)
+                return false;
             distance = -b - MathF.Sqrt(disc);
             return distance > 0.001f;
         }
@@ -112,7 +117,8 @@ namespace Synapse.Runtime
             int height)
         {
             var clip = Vector4.Transform(new Vector4(world, 1f), view * proj);
-            if (MathF.Abs(clip.W) < 1e-6f) return Vector3.Zero;
+            if (MathF.Abs(clip.W) < 1e-6f)
+                return Vector3.Zero;
             float ndcX = clip.X / clip.W;
             float ndcY = clip.Y / clip.W;
             return new Vector3(

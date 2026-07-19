@@ -819,24 +819,60 @@ namespace GDNN.Core.NEAT
             var clamped = Math.Clamp(rate, 0.0, 1.0);
             switch (type)
             {
-                case MutationType.PointMutation: PointMutation = clamped; break;
-                case MutationType.InsertionMutation: InsertionMutation = clamped; break;
-                case MutationType.DeletionMutation: DeletionMutation = clamped; break;
-                case MutationType.DuplicationMutation: DuplicationMutation = clamped; break;
-                case MutationType.InversionMutation: InversionMutation = clamped; break;
-                case MutationType.TranslocationMutation: TranslocationMutation = clamped; break;
-                case MutationType.SemanticMutation: SemanticMutation = clamped; break;
-                case MutationType.TopologyMutation: TopologyMutation = clamped; break;
-                case MutationType.WeightPerturbation: WeightPerturbation = clamped; break;
-                case MutationType.ActivationShift: ActivationShift = clamped; break;
-                case MutationType.BiasDrift: BiasDrift = clamped; break;
-                case MutationType.SynapseGrowth: SynapseGrowth = clamped; break;
-                case MutationType.SynapsePruning: SynapsePruning = clamped; break;
-                case MutationType.LayerInsertion: LayerInsertion = clamped; break;
-                case MutationType.LayerRemoval: LayerRemoval = clamped; break;
-                case MutationType.GeneSilencing: GeneSilencing = clamped; break;
-                case MutationType.GeneActivation: GeneActivation = clamped; break;
-                case MutationType.RegulatoryMutation: RegulatoryMutation = clamped; break;
+                case MutationType.PointMutation:
+                    PointMutation = clamped;
+                    break;
+                case MutationType.InsertionMutation:
+                    InsertionMutation = clamped;
+                    break;
+                case MutationType.DeletionMutation:
+                    DeletionMutation = clamped;
+                    break;
+                case MutationType.DuplicationMutation:
+                    DuplicationMutation = clamped;
+                    break;
+                case MutationType.InversionMutation:
+                    InversionMutation = clamped;
+                    break;
+                case MutationType.TranslocationMutation:
+                    TranslocationMutation = clamped;
+                    break;
+                case MutationType.SemanticMutation:
+                    SemanticMutation = clamped;
+                    break;
+                case MutationType.TopologyMutation:
+                    TopologyMutation = clamped;
+                    break;
+                case MutationType.WeightPerturbation:
+                    WeightPerturbation = clamped;
+                    break;
+                case MutationType.ActivationShift:
+                    ActivationShift = clamped;
+                    break;
+                case MutationType.BiasDrift:
+                    BiasDrift = clamped;
+                    break;
+                case MutationType.SynapseGrowth:
+                    SynapseGrowth = clamped;
+                    break;
+                case MutationType.SynapsePruning:
+                    SynapsePruning = clamped;
+                    break;
+                case MutationType.LayerInsertion:
+                    LayerInsertion = clamped;
+                    break;
+                case MutationType.LayerRemoval:
+                    LayerRemoval = clamped;
+                    break;
+                case MutationType.GeneSilencing:
+                    GeneSilencing = clamped;
+                    break;
+                case MutationType.GeneActivation:
+                    GeneActivation = clamped;
+                    break;
+                case MutationType.RegulatoryMutation:
+                    RegulatoryMutation = clamped;
+                    break;
             }
         }
 
@@ -1146,24 +1182,24 @@ namespace GDNN.Core.NEAT
                 case ActivationFunction.Tanh:
                     return 1.0 - Math.Tanh(x) * Math.Tanh(x);
                 case ActivationFunction.Sigmoid:
-                {
-                    var s = 1.0 / (1.0 + Math.Exp(-x));
-                    return s * (1.0 - s);
-                }
+                    {
+                        var s = 1.0 / (1.0 + Math.Exp(-x));
+                        return s * (1.0 - s);
+                    }
                 case ActivationFunction.ReLU:
                     return x >= 0 ? 1.0 : 0.0;
                 case ActivationFunction.LeakyReLU:
                     return x >= 0 ? 1.0 : 0.01;
                 case ActivationFunction.GELU:
-                {
-                    var t = Math.Tanh(Math.Sqrt(2.0 / Math.PI) * (x + 0.044715 * x * x * x));
-                    return 0.5 * (1.0 + t) + 0.5 * x * (1.0 - t * t) * Math.Sqrt(2.0 / Math.PI) * (1.0 + 3.0 * 0.044715 * x * x);
-                }
+                    {
+                        var t = Math.Tanh(Math.Sqrt(2.0 / Math.PI) * (x + 0.044715 * x * x * x));
+                        return 0.5 * (1.0 + t) + 0.5 * x * (1.0 - t * t) * Math.Sqrt(2.0 / Math.PI) * (1.0 + 3.0 * 0.044715 * x * x);
+                    }
                 case ActivationFunction.Swish:
-                {
-                    var s = 1.0 / (1.0 + Math.Exp(-x));
-                    return s + x * s * (1.0 - s);
-                }
+                    {
+                        var s = 1.0 / (1.0 + Math.Exp(-x));
+                        return s + x * s * (1.0 - s);
+                    }
                 case ActivationFunction.Sinusoidal:
                     return Math.Cos(x);
                 case ActivationFunction.Linear:
@@ -1175,12 +1211,12 @@ namespace GDNN.Core.NEAT
                 case ActivationFunction.Softplus:
                     return 1.0 / (1.0 + Math.Exp(-x));
                 case ActivationFunction.Mish:
-                {
-                    var sp = Math.Log(1.0 + Math.Exp(x));
-                    var tanhSp = Math.Tanh(sp);
-                    var sigmoid = 1.0 / (1.0 + Math.Exp(-x));
-                    return tanhSp + x * sigmoid * (1.0 - tanhSp * tanhSp) / (1.0 + Math.Exp(x));
-                }
+                    {
+                        var sp = Math.Log(1.0 + Math.Exp(x));
+                        var tanhSp = Math.Tanh(sp);
+                        var sigmoid = 1.0 / (1.0 + Math.Exp(-x));
+                        return tanhSp + x * sigmoid * (1.0 - tanhSp * tanhSp) / (1.0 + Math.Exp(x));
+                    }
                 case ActivationFunction.Exponential:
                     return Math.Exp(Math.Clamp(x, -10, 10));
                 default:
@@ -1220,6 +1256,11 @@ namespace GDNN.Core.NEAT
         /// <summary>Returns a string representation of this neuron.</summary>
         public override string ToString() =>
             $"GeoNeuron(Innovation={InnovationNumber}, Layer={LayerIndex}, Activation={Activation}, Active={IsActive})";
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as GeoNeuron);
+        }
     }
 
     /// <summary>
@@ -1296,6 +1337,11 @@ namespace GDNN.Core.NEAT
         /// <summary>Returns a string representation of this synapse.</summary>
         public override string ToString() =>
             $"GeoSynapse(Innovation={InnovationNumber}, {SourceNeuronId}->{TargetNeuronId}, Weight={Weight:F4}, Active={IsActive})";
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as GeoSynapse);
+        }
     }
 
     /// <summary>
@@ -1480,7 +1526,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var synapse in Synapses)
             {
-                if (!synapse.IsActive) continue;
+                if (!synapse.IsActive)
+                    continue;
                 totalWeight += Math.Abs(synapse.Weight);
                 activeSynapseCount++;
 
@@ -1496,7 +1543,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var neuron in Neurons)
             {
-                if (!neuron.IsActive) continue;
+                if (!neuron.IsActive)
+                    continue;
 
                 int nHash = neuron.InnovationNumber.GetHashCode();
                 for (int d = 0; d < dimension; d++)
@@ -1575,7 +1623,8 @@ namespace GDNN.Core.NEAT
         /// <returns>True if adding the connection would create a cycle.</returns>
         public bool WouldCreateCycle(long sourceId, long targetId)
         {
-            if (sourceId == targetId) return true;
+            if (sourceId == targetId)
+                return true;
 
             var visited = new HashSet<long>();
             var stack = new Stack<long>();
@@ -1584,8 +1633,10 @@ namespace GDNN.Core.NEAT
             while (stack.Count > 0)
             {
                 var current = stack.Pop();
-                if (current == sourceId) return true;
-                if (!visited.Add(current)) continue;
+                if (current == sourceId)
+                    return true;
+                if (!visited.Add(current))
+                    continue;
 
                 foreach (var synapse in Synapses.Where(s => s.IsActive && s.SourceNeuronId == current))
                 {
@@ -1729,7 +1780,8 @@ namespace GDNN.Core.NEAT
         {
             get
             {
-                if (Genomes.Length == 0) return 0;
+                if (Genomes.Length == 0)
+                    return 0;
                 var sorted = Genomes.Select(g => g.Fitness).OrderBy(f => f).ToArray();
                 int mid = sorted.Length / 2;
                 return sorted.Length % 2 == 0
@@ -1743,7 +1795,8 @@ namespace GDNN.Core.NEAT
         {
             get
             {
-                if (Genomes.Length <= 1) return 0;
+                if (Genomes.Length <= 1)
+                    return 0;
                 double avg = AverageFitness;
                 double sumSqDiff = Genomes.Sum(g => (g.Fitness - avg) * (g.Fitness - avg));
                 return Math.Sqrt(sumSqDiff / (Genomes.Length - 1));
@@ -2384,8 +2437,10 @@ namespace GDNN.Core.NEAT
         {
             Interlocked.Increment(ref _crossoverCount);
 
-            if (parentA == null) throw new ArgumentNullException(nameof(parentA));
-            if (parentB == null) throw new ArgumentNullException(nameof(parentB));
+            if (parentA == null)
+                throw new ArgumentNullException(nameof(parentA));
+            if (parentB == null)
+                throw new ArgumentNullException(nameof(parentB));
 
             var alignedA = parentA.Clone();
             var alignedB = parentB.Clone();
@@ -2457,7 +2512,8 @@ namespace GDNN.Core.NEAT
             }
 
             bool success = offspring.ActiveNeuronCount >= parentA.InputCount + parentA.OutputCount;
-            if (success) Interlocked.Increment(ref _successCount);
+            if (success)
+                Interlocked.Increment(ref _successCount);
 
             return new CrossoverResult
             {
@@ -2480,10 +2536,14 @@ namespace GDNN.Core.NEAT
             var bNeuronIds = new HashSet<long>(b.Neurons.Select(n => n.InnovationNumber));
 
             long maxInnovation = 0;
-            foreach (var n in a.Neurons) maxInnovation = Math.Max(maxInnovation, n.InnovationNumber);
-            foreach (var n in b.Neurons) maxInnovation = Math.Max(maxInnovation, n.InnovationNumber);
-            foreach (var s in a.Synapses) maxInnovation = Math.Max(maxInnovation, s.InnovationNumber);
-            foreach (var s in b.Synapses) maxInnovation = Math.Max(maxInnovation, s.InnovationNumber);
+            foreach (var n in a.Neurons)
+                maxInnovation = Math.Max(maxInnovation, n.InnovationNumber);
+            foreach (var n in b.Neurons)
+                maxInnovation = Math.Max(maxInnovation, n.InnovationNumber);
+            foreach (var s in a.Synapses)
+                maxInnovation = Math.Max(maxInnovation, s.InnovationNumber);
+            foreach (var s in b.Synapses)
+                maxInnovation = Math.Max(maxInnovation, s.InnovationNumber);
 
             var missingInB = aNeuronIds.Except(bNeuronIds).ToList();
             foreach (var nId in missingInB)
@@ -2570,8 +2630,10 @@ namespace GDNN.Core.NEAT
         {
             Interlocked.Increment(ref _crossoverCount);
 
-            if (parentA == null) throw new ArgumentNullException(nameof(parentA));
-            if (parentB == null) throw new ArgumentNullException(nameof(parentB));
+            if (parentA == null)
+                throw new ArgumentNullException(nameof(parentA));
+            if (parentB == null)
+                throw new ArgumentNullException(nameof(parentB));
 
             var (alignedA, alignedB) = AlignParents(parentA, parentB);
             var offspring = alignedA.Clone();
@@ -2630,7 +2692,8 @@ namespace GDNN.Core.NEAT
 
             int activeRequired = parentA.InputCount + parentA.OutputCount;
             bool success = offspring.ActiveNeuronCount >= activeRequired;
-            if (success) Interlocked.Increment(ref _successCount);
+            if (success)
+                Interlocked.Increment(ref _successCount);
 
             return new CrossoverResult
             {
@@ -2650,10 +2713,14 @@ namespace GDNN.Core.NEAT
             var alignedB = b.Clone();
 
             var allInnovations = new SortedSet<long>();
-            foreach (var n in a.Neurons) allInnovations.Add(n.InnovationNumber);
-            foreach (var n in b.Neurons) allInnovations.Add(n.InnovationNumber);
-            foreach (var s in a.Synapses) allInnovations.Add(s.InnovationNumber);
-            foreach (var s in b.Synapses) allInnovations.Add(s.InnovationNumber);
+            foreach (var n in a.Neurons)
+                allInnovations.Add(n.InnovationNumber);
+            foreach (var n in b.Neurons)
+                allInnovations.Add(n.InnovationNumber);
+            foreach (var s in a.Synapses)
+                allInnovations.Add(s.InnovationNumber);
+            foreach (var s in b.Synapses)
+                allInnovations.Add(s.InnovationNumber);
 
             var aNeuronMap = a.Neurons.ToDictionary(n => n.InnovationNumber);
             var bNeuronMap = b.Neurons.ToDictionary(n => n.InnovationNumber);
@@ -2686,8 +2753,10 @@ namespace GDNN.Core.NEAT
             alignedB.Neurons = resultB;
 
             var allSynapseInnovations = new SortedSet<long>();
-            foreach (var s in a.Synapses) allSynapseInnovations.Add(s.InnovationNumber);
-            foreach (var s in b.Synapses) allSynapseInnovations.Add(s.InnovationNumber);
+            foreach (var s in a.Synapses)
+                allSynapseInnovations.Add(s.InnovationNumber);
+            foreach (var s in b.Synapses)
+                allSynapseInnovations.Add(s.InnovationNumber);
 
             var resultSynA = new List<GeoSynapse>();
             var resultSynB = new List<GeoSynapse>();
@@ -2783,8 +2852,10 @@ namespace GDNN.Core.NEAT
         {
             Interlocked.Increment(ref _crossoverCount);
 
-            if (parentA == null) throw new ArgumentNullException(nameof(parentA));
-            if (parentB == null) throw new ArgumentNullException(nameof(parentB));
+            if (parentA == null)
+                throw new ArgumentNullException(nameof(parentA));
+            if (parentB == null)
+                throw new ArgumentNullException(nameof(parentB));
 
             var offspring = parentA.Clone();
             offspring.Id = Guid.NewGuid();
@@ -2830,7 +2901,8 @@ namespace GDNN.Core.NEAT
             }
 
             bool success = offspring.ActiveNeuronCount >= parentA.InputCount + parentA.OutputCount;
-            if (success) Interlocked.Increment(ref _successCount);
+            if (success)
+                Interlocked.Increment(ref _successCount);
 
             return new CrossoverResult
             {
@@ -2922,9 +2994,12 @@ namespace GDNN.Core.NEAT
         {
             Interlocked.Increment(ref _mutationCount);
 
-            if (genome == null) throw new ArgumentNullException(nameof(genome));
-            if (rates == null) throw new ArgumentNullException(nameof(rates));
-            if (rng == null) throw new ArgumentNullException(nameof(rng));
+            if (genome == null)
+                throw new ArgumentNullException(nameof(genome));
+            if (rates == null)
+                throw new ArgumentNullException(nameof(rates));
+            if (rng == null)
+                throw new ArgumentNullException(nameof(rng));
 
             var mutated = genome.Clone();
             mutated.InvalidateFitness();
@@ -3090,7 +3165,8 @@ namespace GDNN.Core.NEAT
         private void ApplyPointMutation(GeoGenome genome, Random rng)
         {
             var activeSynapses = genome.Synapses.Where(s => s.IsActive).ToList();
-            if (activeSynapses.Count == 0) return;
+            if (activeSynapses.Count == 0)
+                return;
 
             var synapse = activeSynapses[rng.Next(activeSynapses.Count)];
             double perturbation = (rng.NextDouble() * 2.0 - 1.0) * _currentPerturbationMagnitude;
@@ -3104,7 +3180,8 @@ namespace GDNN.Core.NEAT
         private void ApplyBiasDrift(GeoGenome genome, Random rng)
         {
             var activeNeurons = genome.Neurons.Where(n => n.IsActive).ToList();
-            if (activeNeurons.Count == 0) return;
+            if (activeNeurons.Count == 0)
+                return;
 
             int count = Math.Max(1, activeNeurons.Count / 10);
             for (int i = 0; i < count; i++)
@@ -3123,7 +3200,8 @@ namespace GDNN.Core.NEAT
         private void ApplyWeightPerturbation(GeoGenome genome, Random rng)
         {
             var activeSynapses = genome.Synapses.Where(s => s.IsActive).ToList();
-            if (activeSynapses.Count == 0) return;
+            if (activeSynapses.Count == 0)
+                return;
 
             if (rng.NextDouble() < _config.UniformPerturbationProbability)
             {
@@ -3158,7 +3236,8 @@ namespace GDNN.Core.NEAT
             var hiddenNeurons = genome.Neurons
                 .Where(n => n.IsActive && n.LayerIndex > 0 && n.LayerIndex < genome.MaxLayerDepth)
                 .ToList();
-            if (hiddenNeurons.Count == 0) return;
+            if (hiddenNeurons.Count == 0)
+                return;
 
             var neuron = hiddenNeurons[rng.Next(hiddenNeurons.Count)];
             var allActivations = Enum.GetValues<ActivationFunction>();
@@ -3172,7 +3251,8 @@ namespace GDNN.Core.NEAT
         private int ApplySynapseGrowth(GeoGenome genome, Random rng)
         {
             var activeNeurons = genome.Neurons.Where(n => n.IsActive).ToList();
-            if (activeNeurons.Count < 2) return 0;
+            if (activeNeurons.Count < 2)
+                return 0;
 
             long maxInnovation = genome.Synapses.Count > 0
                 ? genome.Synapses.Max(s => s.InnovationNumber)
@@ -3183,13 +3263,16 @@ namespace GDNN.Core.NEAT
                 var source = activeNeurons[rng.Next(activeNeurons.Count)];
                 var target = activeNeurons[rng.Next(activeNeurons.Count)];
 
-                if (source.InnovationNumber == target.InnovationNumber) continue;
-                if (source.LayerIndex >= target.LayerIndex && !genome.Synapses.Any(s => s.IsRecurrent)) continue;
+                if (source.InnovationNumber == target.InnovationNumber)
+                    continue;
+                if (source.LayerIndex >= target.LayerIndex && !genome.Synapses.Any(s => s.IsRecurrent))
+                    continue;
 
                 bool exists = genome.Synapses.Any(s =>
                     s.SourceNeuronId == source.InnovationNumber &&
                     s.TargetNeuronId == target.InnovationNumber);
-                if (exists) continue;
+                if (exists)
+                    continue;
 
                 if (!genome.WouldCreateCycle(source.InnovationNumber, target.InnovationNumber))
                 {
@@ -3221,7 +3304,8 @@ namespace GDNN.Core.NEAT
                 .OrderBy(s => Math.Abs(s.Weight))
                 .ToList();
 
-            if (activeSynapses.Count <= genome.InputCount + genome.OutputCount) return 0;
+            if (activeSynapses.Count <= genome.InputCount + genome.OutputCount)
+                return 0;
 
             double threshold = activeSynapses.Count > 0
                 ? activeSynapses.Average(s => Math.Abs(s.Weight)) * 0.3
@@ -3248,7 +3332,8 @@ namespace GDNN.Core.NEAT
             var activeSynapses = genome.Synapses
                 .Where(s => s.IsActive && !s.IsRecurrent)
                 .ToList();
-            if (activeSynapses.Count == 0) return 0;
+            if (activeSynapses.Count == 0)
+                return 0;
 
             var synapse = activeSynapses[rng.Next(activeSynapses.Count)];
             synapse.IsActive = false;
@@ -3314,7 +3399,8 @@ namespace GDNN.Core.NEAT
             var deletableNeurons = genome.Neurons
                 .Where(n => n.IsActive && n.LayerIndex > 0 && n.LayerIndex < genome.MaxLayerDepth)
                 .ToList();
-            if (deletableNeurons.Count == 0) return 0;
+            if (deletableNeurons.Count == 0)
+                return 0;
 
             var target = deletableNeurons[rng.Next(deletableNeurons.Count)];
             var inputSynapses = genome.Synapses
@@ -3347,7 +3433,8 @@ namespace GDNN.Core.NEAT
                         s.IsActive &&
                         s.SourceNeuronId == inputSyn.SourceNeuronId &&
                         s.TargetNeuronId == outputSyn.TargetNeuronId);
-                    if (exists) continue;
+                    if (exists)
+                        continue;
 
                     if (!genome.WouldCreateCycle(inputSyn.SourceNeuronId, outputSyn.TargetNeuronId))
                     {
@@ -3383,7 +3470,8 @@ namespace GDNN.Core.NEAT
             var duplicatable = genome.Neurons
                 .Where(n => n.IsActive && n.LayerIndex > 0)
                 .ToList();
-            if (duplicatable.Count == 0) return 0;
+            if (duplicatable.Count == 0)
+                return 0;
 
             var source = duplicatable[rng.Next(duplicatable.Count)];
             long maxNeuronInnov = genome.Neurons.Max(n => n.InnovationNumber);
@@ -3445,7 +3533,8 @@ namespace GDNN.Core.NEAT
         private int ApplyInversionMutation(GeoGenome genome, Random rng)
         {
             var activeSynapses = genome.Synapses.Where(s => s.IsActive).ToList();
-            if (activeSynapses.Count < 3) return 0;
+            if (activeSynapses.Count < 3)
+                return 0;
 
             int start = rng.Next(activeSynapses.Count - 2);
             int end = rng.Next(start + 2, activeSynapses.Count);
@@ -3467,7 +3556,8 @@ namespace GDNN.Core.NEAT
         private int ApplyTranslocationMutation(GeoGenome genome, Random rng)
         {
             var activeSynapses = genome.Synapses.Where(s => s.IsActive).ToList();
-            if (activeSynapses.Count < 4) return 0;
+            if (activeSynapses.Count < 4)
+                return 0;
 
             int segStart = rng.Next(activeSynapses.Count / 2);
             int segLen = rng.Next(2, Math.Max(3, activeSynapses.Count / 4));
@@ -3496,7 +3586,8 @@ namespace GDNN.Core.NEAT
             if (roleGroups.Count == 0)
             {
                 var activeNeurons = genome.Neurons.Where(n => n.IsActive).ToList();
-                if (activeNeurons.Count == 0) return;
+                if (activeNeurons.Count == 0)
+                    return;
                 var neuron = activeNeurons[rng.Next(activeNeurons.Count)];
                 double shift = (rng.NextDouble() * 2.0 - 1.0) * _currentPerturbationMagnitude;
                 neuron.Bias += shift;
@@ -3536,7 +3627,8 @@ namespace GDNN.Core.NEAT
             var activeNeurons = genome.Neurons
                 .Where(n => n.IsActive && n.LayerIndex > 0 && n.LayerIndex < genome.MaxLayerDepth)
                 .ToList();
-            if (activeNeurons.Count == 0) return 0;
+            if (activeNeurons.Count == 0)
+                return 0;
 
             var neuron = activeNeurons[rng.Next(activeNeurons.Count)];
             neuron.IsActive = false;
@@ -3551,7 +3643,8 @@ namespace GDNN.Core.NEAT
             var inactiveNeurons = genome.Neurons
                 .Where(n => !n.IsActive)
                 .ToList();
-            if (inactiveNeurons.Count == 0) return 0;
+            if (inactiveNeurons.Count == 0)
+                return 0;
 
             var neuron = inactiveNeurons[rng.Next(inactiveNeurons.Count)];
             neuron.IsActive = true;
@@ -3571,7 +3664,8 @@ namespace GDNN.Core.NEAT
                 ? genome.Neurons.Where(n => n.IsActive).Min(n => n.LayerIndex)
                 : 0;
 
-            if (maxLayer - minLayer < 1) return 0;
+            if (maxLayer - minLayer < 1)
+                return 0;
 
             int insertAfter = rng.Next(minLayer, maxLayer);
             int newLayer = insertAfter + 1;
@@ -3650,7 +3744,8 @@ namespace GDNN.Core.NEAT
                 .Where(g => g.Key > 0)
                 .ToList();
 
-            if (layerGroups.Count <= 1) return 0;
+            if (layerGroups.Count <= 1)
+                return 0;
 
             var targetLayer = layerGroups[rng.Next(layerGroups.Count)];
             int removedCount = 0;
@@ -3763,7 +3858,8 @@ namespace GDNN.Core.NEAT
 
             _generationsSinceAdjustment++;
 
-            if (_generationsSinceAdjustment < 3) return CreateScaledRates();
+            if (_generationsSinceAdjustment < 3)
+                return CreateScaledRates();
 
             double avgImprovement = _fitnessImprovements.Count > 0
                 ? _fitnessImprovements.Average()
@@ -3933,7 +4029,8 @@ namespace GDNN.Core.NEAT
             bool assigned = false;
             foreach (var existingSpecies in GetExistingSpecies(population))
             {
-                if (existingSpecies.Representative == null) continue;
+                if (existingSpecies.Representative == null)
+                    continue;
 
                 var representative = existingSpecies.Representative;
                 if (representative.SemanticEmbedding.IsDefaultOrEmpty)
@@ -3941,7 +4038,8 @@ namespace GDNN.Core.NEAT
 
                 foreach (var genome in population.Genomes)
                 {
-                    if (genomeSpecies.ContainsKey(genome.Id)) continue;
+                    if (genomeSpecies.ContainsKey(genome.Id))
+                        continue;
 
                     double distance = ComputeDistance(representative, genome);
                     if (distance <= _currentThreshold)
@@ -3960,7 +4058,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var genome in population.Genomes)
             {
-                if (genomeSpecies.ContainsKey(genome.Id)) continue;
+                if (genomeSpecies.ContainsKey(genome.Id))
+                    continue;
 
                 int speciesId = _nextSpeciesId++;
                 speciesMap[speciesId] = new List<GeoGenome> { genome };
@@ -4005,7 +4104,8 @@ namespace GDNN.Core.NEAT
         /// <inheritdoc/>
         public double ComputeDistance(GeoGenome a, GeoGenome b)
         {
-            if (a.Id == b.Id) return 0;
+            if (a.Id == b.Id)
+                return 0;
 
             var key = a.Id.CompareTo(b.Id) < 0
                 ? (a.Id, b.Id)
@@ -4040,7 +4140,8 @@ namespace GDNN.Core.NEAT
                 b.ComputeSemanticEmbedding(_config.SemanticEmbeddingDimension);
 
             int dim = Math.Min(a.SemanticEmbedding.Length, b.SemanticEmbedding.Length);
-            if (dim == 0) return 1.0;
+            if (dim == 0)
+                return 1.0;
 
             double maxMinDistAtoB = 0;
             foreach (var landmark in _landmarks)
@@ -4083,7 +4184,8 @@ namespace GDNN.Core.NEAT
                 return ComputeGromovHausdorffDistance(a, b);
 
             int dim = Math.Min(a.SemanticEmbedding.Length, b.SemanticEmbedding.Length);
-            if (dim == 0) return 1.0;
+            if (dim == 0)
+                return 1.0;
 
             double euclideanDist = 0;
             double[] direction = new double[dim];
@@ -4095,7 +4197,8 @@ namespace GDNN.Core.NEAT
             }
             euclideanDist = Math.Sqrt(euclideanDist);
 
-            if (euclideanDist < 1e-10) return 0;
+            if (euclideanDist < 1e-10)
+                return 0;
 
             double curvatureFactor = ComputeCurvatureFactor(a, b, direction, dim);
             double manifoldDist = euclideanDist * (1.0 + 0.5 * curvatureFactor);
@@ -4202,7 +4305,8 @@ namespace GDNN.Core.NEAT
             long hashA = a.ComputeTopologyHash();
             long hashB = b.ComputeTopologyHash();
 
-            if (hashA == hashB) return 0;
+            if (hashA == hashB)
+                return 0;
 
             long xor = hashA ^ hashB;
             int differingBits = 0;
@@ -4229,14 +4333,16 @@ namespace GDNN.Core.NEAT
                 .Select(s => s.Weight)
                 .ToList();
 
-            if (aWeights.Count == 0 || bWeights.Count == 0) return 1.0;
+            if (aWeights.Count == 0 || bWeights.Count == 0)
+                return 1.0;
 
             var commonInnovations = a.Synapses
                 .Where(sA => sA.IsActive && b.Synapses.Any(sB => sB.IsActive && sB.InnovationNumber == sA.InnovationNumber))
                 .Select(s => s.InnovationNumber)
                 .ToList();
 
-            if (commonInnovations.Count == 0) return 1.0;
+            if (commonInnovations.Count == 0)
+                return 1.0;
 
             var aMap = a.Synapses.Where(s => s.IsActive).ToDictionary(s => s.InnovationNumber, s => s.Weight);
             var bMap = b.Synapses.Where(s => s.IsActive).ToDictionary(s => s.InnovationNumber, s => s.Weight);
@@ -4269,7 +4375,8 @@ namespace GDNN.Core.NEAT
         private void SelectLandmarks(ImmutableArray<GeoGenome> genomes)
         {
             _landmarks.Clear();
-            if (genomes.Length == 0) return;
+            if (genomes.Length == 0)
+                return;
 
             int landmarkCount = Math.Min(_config.LandmarkCount, genomes.Length);
 
@@ -4290,7 +4397,8 @@ namespace GDNN.Core.NEAT
 
                 foreach (var candidate in shuffled)
                 {
-                    if (_landmarks.Any(lm => lm.Id == candidate.Id)) continue;
+                    if (_landmarks.Any(lm => lm.Id == candidate.Id))
+                        continue;
 
                     double minDist = double.MaxValue;
                     foreach (var landmark in _landmarks)
@@ -4325,7 +4433,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var genome in population.Genomes)
             {
-                if (genome.SpeciesId < 0) continue;
+                if (genome.SpeciesId < 0)
+                    continue;
 
                 if (!speciesDict.TryGetValue(genome.SpeciesId, out var existing))
                 {
@@ -4455,7 +4564,8 @@ namespace GDNN.Core.NEAT
             ImmutableArray<SpeciesInfo> speciesInfos,
             Random rng)
         {
-            if (!_config.EnableMigration) return Array.Empty<MigrationEvent>();
+            if (!_config.EnableMigration)
+                return Array.Empty<MigrationEvent>();
 
             var migrations = new List<MigrationEvent>();
             var speciesIds = speciesInfos
@@ -4463,7 +4573,8 @@ namespace GDNN.Core.NEAT
                 .Select(s => s.Id)
                 .ToList();
 
-            if (speciesIds.Count < 2) return migrations;
+            if (speciesIds.Count < 2)
+                return migrations;
 
             int maxMigrations = Math.Min(_config.MaxMigrationsPerGeneration,
                 (int)(speciesIds.Count * _config.MigrationRate));
@@ -4472,7 +4583,8 @@ namespace GDNN.Core.NEAT
             {
                 int sourceIdx = rng.Next(speciesIds.Count);
                 int targetIdx = rng.Next(speciesIds.Count);
-                if (sourceIdx == targetIdx) continue;
+                if (sourceIdx == targetIdx)
+                    continue;
 
                 int sourceId = speciesIds[sourceIdx];
                 int targetId = speciesIds[targetIdx];
@@ -4484,7 +4596,8 @@ namespace GDNN.Core.NEAT
                     .Where(g => g.Fitness > sourcePool.Average(gp => gp.Fitness))
                     .ToList();
 
-                if (candidates.Count == 0) continue;
+                if (candidates.Count == 0)
+                    continue;
 
                 var migrant = candidates[rng.Next(candidates.Count)];
 
@@ -4584,7 +4697,8 @@ namespace GDNN.Core.NEAT
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             _migrationBusWriter.TryComplete();
@@ -4637,8 +4751,10 @@ namespace GDNN.Core.NEAT
         /// <inheritdoc/>
         public async Task<GeoGenome> EvaluateAsync(GeoGenome genome, EvaluationContext context, CancellationToken ct)
         {
-            if (genome == null) throw new ArgumentNullException(nameof(genome));
-            if (genome.IsFitnessValid) return genome;
+            if (genome == null)
+                throw new ArgumentNullException(nameof(genome));
+            if (genome.IsFitnessValid)
+                return genome;
 
             ct.ThrowIfCancellationRequested();
 
@@ -4716,7 +4832,8 @@ namespace GDNN.Core.NEAT
                 return 0.5;
 
             double[] output = ForwardPass(genome, context.InputData);
-            if (output.Length == 0) return 0;
+            if (output.Length == 0)
+                return 0;
 
             double mse = 0;
             double mae = 0;
@@ -4796,10 +4913,12 @@ namespace GDNN.Core.NEAT
         /// </summary>
         private double ComputePerceptualQuality(GeoGenome genome, EvaluationContext context)
         {
-            if (context.TargetOutput.Length == 0) return 0.5;
+            if (context.TargetOutput.Length == 0)
+                return 0.5;
 
             double[] output = ForwardPass(genome, context.InputData);
-            if (output.Length == 0) return 0;
+            if (output.Length == 0)
+                return 0;
 
             int length = Math.Min(output.Length, context.TargetOutput.Length);
 
@@ -4840,7 +4959,8 @@ namespace GDNN.Core.NEAT
         /// </summary>
         private double ComputeSSIMApproximation(double[] output, ImmutableArray<double> target, int length)
         {
-            if (length == 0) return 0;
+            if (length == 0)
+                return 0;
 
             double muX = 0, muY = 0;
             for (int i = 0; i < length; i++)
@@ -4881,10 +5001,12 @@ namespace GDNN.Core.NEAT
         /// </summary>
         private double ComputeSDFError(GeoGenome genome, EvaluationContext context)
         {
-            if (context.TargetOutput.Length == 0) return 0.5;
+            if (context.TargetOutput.Length == 0)
+                return 0.5;
 
             double[] output = ForwardPass(genome, context.InputData);
-            if (output.Length == 0) return 0;
+            if (output.Length == 0)
+                return 0;
 
             int length = Math.Min(output.Length, context.TargetOutput.Length);
             double maxError = 0;
@@ -4917,10 +5039,12 @@ namespace GDNN.Core.NEAT
         /// </summary>
         private double ComputeIrradianceError(GeoGenome genome, EvaluationContext context)
         {
-            if (context.TargetOutput.Length == 0) return 0.5;
+            if (context.TargetOutput.Length == 0)
+                return 0.5;
 
             double[] output = ForwardPass(genome, context.InputData);
-            if (output.Length == 0) return 0;
+            if (output.Length == 0)
+                return 0;
 
             int length = Math.Min(output.Length, context.TargetOutput.Length);
             double mse = 0;
@@ -4969,7 +5093,8 @@ namespace GDNN.Core.NEAT
                 return Array.Empty<double>();
 
             var activeNeurons = genome.Neurons.Where(n => n.IsActive).ToList();
-            if (activeNeurons.Count == 0) return Array.Empty<double>();
+            if (activeNeurons.Count == 0)
+                return Array.Empty<double>();
 
             var neuronValues = new Dictionary<long, double>();
 
@@ -4993,7 +5118,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var layer in layers)
             {
-                if (layer.Key == 0) continue;
+                if (layer.Key == 0)
+                    continue;
 
                 foreach (var neuron in layer)
                 {
@@ -5185,7 +5311,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var s in species)
             {
-                if (s.MemberIds.Length == 0) continue;
+                if (s.MemberIds.Length == 0)
+                    continue;
 
                 var speciesMembers = population.Genomes
                     .Where(g => s.MemberIds.Contains(g.Id))
@@ -5706,7 +5833,8 @@ namespace GDNN.Core.NEAT
                 _speciesSizeHistory.Clear();
             }
 
-            while (_eventBuffer.TryDequeue(out _)) { }
+            while (_eventBuffer.TryDequeue(out _))
+            { }
         }
     }
 
@@ -5828,7 +5956,8 @@ namespace GDNN.Core.NEAT
                         best = candidate;
                     }
                 }
-                if (best != null) selected.Add(best);
+                if (best != null)
+                    selected.Add(best);
             }
 
             return selected;
@@ -5850,7 +5979,8 @@ namespace GDNN.Core.NEAT
                         best = candidate;
                     }
                 }
-                if (best != null) selected.Add(best);
+                if (best != null)
+                    selected.Add(best);
             }
 
             return selected;
@@ -6036,7 +6166,8 @@ namespace GDNN.Core.NEAT
         public double ComputeShannonDiversity(ImmutableArray<SpeciesInfo> species)
         {
             int totalMembers = species.Sum(s => s.MemberCount);
-            if (totalMembers == 0) return 0;
+            if (totalMembers == 0)
+                return 0;
 
             double entropy = 0;
             foreach (var s in species)
@@ -6059,7 +6190,8 @@ namespace GDNN.Core.NEAT
         public double ComputeSimpsonDiversity(ImmutableArray<SpeciesInfo> species)
         {
             int totalMembers = species.Sum(s => s.MemberCount);
-            if (totalMembers <= 1) return 0;
+            if (totalMembers <= 1)
+                return 0;
 
             double sumP2 = 0;
             foreach (var s in species)
@@ -6078,7 +6210,8 @@ namespace GDNN.Core.NEAT
         /// <returns>Population diversity metric (0-1).</returns>
         public double ComputePopulationDiversity(GenomePopulation population)
         {
-            if (population.Genomes.Length <= 1) return 0;
+            if (population.Genomes.Length <= 1)
+                return 0;
 
             var fitnesses = population.Genomes.Select(g => g.Fitness).ToArray();
             double range = fitnesses.Max() - fitnesses.Min();
@@ -6164,7 +6297,8 @@ namespace GDNN.Core.NEAT
         /// <returns>Average speciation rate.</returns>
         public double ComputeSpeciationRate(int windowSize = 10)
         {
-            if (_snapshots.Count < windowSize) return 0;
+            if (_snapshots.Count < windowSize)
+                return 0;
 
             var recent = _snapshots.Skip(_snapshots.Count - windowSize).ToList();
             int totalNewSpecies = 0;
@@ -6184,7 +6318,8 @@ namespace GDNN.Core.NEAT
         /// <returns>Average extinction rate.</returns>
         public double ComputeExtinctionRate(int windowSize = 10)
         {
-            if (_snapshots.Count < windowSize) return 0;
+            if (_snapshots.Count < windowSize)
+                return 0;
 
             var recent = _snapshots.Skip(_snapshots.Count - windowSize).ToList();
             int totalExtinctions = 0;
@@ -6222,7 +6357,8 @@ namespace GDNN.Core.NEAT
 
         private double ComputeSpeciesVariance(SpeciesInfo species)
         {
-            if (species.MemberCount <= 1) return 0;
+            if (species.MemberCount <= 1)
+                return 0;
             double mean = species.AverageFitness;
             return species.FitnessHistory.Length > 1
                 ? species.FitnessHistory.Select(f => (f - mean) * (f - mean)).Average()
@@ -6464,7 +6600,8 @@ namespace GDNN.Core.NEAT
                             results[idx] = genome;
                         }
 
-                        lock (workerLock) { completedCount++; }
+                        lock (workerLock)
+                        { completedCount++; }
                     }
                 }, linkedCts.Token));
             }
@@ -6476,7 +6613,8 @@ namespace GDNN.Core.NEAT
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             _cts.Cancel();
@@ -6589,20 +6727,24 @@ namespace GDNN.Core.NEAT
         /// <returns>Whether anti-convergence measures should be activated.</returns>
         public bool CheckAntiConvergence(ImmutableArray<SpeciesInfo> species, GenomePopulation population)
         {
-            if (species.Length <= 1) return false;
+            if (species.Length <= 1)
+                return false;
 
             int totalMembers = species.Sum(s => s.MemberCount);
-            if (totalMembers == 0) return false;
+            if (totalMembers == 0)
+                return false;
 
             double maxSpeciesFraction = species.Max(s => (double)s.MemberCount / totalMembers);
-            if (maxSpeciesFraction > 0.6) return true;
+            if (maxSpeciesFraction > 0.6)
+                return true;
 
             double fitnessVariance = population.FitnessStandardDeviation;
             double fitnessRange = population.Genomes.Length > 0
                 ? population.Genomes.Max(g => g.Fitness) - population.Genomes.Min(g => g.Fitness)
                 : 0;
 
-            if (fitnessRange > 0 && fitnessVariance / fitnessRange < 0.01) return true;
+            if (fitnessRange > 0 && fitnessVariance / fitnessRange < 0.01)
+                return true;
 
             var topologyHashes = population.Genomes
                 .Select(g => g.ComputeTopologyHash())
@@ -6610,7 +6752,8 @@ namespace GDNN.Core.NEAT
                 .Count();
             double topologyDiversity = (double)topologyHashes / Math.Max(1, population.Genomes.Length);
 
-            if (topologyDiversity < 0.1) return true;
+            if (topologyDiversity < 0.1)
+                return true;
 
             return false;
         }
@@ -6830,26 +6973,30 @@ namespace GDNN.Core.NEAT
 
         private double ComputeDiversity(GenomePopulation population)
         {
-            if (population.Genomes.Length <= 1) return 0;
+            if (population.Genomes.Length <= 1)
+                return 0;
             return population.FitnessStandardDeviation / (Math.Abs(population.AverageFitness) + 1e-10);
         }
 
         private double ComputeStructuralDiversity(GenomePopulation population)
         {
-            if (population.Genomes.Length <= 1) return 0;
+            if (population.Genomes.Length <= 1)
+                return 0;
             var hashes = population.Genomes.Select(g => g.ComputeTopologyHash()).Distinct().Count();
             return (double)hashes / population.Genomes.Length;
         }
 
         private double ComputeWeightDiversity(GenomePopulation population)
         {
-            if (population.Genomes.Length <= 1) return 0;
+            if (population.Genomes.Length <= 1)
+                return 0;
 
             var allWeights = population.Genomes
                 .SelectMany(g => g.Synapses.Where(s => s.IsActive).Select(s => s.Weight))
                 .ToList();
 
-            if (allWeights.Count == 0) return 0;
+            if (allWeights.Count == 0)
+                return 0;
 
             double mean = allWeights.Average();
             double variance = allWeights.Average(w => (w - mean) * (w - mean));
@@ -6858,7 +7005,8 @@ namespace GDNN.Core.NEAT
 
         private double ComputeActiveGeneRatio(GenomePopulation population)
         {
-            if (population.Genomes.Length == 0) return 0;
+            if (population.Genomes.Length == 0)
+                return 0;
 
             double totalActive = population.Genomes.Sum(g => g.ActiveNeuronCount + g.ActiveSynapseCount);
             double totalPossible = population.Genomes.Sum(g => g.TotalNeuronCount + g.TotalSynapseCount);
@@ -7313,7 +7461,8 @@ namespace GDNN.Core.NEAT
 
             var unevaluated = _currentPopulation.Genomes.Where(g => !g.IsFitnessValid).ToList();
 
-            if (unevaluated.Count == 0) return;
+            if (unevaluated.Count == 0)
+                return;
 
             var resolvedContext = context.ApplyEvolutionConfig(_config);
             var evaluator = new FitnessEvaluator(resolvedContext);
@@ -7354,7 +7503,8 @@ namespace GDNN.Core.NEAT
             SetState(EvolutionState.Evaluating);
 
             var unevaluated = genomes.Where(g => !g.IsFitnessValid).ToList();
-            if (unevaluated.Count == 0) return;
+            if (unevaluated.Count == 0)
+                return;
 
             var resolvedContext = context.ApplyEvolutionConfig(_config);
             var evaluator = new FitnessEvaluator(resolvedContext);
@@ -7487,7 +7637,8 @@ namespace GDNN.Core.NEAT
                     var clone = elites[_rng.Next(elites.Count)].Clone();
                     combined.Add(clone);
                 }
-                else break;
+                else
+                    break;
             }
 
             return combined.Take(_config.PopulationSize).ToList();
@@ -7621,7 +7772,8 @@ namespace GDNN.Core.NEAT
         /// </summary>
         private void AdjustAdaptiveParameters()
         {
-            if (_metricsHistory.Count < 2) return;
+            if (_metricsHistory.Count < 2)
+                return;
 
             var current = _metricsHistory.Last();
             var previous = _metricsHistory[^2];
@@ -7768,7 +7920,8 @@ namespace GDNN.Core.NEAT
         /// </summary>
         private void SetState(EvolutionState newState)
         {
-            if (_state == newState) return;
+            if (_state == newState)
+                return;
 
             var oldState = _state;
             _state = newState;
@@ -7844,7 +7997,8 @@ namespace GDNN.Core.NEAT
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             _engineCts.Cancel();
@@ -8056,7 +8210,8 @@ namespace GDNN.Core.NEAT
                     norm += Coordinates[i] * Coordinates[i];
                 norm = Math.Sqrt(norm);
 
-                if (norm < 1e-10) return this;
+                if (norm < 1e-10)
+                    return this;
 
                 var normalized = new double[Coordinates.Length];
                 for (int i = 0; i < Coordinates.Length; i++)
@@ -8171,7 +8326,8 @@ namespace GDNN.Core.NEAT
             /// </summary>
             public double GaussianCurvature()
             {
-                if (SectionalCurvatures.Length < 2) return ScalarCurvature;
+                if (SectionalCurvatures.Length < 2)
+                    return ScalarCurvature;
                 return SectionalCurvatures[0] * SectionalCurvatures[1];
             }
 
@@ -8180,7 +8336,8 @@ namespace GDNN.Core.NEAT
             /// </summary>
             public double MeanCurvature()
             {
-                if (SectionalCurvatures.Length == 0) return 0;
+                if (SectionalCurvatures.Length == 0)
+                    return 0;
                 return SectionalCurvatures.Average();
             }
 
@@ -8212,7 +8369,8 @@ namespace GDNN.Core.NEAT
             public double EstimateGeodesicDeviation(double distance)
             {
                 double k = ScalarCurvature;
-                if (Math.Abs(k) < 1e-10) return distance;
+                if (Math.Abs(k) < 1e-10)
+                    return distance;
 
                 if (k > 0)
                 {
@@ -8342,8 +8500,10 @@ namespace GDNN.Core.NEAT
                     int count = 0;
                     foreach (var ev in Eigenvalues)
                     {
-                        if (Math.Abs(ev) < 1e-6) count++;
-                        else break;
+                        if (Math.Abs(ev) < 1e-6)
+                            count++;
+                        else
+                            break;
                     }
                     return count;
                 }
@@ -8393,7 +8553,8 @@ namespace GDNN.Core.NEAT
             public double SpectralEntropy()
             {
                 double trace = Trace;
-                if (Math.Abs(trace) < 1e-10) return 0;
+                if (Math.Abs(trace) < 1e-10)
+                    return 0;
 
                 double entropy = 0;
                 foreach (var ev in Eigenvalues)
@@ -8460,7 +8621,8 @@ namespace GDNN.Core.NEAT
             public double PersistenceEntropy()
             {
                 double total = TotalPersistence();
-                if (Math.Abs(total) < 1e-10) return 0;
+                if (Math.Abs(total) < 1e-10)
+                    return 0;
 
                 double entropy = 0;
                 foreach (var bar in Bars)
@@ -8518,7 +8680,8 @@ namespace GDNN.Core.NEAT
             /// <returns>Wasserstein-p distance.</returns>
             public double WassersteinDistance(PersistentBarcode other, double p = 2.0)
             {
-                if (Bars.Length == 0 && other.Bars.Length == 0) return 0;
+                if (Bars.Length == 0 && other.Bars.Length == 0)
+                    return 0;
 
                 var sortedA = Bars.OrderByDescending(b => b.Lifetime).ToList();
                 var sortedB = other.Bars.OrderByDescending(b => b.Lifetime).ToList();
@@ -8774,7 +8937,8 @@ namespace GDNN.Core.NEAT
         public double[] ComputeEigenvalues(double[,] laplacian)
         {
             int n = laplacian.GetLength(0);
-            if (n == 0) return Array.Empty<double>();
+            if (n == 0)
+                return Array.Empty<double>();
 
             var eigenvalues = new List<double>();
             var matrix = (double[,])laplacian.Clone();
@@ -8797,7 +8961,8 @@ namespace GDNN.Core.NEAT
                     }
                 }
 
-                if (maxVal < 1e-10) break;
+                if (maxVal < 1e-10)
+                    break;
 
                 double theta = 0.5 * Math.Atan2(
                     2 * matrix[maxRow, maxCol],
@@ -8853,7 +9018,8 @@ namespace GDNN.Core.NEAT
         public int CountConnectedComponents(GeoGenome genome)
         {
             var activeNeurons = genome.Neurons.Where(n => n.IsActive).ToList();
-            if (activeNeurons.Count == 0) return 0;
+            if (activeNeurons.Count == 0)
+                return 0;
 
             var visited = new HashSet<long>();
             int components = 0;
@@ -8862,7 +9028,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var neuron in activeNeurons)
             {
-                if (visited.Contains(neuron.InnovationNumber)) continue;
+                if (visited.Contains(neuron.InnovationNumber))
+                    continue;
 
                 components++;
                 var queue = new Queue<long>();
@@ -8871,7 +9038,8 @@ namespace GDNN.Core.NEAT
                 while (queue.Count > 0)
                 {
                     var current = queue.Dequeue();
-                    if (!visited.Add(current)) continue;
+                    if (!visited.Add(current))
+                        continue;
 
                     foreach (var synapse in activeSynapses)
                     {
@@ -8960,7 +9128,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var neuron in activeNeurons)
             {
-                if (visited.Contains(neuron.InnovationNumber)) continue;
+                if (visited.Contains(neuron.InnovationNumber))
+                    continue;
 
                 var component = new List<long>();
                 var queue = new Queue<long>();
@@ -8969,7 +9138,8 @@ namespace GDNN.Core.NEAT
                 while (queue.Count > 0)
                 {
                     var current = queue.Dequeue();
-                    if (!visited.Add(current)) continue;
+                    if (!visited.Add(current))
+                        continue;
                     component.Add(current);
 
                     foreach (var synapse in activeSynapses)
@@ -9687,7 +9857,8 @@ namespace GDNN.Core.NEAT
         public static double MeanSquaredError(double[] output, ImmutableArray<double> target)
         {
             int length = Math.Min(output.Length, target.Length);
-            if (length == 0) return 0;
+            if (length == 0)
+                return 0;
 
             double sum = 0;
             for (int i = 0; i < length; i++)
@@ -9712,7 +9883,8 @@ namespace GDNN.Core.NEAT
         public static double MeanAbsoluteError(double[] output, ImmutableArray<double> target)
         {
             int length = Math.Min(output.Length, target.Length);
-            if (length == 0) return 0;
+            if (length == 0)
+                return 0;
 
             double sum = 0;
             for (int i = 0; i < length; i++)
@@ -9728,7 +9900,8 @@ namespace GDNN.Core.NEAT
         public static double NegativeLogLikelihood(double[] output, ImmutableArray<double> target)
         {
             int length = Math.Min(output.Length, target.Length);
-            if (length == 0) return 0;
+            if (length == 0)
+                return 0;
 
             double sum = 0;
             for (int i = 0; i < length; i++)
@@ -9746,7 +9919,8 @@ namespace GDNN.Core.NEAT
         public static double CrossEntropyLoss(double[] output, ImmutableArray<double> target)
         {
             int length = Math.Min(output.Length, target.Length);
-            if (length == 0) return 0;
+            if (length == 0)
+                return 0;
 
             double sum = 0;
             for (int i = 0; i < length; i++)
@@ -9764,7 +9938,8 @@ namespace GDNN.Core.NEAT
         public static double CosineSimilarity(double[] output, ImmutableArray<double> target)
         {
             int length = Math.Min(output.Length, target.Length);
-            if (length == 0) return 0;
+            if (length == 0)
+                return 0;
 
             double dotProduct = 0, normA = 0, normB = 0;
             for (int i = 0; i < length; i++)
@@ -9783,7 +9958,8 @@ namespace GDNN.Core.NEAT
         /// </summary>
         public static double SignalToNoiseRatio(double[] output)
         {
-            if (output.Length == 0) return 0;
+            if (output.Length == 0)
+                return 0;
 
             double mean = output.Average();
             double signalPower = mean * mean;
@@ -9798,16 +9974,19 @@ namespace GDNN.Core.NEAT
         public static double StructuralSimilarity(double[] output, ImmutableArray<double> target)
         {
             int length = Math.Min(output.Length, target.Length);
-            if (length <= 1) return 0;
+            if (length <= 1)
+                return 0;
 
             double muX = output.Average();
             double muY = 0;
-            for (int i = 0; i < length; i++) muY += target[i];
+            for (int i = 0; i < length; i++)
+                muY += target[i];
             muY /= length;
 
             double sigmaX2 = output.Average(v => (v - muX) * (v - muX));
             double sigmaY2 = 0;
-            for (int i = 0; i < length; i++) sigmaY2 += (target[i] - muY) * (target[i] - muY);
+            for (int i = 0; i < length; i++)
+                sigmaY2 += (target[i] - muY) * (target[i] - muY);
             sigmaY2 /= length;
 
             double sigmaXY = 0;
@@ -9830,7 +10009,8 @@ namespace GDNN.Core.NEAT
         public static double PeakSignalToNoiseRatio(double[] output, ImmutableArray<double> target, double maxSignal = 1.0)
         {
             double mse = MeanSquaredError(output, target);
-            if (mse < 1e-10) return 100.0;
+            if (mse < 1e-10)
+                return 100.0;
             return 20 * Math.Log10(maxSignal) - 10 * Math.Log10(mse);
         }
 
@@ -9900,7 +10080,8 @@ namespace GDNN.Core.NEAT
         /// <returns>Novelty score (higher = more novel).</returns>
         public static double NoveltyScore(GeoGenome genome, IReadOnlyList<GeoGenome> archive, int k = 5)
         {
-            if (archive.Count == 0) return 1.0;
+            if (archive.Count == 0)
+                return 1.0;
 
             var distances = archive
                 .Select(other => ComputeGenomeFeatureDistance(genome, other))
@@ -9944,7 +10125,8 @@ namespace GDNN.Core.NEAT
             return genome =>
             {
                 double totalWeight = components.Sum(c => c.Weight);
-                if (totalWeight <= 0) return 0;
+                if (totalWeight <= 0)
+                    return 0;
 
                 double totalFitness = 0;
                 foreach (var (function, weight) in components)
@@ -10185,8 +10367,10 @@ namespace GDNN.Core.NEAT
             int idx2 = _rng.Next(parents.Count);
             int idx3 = _rng.Next(parents.Count);
 
-            while (idx2 == idx1) idx2 = _rng.Next(parents.Count);
-            while (idx3 == idx1 || idx3 == idx2) idx3 = _rng.Next(parents.Count);
+            while (idx2 == idx1)
+                idx2 = _rng.Next(parents.Count);
+            while (idx3 == idx1 || idx3 == idx2)
+                idx3 = _rng.Next(parents.Count);
 
             var base_genome = parents[idx1].Clone();
             var diffA = parents[idx2];
@@ -10327,8 +10511,10 @@ namespace GDNN.Core.NEAT
 
                     var s1 = child1.Synapses.FirstOrDefault(s => s.InnovationNumber == innov);
                     var s2 = child2.Synapses.FirstOrDefault(s => s.InnovationNumber == innov);
-                    if (s1 != null) s1.Weight = childW1;
-                    if (s2 != null) s2.Weight = childW2;
+                    if (s1 != null)
+                        s1.Weight = childW1;
+                    if (s2 != null)
+                        s2.Weight = childW2;
                 }
             }
 
@@ -10354,8 +10540,10 @@ namespace GDNN.Core.NEAT
 
                     var n1 = child1.Neurons.FirstOrDefault(n => n.InnovationNumber == innov);
                     var n2 = child2.Neurons.FirstOrDefault(n => n.InnovationNumber == innov);
-                    if (n1 != null) n1.Bias = childB1;
-                    if (n2 != null) n2.Bias = childB2;
+                    if (n1 != null)
+                        n1.Bias = childB1;
+                    if (n2 != null)
+                        n2.Bias = childB2;
                 }
             }
 
@@ -10445,7 +10633,8 @@ namespace GDNN.Core.NEAT
 
             for (int iter = 0; iter < maxIterations; iter++)
             {
-                if (activeSynapses.Count == 0) break;
+                if (activeSynapses.Count == 0)
+                    break;
 
                 var candidate = current.Clone();
                 candidate.Id = Guid.NewGuid();
@@ -10568,7 +10757,8 @@ namespace GDNN.Core.NEAT
             var visited = new HashSet<long>();
             foreach (var neuron in activeNeurons)
             {
-                if (visited.Contains(neuron.InnovationNumber)) continue;
+                if (visited.Contains(neuron.InnovationNumber))
+                    continue;
 
                 var connected = new List<long> { neuron.InnovationNumber };
                 var connectedSynapses = new List<long>();
@@ -11460,7 +11650,8 @@ namespace GDNN.Core.NEAT
         /// <returns>True if the genome is structurally valid.</returns>
         public static bool IsStructurallyValid(GeoGenome genome)
         {
-            if (genome == null) return false;
+            if (genome == null)
+                return false;
 
             var activeNeurons = genome.Neurons.Where(n => n.IsActive).ToList();
             var activeSynapses = genome.Synapses.Where(s => s.IsActive).ToList();
@@ -11480,7 +11671,8 @@ namespace GDNN.Core.NEAT
             foreach (var outputNeuron in outputNeurons)
             {
                 bool hasInput = activeSynapses.Any(s => s.TargetNeuronId == outputNeuron.InnovationNumber);
-                if (!hasInput) return false;
+                if (!hasInput)
+                    return false;
             }
 
             return true;
@@ -11493,7 +11685,8 @@ namespace GDNN.Core.NEAT
         /// <returns>Health score between 0 and 1.</returns>
         public static double ComputeHealthScore(GeoGenome genome)
         {
-            if (genome == null) return 0;
+            if (genome == null)
+                return 0;
 
             var errors = Validate(genome);
             double errorPenalty = errors.Count * 0.1;
@@ -11670,7 +11863,8 @@ namespace GDNN.Core.NEAT
             {
                 if (Math.Abs(fitnesses[i] - fitnesses[i - 1]) < _config.FitnessThreshold)
                 {
-                    if (stagnationStart < 0) stagnationStart = i;
+                    if (stagnationStart < 0)
+                        stagnationStart = i;
                     plateauFitness = fitnesses[i];
                 }
                 else
@@ -11870,7 +12064,8 @@ namespace GDNN.Core.NEAT
 
         private int EstimateRemainingGenerations(IReadOnlyList<EvolutionMetrics> metrics)
         {
-            if (metrics.Count < 10) return -1;
+            if (metrics.Count < 10)
+                return -1;
 
             var recent = metrics.TakeLast(10).ToList();
             double avgImprovement = 0;
@@ -11884,20 +12079,23 @@ namespace GDNN.Core.NEAT
                 return 0;
 
             double targetGap = _config.TargetFitness - recent.Last().BestFitness;
-            if (targetGap <= 0) return 0;
+            if (targetGap <= 0)
+                return 0;
 
             return avgImprovement > 0 ? (int)Math.Ceiling(targetGap / avgImprovement) : -1;
         }
 
         private double ComputeFitnessEntropy(double[] fitnesses, int bins)
         {
-            if (fitnesses.Length == 0 || bins <= 0) return 0;
+            if (fitnesses.Length == 0 || bins <= 0)
+                return 0;
 
             double min = fitnesses.Min();
             double max = fitnesses.Max();
             double range = max - min;
 
-            if (range < 1e-10) return 0;
+            if (range < 1e-10)
+                return 0;
 
             var counts = new int[bins];
             foreach (var f in fitnesses)
@@ -11921,13 +12119,15 @@ namespace GDNN.Core.NEAT
 
         private int ComputeModesCount(double[] fitnesses)
         {
-            if (fitnesses.Length < 5) return 1;
+            if (fitnesses.Length < 5)
+                return 1;
 
             double min = fitnesses.Min();
             double max = fitnesses.Max();
             double range = max - min;
 
-            if (range < 1e-10) return 1;
+            if (range < 1e-10)
+                return 1;
 
             int bins = Math.Max(5, (int)Math.Sqrt(fitnesses.Length));
             var counts = new int[bins];
@@ -12245,7 +12445,8 @@ namespace GDNN.Core.NEAT
         public void Clear()
         {
             _pool.Clear();
-            while (_availableIds.TryDequeue(out _)) { }
+            while (_availableIds.TryDequeue(out _))
+            { }
             Interlocked.Exchange(ref _activeCount, 0);
         }
 
@@ -12475,7 +12676,8 @@ namespace GDNN.Core.NEAT
                 distances[genomeObjectives[^1].Index] = double.PositiveInfinity;
 
                 double range = genomeObjectives[^1].Value - genomeObjectives[0].Value;
-                if (range < 1e-10) continue;
+                if (range < 1e-10)
+                    continue;
 
                 for (int i = 1; i < frontSize - 1; i++)
                 {
@@ -12544,8 +12746,10 @@ namespace GDNN.Core.NEAT
                 double valA = GetObjectiveValue(a, component);
                 double valB = GetObjectiveValue(b, component);
 
-                if (valA < valB) return false;
-                if (valA > valB) atLeastOneBetter = true;
+                if (valA < valB)
+                    return false;
+                if (valA > valB)
+                    atLeastOneBetter = true;
             }
 
             return atLeastOneBetter;
@@ -12760,7 +12964,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var neuron in activeNeurons)
             {
-                if (neuron.LayerIndex == 0) continue;
+                if (neuron.LayerIndex == 0)
+                    continue;
 
                 int inputCount = activeSynapses.Count(s => s.TargetNeuronId == neuron.InnovationNumber);
                 int outputCount = activeSynapses.Count(s => s.SourceNeuronId == neuron.InnovationNumber);
@@ -12986,7 +13191,8 @@ namespace GDNN.Core.NEAT
         /// </summary>
         public void ClearLog()
         {
-            while (_eventLog.TryDequeue(out _)) { }
+            while (_eventLog.TryDequeue(out _))
+            { }
         }
 
         /// <summary>
@@ -13008,7 +13214,8 @@ namespace GDNN.Core.NEAT
         /// <inheritdoc/>
         public ValueTask DisposeAsync()
         {
-            if (_disposed) return ValueTask.CompletedTask;
+            if (_disposed)
+                return ValueTask.CompletedTask;
             _disposed = true;
             _handlers.Clear();
             ClearLog();
@@ -13230,7 +13437,8 @@ namespace GDNN.Core.NEAT
         {
             lock (_evictionLock)
             {
-                if (_cache.Count <= _maxSize) return;
+                if (_cache.Count <= _maxSize)
+                    return;
 
                 var toRemove = _cache
                     .OrderBy(kvp => kvp.Value.LastAccessTime)
@@ -13892,7 +14100,8 @@ namespace GDNN.Core.NEAT
         public int GetSpeedDelay()
         {
             double speed = Volatile.Read(ref _speedMultiplier);
-            if (speed >= 1.0) return 0;
+            if (speed >= 1.0)
+                return 0;
             return (int)(100.0 / speed);
         }
 
@@ -14054,7 +14263,8 @@ namespace GDNN.Core.NEAT
             double penalty = 0;
             foreach (var constraint in constraints)
             {
-                if (constraint.Key == primaryObjective) continue;
+                if (constraint.Key == primaryObjective)
+                    continue;
 
                 if (genome.FitnessComponents.TryGetValue(constraint.Key, out double value))
                 {
@@ -14121,13 +14331,16 @@ namespace GDNN.Core.NEAT
             IReadOnlyList<GeoGenome> genomes,
             ImmutableDictionary<FitnessComponent, double> referencePoint)
         {
-            if (genomes.Count == 0) return 0;
+            if (genomes.Count == 0)
+                return 0;
 
             var objectives = referencePoint.Keys.ToList();
-            if (objectives.Count == 0) return 0;
+            if (objectives.Count == 0)
+                return 0;
 
             var nonDominated = GetNonDominatedSet(genomes, objectives);
-            if (nonDominated.Count == 0) return 0;
+            if (nonDominated.Count == 0)
+                return 0;
 
             if (objectives.Count == 1)
             {
@@ -14153,10 +14366,12 @@ namespace GDNN.Core.NEAT
         /// <returns>Spacing metric (lower = more evenly distributed).</returns>
         public double ComputeSpacing(IReadOnlyList<GeoGenome> genomes)
         {
-            if (genomes.Count <= 1) return 0;
+            if (genomes.Count <= 1)
+                return 0;
 
             var objectives = genomes[0].FitnessComponents.Keys.ToList();
-            if (objectives.Count == 0) return 0;
+            if (objectives.Count == 0)
+                return 0;
 
             var distances = new List<double>();
 
@@ -14165,7 +14380,8 @@ namespace GDNN.Core.NEAT
                 double minDist = double.MaxValue;
                 for (int j = 0; j < genomes.Count; j++)
                 {
-                    if (i == j) continue;
+                    if (i == j)
+                        continue;
                     double dist = EuclideanDistance(genomes[i], genomes[j], objectives);
                     if (dist < minDist)
                         minDist = dist;
@@ -14186,10 +14402,12 @@ namespace GDNN.Core.NEAT
         /// <returns>Spread metric (lower = better spread).</returns>
         public double ComputeSpread(IReadOnlyList<GeoGenome> genomes)
         {
-            if (genomes.Count <= 1) return 1;
+            if (genomes.Count <= 1)
+                return 1;
 
             var objectives = genomes[0].FitnessComponents.Keys.ToList();
-            if (objectives.Count == 0) return 1;
+            if (objectives.Count == 0)
+                return 1;
 
             var distances = new List<double>();
             for (int i = 0; i < genomes.Count; i++)
@@ -14197,7 +14415,8 @@ namespace GDNN.Core.NEAT
                 double minDist = double.MaxValue;
                 for (int j = 0; j < genomes.Count; j++)
                 {
-                    if (i == j) continue;
+                    if (i == j)
+                        continue;
                     double dist = EuclideanDistance(genomes[i], genomes[j], objectives);
                     if (dist < minDist)
                         minDist = dist;
@@ -14206,7 +14425,8 @@ namespace GDNN.Core.NEAT
             }
 
             double meanDist = distances.Average();
-            if (meanDist < 1e-10) return 0;
+            if (meanDist < 1e-10)
+                return 0;
 
             double df = ComputeBoundaryDistances(genomes, objectives);
             double dl = distances.Sum(d => Math.Abs(d - meanDist));
@@ -14279,7 +14499,8 @@ namespace GDNN.Core.NEAT
                     }
                 }
 
-                if (dominated) volume++;
+                if (dominated)
+                    volume++;
             }
 
             double totalVolume = 1;
@@ -14302,7 +14523,8 @@ namespace GDNN.Core.NEAT
                 bool isDominated = false;
                 foreach (var other in genomes)
                 {
-                    if (candidate == other) continue;
+                    if (candidate == other)
+                        continue;
 
                     bool allOthersBetterOrEqual = true;
                     bool atLeastOneBetter = false;
@@ -14353,7 +14575,8 @@ namespace GDNN.Core.NEAT
             IReadOnlyList<GeoGenome> genomes,
             List<FitnessComponent> objectives)
         {
-            if (genomes.Count < 2) return 0;
+            if (genomes.Count < 2)
+                return 0;
 
             double totalDist = 0;
             foreach (var obj in objectives)
@@ -14679,7 +14902,8 @@ namespace GDNN.Core.NEAT
             long maxInnovB = bSynapseInnovs.Count > 0 ? bSynapseInnovs.Max() : 0;
             long maxInnov = Math.Max(maxInnovA, maxInnovB);
 
-            if (maxInnov == 0) return 0;
+            if (maxInnov == 0)
+                return 0;
 
             int excess = 0;
             int disjoint = 0;
@@ -14709,7 +14933,8 @@ namespace GDNN.Core.NEAT
             }
 
             int N = Math.Max(a.ActiveSynapseCount, b.ActiveSynapseCount);
-            if (N == 0) return 0;
+            if (N == 0)
+                return 0;
 
             double normalizedExcess = (double)excess / N;
             double normalizedDisjoint = (double)disjoint / N;
@@ -14757,14 +14982,16 @@ namespace GDNN.Core.NEAT
                 .ToList();
 
             int maxLen = Math.Max(aActivations.Count, bActivations.Count);
-            if (maxLen == 0) return 0;
+            if (maxLen == 0)
+                return 0;
 
             int differences = 0;
             for (int i = 0; i < maxLen; i++)
             {
                 var aAct = i < aActivations.Count ? aActivations[i] : ActivationFunction.Linear;
                 var bAct = i < bActivations.Count ? bActivations[i] : ActivationFunction.Linear;
-                if (aAct != bAct) differences++;
+                if (aAct != bAct)
+                    differences++;
             }
 
             return (double)differences / maxLen;
@@ -14782,7 +15009,8 @@ namespace GDNN.Core.NEAT
             var aWeights = a.Synapses.Where(s => s.IsActive).Select(s => s.Weight).OrderBy(w => w).ToList();
             var bWeights = b.Synapses.Where(s => s.IsActive).Select(s => s.Weight).OrderBy(w => w).ToList();
 
-            if (aWeights.Count == 0 || bWeights.Count == 0) return 1.0;
+            if (aWeights.Count == 0 || bWeights.Count == 0)
+                return 1.0;
 
             double maxDiff = 0;
             int i = 0, j = 0;
@@ -14821,7 +15049,8 @@ namespace GDNN.Core.NEAT
             double[] featuresB = ExtractStructuralFeatures(b);
 
             int length = Math.Min(featuresA.Length, featuresB.Length);
-            if (length == 0) return 0;
+            if (length == 0)
+                return 0;
 
             double muA = featuresA.Take(length).Average();
             double muB = featuresB.Take(length).Average();
@@ -15279,7 +15508,8 @@ namespace GDNN.Core.NEAT
         /// <returns>Number of changes actually applied.</returns>
         public int ApplyRecommendations(AutoTunerRecommendations recommendations, int maxChangesPerIteration = 2)
         {
-            if (recommendations.Confidence < 0.3) return 0;
+            if (recommendations.Confidence < 0.3)
+                return 0;
 
             int applied = 0;
             foreach (var change in recommendations.Changes.Take(maxChangesPerIteration))
@@ -15340,7 +15570,8 @@ namespace GDNN.Core.NEAT
 
         private double ComputeFitnessTrend(List<AutoTunerObservation> observations)
         {
-            if (observations.Count < 2) return 0;
+            if (observations.Count < 2)
+                return 0;
 
             var fitnesses = observations.Select(o => o.BestFitness).ToList();
             return (fitnesses[^1] - fitnesses[0]) / Math.Max(1, Math.Abs(fitnesses[0]));
@@ -15348,7 +15579,8 @@ namespace GDNN.Core.NEAT
 
         private double ComputeDiversityTrend(List<AutoTunerObservation> observations)
         {
-            if (observations.Count < 2) return 0;
+            if (observations.Count < 2)
+                return 0;
 
             var diversities = observations.Select(o => o.DiversityMetric).ToList();
             return (diversities[^1] - diversities[0]) / Math.Max(0.01, diversities[0]);
@@ -15361,7 +15593,8 @@ namespace GDNN.Core.NEAT
 
         private double ComputeConvergenceRate(List<AutoTunerObservation> observations)
         {
-            if (observations.Count < 5) return 0;
+            if (observations.Count < 5)
+                return 0;
 
             var recent = observations.TakeLast(5).ToList();
             var improvements = new List<double>();
@@ -15377,7 +15610,8 @@ namespace GDNN.Core.NEAT
             List<AutoTunerObservation> observations,
             List<ParameterChange> recommendations)
         {
-            if (recommendations.Count == 0) return 0;
+            if (recommendations.Count == 0)
+                return 0;
 
             double dataQuality = Math.Min(1.0, observations.Count / 30.0);
             double signalStrength = Math.Min(1.0, recommendations.Count * 0.3);
@@ -15388,13 +15622,15 @@ namespace GDNN.Core.NEAT
 
         private double ComputeObservationConsistency(List<AutoTunerObservation> observations)
         {
-            if (observations.Count < 3) return 0.5;
+            if (observations.Count < 3)
+                return 0.5;
 
             var fitnesses = observations.Select(o => o.BestFitness).ToList();
             int monotonicCount = 0;
             for (int i = 1; i < fitnesses.Count; i++)
             {
-                if (fitnesses[i] >= fitnesses[i - 1]) monotonicCount++;
+                if (fitnesses[i] >= fitnesses[i - 1])
+                    monotonicCount++;
             }
 
             return (double)monotonicCount / (fitnesses.Count - 1);
@@ -15823,14 +16059,16 @@ namespace GDNN.Core.NEAT
         private double ComputeTwoTailedPValue(double tStat, int degreesOfFreedom)
         {
             double x = (double)degreesOfFreedom / (degreesOfFreedom + tStat * tStat);
-            double p = 0.5 *IncompleteBetaFunction(degreesOfFreedom / 2.0, 0.5, x);
+            double p = 0.5 * IncompleteBetaFunction(degreesOfFreedom / 2.0, 0.5, x);
             return 2 * p;
         }
 
         private double IncompleteBetaFunction(double a, double b, double x)
         {
-            if (x <= 0) return 0;
-            if (x >= 1) return 1;
+            if (x <= 0)
+                return 0;
+            if (x >= 1)
+                return 1;
 
             double result = 0;
             double term = Math.Pow(x, a) * Math.Pow(1 - x, b) / a;
@@ -15841,7 +16079,8 @@ namespace GDNN.Core.NEAT
                 double numerator = n * (b - n) * x / ((a + 2 * n - 1) * (a + 2 * n));
                 term *= numerator;
                 result += term;
-                if (Math.Abs(term) < 1e-10) break;
+                if (Math.Abs(term) < 1e-10)
+                    break;
             }
 
             double beta = GammaFunction(a) * GammaFunction(b) / GammaFunction(a + b);
@@ -16035,7 +16274,8 @@ namespace GDNN.Core.NEAT
             var activeNeurons = genome.Neurons.Where(n => n.IsActive).ToList();
             var activeSynapses = genome.Synapses.Where(s => s.IsActive).ToList();
 
-            if (activeNeurons.Count == 0) return Array.Empty<double>();
+            if (activeNeurons.Count == 0)
+                return Array.Empty<double>();
 
             ComputeTopologicalOrderIfNeeded(genome, activeNeurons, activeSynapses);
 
@@ -16063,7 +16303,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var layer in sortedLayers)
             {
-                if (layer.Key == 0) continue;
+                if (layer.Key == 0)
+                    continue;
 
                 foreach (var neuron in layer)
                 {
@@ -16718,7 +16959,8 @@ namespace GDNN.Core.NEAT
         /// <param name="exception">Optional exception.</param>
         public void Log(LogLevel level, string message, string? category = null, Exception? exception = null)
         {
-            if (level < _minimumLevel) return;
+            if (level < _minimumLevel)
+                return;
 
             var entry = new LogEntry
             {
@@ -16779,7 +17021,8 @@ namespace GDNN.Core.NEAT
         /// </summary>
         public void Clear()
         {
-            while (_logEntries.TryDequeue(out _)) { }
+            while (_logEntries.TryDequeue(out _))
+            { }
         }
 
         /// <summary>
@@ -17137,13 +17380,20 @@ namespace GDNN.Core.NEAT
         private EvolutionConfig CrossoverConfigs(EvolutionConfig a, EvolutionConfig b)
         {
             var child = a.Clone();
-            if (_rng.NextDouble() < 0.5) child.CrossoverRate = b.CrossoverRate;
-            if (_rng.NextDouble() < 0.5) child.MutationRate = b.MutationRate;
-            if (_rng.NextDouble() < 0.5) child.SpeciationThreshold = b.SpeciationThreshold;
-            if (_rng.NextDouble() < 0.5) child.TournamentSize = b.TournamentSize;
-            if (_rng.NextDouble() < 0.5) child.PerturbationMagnitude = b.PerturbationMagnitude;
-            if (_rng.NextDouble() < 0.5) child.MigrationRate = b.MigrationRate;
-            if (_rng.NextDouble() < 0.5) child.MaxStagnationGenerations = b.MaxStagnationGenerations;
+            if (_rng.NextDouble() < 0.5)
+                child.CrossoverRate = b.CrossoverRate;
+            if (_rng.NextDouble() < 0.5)
+                child.MutationRate = b.MutationRate;
+            if (_rng.NextDouble() < 0.5)
+                child.SpeciationThreshold = b.SpeciationThreshold;
+            if (_rng.NextDouble() < 0.5)
+                child.TournamentSize = b.TournamentSize;
+            if (_rng.NextDouble() < 0.5)
+                child.PerturbationMagnitude = b.PerturbationMagnitude;
+            if (_rng.NextDouble() < 0.5)
+                child.MigrationRate = b.MigrationRate;
+            if (_rng.NextDouble() < 0.5)
+                child.MaxStagnationGenerations = b.MaxStagnationGenerations;
             return child;
         }
 
@@ -17221,7 +17471,8 @@ namespace GDNN.Core.NEAT
         /// <param name="genomeId">Associated genome ID (optional).</param>
         public void RecordEvent(ReplayEventType eventType, int generation, string data, Guid? genomeId = null)
         {
-            if (!_isRecording) return;
+            if (!_isRecording)
+                return;
 
             _events.Add(new ReplayEvent
             {
@@ -17241,7 +17492,8 @@ namespace GDNN.Core.NEAT
         /// <param name="generation">Current generation.</param>
         public void RecordGenomeSnapshot(GeoGenome genome, int generation)
         {
-            if (!_isRecording) return;
+            if (!_isRecording)
+                return;
 
             _events.Add(new ReplayEvent
             {
@@ -17266,7 +17518,8 @@ namespace GDNN.Core.NEAT
         /// </summary>
         public ReplayEvent? GetNextEvent()
         {
-            if (_currentPosition >= _events.Count) return null;
+            if (_currentPosition >= _events.Count)
+                return null;
             return _events[_currentPosition++];
         }
 
@@ -17276,7 +17529,8 @@ namespace GDNN.Core.NEAT
         /// <param name="position">Event position.</param>
         public ReplayEvent? GetEventAt(int position)
         {
-            if (position < 0 || position >= _events.Count) return null;
+            if (position < 0 || position >= _events.Count)
+                return null;
             return _events[position];
         }
 
@@ -17296,7 +17550,8 @@ namespace GDNN.Core.NEAT
         public void SeekToGeneration(int generation)
         {
             var idx = _events.FindIndex(e => e.Generation >= generation);
-            if (idx >= 0) _currentPosition = idx;
+            if (idx >= 0)
+                _currentPosition = idx;
         }
 
         /// <summary>
@@ -17481,7 +17736,8 @@ namespace GDNN.Core.NEAT
                     pairs.Add((sourceId, targetId));
                 }
 
-                if (pairs.Count >= maxMigrations) break;
+                if (pairs.Count >= maxMigrations)
+                    break;
             }
 
             return pairs;
@@ -17503,7 +17759,8 @@ namespace GDNN.Core.NEAT
                 .Where(g => species.MemberIds.Contains(g.Id))
                 .ToList();
 
-            if (speciesGenomes.Count == 0) return Array.Empty<GeoGenome>();
+            if (speciesGenomes.Count == 0)
+                return Array.Empty<GeoGenome>();
 
             var ranked = speciesGenomes
                 .OrderByDescending(g => g.Fitness)
@@ -17512,7 +17769,8 @@ namespace GDNN.Core.NEAT
             int eliteBoundary = Math.Max(1, ranked.Count / 3);
             var candidates = ranked.Skip(eliteBoundary).ToList();
 
-            if (candidates.Count == 0) candidates = ranked;
+            if (candidates.Count == 0)
+                candidates = ranked;
 
             var migrants = new List<GeoGenome>();
             for (int i = 0; i < Math.Min(count, candidates.Count); i++)
@@ -17535,7 +17793,8 @@ namespace GDNN.Core.NEAT
             SpeciesInfo targetSpecies,
             IReadOnlyList<GeoGenome> targetGenomes)
         {
-            if (targetGenomes.Count == 0) return 1.0;
+            if (targetGenomes.Count == 0)
+                return 1.0;
 
             double fitnessRatio = targetSpecies.AverageFitness > 0
                 ? migrant.Fitness / targetSpecies.AverageFitness
@@ -17740,7 +17999,8 @@ namespace GDNN.Core.NEAT
         public double GetMemoryTrend()
         {
             var recent = _snapshots.TakeLast(10).ToList();
-            if (recent.Count < 2) return 0;
+            if (recent.Count < 2)
+                return 0;
 
             return (recent[^1].MemoryUsedBytes - recent[0].MemoryUsedBytes) /
                    Math.Max(1, recent[0].MemoryUsedBytes);
@@ -18382,7 +18642,8 @@ namespace GDNN.Core.NEAT
         public static double StandardDeviation(this IEnumerable<double> source)
         {
             var list = source.ToList();
-            if (list.Count <= 1) return 0;
+            if (list.Count <= 1)
+                return 0;
 
             double mean = list.Average();
             double variance = list.Average(v => (v - mean) * (v - mean));
@@ -18395,7 +18656,8 @@ namespace GDNN.Core.NEAT
         public static double Median(this IEnumerable<double> source)
         {
             var sorted = source.OrderBy(v => v).ToList();
-            if (sorted.Count == 0) return 0;
+            if (sorted.Count == 0)
+                return 0;
 
             int mid = sorted.Count / 2;
             return sorted.Count % 2 == 0
@@ -18409,10 +18671,12 @@ namespace GDNN.Core.NEAT
         public static double CoefficientOfVariation(this IEnumerable<double> source)
         {
             var list = source.ToList();
-            if (list.Count == 0) return 0;
+            if (list.Count == 0)
+                return 0;
 
             double mean = list.Average();
-            if (Math.Abs(mean) < 1e-10) return 0;
+            if (Math.Abs(mean) < 1e-10)
+                return 0;
 
             double stdDev = list.StandardDeviation();
             return stdDev / Math.Abs(mean);
@@ -18691,7 +18955,8 @@ namespace GDNN.Core.NEAT
 
             int totalExecutions = _operatorStats.Values.Sum(s =>
             {
-                lock (s.Lock) return s.TotalExecutions;
+                lock (s.Lock)
+                    return s.TotalExecutions;
             });
 
             string bestOperator = availableOperators[0];
@@ -19061,11 +19326,13 @@ namespace GDNN.Core.NEAT
 
             for (int i = 0; i < merged.Count; i++)
             {
-                if (mergeMap.ContainsKey(i)) continue;
+                if (mergeMap.ContainsKey(i))
+                    continue;
 
                 for (int j = i + 1; j < merged.Count; j++)
                 {
-                    if (mergeMap.ContainsKey(j)) continue;
+                    if (mergeMap.ContainsKey(j))
+                        continue;
 
                     double similarity = ComputeModuleSimilarity(merged[i], merged[j]);
                     if (similarity >= threshold)
@@ -19209,7 +19476,8 @@ namespace GDNN.Core.NEAT
 
                     foreach (int neighborComm in neighborCommunities)
                     {
-                        if (neighborComm == currentCommunity) continue;
+                        if (neighborComm == currentCommunity)
+                            continue;
 
                         double gain = ComputeModularityGain(adjacency, membership, i, currentCommunity, neighborComm, n, totalEdges);
                         if (gain > bestGain)
@@ -19242,7 +19510,8 @@ namespace GDNN.Core.NEAT
         private double ComputeModularityGain(int[,] adjacency, int[] membership, int node, int fromComm, int toComm, int n, int totalEdges)
         {
             double m2 = 2.0 * totalEdges;
-            if (m2 == 0) return 0;
+            if (m2 == 0)
+                return 0;
 
             double ki = 0;
             double kiTo = 0;
@@ -19321,7 +19590,8 @@ namespace GDNN.Core.NEAT
         private double ComputeModuleDensity(GeoGenome genome, HashSet<long> moduleNeuronIds)
         {
             int n = moduleNeuronIds.Count;
-            if (n <= 1) return 0;
+            if (n <= 1)
+                return 0;
 
             int internalEdges = genome.Synapses.Count(s =>
                 s.IsActive &&
@@ -19649,11 +19919,13 @@ namespace GDNN.Core.NEAT
         {
             lock (_lock)
             {
-                if (_snapshots.Count < 5) return;
+                if (_snapshots.Count < 5)
+                    return;
             }
 
             var allSnapshots = GetSnapshots();
-            if (allSnapshots.Count < 5) return;
+            if (allSnapshots.Count < 5)
+                return;
 
             var issues = new List<QualityIssue>();
             var recommendations = new List<string>();
@@ -19673,7 +19945,8 @@ namespace GDNN.Core.NEAT
             List<QualityIssue> issues,
             List<string> recommendations)
         {
-            if (snapshots.Length < 10) return;
+            if (snapshots.Length < 10)
+                return;
 
             var recentFitnesses = snapshots.Skip(snapshots.Length - 10).Select(s => s.BestFitness).ToList();
             double variance = recentFitnesses.StandardDeviation();
@@ -19696,7 +19969,8 @@ namespace GDNN.Core.NEAT
             List<QualityIssue> issues,
             List<string> recommendations)
         {
-            if (snapshots.Length < 5) return;
+            if (snapshots.Length < 5)
+                return;
 
             var recentDiversity = snapshots.Skip(snapshots.Length - 5).Select(s => s.TopologyDiversityRatio).ToList();
             double avgDiversity = recentDiversity.Average();
@@ -19735,7 +20009,8 @@ namespace GDNN.Core.NEAT
             List<QualityIssue> issues,
             List<string> recommendations)
         {
-            if (snapshots.Length < 15) return;
+            if (snapshots.Length < 15)
+                return;
 
             var recentAvgFitness = snapshots.Skip(snapshots.Length - 15).Select(s => s.AverageFitness).ToList();
             double slope = ComputeLinearSlope(recentAvgFitness);
@@ -19758,7 +20033,8 @@ namespace GDNN.Core.NEAT
             List<QualityIssue> issues,
             List<string> recommendations)
         {
-            if (snapshots.Length < 20) return;
+            if (snapshots.Length < 20)
+                return;
 
             var allBestFitness = snapshots.Select(s => s.BestFitness).ToList();
             double overallSlope = ComputeLinearSlope(allBestFitness);
@@ -19781,7 +20057,8 @@ namespace GDNN.Core.NEAT
             List<QualityIssue> issues,
             List<string> recommendations)
         {
-            if (snapshots.Length == 0) return;
+            if (snapshots.Length == 0)
+                return;
 
             var latest = snapshots[^1];
             if (latest.SpeciesCount > 1 && latest.SpeciesSizeStdDev > latest.AverageSpeciesSize * 0.5)
@@ -19800,7 +20077,8 @@ namespace GDNN.Core.NEAT
         private double ComputeLinearSlope(List<double> values)
         {
             int n = values.Count;
-            if (n < 2) return 0;
+            if (n < 2)
+                return 0;
 
             double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
             for (int i = 0; i < n; i++)
@@ -19825,10 +20103,18 @@ namespace GDNN.Core.NEAT
             {
                 switch (issue.Severity)
                 {
-                    case QualityIssueSeverity.Critical: score -= 0.3; break;
-                    case QualityIssueSeverity.High: score -= 0.2; break;
-                    case QualityIssueSeverity.Medium: score -= 0.1; break;
-                    case QualityIssueSeverity.Low: score -= 0.05; break;
+                    case QualityIssueSeverity.Critical:
+                        score -= 0.3;
+                        break;
+                    case QualityIssueSeverity.High:
+                        score -= 0.2;
+                        break;
+                    case QualityIssueSeverity.Medium:
+                        score -= 0.1;
+                        break;
+                    case QualityIssueSeverity.Low:
+                        score -= 0.05;
+                        break;
                 }
             }
 
@@ -19845,10 +20131,14 @@ namespace GDNN.Core.NEAT
             if (issues.Any(i => i.Severity == QualityIssueSeverity.Critical))
                 return EvolutionQualityStatus.Critical;
 
-            if (score > 0.8) return EvolutionQualityStatus.Excellent;
-            if (score > 0.6) return EvolutionQualityStatus.Good;
-            if (score > 0.4) return EvolutionQualityStatus.Fair;
-            if (score > 0.2) return EvolutionQualityStatus.Poor;
+            if (score > 0.8)
+                return EvolutionQualityStatus.Excellent;
+            if (score > 0.6)
+                return EvolutionQualityStatus.Good;
+            if (score > 0.4)
+                return EvolutionQualityStatus.Fair;
+            if (score > 0.2)
+                return EvolutionQualityStatus.Poor;
             return EvolutionQualityStatus.Critical;
         }
 
@@ -19875,8 +20165,10 @@ namespace GDNN.Core.NEAT
         private TrendDirection ComputeTrendDirection(List<double> values)
         {
             double slope = ComputeLinearSlope(values);
-            if (slope > 0.01) return TrendDirection.Improving;
-            if (slope < -0.01) return TrendDirection.Declining;
+            if (slope > 0.01)
+                return TrendDirection.Improving;
+            if (slope < -0.01)
+                return TrendDirection.Declining;
             return TrendDirection.Stable;
         }
     }
@@ -20225,7 +20517,8 @@ namespace GDNN.Core.NEAT
             double min = activations.Min();
             double max = activations.Max();
             double range = max - min;
-            if (range < 1e-10) return 0;
+            if (range < 1e-10)
+                return 0;
 
             var histogram = new int[bins];
             foreach (var val in activations)
@@ -20324,7 +20617,8 @@ namespace GDNN.Core.NEAT
 
             for (int n = 0; n < neuronCount; n++)
             {
-                if (!genome.Neurons[n].IsActive) continue;
+                if (!genome.Neurons[n].IsActive)
+                    continue;
                 var silenced = CreateSilencedGenome(genome, genome.Neurons[n].Id);
 
                 for (int s = 0; s < sampleCount; s++)
@@ -20513,7 +20807,8 @@ namespace GDNN.Core.NEAT
                     while (queue.Count > 0)
                     {
                         int current = queue.Dequeue();
-                        if (membership.ContainsKey(current)) continue;
+                        if (membership.ContainsKey(current))
+                            continue;
 
                         membership[current] = communityId;
                         community.Add(current);
@@ -20574,7 +20869,8 @@ namespace GDNN.Core.NEAT
                 .Select(g => featureExtractor.ExtractFeatures(g))
                 .ToArray();
 
-            if (features.Length == 0) return Array.Empty<int>().AsReadOnly();
+            if (features.Length == 0)
+                return Array.Empty<int>().AsReadOnly();
 
             int featureCount = features[0].Length;
             var mean = new double[featureCount];
@@ -20631,7 +20927,8 @@ namespace GDNN.Core.NEAT
             {
                 var neighbors = kvp.Value;
                 int k = neighbors.Count;
-                if (k < 2) continue;
+                if (k < 2)
+                    continue;
 
                 int triangles = 0;
                 for (int i = 0; i < k; i++)
@@ -20657,7 +20954,8 @@ namespace GDNN.Core.NEAT
 
             foreach (var nodeId in graph.Keys)
             {
-                if (visited.Contains(nodeId)) continue;
+                if (visited.Contains(nodeId))
+                    continue;
 
                 var component = new List<int>();
                 var queue = new Queue<int>();
@@ -20666,7 +20964,8 @@ namespace GDNN.Core.NEAT
                 while (queue.Count > 0)
                 {
                     int current = queue.Dequeue();
-                    if (!visited.Add(current)) continue;
+                    if (!visited.Add(current))
+                        continue;
                     component.Add(current);
 
                     if (graph.TryGetValue(current, out var neighbors))
@@ -20688,7 +20987,8 @@ namespace GDNN.Core.NEAT
         private double ComputeAveragePathLength(IReadOnlyDictionary<int, IReadOnlyList<int>> graph)
         {
             var nodes = graph.Keys.ToList();
-            if (nodes.Count <= 1) return 0;
+            if (nodes.Count <= 1)
+                return 0;
 
             double totalPathLength = 0;
             int pathCount = 0;
@@ -20916,7 +21216,8 @@ namespace GDNN.Core.NEAT
         public BudgetLimitType? GetMostConstrainingLimit()
         {
             var percentages = GetCompletionPercentages();
-            if (percentages.Count == 0) return null;
+            if (percentages.Count == 0)
+                return null;
             return percentages.OrderByDescending(kvp => kvp.Value).First().Key;
         }
 
@@ -20927,13 +21228,15 @@ namespace GDNN.Core.NEAT
             Interlocked.Exchange(ref _totalMutations, 0);
             Interlocked.Exchange(ref _totalCrossovers, 0);
             Interlocked.Exchange(ref _totalSpeciesComputations, 0);
-            lock (_lock) { _elapsedTimer.Restart(); }
+            lock (_lock)
+            { _elapsedTimer.Restart(); }
         }
 
         /// <summary>Stops the elapsed timer.</summary>
         public void Stop()
         {
-            lock (_lock) { _elapsedTimer.Stop(); }
+            lock (_lock)
+            { _elapsedTimer.Stop(); }
         }
 
         /// <summary>Creates a budget report.</summary>
@@ -21133,7 +21436,8 @@ namespace GDNN.Core.NEAT
                 distances[sortedIndices[^1]] = double.MaxValue;
 
                 double range = objectiveValues[sortedIndices[^1]] - objectiveValues[sortedIndices[0]];
-                if (range < 1e-10) continue;
+                if (range < 1e-10)
+                    continue;
 
                 for (int i = 1; i < n - 1; i++)
                 {
@@ -21194,7 +21498,8 @@ namespace GDNN.Core.NEAT
             int objectiveCount,
             IReadOnlyList<Func<GeoGenome, double>> objectiveFunctions)
         {
-            if (front.Count < 3) return front.FirstOrDefault();
+            if (front.Count < 3)
+                return front.FirstOrDefault();
 
             var objectives = front.Select(g =>
             {
@@ -21262,7 +21567,8 @@ namespace GDNN.Core.NEAT
             IReadOnlyList<Func<GeoGenome, double>> objectiveFunctions,
             double[] referencePoint)
         {
-            if (front.Count == 0) return 0;
+            if (front.Count == 0)
+                return 0;
 
             var objectives = front.Select(g =>
             {
@@ -21288,7 +21594,8 @@ namespace GDNN.Core.NEAT
                     filteredObjectives.Add(obj);
             }
 
-            if (filteredObjectives.Count == 0) return 0;
+            if (filteredObjectives.Count == 0)
+                return 0;
 
             return ComputeHypervolumeRecursive(filteredObjectives, referencePoint, objectiveCount);
         }
@@ -21302,7 +21609,8 @@ namespace GDNN.Core.NEAT
             int objectiveCount,
             IReadOnlyList<Func<GeoGenome, double>> objectiveFunctions)
         {
-            if (referenceFront.Count == 0) return 0;
+            if (referenceFront.Count == 0)
+                return 0;
 
             var approxObjectives = approximation.Select(g =>
             {
@@ -21360,8 +21668,10 @@ namespace GDNN.Core.NEAT
             bool atLeastOneBetter = false;
             for (int i = 0; i < a.Length; i++)
             {
-                if (a[i] < b[i]) return false;
-                if (a[i] > b[i]) atLeastOneBetter = true;
+                if (a[i] < b[i])
+                    return false;
+                if (a[i] > b[i])
+                    atLeastOneBetter = true;
             }
             return atLeastOneBetter;
         }
@@ -21406,7 +21716,8 @@ namespace GDNN.Core.NEAT
             double prevValue = reference[objectiveCount - 1];
             foreach (var point in sortedByLastDim)
             {
-                if (point[objectiveCount - 1] >= prevValue) continue;
+                if (point[objectiveCount - 1] >= prevValue)
+                    continue;
 
                 double sliceHeight = prevValue - point[objectiveCount - 1];
                 prevValue = point[objectiveCount - 1];
@@ -21930,7 +22241,8 @@ namespace GDNN.Core.NEAT
         {
             _criteria.Add((pop, species, gen) =>
             {
-                if (pop.Genomes.Length == 0) return true;
+                if (pop.Genomes.Length == 0)
+                    return true;
                 var uniqueHashes = pop.Genomes.Select(g => g.ComputeTopologyHash()).Distinct().Count();
                 double diversity = (double)uniqueHashes / pop.Genomes.Length;
                 return diversity < minimumDiversityRatio;
@@ -21961,7 +22273,8 @@ namespace GDNN.Core.NEAT
         {
             _criteria.Add((pop, species, gen) =>
             {
-                if (species.Count == 0) return false;
+                if (species.Count == 0)
+                    return false;
                 return species.All(s => s.GenerationsWithoutImprovement >= stagnantGenerations);
             });
             _criterionNames.Add($"SpeciesStagnation({stagnantGenerations})");

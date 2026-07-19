@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -145,7 +145,8 @@ namespace GDNN.Llm
                             ? nameProp.GetString() ?? ""
                             : "";
 
-                        if (string.IsNullOrEmpty(name)) continue;
+                        if (string.IsNullOrEmpty(name))
+                            continue;
 
                         _availableModelNames.Add(name);
 
@@ -223,7 +224,8 @@ namespace GDNN.Llm
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var line = await reader.ReadLineAsync(cancellationToken);
-                if (string.IsNullOrEmpty(line)) continue;
+                if (string.IsNullOrEmpty(line))
+                    continue;
 
                 try
                 {
@@ -367,7 +369,8 @@ namespace GDNN.Llm
                 {
                     _currentCts.Token.ThrowIfCancellationRequested();
                     var line = await reader.ReadLineAsync(_currentCts.Token);
-                    if (string.IsNullOrEmpty(line)) continue;
+                    if (string.IsNullOrEmpty(line))
+                        continue;
 
                     string? ollamaText = null;
                     bool ollamaDone = false;
@@ -396,7 +399,8 @@ namespace GDNN.Llm
                         };
                     }
 
-                    if (ollamaDone) break;
+                    if (ollamaDone)
+                        break;
                 }
             }
             finally
@@ -466,7 +470,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public int EstimateTokens(string text)
         {
-            if (string.IsNullOrEmpty(text)) return 0;
+            if (string.IsNullOrEmpty(text))
+                return 0;
             return (int)Math.Ceiling(text.Length / 4.0);
         }
 
@@ -480,7 +485,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
         {
-            if (_disposed) return false;
+            if (_disposed)
+                return false;
             try
             {
                 var response = await _httpClient.GetAsync(
@@ -528,7 +534,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public async Task<HealthCheckStatus> CheckHealthAsync(CancellationToken cancellationToken = default)
         {
-            if (_disposed) return HealthCheckStatus.Unhealthy;
+            if (_disposed)
+                return HealthCheckStatus.Unhealthy;
 
             try
             {
@@ -667,7 +674,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _currentCts?.Cancel();
             _currentCts?.Dispose();

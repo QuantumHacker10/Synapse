@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: MemoryTracker.cs
 // PATH: Memory/MemoryTracker.cs
@@ -28,12 +10,28 @@ using System.Threading.Tasks;
 // Global memory tracking, leak detection, and per-category budget management.
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Memory;
 
@@ -371,7 +369,8 @@ public sealed class MemoryTracker : IDisposable
     /// </summary>
     public void OnAllocation(Action<AllocationRecord> listener)
     {
-        lock (_allocationListeners) { _allocationListeners.Add(listener); }
+        lock (_allocationListeners)
+        { _allocationListeners.Add(listener); }
     }
 
     /// <summary>
@@ -379,7 +378,8 @@ public sealed class MemoryTracker : IDisposable
     /// </summary>
     public void OnFree(Action<AllocationRecord> listener)
     {
-        lock (_freeListeners) { _freeListeners.Add(listener); }
+        lock (_freeListeners)
+        { _freeListeners.Add(listener); }
     }
 
     /// <summary>
@@ -394,7 +394,8 @@ public sealed class MemoryTracker : IDisposable
         Interlocked.Exchange(ref _currentAllocatedBytes, 0);
         Interlocked.Exchange(ref _activeAllocationCount, 0);
         _activeAllocations.Clear();
-        while (_freedHistory.TryDequeue(out _)) { }
+        while (_freedHistory.TryDequeue(out _))
+        { }
         _categoryStats.Clear();
         _threadAllocationCount.Clear();
     }
@@ -406,7 +407,8 @@ public sealed class MemoryTracker : IDisposable
         stats.TotalAllocatedBytes += size;
         stats.AllocationCount++;
         stats.ActiveAllocationCount++;
-        if (stats.UsedBytes > stats.PeakUsedBytes) stats.PeakUsedBytes = stats.UsedBytes;
+        if (stats.UsedBytes > stats.PeakUsedBytes)
+            stats.PeakUsedBytes = stats.UsedBytes;
         if (stats.ActiveAllocationCount > stats.PeakActiveAllocationCount)
             stats.PeakActiveAllocationCount = stats.ActiveAllocationCount;
     }
@@ -416,15 +418,18 @@ public sealed class MemoryTracker : IDisposable
         if (_categoryStats.TryGetValue(category, out var stats))
         {
             stats.UsedBytes -= size;
-            if (stats.UsedBytes < 0) stats.UsedBytes = 0;
+            if (stats.UsedBytes < 0)
+                stats.UsedBytes = 0;
             stats.ActiveAllocationCount--;
-            if (stats.ActiveAllocationCount < 0) stats.ActiveAllocationCount = 0;
+            if (stats.ActiveAllocationCount < 0)
+                stats.ActiveAllocationCount = 0;
         }
     }
 
     private void CheckBudgetAndPressure(MemoryCategory category)
     {
-        if (!_categoryStats.TryGetValue(category, out var stats)) return;
+        if (!_categoryStats.TryGetValue(category, out var stats))
+            return;
 
         if (stats.BudgetBytes.HasValue && stats.UsedBytes > stats.BudgetBytes.Value)
         {
@@ -474,7 +479,9 @@ public sealed class MemoryTracker : IDisposable
         {
             foreach (var listener in _allocationListeners)
             {
-                try { listener(record); } catch { }
+                try
+                { listener(record); }
+                catch { }
             }
         }
     }
@@ -485,7 +492,9 @@ public sealed class MemoryTracker : IDisposable
         {
             foreach (var listener in _freeListeners)
             {
-                try { listener(record); } catch { }
+                try
+                { listener(record); }
+                catch { }
             }
         }
     }
@@ -501,14 +510,18 @@ public sealed class MemoryTracker : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         _activeAllocations.Clear();
-        while (_freedHistory.TryDequeue(out _)) { }
+        while (_freedHistory.TryDequeue(out _))
+        { }
         _categoryStats.Clear();
         _threadAllocationCount.Clear();
-        lock (_allocationListeners) _allocationListeners.Clear();
-        lock (_freeListeners) _freeListeners.Clear();
+        lock (_allocationListeners)
+            _allocationListeners.Clear();
+        lock (_freeListeners)
+            _freeListeners.Clear();
     }
 }
 

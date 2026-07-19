@@ -1,34 +1,32 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: Profiler.cs
 // PATH: Utilities/Profiler.cs
 // ============================================================
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Utilities;
 
@@ -334,7 +332,8 @@ public sealed class Profiler : IDisposable
             bool first = true;
             foreach (var section in _sections.Values.OrderBy(s => s.Name))
             {
-                if (!first) sb.AppendLine(",");
+                if (!first)
+                    sb.AppendLine(",");
                 first = false;
                 var stats = section.ComputeStatistics();
                 sb.AppendLine("    {");
@@ -417,18 +416,21 @@ public sealed class Profiler : IDisposable
 
     private static double GetPercentile(double[] sorted, double percentile)
     {
-        if (sorted.Length == 0) return 0;
+        if (sorted.Length == 0)
+            return 0;
         double index = (percentile / 100.0) * (sorted.Length - 1);
         int lower = (int)Math.Floor(index);
         int upper = (int)Math.Ceiling(index);
-        if (lower == upper) return sorted[lower];
+        if (lower == upper)
+            return sorted[lower];
         double frac = index - lower;
         return sorted[lower] * (1 - frac) + sorted[upper] * frac;
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         _lock.Dispose();
     }
@@ -887,7 +889,8 @@ public sealed class CompositeProfiler : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         lock (_lock)
         {
@@ -946,7 +949,8 @@ public sealed unsafe class GpuTimestampBuffer : IDisposable
     /// </summary>
     public double GetElapsedMs(double frequency)
     {
-        if (_count < 2) return 0;
+        if (_count < 2)
+            return 0;
         return ((_buffer[_count - 1] - _buffer[0]) / frequency) * 1000.0;
     }
 
@@ -957,7 +961,8 @@ public sealed unsafe class GpuTimestampBuffer : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         if (_buffer != null)
         {
@@ -1004,8 +1009,10 @@ public sealed class ProfilingAccumulator
 
         lock (_lock)
         {
-            if (ticks < _minTicks) _minTicks = ticks;
-            if (ticks > _maxTicks) _maxTicks = ticks;
+            if (ticks < _minTicks)
+                _minTicks = ticks;
+            if (ticks > _maxTicks)
+                _maxTicks = ticks;
         }
     }
 
@@ -1025,7 +1032,8 @@ public sealed class ProfilingAccumulator
     public double GetAverageMs()
     {
         long count = Interlocked.Read(ref _count);
-        if (count == 0) return 0;
+        if (count == 0)
+            return 0;
         long total = Interlocked.Read(ref _totalTicks);
         return ((double)total / count / Stopwatch.Frequency) * 1000.0;
     }
@@ -1035,7 +1043,8 @@ public sealed class ProfilingAccumulator
     /// </summary>
     public double GetMinMs()
     {
-        lock (_lock) return _minTicks == long.MaxValue ? 0 : (_minTicks / (double)Stopwatch.Frequency) * 1000.0;
+        lock (_lock)
+            return _minTicks == long.MaxValue ? 0 : (_minTicks / (double)Stopwatch.Frequency) * 1000.0;
     }
 
     /// <summary>
@@ -1043,7 +1052,8 @@ public sealed class ProfilingAccumulator
     /// </summary>
     public double GetMaxMs()
     {
-        lock (_lock) return (_maxTicks / (double)Stopwatch.Frequency) * 1000.0;
+        lock (_lock)
+            return (_maxTicks / (double)Stopwatch.Frequency) * 1000.0;
     }
 
     /// <summary>
@@ -1091,7 +1101,8 @@ public sealed class MeasureBlock : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         _stopwatch.Stop();
         _onComplete(_stopwatch.Elapsed.TotalMilliseconds);

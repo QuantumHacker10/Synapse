@@ -1,7 +1,7 @@
-using FluentAssertions;
-using GDNN.Sentience;
 using System;
 using System.Numerics;
+using FluentAssertions;
+using GDNN.Sentience;
 using Xunit;
 
 namespace Synapse.Tests.Simulation;

@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -29,19 +29,19 @@ namespace GDNN.Lighting.LDNN
         private int _hidden1Size = 128;
         private int _hidden2Size = 128;
 
-        private float[,] _weights1;
-        private float[,] _weights2;
-        private float[,] _weights3;
-        private float[] _bias1;
-        private float[] _bias2;
-        private float[] _bias3;
-        private float[,] _m1, _v1, _m2, _v2, _m3, _v3;
-        private float[] _mb1, _mb2, _mb3;
-        private float[] _vb1, _vb2, _vb3;
+        private required float[,] _weights1;
+        private required float[,] _weights2;
+        private required float[,] _weights3;
+        private required float[] _bias1;
+        private required float[] _bias2;
+        private required float[] _bias3;
+        private required float[,] _m1, _v1, _m2, _v2, _m3, _v3;
+        private required float[] _mb1, _mb2, _mb3;
+        private required float[] _vb1, _vb2, _vb3;
         private int _t;
         private bool _isInitialized;
 
-        private Queue<(Vector3[] Features, Vector3 Target)> _trainingBuffer;
+        private required Queue<(Vector3[] Features, Vector3 Target)> _trainingBuffer;
         private int _maxTrainingBufferSize;
         private float _trainingLoss;
         private float _inferenceTime;
@@ -157,11 +157,14 @@ namespace GDNN.Lighting.LDNN
             for (int i = 0; i < Math.Min(8, neighborFeatures.Length) && idx < INPUT_FEATURES; i++)
             {
                 features[idx++] = neighborFeatures[i].X;
-                if (idx < INPUT_FEATURES) features[idx++] = neighborFeatures[i].Y;
-                if (idx < INPUT_FEATURES) features[idx++] = neighborFeatures[i].Z;
+                if (idx < INPUT_FEATURES)
+                    features[idx++] = neighborFeatures[i].Y;
+                if (idx < INPUT_FEATURES)
+                    features[idx++] = neighborFeatures[i].Z;
             }
 
-            while (idx < INPUT_FEATURES) features[idx++] = 0;
+            while (idx < INPUT_FEATURES)
+                features[idx++] = 0;
 
             var result = new Vector3[INPUT_FEATURES];
             for (int i = 0; i < INPUT_FEATURES; i++)
@@ -178,7 +181,8 @@ namespace GDNN.Lighting.LDNN
             {
                 foreach (int dy in offsets)
                 {
-                    if (dx == 0 && dy == 0) continue;
+                    if (dx == 0 && dy == 0)
+                        continue;
                     int nx = Math.Clamp(x + dx, 0, gbuffer.Width - 1);
                     int ny = Math.Clamp(y + dy, 0, gbuffer.Height - 1);
                     float neighborDepth = gbuffer.Depth[gbuffer.GetIndex(nx, ny)];
@@ -197,7 +201,8 @@ namespace GDNN.Lighting.LDNN
             {
                 foreach (int dy in offsets)
                 {
-                    if (dx == 0 && dy == 0) continue;
+                    if (dx == 0 && dy == 0)
+                        continue;
                     int nx = Math.Clamp(x + dx, 0, gbuffer.Width - 1);
                     int ny = Math.Clamp(y + dy, 0, gbuffer.Height - 1);
                     Vector3 neighborNormal = gbuffer.Normals[gbuffer.GetIndex(nx, ny)];
@@ -215,7 +220,8 @@ namespace GDNN.Lighting.LDNN
             {
                 for (int dy = -radius; dy <= radius; dy++)
                 {
-                    if (dx == 0 && dy == 0) continue;
+                    if (dx == 0 && dy == 0)
+                        continue;
                     int nx = Math.Clamp(x + dx, 0, gbuffer.Width - 1);
                     int ny = Math.Clamp(y + dy, 0, gbuffer.Height - 1);
                     int idx = gbuffer.GetIndex(nx, ny);
@@ -299,7 +305,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public Vector3 ForwardPass(Vector3[] inputFeatures)
         {
-            if (!_isInitialized) return Vector3.Zero;
+            if (!_isInitialized)
+                return Vector3.Zero;
 
             float[] input = new float[INPUT_FEATURES];
             for (int i = 0; i < INPUT_FEATURES && i < inputFeatures.Length; i++)
@@ -361,7 +368,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public void BackwardPass(Vector3[] input, Vector3 target, float learningRate)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized)
+                return;
 
             float[] inputArr = new float[INPUT_FEATURES];
             for (int i = 0; i < INPUT_FEATURES; i++)
@@ -500,7 +508,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public void TrainOnCollectedData(int batchSize, float learningRate)
         {
-            if (_trainingBuffer.Count < batchSize) return;
+            if (_trainingBuffer.Count < batchSize)
+                return;
 
             var batch = _trainingBuffer.ToArray();
             var rng = new RandomNumberGenerator((uint)_trainingStep);
@@ -571,9 +580,12 @@ namespace GDNN.Lighting.LDNN
                 for (int j = 0; j < OUTPUT_FEATURES; j++)
                     bw.Write(_weights3[i, j]);
 
-            foreach (float bias in _bias1) bw.Write(bias);
-            foreach (float bias in _bias2) bw.Write(bias);
-            foreach (float bias in _bias3) bw.Write(bias);
+            foreach (float bias in _bias1)
+                bw.Write(bias);
+            foreach (float bias in _bias2)
+                bw.Write(bias);
+            foreach (float bias in _bias3)
+                bw.Write(bias);
 
             return ms.ToArray();
         }
@@ -619,9 +631,12 @@ namespace GDNN.Lighting.LDNN
             _bias1 = new float[hidden1];
             _bias2 = new float[hidden2];
             _bias3 = new float[outputFeat];
-            for (int i = 0; i < hidden1; i++) _bias1[i] = br.ReadSingle();
-            for (int i = 0; i < hidden2; i++) _bias2[i] = br.ReadSingle();
-            for (int i = 0; i < outputFeat; i++) _bias3[i] = br.ReadSingle();
+            for (int i = 0; i < hidden1; i++)
+                _bias1[i] = br.ReadSingle();
+            for (int i = 0; i < hidden2; i++)
+                _bias2[i] = br.ReadSingle();
+            for (int i = 0; i < outputFeat; i++)
+                _bias3[i] = br.ReadSingle();
 
             _m1 = new float[inputFeat, hidden1];
             _v1 = new float[inputFeat, hidden1];

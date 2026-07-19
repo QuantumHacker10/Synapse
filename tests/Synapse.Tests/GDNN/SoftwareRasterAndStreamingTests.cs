@@ -151,22 +151,24 @@ public class SoftwareRasterizerTests
 
         int both = 0, union = 0;
         for (int y = 0; y < Size; y++)
-        for (int x = 0; x < Size; x++)
-        {
-            bool a = targetA.IsCovered(x, y);
-            bool b = targetB.IsCovered(x, y);
-            if (a && b) both++;
-            if (a || b) union++;
-        }
+            for (int x = 0; x < Size; x++)
+            {
+                bool a = targetA.IsCovered(x, y);
+                bool b = targetB.IsCovered(x, y);
+                if (a && b)
+                    both++;
+                if (a || b)
+                    union++;
+            }
 
         both.Should().Be(0, "un pixel d'arête partagée appartient à exactement un triangle");
 
         // Tous les pixels strictement intérieurs au quad sont couverts (pas de trou).
         // Quad en écran : x ∈ [16,48], y ∈ [16,48].
         for (int y = 17; y < 47; y++)
-        for (int x = 17; x < 47; x++)
-            (targetA.IsCovered(x, y) || targetB.IsCovered(x, y)).Should()
-                .BeTrue($"pixel ({x},{y}) intérieur au quad");
+            for (int x = 17; x < 47; x++)
+                (targetA.IsCovered(x, y) || targetB.IsCovered(x, y)).Should()
+                    .BeTrue($"pixel ({x},{y}) intérieur au quad");
 
         union.Should().BeGreaterThan(30 * 30);
     }
@@ -193,13 +195,13 @@ public class SoftwareRasterizerTests
 
         // Chaque pixel couvert doit décoder vers un cluster/triangle valides.
         for (int y = 0; y < 256; y += 8)
-        for (int x = 0; x < 256; x += 8)
-        {
-            if (!target.TryDecode(x, y, out int m, out int t))
-                continue;
-            m.Should().BeInRange(0, visible.Count - 1);
-            t.Should().BeInRange(0, visible[m].TriangleCount - 1);
-        }
+            for (int x = 0; x < 256; x += 8)
+            {
+                if (!target.TryDecode(x, y, out int m, out int t))
+                    continue;
+                m.Should().BeInRange(0, visible.Count - 1);
+                t.Should().BeInRange(0, visible[m].TriangleCount - 1);
+            }
     }
 }
 
@@ -249,7 +251,9 @@ public class MeshletStreamingTests : IDisposable
 
     public void Dispose()
     {
-        try { Directory.Delete(_tempDir, recursive: true); } catch (IOException) { }
+        try
+        { Directory.Delete(_tempDir, recursive: true); }
+        catch (IOException) { }
     }
 
     private static NeuralPolygonLodChain BuildSphereChain(int baseResolution = 32, int levels = 3)

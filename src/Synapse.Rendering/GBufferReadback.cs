@@ -41,7 +41,8 @@ namespace GDNN.Rendering.Engine
             out GBufferSnapshot snapshot)
         {
             snapshot = new GBufferSnapshot { Width = width, Height = height };
-            if (width <= 0 || height <= 0) return false;
+            if (width <= 0 || height <= 0)
+                return false;
 
             EnsureStaging(width, height);
             int pixelCount = width * height;
@@ -81,7 +82,8 @@ namespace GDNN.Rendering.Engine
 
         private float[]? ReadColorAttachment(VulkanTexture texture, int width, int height)
         {
-            if (_staging == null) return null;
+            if (_staging == null)
+                return null;
             ulong rowPitch = (ulong)width * 8;
             ulong imageSize = rowPitch * (ulong)height;
 
@@ -158,7 +160,8 @@ namespace GDNN.Rendering.Engine
             _rhi.WaitForIdle();
 
             var mapped = _staging.Map(0, imageSize);
-            if (mapped == IntPtr.Zero) return null;
+            if (mapped == IntPtr.Zero)
+                return null;
 
             var result = new float[width * height * 4];
             unsafe
@@ -173,7 +176,8 @@ namespace GDNN.Rendering.Engine
 
         private void EnsureStaging(int width, int height)
         {
-            if (_staging != null && _width == width && _height == height) return;
+            if (_staging != null && _width == width && _height == height)
+                return;
             _staging?.Dispose();
             _width = width;
             _height = height;
@@ -188,7 +192,8 @@ namespace GDNN.Rendering.Engine
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _staging?.Dispose();
         }

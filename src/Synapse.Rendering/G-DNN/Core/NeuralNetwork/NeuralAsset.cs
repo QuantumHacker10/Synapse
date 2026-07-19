@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: NeuralAsset.cs
 // PATH: Core/NeuralNetwork/NeuralAsset.cs
@@ -25,17 +7,33 @@ using System.Threading.Tasks;
 
 using System;
 using System.Buffers;
+using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics;
 using System.IO;
+using System.IO;
+using System.IO.Compression;
 using System.IO.Compression;
 using System.Numerics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Threading.Tasks;
 using GDNN.Rendering.Compat;
 
@@ -95,7 +93,8 @@ public sealed class LODTier
     /// </summary>
     public void Compress()
     {
-        if (UncompressedWeights == null || UncompressedWeights.Length == 0) return;
+        if (UncompressedWeights == null || UncompressedWeights.Length == 0)
+            return;
 
         byte[] floatBytes = MemoryMarshal.AsBytes(UncompressedWeights.AsSpan()).ToArray();
         CompressedWeights = BrotliCompat.Compress(floatBytes, System.IO.Compression.CompressionLevel.Optimal);
@@ -106,7 +105,8 @@ public sealed class LODTier
     /// </summary>
     public void Decompress()
     {
-        if (CompressedWeights == null || CompressedWeights.Length == 0) return;
+        if (CompressedWeights == null || CompressedWeights.Length == 0)
+            return;
 
         byte[] decompressed = BrotliCompat.Decompress(CompressedWeights);
         UncompressedWeights = MemoryMarshal.Cast<byte, float>(decompressed).ToArray();
@@ -208,7 +208,8 @@ public sealed class AnimationClipReference
     /// </summary>
     public float ComputeDataRate()
     {
-        if (DurationSeconds <= 0) return 0f;
+        if (DurationSeconds <= 0)
+            return 0f;
         return CompressedKeyframes.Length / DurationSeconds;
     }
 
@@ -683,7 +684,8 @@ public sealed class NeuralAsset
     /// <returns>Priority score (higher = more important).</returns>
     public float ComputeStreamingPriority(float cameraDistance, float screenSize)
     {
-        if (cameraDistance <= 0) return float.MaxValue;
+        if (cameraDistance <= 0)
+            return float.MaxValue;
 
         float distanceFactor = 1.0f / (1.0f + cameraDistance * 0.01f);
         float sizeFactor = screenSize / 100.0f;
@@ -717,7 +719,8 @@ public sealed class NeuralAsset
     /// </summary>
     public void Compress()
     {
-        if (UncompressedWeights == null || UncompressedWeights.Length == 0) return;
+        if (UncompressedWeights == null || UncompressedWeights.Length == 0)
+            return;
 
         byte[] floatBytes = MemoryMarshal.AsBytes(UncompressedWeights.AsSpan()).ToArray();
         _compressedWeights = BrotliCompat.Compress(floatBytes, CompressionLevel.Optimal);
@@ -733,7 +736,8 @@ public sealed class NeuralAsset
     /// </summary>
     public void Decompress()
     {
-        if (_compressedWeights.Length == 0) return;
+        if (_compressedWeights.Length == 0)
+            return;
 
         byte[] decompressed = BrotliCompat.Decompress(_compressedWeights);
         UncompressedWeights = MemoryMarshal.Cast<byte, float>(decompressed).ToArray();

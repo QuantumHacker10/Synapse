@@ -378,7 +378,8 @@ namespace GDNN.Rendering.Quality
 
         private void Recalculate()
         {
-            if (_history.Count == 0) return;
+            if (_history.Count == 0)
+                return;
 
             var data = _history.ToArray();
             AverageFrameTime = data.Average(d => d.FrameTimeMs);
@@ -395,19 +396,22 @@ namespace GDNN.Rendering.Quality
 
         public FramePerformanceData GetLatest()
         {
-            lock (_lock) { return _history.Count > 0 ? _history.Last() : new FramePerformanceData(); }
+            lock (_lock)
+            { return _history.Count > 0 ? _history.Last() : new FramePerformanceData(); }
         }
 
         public FramePerformanceData[] GetHistory()
         {
-            lock (_lock) { return _history.ToArray(); }
+            lock (_lock)
+            { return _history.ToArray(); }
         }
 
         public float GetFrameTimePercentile(float percentile)
         {
             lock (_lock)
             {
-                if (_history.Count == 0) return 0;
+                if (_history.Count == 0)
+                    return 0;
                 var sorted = _history.Select(d => d.FrameTimeMs).OrderBy(x => x).ToArray();
                 int idx = (int)(sorted.Length * percentile / 100.0f);
                 return sorted[Math.Min(idx, sorted.Length - 1)];
@@ -471,7 +475,8 @@ namespace GDNN.Rendering.Quality
 
         public void Update(float deltaTime)
         {
-            if (_mode == AdaptationMode.Disabled) return;
+            if (_mode == AdaptationMode.Disabled)
+                return;
 
             if (_mode == AdaptationMode.Dynamic || _mode == AdaptationMode.AggressiveDynamic)
             {
@@ -569,7 +574,8 @@ namespace GDNN.Rendering.Quality
 
         public QualityLevel InterpolateLevels(float t)
         {
-            if (_transitionProgress >= 1.0f) return _current;
+            if (_transitionProgress >= 1.0f)
+                return _current;
             float blend = _transitionProgress * _transitionProgress * (3f - 2f * _transitionProgress);
 
             return new QualityLevel

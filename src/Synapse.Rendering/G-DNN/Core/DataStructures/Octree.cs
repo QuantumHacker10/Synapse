@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: Octree.cs
 // PATH: Core/DataStructures/Octree.cs
@@ -25,13 +7,29 @@ using System.Threading.Tasks;
 
 using System;
 using System.Buffers;
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Core.DataStructures;
 
@@ -568,7 +566,8 @@ public sealed class Octree<T> : IDisposable, IEnumerable<Octree<T>.OctreeNode>
         {
             Vector3 toItem = node.Items[i].Position - ray.Position;
             float t = Vector3.Dot(toItem, ray.Direction);
-            if (t < 0 || t > maxDistance) continue;
+            if (t < 0 || t > maxDistance)
+                continue;
 
             Vector3 closest = ray.Position + ray.Direction * t;
             float distSq = Vector3.DistanceSquared(closest, node.Items[i].Position);
@@ -584,7 +583,8 @@ public sealed class Octree<T> : IDisposable, IEnumerable<Octree<T>.OctreeNode>
         {
             // Sort children by ray entry distance for front-to-back traversal
             Span<int> order = stackalloc int[8];
-            for (int i = 0; i < 8; i++) order[i] = i;
+            for (int i = 0; i < 8; i++)
+                order[i] = i;
 
             SortChildrenByRay(node, ray, order);
 
@@ -763,15 +763,19 @@ public sealed class Octree<T> : IDisposable, IEnumerable<Octree<T>.OctreeNode>
     {
         Vector3 local = position - parentBounds.Center;
         int index = 0;
-        if (local.X >= 0) index |= 1;
-        if (local.Y >= 0) index |= 2;
-        if (local.Z >= 0) index |= 4;
+        if (local.X >= 0)
+            index |= 1;
+        if (local.Y >= 0)
+            index |= 2;
+        if (local.Z >= 0)
+            index |= 4;
         return index;
     }
 
     private void PruneEmptyNodes(OctreeNode node)
     {
-        if (!node.HasChildren) return;
+        if (!node.HasChildren)
+            return;
 
         bool allEmpty = true;
         for (int i = 0; i < 8; i++)
@@ -1070,7 +1074,8 @@ public sealed class Octree<T> : IDisposable, IEnumerable<Octree<T>.OctreeNode>
 
         public void Return(OctreeNode node)
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
 
             node.Items.Clear();
             node.Children = null;
@@ -1285,12 +1290,18 @@ public readonly struct Frustum
     /// <summary>Tests a point against the frustum.</summary>
     public FrustumTest TestPoint(Vector3 point)
     {
-        if (TestPlane(Left, point) < 0) return FrustumTest.Outside;
-        if (TestPlane(Right, point) < 0) return FrustumTest.Outside;
-        if (TestPlane(Bottom, point) < 0) return FrustumTest.Outside;
-        if (TestPlane(Top, point) < 0) return FrustumTest.Outside;
-        if (TestPlane(Near, point) < 0) return FrustumTest.Outside;
-        if (TestPlane(Far, point) < 0) return FrustumTest.Outside;
+        if (TestPlane(Left, point) < 0)
+            return FrustumTest.Outside;
+        if (TestPlane(Right, point) < 0)
+            return FrustumTest.Outside;
+        if (TestPlane(Bottom, point) < 0)
+            return FrustumTest.Outside;
+        if (TestPlane(Top, point) < 0)
+            return FrustumTest.Outside;
+        if (TestPlane(Near, point) < 0)
+            return FrustumTest.Outside;
+        if (TestPlane(Far, point) < 0)
+            return FrustumTest.Outside;
         return FrustumTest.Inside;
     }
 
@@ -1303,12 +1314,18 @@ public readonly struct Frustum
     {
         bool intersecting = false;
 
-        if (!ClassifyPlane(Left, box, ref intersecting)) return FrustumTest.Outside;
-        if (!ClassifyPlane(Right, box, ref intersecting)) return FrustumTest.Outside;
-        if (!ClassifyPlane(Bottom, box, ref intersecting)) return FrustumTest.Outside;
-        if (!ClassifyPlane(Top, box, ref intersecting)) return FrustumTest.Outside;
-        if (!ClassifyPlane(Near, box, ref intersecting)) return FrustumTest.Outside;
-        if (!ClassifyPlane(Far, box, ref intersecting)) return FrustumTest.Outside;
+        if (!ClassifyPlane(Left, box, ref intersecting))
+            return FrustumTest.Outside;
+        if (!ClassifyPlane(Right, box, ref intersecting))
+            return FrustumTest.Outside;
+        if (!ClassifyPlane(Bottom, box, ref intersecting))
+            return FrustumTest.Outside;
+        if (!ClassifyPlane(Top, box, ref intersecting))
+            return FrustumTest.Outside;
+        if (!ClassifyPlane(Near, box, ref intersecting))
+            return FrustumTest.Outside;
+        if (!ClassifyPlane(Far, box, ref intersecting))
+            return FrustumTest.Outside;
 
         return intersecting ? FrustumTest.Intersecting : FrustumTest.Inside;
     }
@@ -1335,14 +1352,20 @@ public readonly struct Frustum
     {
         Vector3 positiveVertex = box.Center;
 
-        if (plane.X >= 0) positiveVertex.X += box.HalfExtents.X;
-        else positiveVertex.X -= box.HalfExtents.X;
+        if (plane.X >= 0)
+            positiveVertex.X += box.HalfExtents.X;
+        else
+            positiveVertex.X -= box.HalfExtents.X;
 
-        if (plane.Y >= 0) positiveVertex.Y += box.HalfExtents.Y;
-        else positiveVertex.Y -= box.HalfExtents.Y;
+        if (plane.Y >= 0)
+            positiveVertex.Y += box.HalfExtents.Y;
+        else
+            positiveVertex.Y -= box.HalfExtents.Y;
 
-        if (plane.Z >= 0) positiveVertex.Z += box.HalfExtents.Z;
-        else positiveVertex.Z -= box.HalfExtents.Z;
+        if (plane.Z >= 0)
+            positiveVertex.Z += box.HalfExtents.Z;
+        else
+            positiveVertex.Z -= box.HalfExtents.Z;
 
         return TestPlane(plane, positiveVertex);
     }
@@ -1351,14 +1374,20 @@ public readonly struct Frustum
     {
         Vector3 negativeVertex = box.Center;
 
-        if (plane.X >= 0) negativeVertex.X -= box.HalfExtents.X;
-        else negativeVertex.X += box.HalfExtents.X;
+        if (plane.X >= 0)
+            negativeVertex.X -= box.HalfExtents.X;
+        else
+            negativeVertex.X += box.HalfExtents.X;
 
-        if (plane.Y >= 0) negativeVertex.Y -= box.HalfExtents.Y;
-        else negativeVertex.Y += box.HalfExtents.Y;
+        if (plane.Y >= 0)
+            negativeVertex.Y -= box.HalfExtents.Y;
+        else
+            negativeVertex.Y += box.HalfExtents.Y;
 
-        if (plane.Z >= 0) negativeVertex.Z -= box.HalfExtents.Z;
-        else negativeVertex.Z += box.HalfExtents.Z;
+        if (plane.Z >= 0)
+            negativeVertex.Z -= box.HalfExtents.Z;
+        else
+            negativeVertex.Z += box.HalfExtents.Z;
 
         return TestPlane(plane, negativeVertex);
     }
@@ -1404,7 +1433,10 @@ public struct Plane
 
     public Plane(float x, float y, float z, float d)
     {
-        X = x; Y = y; Z = z; D = d;
+        X = x;
+        Y = y;
+        Z = z;
+        D = d;
     }
 
     public void Normalize()
