@@ -787,8 +787,13 @@ namespace GDNN.Sentience
             try
             {
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_timeout));
-                await Task.Delay(50, cts.Token);
-                _response = $"Entity {entity.EntityId} context: {_prompt}";
+                if (BehaviorLlmContext.QueryAsync != null)
+                    _response = await BehaviorLlmContext.QueryAsync(_prompt, entity, context, cts.Token).ConfigureAwait(false);
+                else
+                {
+                    await Task.Delay(50, cts.Token).ConfigureAwait(false);
+                    _response = $"Entity {entity.EntityId} context: {_prompt}";
+                }
             }
             catch { _response = "TIMEOUT"; }
         }
@@ -924,7 +929,7 @@ namespace GDNN.Sentience
                 BehaviorNodeType.Succeeder => new SucceederNode(bp.Name, bp.Children.Count > 0 ? FromBlueprint(bp.Children[0]) : new WaitNode("E", 0)),
                 BehaviorNodeType.Failer => new FailerNode(bp.Name, bp.Children.Count > 0 ? FromBlueprint(bp.Children[0]) : new WaitNode("E", 0)),
                 BehaviorNodeType.Wait => new WaitNode(bp.Name, bp.CooldownDuration),
-                BehaviorNodeType.LLMQuery => new LLMQueryNode(bp.Name, bp.LLMPrompt, (_, _, _) => TaskStatus.Success),
+                BehaviorNodeType.LLMQuery => new LLMQueryNode(bp.Name, bp.LLMPrompt, BehaviorLlmContext.DefaultHandle),
                 _ => new WaitNode(bp.Name, 0)
             };
         }
@@ -2530,7 +2535,7 @@ namespace GDNN.Sentience
                 BehaviorNodeType.Succeeder => new SucceederNode(bp.Name, bp.Children.Count > 0 ? CompileNode(bp.Children[0]) : new WaitNode("Empty", 0)),
                 BehaviorNodeType.Failer => new FailerNode(bp.Name, bp.Children.Count > 0 ? CompileNode(bp.Children[0]) : new WaitNode("Empty", 0)),
                 BehaviorNodeType.Wait => new WaitNode(bp.Name, bp.CooldownDuration > 0 ? bp.CooldownDuration : 1f),
-                BehaviorNodeType.LLMQuery => new LLMQueryNode(bp.Name, bp.LLMPrompt, (_, _, _) => TaskStatus.Success),
+                BehaviorNodeType.LLMQuery => new LLMQueryNode(bp.Name, bp.LLMPrompt, BehaviorLlmContext.DefaultHandle),
                 _ => new WaitNode(bp.Name, 0)
             };
         }

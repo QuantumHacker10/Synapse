@@ -93,6 +93,7 @@ namespace Synapse.Runtime
         public string Name { get; set; } = "Entity";
         public string Type { get; set; } = "Empty";
         public Vec3 Position { get; set; } = new();
+        public Vec3 Rotation { get; set; } = new();
         public Vec3 Scale { get; set; } = new(1, 1, 1);
         public bool Visible { get; set; } = true;
         public string? BehaviorProfile { get; set; }

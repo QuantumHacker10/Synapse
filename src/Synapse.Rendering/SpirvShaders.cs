@@ -240,7 +240,12 @@ namespace GDNN.Rendering.Shaders
             return b.ToBytes();
         }
 
-        public static byte[] CompileLightingFragment()
+        public static byte[] CompileLightingFragment(
+            float lightDirX = 0.577f,
+            float lightDirY = 0.577f,
+            float lightDirZ = 0.577f,
+            float ambientScale = 0.15f,
+            float giBoost = 0f)
         {
             var b = new SpirvBuilder();
             b.Capability(Capability.Shader);
@@ -281,6 +286,9 @@ namespace GDNN.Rendering.Shaders
             var gbufMaterial = b.Variable(ptrUniformConstantSampledImage, StorageClass.UniformConstant, "gbuf_material");
             b.Decorate(gbufMaterial, Decoration.DescriptorSet, 0);
             b.Decorate(gbufMaterial, Decoration.Binding, 3);
+            var giIrradiance = b.Variable(ptrUniformConstantSampledImage, StorageClass.UniformConstant, "gi_irradiance");
+            b.Decorate(giIrradiance, Decoration.DescriptorSet, 0);
+            b.Decorate(giIrradiance, Decoration.Binding, 4);
 
             var outColor = b.Variable(ptrOutputVec4, StorageClass.Output, "outColor");
             b.Decorate(outColor, Decoration.Location, 0);
@@ -313,12 +321,25 @@ namespace GDNN.Rendering.Shaders
             var roughness = b.CompositeExtract(floatT, matColor, 0);
             var metallic = b.CompositeExtract(floatT, matColor, 1);
 
-            var lightDir = b.Normalize(vec3T, b.ConstantComposite(vec3T, b.Constant(floatT, 0.577f), b.Constant(floatT, 0.577f), b.Constant(floatT, 0.577f)), floatT);
+            var lightDir = b.Normalize(vec3T, b.ConstantComposite(vec3T,
+                b.Constant(floatT, lightDirX),
+                b.Constant(floatT, lightDirY),
+                b.Constant(floatT, lightDirZ)), floatT);
             var nDotL = b.FMax(floatT, b.DotProduct(floatT, normal, lightDir), b.Constant(floatT, 0.1f));
 
             var diffuse = b.VectorTimesScalar(vec3T, albedo, nDotL);
-            var ambient = b.VectorTimesScalar(vec3T, albedo, b.Constant(floatT, 0.15f));
-            var lit = b.FAdd(vec3T, diffuse, ambient);
+            var ambientFactor = b.Constant(floatT, ambientScale + giBoost);
+            var ambient = b.VectorTimesScalar(vec3T, albedo, ambientFactor);
+
+            var sampledGi = b.Load(sampledImageT, giIrradiance);
+            var giColor = b.ImageSampleImplicitLod(vec4T, sampledGi, uv);
+            var giRgb = b.CompositeConstruct(vec3T,
+                b.CompositeExtract(floatT, giColor, 0),
+                b.CompositeExtract(floatT, giColor, 1),
+                b.CompositeExtract(floatT, giColor, 2));
+            var giContrib = b.FMul(vec3T, giRgb, albedo);
+
+            var lit = b.FAdd(vec3T, b.FAdd(vec3T, diffuse, ambient), giContrib);
 
             var finalColor = b.CompositeConstruct(vec4T, lit, one);
             b.Store(outColor, finalColor);

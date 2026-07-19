@@ -17,7 +17,7 @@ namespace GDNN.Rendering.Engine
     public class RenderEngine : IDisposable
     {
         private const int MAX_FRAMES_IN_FLIGHT = 2;
-        private const string APP_NAME = "GDNN Synapse Engine";
+        private const string APP_NAME = "Synapse Engine";
 
         private VulkanRhiDevice _rhi;
         private IntPtr _window;
@@ -686,10 +686,11 @@ namespace GDNN.Rendering.Engine
             UpdateUniformBuffer((int)_currentFrame);
             if (_sceneRenderer != null && _sceneRenderer.IsInitialized)
             {
+                _sceneRenderer.ConsumePendingGBufferReadback();
                 _sceneRenderer.UpdateUniforms((int)_currentFrame, view, proj, _cameraPos, _totalTime);
-                // GPU: shadow → G-Buffer → lighting. CPU GI/post overlap the submit.
+                var right = Vector3.Normalize(Vector3.Cross(_cameraFront, _cameraUp));
+                _sceneRenderer.RenderGI(view, proj, _cameraPos, _cameraFront, right);
                 _sceneRenderer.RecordCommandBuffer(_commandBuffers[_currentFrame], imageIndex, (int)_currentFrame);
-                _sceneRenderer.RenderGI();
                 _sceneRenderer.RenderPostProcess((float)fbW / fbH);
             }
             else
@@ -698,6 +699,8 @@ namespace GDNN.Rendering.Engine
             }
             SubmitRaw(_commandBuffers[_currentFrame], _imageAvailableSemaphores[_currentFrame], _renderFinishedSemaphores[_currentFrame], _inFlightFences[_currentFrame]);
             PresentRaw(_renderFinishedSemaphores[_currentFrame], imageIndex);
+            WaitForFenceRaw(_inFlightFences[_currentFrame]);
+            _sceneRenderer?.ScheduleGBufferReadback(imageIndex, (int)_currentFrame);
 
             _currentFrame = (_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
         }

@@ -4193,6 +4193,7 @@ namespace GDNN.RHI.Vulkan
         private CmdPipelineBarrierDel _vkCmdPipelineBarrier;
         private CmdCopyBufferDel _vkCmdCopyBuffer;
         private CmdCopyBufferToImageDel _vkCmdCopyBufferToImage;
+        private CmdCopyImageToBufferDel _vkCmdCopyImageToBuffer;
         private CmdPushConstantsDel _vkCmdPushConstants;
         private CmdSetViewportDel _vkCmdSetViewport;
         private CmdSetScissorDel _vkCmdSetScissor;
@@ -4217,6 +4218,7 @@ namespace GDNN.RHI.Vulkan
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdPipelineBarrierDel(IntPtr cmdBuffer, PipelineStageFlag srcStageMask, PipelineStageFlag dstStageMask, uint dependencyFlags, uint memoryBarrierCount, IntPtr pMemoryBarriers, uint bufferMemoryBarrierCount, IntPtr pBufferMemoryBarriers, uint imageMemoryBarrierCount, IntPtr pImageMemoryBarriers);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdCopyBufferDel(IntPtr cmdBuffer, IntPtr srcBuffer, IntPtr dstBuffer, uint regionCount, ref BufferCopy pRegions);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdCopyBufferToImageDel(IntPtr cmdBuffer, IntPtr buffer, IntPtr image, uint imageLayout, uint regionCount, ref BufferImageCopy pRegions);
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdCopyImageToBufferDel(IntPtr cmdBuffer, IntPtr srcImage, uint srcImageLayout, IntPtr dstBuffer, uint regionCount, ref BufferImageCopy pRegions);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdPushConstantsDel(IntPtr cmdBuffer, IntPtr layout, ShaderStageFlag stageFlags, uint offset, uint size, IntPtr pValues);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdSetViewportDel(IntPtr cmdBuffer, uint firstViewport, uint viewportCount, ref Viewport pViewports);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdSetScissorDel(IntPtr cmdBuffer, uint firstScissor, uint scissorCount, ref Rect2D pScissors);
@@ -4258,6 +4260,7 @@ namespace GDNN.RHI.Vulkan
             _vkCmdPipelineBarrier = Marshal.GetDelegateForFunctionPointer<CmdPipelineBarrierDel>(load("vkCmdPipelineBarrier"));
             _vkCmdCopyBuffer = Marshal.GetDelegateForFunctionPointer<CmdCopyBufferDel>(load("vkCmdCopyBuffer"));
             _vkCmdCopyBufferToImage = Marshal.GetDelegateForFunctionPointer<CmdCopyBufferToImageDel>(load("vkCmdCopyBufferToImage"));
+            _vkCmdCopyImageToBuffer = Marshal.GetDelegateForFunctionPointer<CmdCopyImageToBufferDel>(load("vkCmdCopyImageToBuffer"));
             _vkCmdPushConstants = Marshal.GetDelegateForFunctionPointer<CmdPushConstantsDel>(load("vkCmdPushConstants"));
             _vkCmdSetViewport = Marshal.GetDelegateForFunctionPointer<CmdSetViewportDel>(load("vkCmdSetViewport"));
             _vkCmdSetScissor = Marshal.GetDelegateForFunctionPointer<CmdSetScissorDel>(load("vkCmdSetScissor"));
@@ -4517,6 +4520,14 @@ namespace GDNN.RHI.Vulkan
             int regionCount = regions?.Length ?? 0;
             if (regionCount == 0) return;
             _vkCmdCopyBufferToImage(_commandBuffer, buffer.Handle, image.Handle, (uint)imageLayout, (uint)regionCount, ref regions[0]);
+        }
+
+        /// <summary>Copies image data to a buffer</summary>
+        public void CopyImageToBuffer(VulkanTexture image, ImageLayout imageLayout, VulkanBuffer buffer, BufferImageCopy[] regions)
+        {
+            int regionCount = regions?.Length ?? 0;
+            if (regionCount == 0) return;
+            _vkCmdCopyImageToBuffer(_commandBuffer, image.Handle, (uint)imageLayout, buffer.Handle, (uint)regionCount, ref regions[0]);
         }
 
         /// <summary>Pushes constant data to the shader</summary>

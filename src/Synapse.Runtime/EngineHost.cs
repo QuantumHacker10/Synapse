@@ -19,7 +19,7 @@ using Synapse.Simulation.DigitalTwins;
 namespace Synapse.Runtime
 {
     /// <summary>
-    /// Central runtime facade for G-DNN Studio: physics, simulation, LLM, rendering,
+    /// Central runtime facade for Synapse Studio: physics, simulation, LLM, rendering,
     /// and scene I/O. Call <see cref="InitializeModules"/> once, then either
     /// <see cref="InitializeRender"/> (GLFW) or <see cref="InitializeRenderFromHwnd"/>
     /// (embedded Windows viewport). Per-frame work is driven by <see cref="FrameOrchestrator"/>
@@ -46,6 +46,11 @@ namespace Synapse.Runtime
         private int _evolutionGeneration;
         private double _bestFitness;
         private bool _simulationPlaying = true;
+        private string _llmProviderSummary = "LLM not initialized";
+        private readonly ViewportEditorState _viewportEditor = new();
+
+        /// <summary>Viewport gizmo/grid/selection state for Studio.</summary>
+        public ViewportEditorState ViewportEditor => _viewportEditor;
 
         /// <summary>Creates a host bound to application config and logging.</summary>
         public EngineHost(SynapseConfig config, ISynapseLogger logger)
@@ -103,6 +108,9 @@ namespace Synapse.Runtime
         /// <summary>True while a background NEAT-G run is in progress.</summary>
         public bool EvolutionRunning => _evolutionCts is { IsCancellationRequested: false } && _evolution != null;
 
+        /// <summary>Human-readable list of registered LLM providers.</summary>
+        public string LlmProviderSummary => _llmProviderSummary;
+
         /// <summary>
         /// Lazily constructs physics, simulation, LLM, quality, and twin subsystems.
         /// Safe to call multiple times.
@@ -115,6 +123,8 @@ namespace Synapse.Runtime
             _physicsField = CreateSeedField(16);
             _sentience = new SentienceManager();
             _llmRouter = new HybridLlmRouter();
+            _llmProviderSummary = LlmProviderBootstrap.Register(_llmRouter, _config, _logger).Summary;
+            WireBehaviorLlmRouter();
             _quality = new RuntimeQualityManager(ParseQuality(_config.QualityPreset), AdaptationMode.Dynamic);
 
             _activeLawId = _scene.ActiveLawId ?? "heat_equation";
@@ -139,6 +149,7 @@ namespace Synapse.Runtime
             _renderEngine = new RenderEngine();
             _renderEngine.Initialize(width, height, enableValidation);
             _renderInitialized = true;
+            SyncSceneToRenderer();
             _logger.Info("EngineHost", $"RenderEngine initialized {width}x{height}");
         }
 
@@ -158,6 +169,7 @@ namespace Synapse.Runtime
             _renderEngine = new RenderEngine();
             _renderEngine.InitializeFromHwnd(hwnd, width, height, enableValidation);
             _renderInitialized = true;
+            SyncSceneToRenderer();
             _logger.Info("EngineHost", $"RenderEngine initialized from HWND {width}x{height}");
         }
 
@@ -174,7 +186,10 @@ namespace Synapse.Runtime
             ApplySceneToSimulation(_scene);
 
             if (_renderEngine != null)
+            {
                 _renderEngine.LoadSceneName(_scene.Name);
+                SyncSceneToRenderer();
+            }
 
             if (!string.IsNullOrWhiteSpace(path))
             {
@@ -298,7 +313,8 @@ namespace Synapse.Runtime
                 var context = new PromptContext
                 {
                     PreferredMode = LlmProviderMode.LocalOllama,
-                    MaxLatencyMs = 30000
+                    MaxLatencyMs = 30000,
+                    TaskType = LlmTaskType.QueryAnswering
                 };
                 return await _llmRouter!.RouteChatAsync(messages, context, cancellationToken).ConfigureAwait(false);
             }
@@ -342,6 +358,8 @@ namespace Synapse.Runtime
                     _evolutionGeneration = _evolution.CurrentGeneration;
                     _bestFitness = metrics.BestFitness;
                 }
+
+                ApplyEvolutionToScene();
             }
             catch (OperationCanceledException)
             {
@@ -370,6 +388,7 @@ namespace Synapse.Runtime
                 Position = Vec3.From(position),
                 BehaviorProfile = profile
             });
+            SyncSceneToRenderer();
             return entity;
         }
 
@@ -389,6 +408,7 @@ namespace Synapse.Runtime
             if (type.Equals("Character", StringComparison.OrdinalIgnoreCase))
                 SpawnAgent("patrol", Vector3.Zero);
 
+            SyncSceneToRenderer();
             return id;
         }
 
@@ -398,6 +418,7 @@ namespace Synapse.Runtime
             InitializeModules();
             var removed = _scene.Entities.RemoveAll(e => e.Id == id) > 0;
             _sentience?.RemoveEntity(id);
+            if (removed) SyncSceneToRenderer();
             return removed;
         }
 
@@ -454,7 +475,198 @@ namespace Synapse.Runtime
 
             string summary = "Applied: " + string.Join(", ", applied);
             _logger.Info("LLM", summary);
+            SyncSceneToRenderer();
             return summary;
+        }
+
+        /// <summary>Parses behavior-tree hints from LLM output, compiles, and registers the tree.</summary>
+        public string ApplyLlmBehaviorHints(string llmText)
+        {
+            if (string.IsNullOrWhiteSpace(llmText))
+                return "Empty reply — nothing to apply.";
+
+            InitializeModules();
+            var extracted = StructuredOutputParser.ExtractBehaviorTree(llmText);
+            if (!extracted.Success || extracted.Data == null || extracted.Data.Count == 0)
+                return "No behavior tree nodes found in the reply.";
+
+            var blueprint = LlmBehaviorTreeConverter.ToBlueprint(extracted.Data);
+            var tree = _sentience!.Compiler.CompileFromBlueprint("LLM_Generated", blueprint);
+            _sentience.RegisterBehaviorTree(tree.Name, tree);
+
+            var agent = _sentience.CreateEntity(EntityType.NPC, Vector3.Zero, tree.Name);
+            _scene.Entities.Add(new SceneEntityData
+            {
+                Id = agent.EntityId,
+                Name = tree.Name,
+                Type = "Character",
+                Position = Vec3.From(Vector3.Zero),
+                BehaviorProfile = tree.Name
+            });
+            SyncSceneToRenderer();
+            return $"Registered behavior tree '{tree.Name}' with {extracted.Data.Count} LLM node(s).";
+        }
+
+        /// <summary>Compiles a blueprint graph to a behavior tree and spawns an agent.</summary>
+        public SentientEntity CompileAndSpawnBlueprint(BlueprintDocument document, Vector3 position)
+        {
+            InitializeModules();
+            var blueprint = document.CompileToBehaviorTreeBlueprint();
+            var tree = _sentience!.Compiler.CompileFromBlueprint(document.Name, blueprint);
+            _sentience.RegisterBehaviorTree(document.Name, tree);
+            var entity = _sentience.CreateEntity(EntityType.NPC, position, document.Name);
+            _scene.Entities.Add(new SceneEntityData
+            {
+                Id = entity.EntityId,
+                Name = $"Agent_{document.Name}",
+                Type = "Character",
+                Position = Vec3.From(position),
+                BehaviorProfile = document.Name
+            });
+            SyncSceneToRenderer();
+            return entity;
+        }
+
+        /// <summary>Sets the selected entity for viewport gizmos.</summary>
+        public void SetViewportSelection(Guid entityId) => _viewportEditor.SelectedEntityId = entityId;
+
+        /// <summary>Raised when the user picks a different entity in the viewport.</summary>
+        public event Action<Guid>? ViewportEntitySelected;
+
+        /// <summary>Left-click: pick entity or begin gizmo drag. Right-click: orbit camera.</summary>
+        public void HandleViewportPointerDown(float x, float y, int width, int height, bool rightButton)
+        {
+            if (_renderEngine?.SceneRenderer == null || !_renderInitialized) return;
+
+            var (camPos, camFront, camUp, yaw, pitch, fov) = _renderEngine.GetCamera();
+            GetFramebufferSize(out int fbW, out int fbH, width, height);
+            var aspect = (float)fbW / Math.Max(1, fbH);
+            var ray = ViewportPickUtility.CreateRayFromScreen(camPos, camFront, camUp, fov, aspect, x, y, fbW, fbH);
+
+            if (rightButton)
+            {
+                _viewportEditor.IsOrbitingCamera = true;
+                _viewportEditor.OrbitStartYaw = yaw;
+                _viewportEditor.OrbitStartPitch = pitch;
+                _viewportEditor.DragStartMouseX = x;
+                _viewportEditor.DragStartMouseY = y;
+                return;
+            }
+
+            var selected = _scene.Entities.Find(e => e.Id == _viewportEditor.SelectedEntityId);
+            if (selected != null && _viewportEditor.ShowGizmos &&
+                (_viewportEditor.ToolMode == ViewportToolMode.Translate || _viewportEditor.ToolMode == ViewportToolMode.Rotate))
+            {
+                var axis = ViewportInteraction.PickGizmoAxis(ray, selected.Position.ToVector3(), selected.Scale.ToVector3());
+                if (axis != GizmoAxis.None)
+                {
+                    _viewportEditor.ActiveGizmoAxis = axis;
+                    _viewportEditor.IsDragging = true;
+                    _viewportEditor.DragStartPosition = selected.Position.ToVector3();
+                    _viewportEditor.DragStartRotation = selected.Rotation.ToVector3();
+                    _viewportEditor.DragStartMouseX = x;
+                    _viewportEditor.DragStartMouseY = y;
+                    return;
+                }
+            }
+
+            var picked = ViewportInteraction.PickEntity(_scene, _renderEngine.SceneRenderer, ray);
+            if (picked.HasValue)
+            {
+                _viewportEditor.SelectedEntityId = picked.Value;
+                ViewportEntitySelected?.Invoke(picked.Value);
+                SyncSceneToRenderer();
+            }
+        }
+
+        /// <summary>Drag gizmo or orbit camera.</summary>
+        public void HandleViewportPointerMove(float x, float y, int width, int height)
+        {
+            if (_renderEngine == null || !_renderInitialized) return;
+
+            if (_viewportEditor.IsOrbitingCamera)
+            {
+                float dx = x - _viewportEditor.DragStartMouseX;
+                float dy = y - _viewportEditor.DragStartMouseY;
+                _renderEngine.ApplyCameraDelta(dx * 0.15f, -dy * 0.15f, Vector3.Zero);
+                _viewportEditor.DragStartMouseX = x;
+                _viewportEditor.DragStartMouseY = y;
+                return;
+            }
+
+            if (!_viewportEditor.IsDragging) return;
+            var entity = _scene.Entities.Find(e => e.Id == _viewportEditor.SelectedEntityId);
+            if (entity == null) return;
+
+            GetFramebufferSize(out int fbW, out int fbH, width, height);
+            var view = Matrix4x4.CreateLookAt(_renderEngine.GetCamera().Position,
+                _renderEngine.GetCamera().Position + _renderEngine.GetCamera().Front,
+                _renderEngine.GetCamera().Up);
+            var proj = Matrix4x4.CreatePerspectiveFieldOfView(
+                MathHelperDeg2Rad(_renderEngine.GetCamera().Fov),
+                (float)fbW / Math.Max(1, fbH), 0.1f, 100f);
+            proj.M11 *= -1;
+
+            if (_viewportEditor.ToolMode == ViewportToolMode.Rotate)
+                ViewportInteraction.ApplyRotateDrag(_viewportEditor, entity, x, y);
+            else
+                ViewportInteraction.ApplyTranslateDrag(_viewportEditor, entity, x, y, view, proj, fbW, fbH);
+
+            SyncSceneToRenderer();
+        }
+
+        /// <summary>Ends gizmo drag or camera orbit.</summary>
+        public void HandleViewportPointerUp()
+        {
+            _viewportEditor.IsDragging = false;
+            _viewportEditor.IsOrbitingCamera = false;
+            _viewportEditor.ActiveGizmoAxis = GizmoAxis.None;
+        }
+
+        private static void GetFramebufferSize(out int fbW, out int fbH, int controlW, int controlH)
+        {
+            fbW = Math.Max(1, controlW);
+            fbH = Math.Max(1, controlH);
+        }
+
+        private static float MathHelperDeg2Rad(float deg) => deg * MathF.PI / 180f;
+
+        /// <summary>Updates an entity in the scene document and mirrors it to the renderer.</summary>
+        public bool UpdateSceneEntity(Guid id, string name, Vector3 position, Vector3 scale)
+        {
+            InitializeModules();
+            var entity = _scene.Entities.Find(e => e.Id == id);
+            if (entity == null) return false;
+
+            entity.Name = name;
+            entity.Position = Vec3.From(position);
+            entity.Scale = Vec3.From(scale);
+            SyncSceneToRenderer();
+            return true;
+        }
+
+        /// <summary>Pushes scene entities, lights, and camera hints to the render pipeline.</summary>
+        public void SyncSceneToRenderer()
+        {
+            if (_renderEngine?.SceneRenderer == null) return;
+            SceneRenderBridge.SyncDocument(_renderEngine, _scene, _viewportEditor, _logger);
+
+            if (_renderInitialized)
+            {
+                var cam = _scene.Camera;
+                _renderEngine!.SetCamera(
+                    cam.Position.ToVector3(),
+                    cam.Yaw,
+                    cam.Pitch,
+                    cam.Fov);
+            }
+        }
+
+        private void ApplyEvolutionToScene()
+        {
+            if (_evolution?.GetBestGenome() == null) return;
+            SceneRenderBridge.ApplyEvolutionVisual(
+                _renderEngine, _scene, _evolutionGeneration, _bestFitness, _logger);
         }
 
         private void ApplySceneToSimulation(SceneDocument scene)
@@ -540,6 +752,35 @@ namespace Synapse.Runtime
 
         private static QualityPreset ParseQuality(string name) =>
             Enum.TryParse<QualityPreset>(name, true, out var p) ? p : QualityPreset.High;
+
+        private void WireBehaviorLlmRouter()
+        {
+            BehaviorLlmContext.QueryAsync = async (prompt, entity, context, ct) =>
+            {
+                var messages = new List<ChatMessage>
+                {
+                    new() { Role = MessageRole.System, Content = $"You are an NPC behavior assistant for entity {entity.EntityId}." },
+                    new() { Role = MessageRole.User, Content = prompt }
+                };
+                var promptContext = new PromptContext
+                {
+                    TaskType = LlmTaskType.BehaviorGeneration,
+                    PreferredMode = LlmProviderMode.LocalOllama,
+                    MaxLatencyMs = 30000
+                };
+                var response = await _llmRouter!.RouteChatAsync(messages, promptContext, ct).ConfigureAwait(false);
+                return response?.Content ?? "fail";
+            };
+
+            BehaviorLlmContext.ResponseHandler = (_, _, response) =>
+            {
+                if (response.Contains("fail", StringComparison.OrdinalIgnoreCase))
+                    return GDNN.Sentience.TaskStatus.Failure;
+                if (response.Contains("wait", StringComparison.OrdinalIgnoreCase))
+                    return GDNN.Sentience.TaskStatus.Running;
+                return GDNN.Sentience.TaskStatus.Success;
+            };
+        }
 
         /// <summary>Releases evolution, LLM, quality, and render resources.</summary>
         public async ValueTask DisposeAsync()

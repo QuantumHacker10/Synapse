@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using GDNN.Sentience;
 
 namespace Synapse.Runtime
 {
@@ -122,10 +123,23 @@ namespace Synapse.Runtime
 
         public string CompileToBehaviorTreeName()
         {
-            var (ok, msg) = Validate();
-            if (!ok) throw new InvalidOperationException(msg);
-            var action = Nodes.FirstOrDefault(n => n.Kind == BlueprintNodeKind.Action);
-            return action?.Payload ?? "patrol";
+            var tree = CompileToBehaviorTreeBlueprint();
+            var action = tree.Children.FirstOrDefault(c => c.NodeType == BehaviorNodeType.Action)
+                         ?? FindFirstAction(tree);
+            return action?.ActionType ?? "patrol";
+        }
+
+        public BehaviorTreeBlueprint CompileToBehaviorTreeBlueprint() => BlueprintCompiler.Compile(this);
+
+        private static BehaviorTreeBlueprint? FindFirstAction(BehaviorTreeBlueprint node)
+        {
+            if (node.NodeType == BehaviorNodeType.Action) return node;
+            foreach (var child in node.Children)
+            {
+                var found = FindFirstAction(child);
+                if (found != null) return found;
+            }
+            return null;
         }
     }
 

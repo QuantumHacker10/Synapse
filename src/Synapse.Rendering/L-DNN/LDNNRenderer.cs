@@ -54,6 +54,18 @@ namespace GDNN.Lighting.LDNN
         public FrameTelemetry Telemetry => _telemetry;
         /// <summary>Current frame index.</summary>
         public int FrameIndex => _frameIndex;
+
+        /// <summary>Returns the latest per-pixel GI irradiance field from the previous frame.</summary>
+        public Vector3[,]? GetLastIrradianceField(int width, int height)
+        {
+            if (_previousGIResult == null || _previousGIResult.Length != width * height) return null;
+            var field = new Vector3[width, height];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    field[x, y] = _previousGIResult[y * width + x];
+            return field;
+        }
+
         /// <summary>Is the renderer initialized.</summary>
         public bool IsInitialized => _isInitialized;
         /// <summary>Neural irradiance predictor (for tests / online training).</summary>

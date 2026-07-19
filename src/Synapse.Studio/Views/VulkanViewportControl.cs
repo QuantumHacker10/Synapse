@@ -1,11 +1,12 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using GDNN.Platform;
 
-namespace GDNN.Studio.Views
+namespace Synapse.Studio.Views
 {
     /// <summary>
     /// Hosts a Win32 child HWND on Windows, otherwise falls back to a GLFW sibling window
@@ -18,6 +19,13 @@ namespace GDNN.Studio.Views
         private DispatcherTimer? _timer;
         private int _width = 800;
         private int _height = 600;
+
+        public VulkanViewportControl()
+        {
+            PointerPressed += OnPointerPressed;
+            PointerMoved += OnPointerMoved;
+            PointerReleased += OnPointerReleased;
+        }
 
         protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
@@ -58,6 +66,30 @@ namespace GDNN.Studio.Views
             if (_childHwnd != IntPtr.Zero && OperatingSystem.IsWindows())
                 Win32VulkanSurface.ResizeChild(_childHwnd, _width, _height);
             App.Host?.RenderEngine?.NotifyExternalResize(_width, _height);
+        }
+
+        private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (App.Host == null) return;
+            var pt = e.GetPosition(this);
+            var props = e.GetCurrentPoint(this).Properties;
+            App.Host.HandleViewportPointerDown((float)pt.X, (float)pt.Y, _width, _height, props.IsRightButtonPressed);
+            e.Handled = true;
+        }
+
+        private void OnPointerMoved(object? sender, PointerEventArgs e)
+        {
+            if (App.Host == null) return;
+            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed &&
+                !e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+                return;
+            var pt = e.GetPosition(this);
+            App.Host.HandleViewportPointerMove((float)pt.X, (float)pt.Y, _width, _height);
+        }
+
+        private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            App.Host?.HandleViewportPointerUp();
         }
 
         private void StartEngine(IntPtr hwnd, bool embedded)

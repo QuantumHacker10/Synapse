@@ -35,7 +35,7 @@ jobs:
           Copy-Item LICENSE artifacts/Synapse-win-x64/
           Copy-Item COPYRIGHT artifacts/Synapse-win-x64/
           @"
-          SYNAPSE OMNIA 1.1 — Windows x64
+          SYNAPSE OMNIA 1.1 — Moteur de simulation 3D (Windows x64)
           Proprietary license — all rights reserved. See LICENSE and COPYRIGHT.
           No copying, forking, or redistribution without written permission.
           Prerequisites: Vulkan-capable GPU + drivers.
@@ -56,6 +56,9 @@ jobs:
           generate_release_notes: true
           body: |
             ## SYNAPSE OMNIA ${{ github.ref_name }}
+
+            Moteur de **simulation 3D** avec **Synapse Studio** — atelier pour observer,
+            modifier et faire évoluer un monde simulé.
 
             ### Windows x64
             - Self-contained .NET 10 publish of **Synapse Studio**

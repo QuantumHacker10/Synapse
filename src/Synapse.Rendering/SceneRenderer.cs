@@ -91,6 +91,24 @@ namespace GDNN.Rendering.Engine
         private List<SceneMeshData> _sceneMeshes = new();
         private List<SceneLightData> _sceneLights = new();
         private List<SubstrateMaterial> _sceneMaterials = new();
+        private readonly Dictionary<Guid, int> _entityProxyMeshes = new();
+        private readonly Dictionary<Guid, (Vector3 Center, Vector3 HalfExtents)> _entityBounds = new();
+        private readonly Dictionary<Guid, int> _gizmoProxyMeshes = new();
+        private GBufferReadback? _gBufferReadback;
+        private GBufferSnapshot? _pendingGBufferSnapshot;
+        private bool _giUsesGpuReadback;
+        private static readonly Guid GizmoGridId = Guid.Parse("00000000-0000-0000-0000-000000000010");
+        private static readonly Guid GizmoSelectionId = Guid.Parse("00000000-0000-0000-0000-000000000011");
+        private static readonly Guid GizmoAxisXId = Guid.Parse("00000000-0000-0000-0000-000000000012");
+        private static readonly Guid GizmoAxisYId = Guid.Parse("00000000-0000-0000-0000-000000000013");
+        private static readonly Guid GizmoAxisZId = Guid.Parse("00000000-0000-0000-0000-000000000014");
+
+        private Vector3 _dynamicLightDir = Vector3.Normalize(new Vector3(0.5f, 1f, 0.5f));
+        private float _dynamicAmbient = 0.15f;
+        private float _giBoost;
+        private Vector3 _lastLightingHash;
+        private VulkanTexture? _giIrradianceTexture;
+        private Vector3[,]? _lastGiIrradiance;
 
         private int _width;
         private int _height;
@@ -107,6 +125,8 @@ namespace GDNN.Rendering.Engine
         public LodManager LOD => _lodManager;
         public int MeshCount => _sceneMeshes.Count;
         public int TriangleCount => (int)(_indexCount / 3);
+        /// <summary>True when the last GI pass consumed GPU readback G-buffer data.</summary>
+        public bool GiUsesGpuReadback => _giUsesGpuReadback;
         /// <summary>Hardware / CPU hybrid ray tracing pipeline (null until Initialize).</summary>
         public RayTracingPipeline? RayTracing => _rtPipeline;
         /// <summary>Whether VK_KHR_ray_tracing_pipeline was detected.</summary>
@@ -133,6 +153,7 @@ namespace GDNN.Rendering.Engine
             _ldnnBridge = new LDNNBridge(width, height);
             _ldnnBridge.Initialize();
             _ldnnBridge.Resize(width, height);
+            _gBufferReadback = new GBufferReadback(_rhi);
 
             _postProcessBridge = new PostProcessBridge(width, height);
             _meshLoader = new MeshLoader();
@@ -163,6 +184,13 @@ namespace GDNN.Rendering.Engine
                 _rtPipeline.CreateDenoiser(width, height);
 
             _initialized = true;
+            SeedBlackGiTexture();
+        }
+
+        private void SeedBlackGiTexture()
+        {
+            var empty = new Vector3[_width, _height];
+            UploadGiIrradianceTexture(empty);
         }
 
         private void CreateGBufferRenderPass()
@@ -275,7 +303,7 @@ namespace GDNN.Rendering.Engine
             {
                 Width = extent.Width, Height = extent.Height,
                 Format = VulkanFormat.R16G16B16A16Sfloat,
-                Usage = ImageUsageFlag.ColorAttachment | ImageUsageFlag.Sampled,
+                Usage = ImageUsageFlag.ColorAttachment | ImageUsageFlag.Sampled | ImageUsageFlag.TransferSrc,
                 Tiling = ImageTiling.Optimal,
                 InitialLayout = ImageLayout.Undefined,
                 Samples = SampleCountFlag.Count1,
@@ -455,6 +483,8 @@ namespace GDNN.Rendering.Engine
 
         private void CreateLightingDescriptorResources()
         {
+            CreateGiIrradianceTexture();
+
             _lightingDescriptorSetLayout = _rhi.CreateDescriptorSetLayout(new LayoutDescription
             {
                 Bindings = new[]
@@ -463,6 +493,7 @@ namespace GDNN.Rendering.Engine
                     new DescriptorSetLayoutBinding { Binding = 1, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
                     new DescriptorSetLayoutBinding { Binding = 2, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
                     new DescriptorSetLayoutBinding { Binding = 3, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 4, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
                 }
             });
 
@@ -470,7 +501,7 @@ namespace GDNN.Rendering.Engine
             {
                 PoolSizes = new[]
                 {
-                    new DescriptorPoolSize { Type = DescriptorType.CombinedImageSampler, DescriptorCount = MAX_FRAMES_IN_FLIGHT * 4 },
+                    new DescriptorPoolSize { Type = DescriptorType.CombinedImageSampler, DescriptorCount = MAX_FRAMES_IN_FLIGHT * 5 },
                 },
                 MaxSets = MAX_FRAMES_IN_FLIGHT
             });
@@ -527,14 +558,145 @@ namespace GDNN.Rendering.Engine
                         DescriptorType = DescriptorType.CombinedImageSampler,
                         ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _gbufferMaterial[i].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
                     },
+                    new DescriptorWrite
+                    {
+                        DescriptorSet = _lightingDescriptorSets[i].Handle,
+                        DstBinding = 4, DstArrayElement = 0,
+                        DescriptorType = DescriptorType.CombinedImageSampler,
+                        ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _giIrradianceTexture?.GetImageView() ?? _gbufferAlbedo[i].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                    },
                 });
             }
         }
 
+        private void CreateGiIrradianceTexture()
+        {
+            var extent = _rhi.Swapchain.Extent;
+            _giIrradianceTexture = _rhi.CreateTexture(new TextureDescription
+            {
+                Width = extent.Width,
+                Height = extent.Height,
+                Format = VulkanFormat.R16G16B16A16Sfloat,
+                Usage = ImageUsageFlag.Sampled | ImageUsageFlag.TransferDst,
+                Tiling = ImageTiling.Optimal,
+                InitialLayout = ImageLayout.Undefined,
+                Samples = SampleCountFlag.Count1,
+            });
+        }
+
+        private unsafe void UploadGiIrradianceTexture(Vector3[,] irradiance)
+        {
+            if (!_initialized || _giIrradianceTexture == null || irradiance == null) return;
+
+            int w = irradiance.GetLength(0);
+            int h = irradiance.GetLength(1);
+            if (w <= 0 || h <= 0) return;
+
+            if (w != _width || h != _height)
+                return;
+
+            int pixelCount = w * h;
+            var bytes = new byte[pixelCount * 8];
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    var c = irradiance[x, y];
+                    int idx = (y * w + x) * 8;
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx, 2), (Half)c.X);
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx + 2, 2), (Half)c.Y);
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx + 4, 2), (Half)c.Z);
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx + 6, 2), (Half)1f);
+                }
+            }
+
+            var staging = _rhi.CreateBuffer(new BufferDescription
+            {
+                Size = (ulong)bytes.Length,
+                Usage = BufferUsageFlag.TransferSrc,
+                MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent
+            });
+            var mapped = staging.Map();
+            Marshal.Copy(bytes, 0, mapped, bytes.Length);
+            staging.Unmap();
+
+            var cmd = _rhi.CreateCommandBuffer();
+            cmd.Begin(CommandBufferUsageFlag.OneTimeSubmit);
+            cmd.PipelineBarrier(
+                PipelineStageFlag.TopOfPipe,
+                PipelineStageFlag.Transfer,
+                imageBarriers: new[]
+                {
+                    new ImageMemoryBarrier
+                    {
+                        Image = _giIrradianceTexture.Handle,
+                        OldLayout = ImageLayout.Undefined,
+                        NewLayout = ImageLayout.TransferDstOptimal,
+                        DstAccessMask = AccessFlag.TransferWrite,
+                        SubresourceRange = new ImageSubresourceRange
+                        {
+                            AspectMask = ImageAspectFlag.Color,
+                            BaseMipLevel = 0,
+                            LevelCount = 1,
+                            BaseArrayLayer = 0,
+                            LayerCount = 1
+                        }
+                    }
+                });
+
+            cmd.CopyBufferToImage(staging, _giIrradianceTexture, ImageLayout.TransferDstOptimal, new[]
+            {
+                new BufferImageCopy
+                {
+                    BufferOffset = 0,
+                    ImageSubresource = new ImageSubresourceLayers
+                    {
+                        AspectMask = ImageAspectFlag.Color,
+                        MipLevel = 0,
+                        BaseArrayLayer = 0,
+                        LayerCount = 1
+                    },
+                    ImageExtent = new Extent3D((uint)w, (uint)h, 1)
+                }
+            });
+
+            cmd.PipelineBarrier(
+                PipelineStageFlag.Transfer,
+                PipelineStageFlag.FragmentShader,
+                imageBarriers: new[]
+                {
+                    new ImageMemoryBarrier
+                    {
+                        Image = _giIrradianceTexture.Handle,
+                        OldLayout = ImageLayout.TransferDstOptimal,
+                        NewLayout = ImageLayout.ShaderReadOnlyOptimal,
+                        SrcAccessMask = AccessFlag.TransferWrite,
+                        DstAccessMask = AccessFlag.ShaderRead,
+                        SubresourceRange = new ImageSubresourceRange
+                        {
+                            AspectMask = ImageAspectFlag.Color,
+                            BaseMipLevel = 0,
+                            LevelCount = 1,
+                            BaseArrayLayer = 0,
+                            LayerCount = 1
+                        }
+                    }
+                });
+            cmd.End();
+            _rhi.SubmitCommandBuffer(cmd, _rhi.GraphicsQueue, null);
+            _rhi.WaitForIdle();
+            staging.Dispose();
+            _lastGiIrradiance = irradiance;
+        }
+
         private void CreateLightingPipeline()
         {
+            var dir = _dynamicLightDir;
             var vertSpv = EmbeddedShaders.CompileLightingVertex();
-            var fragSpv = EmbeddedShaders.CompileLightingFragment();
+            var fragSpv = EmbeddedShaders.CompileLightingFragment(
+                dir.X, dir.Y, dir.Z, _dynamicAmbient, _giBoost);
+
+            _lightingPipeline?.Dispose();
 
             var vertModule = _rhi.CreateShaderModule(vertSpv);
             var fragModule = _rhi.CreateShaderModule(fragSpv);
@@ -841,6 +1003,179 @@ namespace GDNN.Rendering.Engine
             }
 
             _ldnnBridge.ApplyLlmLighting(parameters);
+            RefreshDynamicLightingFromScene();
+        }
+
+        /// <summary>Creates or updates a visible proxy mesh for a scene entity (Genome, Volume, Character, Mesh).</summary>
+        public void SyncEntityProxy(Guid id, string type, Vector3 position, Vector3 scale, Vector3 rotationEuler = default)
+        {
+            if (!_initialized) return;
+            if (type.Equals("Light", StringComparison.OrdinalIgnoreCase) ||
+                type.Equals("Camera", StringComparison.OrdinalIgnoreCase) ||
+                type.Equals("Empty", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            float sx = Math.Max(scale.X, 0.05f);
+            float sy = Math.Max(scale.Y, 0.05f);
+            float sz = Math.Max(scale.Z, 0.05f);
+            var rot = Matrix4x4.CreateRotationX(MathHelper.Deg2Rad(rotationEuler.X))
+                    * Matrix4x4.CreateRotationY(MathHelper.Deg2Rad(rotationEuler.Y))
+                    * Matrix4x4.CreateRotationZ(MathHelper.Deg2Rad(rotationEuler.Z));
+            var world = Matrix4x4.CreateScale(sx, sy, sz) * rot * Matrix4x4.CreateTranslation(position);
+
+            _entityBounds[id] = (position, new Vector3(sx * 0.5f, sy * 0.5f, sz * 0.5f));
+
+            int materialIndex = type.ToUpperInvariant() switch
+            {
+                "GENOME" => 3,
+                "VOLUME" => 2,
+                "CHARACTER" => 1,
+                _ => 0
+            };
+
+            if (_entityProxyMeshes.TryGetValue(id, out int meshIdx))
+            {
+                SetMeshWorldMatrix(meshIdx, world);
+                return;
+            }
+
+            meshIdx = CreateCube(materialIndex, world);
+            _entityProxyMeshes[id] = meshIdx;
+            UploadSceneGeometry();
+        }
+
+        public bool TryGetEntityBounds(Guid id, out Vector3 center, out Vector3 halfExtents)
+        {
+            if (_entityBounds.TryGetValue(id, out var b))
+            {
+                center = b.Center;
+                halfExtents = b.HalfExtents;
+                return true;
+            }
+            center = default;
+            halfExtents = default;
+            return false;
+        }
+        public void SyncEditorGizmos(bool showGrid, bool showGizmos, Guid selectedEntityId, Vector3 selectedPosition, Vector3 selectedScale)
+        {
+            if (!_initialized) return;
+
+            ClearGizmoProxies();
+
+            if (showGrid)
+            {
+                var gridWorld = Matrix4x4.CreateScale(20f, 1f, 20f) * Matrix4x4.CreateTranslation(0, 0, 0);
+                AddGizmoProxy(GizmoGridId, CreatePlaneMesh(0, gridWorld));
+            }
+
+            if (showGizmos && selectedEntityId != Guid.Empty)
+            {
+                float axisLen = MathF.Max(selectedScale.X, MathF.Max(selectedScale.Y, selectedScale.Z)) * 0.75f + 0.5f;
+                var selWorld = Matrix4x4.CreateScale(selectedScale.X * 1.05f, selectedScale.Y * 1.05f, selectedScale.Z * 1.05f)
+                               * Matrix4x4.CreateTranslation(selectedPosition);
+                AddGizmoProxy(GizmoSelectionId, CreateCube(2, selWorld));
+
+                AddGizmoProxy(GizmoAxisXId, CreateCube(1,
+                    Matrix4x4.CreateScale(axisLen, 0.06f, 0.06f) * Matrix4x4.CreateTranslation(selectedPosition + Vector3.UnitX * axisLen * 0.5f)));
+                AddGizmoProxy(GizmoAxisYId, CreateCube(3,
+                    Matrix4x4.CreateScale(0.06f, axisLen, 0.06f) * Matrix4x4.CreateTranslation(selectedPosition + Vector3.UnitY * axisLen * 0.5f)));
+                AddGizmoProxy(GizmoAxisZId, CreateCube(0,
+                    Matrix4x4.CreateScale(0.06f, 0.06f, axisLen) * Matrix4x4.CreateTranslation(selectedPosition + Vector3.UnitZ * axisLen * 0.5f)));
+            }
+
+            UploadSceneGeometry();
+        }
+
+        private void ClearGizmoProxies()
+        {
+            foreach (var kv in _gizmoProxyMeshes)
+            {
+                if (kv.Value >= 0 && kv.Value < _sceneMeshes.Count)
+                    _sceneMeshes[kv.Value].WorldMatrix = Matrix4x4.CreateScale(0);
+            }
+            _gizmoProxyMeshes.Clear();
+        }
+
+        private void AddGizmoProxy(Guid id, int meshIdx)
+        {
+            _gizmoProxyMeshes[id] = meshIdx;
+        }
+
+        /// <summary>Reads GPU G-buffer attachments from the previous submitted frame.</summary>
+        public void ConsumePendingGBufferReadback()
+        {
+            if (_pendingGBufferSnapshot == null || !_initialized) return;
+
+            var snap = _pendingGBufferSnapshot;
+            _pendingGBufferSnapshot = null;
+            _ldnnBridge.FillGBufferComplete(
+                snap.Depth, snap.Normals, snap.Albedo, snap.Emissive,
+                snap.Velocity, snap.MaterialProps, snap.Specular);
+            _giUsesGpuReadback = true;
+        }
+
+        /// <summary>Schedules a full G-buffer GPU readback after the frame fence signals.</summary>
+        public void ScheduleGBufferReadback(uint imageIndex, int frameIndex)
+        {
+            if (!_initialized || _gBufferReadback == null) return;
+            if (_gbufferAlbedo == null || imageIndex >= _gbufferAlbedo.Length) return;
+
+            int w = (int)_rhi.Swapchain.Extent.Width;
+            int h = (int)_rhi.Swapchain.Extent.Height;
+            if (_gBufferReadback.TryRead(
+                    _gbufferAlbedo[imageIndex],
+                    _gbufferNormals[imageIndex],
+                    _gbufferDepth[imageIndex],
+                    _gbufferMaterial[imageIndex],
+                    _gbufferVelocity[imageIndex],
+                    w, h,
+                    out var snapshot))
+            {
+                _pendingGBufferSnapshot = snapshot;
+            }
+        }
+
+        /// <summary>Copies deferred scene lights into the L-DNN bridge and refreshes GPU lighting.</summary>
+        public void PushLightsToGlobalIllumination()
+        {
+            if (!_initialized) return;
+
+            var configs = new List<LightConfig>();
+            foreach (var light in _sceneLights)
+            {
+                configs.Add(new LightConfig
+                {
+                    Type = LightType.Directional,
+                    Direction = Vector3.Normalize(light.Direction),
+                    Color = light.Color,
+                    Intensity = light.Intensity,
+                    Range = light.Range,
+                    ShadowMethod = ShadowMethod.NeuralPredictive,
+                    ShadowBias = 0.005f,
+                    ShadowSamples = 16,
+                    Importance = 1.0f
+                });
+            }
+
+            _ldnnBridge.SetLights(configs);
+            RefreshDynamicLightingFromScene();
+        }
+
+        private void RefreshDynamicLightingFromScene()
+        {
+            if (_sceneLights.Count == 0) return;
+
+            var primary = _sceneLights[0];
+            _dynamicLightDir = Vector3.Normalize(-primary.Direction);
+            RebuildLightingPipelineIfNeeded();
+        }
+
+        private void RebuildLightingPipelineIfNeeded()
+        {
+            var hash = new Vector3(_dynamicLightDir.X, _dynamicAmbient + _giBoost, _dynamicLightDir.Z);
+            if (Vector3.DistanceSquared(hash, _lastLightingHash) < 1e-6f) return;
+            _lastLightingHash = hash;
+            CreateLightingPipeline();
         }
 
         public bool LoadMeshFromFile(string filePath, int materialIndex = 0, Matrix4x4? worldMatrix = null)
@@ -1103,31 +1438,59 @@ namespace GDNN.Rendering.Engine
         }
 
         /// <summary>
-        /// Runs L-DNN global illumination using G-Buffer proxies. When scene meshes and lights exist,
-        /// camera matrices are still placeholders until Vulkan attachment readback is wired; the hybrid
-        /// RT teacher path may run when hardware RT is available.
+        /// Runs L-DNN global illumination using scene camera and lights, then feeds GI boost into lighting.
         /// </summary>
-        public void RenderGI()
+        public void RenderGI(
+            Matrix4x4 view,
+            Matrix4x4 projection,
+            Vector3 cameraPos,
+            Vector3 cameraForward,
+            Vector3 cameraRight)
         {
             if (!_initialized) return;
 
-            if (_sceneLights.Count > 0 && _sceneMeshes.Count > 0)
-            {
-                var view = Matrix4x4.Identity;
-                var proj = Matrix4x4.Identity;
-                var pos = Vector3.Zero;
+            var up = Vector3.Normalize(Vector3.Cross(cameraRight, cameraForward));
+            var aspect = _height > 0 ? (float)_width / _height : 16f / 9f;
+            _ldnnBridge.UpdateCamera(
+                view, projection, cameraPos, cameraForward, cameraRight, up,
+                60f, aspect, 0.1f, 100f);
 
-                _ldnnBridge.UpdateCamera(view, proj, pos, RenderingMath.Forward, RenderingMath.Right, Vector3.UnitY, 60.0f, (float)_width / _height, 0.1f, 100.0f);
-            }
+            if (_sceneLights.Count > 0)
+                PushLightsToGlobalIllumination();
 
-            _ldnnBridge.FillGBufferFromConstants(10.0f, Vector3.UnitY, new Vector3(0.5f, 0.5f, 0.5f));
+            if (!_giUsesGpuReadback)
+                _ldnnBridge.FillGBufferFromConstants(10.0f, Vector3.UnitY, new Vector3(0.5f, 0.5f, 0.5f));
+            _giUsesGpuReadback = false;
 
-            // Hybrid path: when RT extensions are present, run the CPU/GPU RT
-            // fallback as a teacher signal before the neural GI pass.
             if (_rtPipeline != null && _rtPipeline.IsSupported)
                 RenderHybridRayTracingTeacher();
 
-            _ldnnBridge.RenderGI();
+            var irradiance = _ldnnBridge.RenderGI();
+            ApplyGiBoostFromIrradiance(irradiance);
+        }
+
+        private void ApplyGiBoostFromIrradiance(Vector3[,] irradiance)
+        {
+            if (irradiance == null || irradiance.GetLength(0) == 0) return;
+
+            double sum = 0;
+            int w = irradiance.GetLength(0);
+            int h = irradiance.GetLength(1);
+            int step = Math.Max(1, Math.Max(w, h) / 32);
+            int samples = 0;
+            for (int y = 0; y < h; y += step)
+            {
+                for (int x = 0; x < w; x += step)
+                {
+                    sum += irradiance[x, y].Length();
+                    samples++;
+                }
+            }
+
+            if (samples == 0) return;
+            _giBoost = Math.Clamp((float)(sum / samples) * 0.15f, 0f, 0.45f);
+            UploadGiIrradianceTexture(irradiance);
+            RebuildLightingPipelineIfNeeded();
         }
 
         /// <summary>
@@ -1244,7 +1607,7 @@ namespace GDNN.Rendering.Engine
             UploadSceneGeometry();
         }
 
-        private void CreateCube(int materialIndex, Matrix4x4 world)
+        private int CreateCube(int materialIndex, Matrix4x4 world)
         {
             float s = 1.0f;
             var vertices = new float[]
@@ -1288,6 +1651,7 @@ namespace GDNN.Rendering.Engine
 
             int meshIdx = AddMesh(vertices, 12, indices, materialIndex);
             SetMeshWorldMatrix(meshIdx, world);
+            return meshIdx;
         }
 
         private void CreatePlane(Matrix4x4 world)
@@ -1305,6 +1669,22 @@ namespace GDNN.Rendering.Engine
 
             int meshIdx = AddMesh(vertices, 12, indices, 0);
             SetMeshWorldMatrix(meshIdx, world);
+        }
+
+        private int CreatePlaneMesh(int materialIndex, Matrix4x4 world)
+        {
+            float s = 1.0f;
+            var vertices = new float[]
+            {
+                -s, 0,-s,  0, 1, 0,  0,0,  0.35f,0.38f,0.42f,0.35f,
+                 s, 0,-s,  0, 1, 0,  1,0,  0.35f,0.38f,0.42f,0.35f,
+                 s, 0, s,  0, 1, 0,  1,1,  0.35f,0.38f,0.42f,0.35f,
+                -s, 0, s,  0, 1, 0,  0,1,  0.35f,0.38f,0.42f,0.35f,
+            };
+            var indices = new uint[] { 0, 1, 2, 2, 3, 0 };
+            int meshIdx = AddMesh(vertices, 12, indices, materialIndex);
+            SetMeshWorldMatrix(meshIdx, world);
+            return meshIdx;
         }
 
         public void Dispose()
@@ -1356,6 +1736,9 @@ namespace GDNN.Rendering.Engine
             if (_depthImages != null) foreach (var t in _depthImages) t?.Dispose();
             if (_shadowDepthImages != null) foreach (var t in _shadowDepthImages) t?.Dispose();
             _rtPipeline?.Dispose();
+            _gBufferReadback?.Dispose();
+
+            _giIrradianceTexture?.Dispose();
 
             _materialBridge?.Dispose();
             _ldnnBridge?.Dispose();

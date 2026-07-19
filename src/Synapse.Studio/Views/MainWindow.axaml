@@ -1,160 +1,242 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:GDNN.Studio.ViewModels"
-        xmlns:views="using:GDNN.Studio.Views"
-        x:Class="GDNN.Studio.Views.MainWindow"
+        xmlns:vm="using:Synapse.Studio.ViewModels"
+        xmlns:views="using:Synapse.Studio.Views"
+        xmlns:contracts="using:Synapse.Studio.Contracts"
+        x:Class="Synapse.Studio.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="G-DNN Studio — SYNAPSE OMNIA"
+        Title="Synapse Studio — SYNAPSE OMNIA"
         Width="1440" Height="900"
         MinWidth="1100" MinHeight="700"
-        Background="#0E1218">
+        Background="#0E1218"
+        KeyDown="OnWindowKeyDown">
 
   <DockPanel>
-    <!-- Menu -->
     <Menu DockPanel.Dock="Top" Background="#161B22">
-      <MenuItem Header="_File">
-        <MenuItem Header="New Project" Command="{Binding NewProjectCommand}" />
-        <MenuItem Header="Open…" Command="{Binding OpenProjectCommand}" />
-        <MenuItem Header="Save" Command="{Binding SaveProjectCommand}" />
+      <MenuItem Header="_Fichier">
+        <MenuItem Header="Nouveau projet" Command="{Binding NewProjectCommand}" />
+        <MenuItem Header="Ouvrir…" Command="{Binding OpenProjectCommand}" />
+        <MenuItem Header="Enregistrer" Command="{Binding SaveProjectCommand}" />
         <Separator />
-        <MenuItem Header="Exit" Command="{Binding ExitCommand}" />
+        <MenuItem Header="Quitter" Command="{Binding ExitCommand}" />
       </MenuItem>
       <MenuItem Header="_Simulation">
-        <MenuItem Header="Play / Pause" Command="{Binding TogglePlayCommand}" />
-        <MenuItem Header="Spawn Agent" Command="{Binding SpawnAgentCommand}" />
+        <MenuItem Header="Lecture / Pause (Espace)" Command="{Binding TogglePlayCommand}" />
+        <MenuItem Header="Créer un agent" Command="{Binding SpawnAgentCommand}" />
       </MenuItem>
-      <MenuItem Header="_Tools">
-        <MenuItem Header="New Blueprint" Command="{Binding NewBlueprintCommand}" />
-        <MenuItem Header="Compile Blueprint" Command="{Binding CompileBlueprintCommand}" />
-        <MenuItem Header="Import Megascans…" Command="{Binding ImportMegascansCommand}" />
-      </MenuItem>
-      <MenuItem Header="_Help">
-        <MenuItem Header="About Synapse" Command="{Binding AboutCommand}" />
+      <MenuItem Header="_Aide">
+        <MenuItem Header="À propos" Command="{Binding AboutCommand}" />
+        <MenuItem Header="Masquer l'accueil" Command="{Binding DismissWelcomeCommand}" />
       </MenuItem>
     </Menu>
 
-    <!-- Status bar -->
     <Border DockPanel.Dock="Bottom" Background="#161B22" Padding="12,6">
-      <Grid ColumnDefinitions="*,*,*,*,*">
+      <Grid ColumnDefinitions="*,*,*,*,*,*">
         <TextBlock Grid.Column="0" Foreground="#8B9BB4" Text="{Binding StatusFps}" />
         <TextBlock Grid.Column="1" Foreground="#8B9BB4" Text="{Binding StatusPhysics}" />
         <TextBlock Grid.Column="2" Foreground="#8B9BB4" Text="{Binding StatusSimulation}" />
         <TextBlock Grid.Column="3" Foreground="#8B9BB4" Text="{Binding StatusQuality}" />
-        <TextBlock Grid.Column="4" Foreground="#45E0B8" Text="{Binding StatusLaw}" HorizontalAlignment="Right" />
+        <TextBlock Grid.Column="4" Foreground="#8B9BB4" Text="{Binding LlmStatusText}" TextTrimming="CharacterEllipsis" />
+        <TextBlock Grid.Column="5" Foreground="#45E0B8" Text="{Binding StatusLaw}" HorizontalAlignment="Right" />
       </Grid>
     </Border>
 
-    <Grid ColumnDefinitions="280,*,320">
-      <!-- Left: Scene + Laws -->
-      <Border Grid.Column="0" Background="#12171F" BorderBrush="#1E2633" BorderThickness="0,0,1,0" Padding="12">
-        <ScrollViewer>
-          <StackPanel Spacing="16">
-            <TextBlock Text="Scene" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" />
-            <ListBox ItemsSource="{Binding Entities}" SelectedItem="{Binding SelectedEntity}"
-                     Background="Transparent" MaxHeight="220">
-              <ListBox.ItemTemplate>
-                <DataTemplate>
+    <Grid ColumnDefinitions="300,*,340">
+      <!-- Left: tabbed tools -->
+      <Border Grid.Column="0" Background="#12171F" BorderBrush="#1E2633" BorderThickness="0,0,1,0" Padding="8">
+        <DockPanel>
+          <Border DockPanel.Dock="Top" Background="#161B22" CornerRadius="6" Padding="10" Margin="0,0,0,8"
+                  IsVisible="{Binding ShowWelcomeTips}">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Bienvenue dans Synapse Studio" FontWeight="SemiBold" Foreground="#45E0B8" />
+              <TextBlock Text="1. Sélectionnez une entité · 2. Modifiez l'inspecteur · 3. Utilisez l'assistant pour l'éclairage · 4. Lancez la simulation (Espace)"
+                         Foreground="#C5D0E0" TextWrapping="Wrap" FontSize="12" />
+              <Button Content="Compris" Command="{Binding DismissWelcomeCommand}" HorizontalAlignment="Left" />
+            </StackPanel>
+          </Border>
+
+          <TabControl>
+            <TabItem Header="Scène">
+              <ScrollViewer>
+                <StackPanel Spacing="10" Margin="4">
+                  <TextBlock Text="Entités" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <ListBox ItemsSource="{Binding Entities}" SelectedItem="{Binding SelectedEntity}"
+                           Background="Transparent" MaxHeight="260">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate DataType="contracts:SceneEntity">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <TextBlock Text="{Binding Type}" Foreground="#45E0B8" Width="72" FontSize="11" />
+                          <TextBlock Text="{Binding Name}" Foreground="#E8EEF7" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                  <ComboBox ItemsSource="{Binding EntityTypes}" SelectedItem="{Binding NewEntityType}" />
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{Binding Type}" Foreground="#45E0B8" Width="70" />
-                    <TextBlock Text="{Binding Name}" Foreground="#E8EEF7" />
+                    <Button Content="Ajouter" Command="{Binding AddEntityCommand}" />
+                    <Button Content="Supprimer" Command="{Binding DeleteEntityCommand}" />
                   </StackPanel>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="Add Entity" Command="{Binding AddEntityCommand}" />
-              <Button Content="Delete" Command="{Binding DeleteEntityCommand}" />
-            </StackPanel>
+                  <Button Content="▶ Lecture / Pause" Command="{Binding TogglePlayCommand}" HorizontalAlignment="Stretch" />
+                  <Button Content="Créer un agent" Command="{Binding SpawnAgentCommand}" HorizontalAlignment="Stretch" />
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
 
-            <TextBlock Text="Living Laws" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,8,0,0" />
-            <ComboBox ItemsSource="{Binding LawIds}" SelectedItem="{Binding SelectedLawId}" Width="240" />
-            <TextBox Text="{Binding LawExpression}" AcceptsReturn="True" Height="100"
-                     Watermark="Law expression…" TextWrapping="Wrap" />
-            <Button Content="Compile &amp; Hot-Reload" Command="{Binding CompileLawCommand}" HorizontalAlignment="Stretch" />
-            <TextBlock Text="{Binding LawStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" />
+            <TabItem Header="Physique">
+              <ScrollViewer>
+                <StackPanel Spacing="10" Margin="4">
+                  <TextBlock Text="Lois vivantes" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="Choisissez une loi, éditez l'expression, puis compilez sans arrêter la simulation."
+                             Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                  <ComboBox ItemsSource="{Binding LawIds}" SelectedItem="{Binding SelectedLawId}" />
+                  <TextBox Text="{Binding LawExpression}" AcceptsReturn="True" Height="90"
+                           Watermark="Expression de loi…" TextWrapping="Wrap" />
+                  <Button Content="Compiler &amp; hot-reload" Command="{Binding CompileLawCommand}" HorizontalAlignment="Stretch" />
+                  <TextBlock Text="{Binding LawStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
 
-            <TextBlock Text="Evolution (NEAT-G)" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,8,0,0" />
-            <TextBlock Text="{Binding EvolutionStatus}" Foreground="#8B9BB4" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="Evolve" Command="{Binding StartEvolutionCommand}" />
-              <Button Content="Cancel" Command="{Binding CancelEvolutionCommand}" />
-            </StackPanel>
+            <TabItem Header="Création">
+              <ScrollViewer>
+                <StackPanel Spacing="10" Margin="4">
+                  <TextBlock Text="Évolution NEAT-G" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="Fait muter des formes ; le meilleur génome apparaît comme volume dans la scène."
+                             Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                  <TextBlock Text="{Binding EvolutionStatus}" Foreground="#C5D0E0" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Évoluer" Command="{Binding StartEvolutionCommand}" />
+                    <Button Content="Annuler" Command="{Binding CancelEvolutionCommand}" />
+                  </StackPanel>
 
-            <TextBlock Text="Blueprint" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,8,0,0" />
-            <ListBox ItemsSource="{Binding BlueprintNodes}" Height="100" Background="#0E1218" />
-            <TextBlock Text="{Binding BlueprintStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" />
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <Button Content="Add" Command="{Binding AddBlueprintNodeCommand}" />
-              <Button Content="Compile" Command="{Binding CompileBlueprintCommand}" />
-              <Button Content="Save" Command="{Binding SaveBlueprintCommand}" />
-            </StackPanel>
+                  <Separator Margin="0,8" />
 
-            <TextBlock Text="Sculpt" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,8,0,0" />
-            <TextBlock Text="Radius" Foreground="#8B9BB4" FontSize="11" />
-            <Slider Minimum="0.05" Maximum="3" Value="{Binding SculptRadius}" />
-            <TextBlock Text="Strength" Foreground="#8B9BB4" FontSize="11" />
-            <Slider Minimum="0.01" Maximum="1" Value="{Binding SculptStrength}" />
-            <CheckBox Content="Invert" IsChecked="{Binding SculptInvert}" Foreground="#E8EEF7" />
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <Button Content="Stroke @ selection" Command="{Binding ApplySculptStrokeCommand}" />
-              <Button Content="Clear" Command="{Binding ClearSculptCommand}" />
-            </StackPanel>
-            <TextBlock Text="{Binding SculptStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" />
+                  <TextBlock Text="Blueprint agent" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <views:BlueprintGraphCanvas x:Name="BlueprintCanvas" Height="180" DocumentChanged="OnBlueprintDocumentChanged" />
+                  <ListBox ItemsSource="{Binding BlueprintNodes}" Height="70" Background="#0E1218" />
+                  <TextBlock Text="{Binding BlueprintStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Nœud" Command="{Binding AddBlueprintNodeCommand}" />
+                    <Button Content="LLM" Command="{Binding AddBlueprintLlmNodeCommand}" />
+                    <Button Content="Compiler" Command="{Binding CompileBlueprintCommand}" />
+                  </StackPanel>
 
-            <TextBlock Text="Megascans" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,8,0,0" />
-            <TextBox Text="{Binding MegascansPath}" Watermark="Asset folder path…" />
-            <Button Content="Import asset" Command="{Binding ImportMegascansCommand}" HorizontalAlignment="Stretch" />
-            <TextBlock Text="{Binding MegascansStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" />
-          </StackPanel>
-        </ScrollViewer>
+                  <Separator Margin="0,8" />
+
+                  <TextBlock Text="Sculpt (aperçu)" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="Rayon" Foreground="#8B9BB4" FontSize="11" />
+                  <Slider Minimum="0.05" Maximum="3" Value="{Binding SculptRadius}" />
+                  <TextBlock Text="Force" Foreground="#8B9BB4" FontSize="11" />
+                  <Slider Minimum="0.01" Maximum="1" Value="{Binding SculptStrength}" />
+                  <Button Content="Appliquer sur sélection" Command="{Binding ApplySculptStrokeCommand}" HorizontalAlignment="Stretch" />
+                  <TextBlock Text="{Binding SculptStatus}" Foreground="#8B9BB4" FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Import">
+              <ScrollViewer>
+                <StackPanel Spacing="10" Margin="4">
+                  <TextBlock Text="Megascans" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBox Text="{Binding MegascansPath}" Watermark="Dossier d'asset…" />
+                  <Button Content="Importer" Command="{Binding ImportMegascansCommand}" HorizontalAlignment="Stretch" />
+                  <TextBlock Text="{Binding MegascansStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+          </TabControl>
+        </DockPanel>
       </Border>
 
-      <!-- Center: Viewport -->
+      <!-- Center viewport -->
       <Border Grid.Column="1" Background="#0A0D12">
-        <Grid>
-          <views:VulkanViewportControl x:Name="Viewport" />
-          <Border VerticalAlignment="Top" HorizontalAlignment="Left" Margin="12" Padding="10,6"
-                  Background="#990E1218" CornerRadius="4">
-            <TextBlock Text="{Binding ViewportHint}" Foreground="#C5D0E0" FontSize="12" />
-          </Border>
+        <Grid RowDefinitions="Auto,*">
+          <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="12,8,12,0">
+            <CheckBox Content="Grille" IsChecked="{Binding ShowViewportGrid}" />
+            <CheckBox Content="Gizmos" IsChecked="{Binding ShowViewportGizmos}" />
+            <Button Content="Sélection" Command="{Binding SetViewportToolSelectCommand}" Padding="8,4" />
+            <Button Content="Déplacer" Command="{Binding SetViewportToolTranslateCommand}" Padding="8,4" />
+            <Button Content="Rotation" Command="{Binding SetViewportToolRotateCommand}" Padding="8,4" />
+            <TextBlock Text="{Binding GiStatus}" Foreground="#45E0B8" VerticalAlignment="Center" FontSize="11" />
+          </StackPanel>
+          <Grid Grid.Row="1">
+            <views:VulkanViewportControl x:Name="Viewport" />
+            <Border VerticalAlignment="Top" HorizontalAlignment="Left" Margin="12" Padding="10,6"
+                    Background="#990E1218" CornerRadius="4">
+              <TextBlock Text="{Binding ViewportHint}" Foreground="#C5D0E0" FontSize="12" />
+            </Border>
+          </Grid>
         </Grid>
       </Border>
 
-      <!-- Right: LLM + Performance + Inspector -->
-      <Border Grid.Column="2" Background="#12171F" BorderBrush="#1E2633" BorderThickness="1,0,0,0" Padding="12">
-        <ScrollViewer>
-          <StackPanel Spacing="16">
-            <TextBlock Text="Inspector" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" />
-            <TextBlock Text="{Binding InspectorText}" Foreground="#8B9BB4" TextWrapping="Wrap" />
+      <!-- Right: inspector + assistant -->
+      <Border Grid.Column="2" Background="#12171F" BorderBrush="#1E2633" BorderThickness="1,0,0,0" Padding="8">
+        <TabControl>
+          <TabItem Header="Inspecteur">
+            <ScrollViewer>
+              <StackPanel Spacing="10" Margin="4">
+                <TextBlock Text="Propriétés" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                <TextBlock Text="Sélectionnez une entité dans l'onglet Scène pour éditer ses propriétés."
+                           Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11"
+                           IsVisible="{Binding !HasSelectedEntity}" />
+                <StackPanel Spacing="8" IsVisible="{Binding HasSelectedEntity}">
+                  <TextBlock Text="Nom" Foreground="#8B9BB4" FontSize="11" />
+                  <TextBox Text="{Binding EntityName}" />
+                  <TextBlock Text="Position (X Y Z)" Foreground="#8B9BB4" FontSize="11" />
+                  <Grid ColumnDefinitions="*,*,*">
+                    <NumericUpDown Grid.Column="0" Value="{Binding EntityPosX}" Increment="0.1" Margin="0,0,4,0" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding EntityPosY}" Increment="0.1" Margin="4,0" />
+                    <NumericUpDown Grid.Column="2" Value="{Binding EntityPosZ}" Increment="0.1" Margin="4,0,0,0" />
+                  </Grid>
+                  <TextBlock Text="{Binding InspectorMeta}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                  <Button Content="Appliquer les modifications" Command="{Binding ApplyInspectorCommand}" HorizontalAlignment="Stretch" />
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
 
-            <TextBlock Text="LLM Console" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,8,0,0" />
-            <ListBox ItemsSource="{Binding ChatMessages}" Height="180" Background="#0E1218">
-              <ListBox.ItemTemplate>
-                <DataTemplate>
-                  <StackPanel Margin="0,0,0,8">
-                    <TextBlock Text="{Binding Role}" Foreground="#45E0B8" FontSize="11" />
-                    <TextBlock Text="{Binding Content}" Foreground="#E8EEF7" TextWrapping="Wrap" />
-                  </StackPanel>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-            <TextBox Text="{Binding ChatInput}" Watermark="Ask Synapse… (lighting / SDF JSON)" AcceptsReturn="True" Height="60" />
-            <Grid ColumnDefinitions="*,*" Margin="0,0,0,0">
-              <Button Grid.Column="0" Content="Lighting prompt" Command="{Binding InsertLightingPromptCommand}" Margin="0,0,4,0" HorizontalAlignment="Stretch" />
-              <Button Grid.Column="1" Content="SDF prompt" Command="{Binding InsertSdfPromptCommand}" Margin="4,0,0,0" HorizontalAlignment="Stretch" />
-            </Grid>
-            <Button Content="Send" Command="{Binding SendChatCommand}" HorizontalAlignment="Stretch" />
-            <Button Content="Apply last reply → scene" Command="{Binding ApplyLastLlmReplyCommand}" HorizontalAlignment="Stretch" />
-            <TextBlock Text="{Binding LlmApplyStatus}" Foreground="#45E0B8" TextWrapping="Wrap" FontSize="11" />
+          <TabItem Header="Assistant">
+            <ScrollViewer>
+              <StackPanel Spacing="10" Margin="4">
+                <TextBlock Text="Console LLM" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                <TextBlock Text="{Binding LlmStatusText}" Foreground="#45E0B8" FontSize="11" TextWrapping="Wrap" />
+                <ListBox ItemsSource="{Binding ChatMessages}" Height="200" Background="#0E1218">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel Margin="0,0,0,8">
+                        <TextBlock Text="{Binding Role}" Foreground="#45E0B8" FontSize="11" />
+                        <TextBlock Text="{Binding Content}" Foreground="#E8EEF7" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBox Text="{Binding ChatInput}" Watermark="Décrivez l'éclairage ou une forme SDF…"
+                         AcceptsReturn="True" Height="64" />
+                <Grid ColumnDefinitions="*,*,*">
+                  <Button Grid.Column="0" Content="Modèle éclairage" Command="{Binding InsertLightingPromptCommand}" Margin="0,0,4,0" />
+                  <Button Grid.Column="1" Content="Modèle SDF" Command="{Binding InsertSdfPromptCommand}" Margin="4,0" />
+                  <Button Grid.Column="2" Content="Modèle BT" Command="{Binding InsertBehaviorPromptCommand}" Margin="4,0,0,0" />
+                </Grid>
+                <Button Content="Envoyer" Command="{Binding SendChatCommand}" HorizontalAlignment="Stretch" />
+                <Button Content="Appliquer la dernière réponse" Command="{Binding ApplyLastLlmReplyCommand}" HorizontalAlignment="Stretch" />
+                <TextBlock Text="{Binding LlmApplyStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
 
-            <TextBlock Text="Performance" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,8,0,0" />
-            <TextBlock Text="{Binding PerformanceReport}" Foreground="#8B9BB4" TextWrapping="Wrap" />
-
-            <TextBlock Text="Simulation" FontSize="16" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,8,0,0" />
-            <TextBlock Text="{Binding SimulationStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" />
-            <Button Content="{Binding PlayPauseLabel}" Command="{Binding TogglePlayCommand}" HorizontalAlignment="Stretch" />
-          </StackPanel>
-        </ScrollViewer>
+          <TabItem Header="Performance">
+            <ScrollViewer>
+              <StackPanel Spacing="10" Margin="4">
+                <TextBlock Text="{Binding PerformanceReport}" Foreground="#8B9BB4" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding SimulationStatus}" Foreground="#C5D0E0" TextWrapping="Wrap" />
+                <TextBlock Text="À propos de Synapse OMNIA" FontWeight="SemiBold" Foreground="#45E0B8"
+                           IsVisible="{Binding ShowAboutText}" />
+                <TextBlock Text="{Binding AboutText}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11"
+                           IsVisible="{Binding ShowAboutText}" />
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+        </TabControl>
       </Border>
     </Grid>
   </DockPanel>

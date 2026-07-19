@@ -1,14 +1,26 @@
 # Changelog
 
-Toutes les modifications notables de **Synapse Engine** sont documentées ici.
+Toutes les modifications notables de **Synapse OMNIA** sont documentées ici.
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Ajouté
+
+- **Synapse Studio** : viewport Vulkan embarqué (HWND), grille/gizmos, outils sélection/déplacement/rotation, édition d'entités et blueprint graphique.
+- Lecture G-buffer GPU pour l'illumination L-DNN (fallback constantes si indisponible).
+
 ### Modifié
 
+- Interface Studio entièrement en français (menus, statuts, dialogues, console LLM).
+- Texte « À propos » enrichi (onglet Performance) aligné sur le README et le site vitrine.
+- README, site GitHub Pages et CHANGELOG recentrés sur le positionnement « moteur de simulation 3D ».
 - Remplacement de la licence MIT par une **licence propriétaire** (anti-copie, anti-fork, anti-plagiat) — voir [LICENSE](LICENSE) et [COPYRIGHT](COPYRIGHT).
+
+### Supprimé
+
+- Propriétés ViewModel mortes (`InspectorText`, `PlayPauseLabel`) et détails techniques superflus sur le site vitrine.
 
 ### À faire
 
@@ -18,7 +30,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [1.1.0] — 2026-07-19
 
-Première release produit **Synapse OMNIA 1.1** : Synapse Studio (Avalonia), runtime unifié, rendu Vulkan, pipeline G-DNN / L-DNN.
+Première release produit **Synapse OMNIA 1.1** : Synapse Studio, moteur de simulation 3D unifié (physique, évolution, habitants, rendu temps réel).
 
 ### Ajouté
 
