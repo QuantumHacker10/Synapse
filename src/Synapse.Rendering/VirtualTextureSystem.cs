@@ -42,7 +42,7 @@ namespace GDNN.Rendering.VirtualTextures
         public uint ContentHash { get; set; }
         public int LastAccessFrame { get; set; }
         public int Priority { get; set; }
-        public required string SourcePath { get; set; }
+        public string SourcePath { get; set; }
     }
 
     public class VTPhysicalPage
@@ -54,19 +54,19 @@ namespace GDNN.Rendering.VirtualTextures
         public int MipLevel { get; set; }
         public uint Hash { get; set; }
         public int LastAccessFrame { get; set; }
-        public required float[] ColorData { get; set; }
-        public required float[] NormalData { get; set; }
+        public float[] ColorData { get; set; }
+        public float[] NormalData { get; set; }
     }
 
     public class VTLayer
     {
-        public required string Name { get; set; }
+        public string Name { get; set; }
         public int VirtualWidth { get; set; }
         public int VirtualHeight { get; set; }
         public int TileCountX { get; set; }
         public int TileCountY { get; set; }
         public int MipLevels { get; set; }
-        public required VTTile[,] Tiles { get; set; }
+        public VTTile[,] Tiles { get; set; }
         public bool IsDirty { get; set; }
     }
 
@@ -75,9 +75,9 @@ namespace GDNN.Rendering.VirtualTextures
         public int Width { get; set; }
         public int Height { get; set; }
         public int MipLevel { get; set; }
-        public required float[] ColorData { get; set; }
-        public required float[] NormalData { get; set; }
-        public required float[] RoughnessData { get; set; }
+        public float[] ColorData { get; set; }
+        public float[] NormalData { get; set; }
+        public float[] RoughnessData { get; set; }
     }
 
     public class VTStreamingQueue

@@ -212,14 +212,14 @@ namespace GDNN.Rendering.ArtPipeline
 
     public class MegascansScanEntry
     {
-        public required MegascansAsset Asset { get; set; }
-        public required MegascansTextureSet Textures { get; set; }
-        public required Megascans3DAssetData ThreeDData { get; set; }
-        public required MegascansVegetationData VegetationData { get; set; }
-        public required MegascansDecalData DecalData { get; set; }
-        public required MegascansAtlasData AtlasData { get; set; }
-        public required SubstrateMaterial ConvertedMaterial { get; set; }
-        public required MeshAsset ConvertedMesh { get; set; }
+        public MegascansAsset Asset { get; set; }
+        public MegascansTextureSet Textures { get; set; }
+        public Megascans3DAssetData ThreeDData { get; set; }
+        public MegascansVegetationData VegetationData { get; set; }
+        public MegascansDecalData DecalData { get; set; }
+        public MegascansAtlasData AtlasData { get; set; }
+        public SubstrateMaterial ConvertedMaterial { get; set; }
+        public MeshAsset ConvertedMesh { get; set; }
         public List<string> Warnings { get; set; } = new();
         public bool ImportSucceeded { get; set; }
         public TimeSpan ImportDuration { get; set; }

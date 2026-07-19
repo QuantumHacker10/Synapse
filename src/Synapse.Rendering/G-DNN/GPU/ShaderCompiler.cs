@@ -118,13 +118,13 @@ public enum ShaderDiagnosticSeverity
 public sealed class ShaderDiagnostic
 {
     /// <summary>Severity level.</summary>
-    public required ShaderDiagnosticSeverity Severity { get; init; }
+    public ShaderDiagnosticSeverity Severity { get; init; }
 
     /// <summary>Error or warning code.</summary>
     public string? Code { get; init; }
 
     /// <summary>Human-readable message.</summary>
-    public required string Message { get; init; }
+    public string Message { get; init; }
 
     /// <summary>Source file name (if applicable).</summary>
     public string? FileName { get; init; }

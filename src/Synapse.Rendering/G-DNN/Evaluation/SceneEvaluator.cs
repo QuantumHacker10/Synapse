@@ -46,7 +46,7 @@ namespace GDNN.Evaluation
         public string Name { get; set; } = string.Empty;
 
         /// <summary>The neural network defining this asset's surface.</summary>
-        public required ISdfNetwork Network { get; init; }
+        public ISdfNetwork Network { get; init; }
 
         /// <summary>World-space transform of the asset.</summary>
         public Matrix4x4 Transform { get; set; } = Matrix4x4.Identity;
@@ -281,7 +281,7 @@ namespace GDNN.Evaluation
     public sealed class AssetEvalResult
     {
         /// <summary>Asset that was evaluated.</summary>
-        public required SceneNeuralAsset Asset { get; init; }
+        public SceneNeuralAsset Asset { get; init; }
 
         /// <summary>Evaluation results (one per query).</summary>
         public SurfaceHit[] Hits { get; set; } = Array.Empty<SurfaceHit>();

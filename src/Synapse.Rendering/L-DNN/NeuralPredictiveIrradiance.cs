@@ -29,19 +29,19 @@ namespace GDNN.Lighting.LDNN
         private int _hidden1Size = 128;
         private int _hidden2Size = 128;
 
-        private required float[,] _weights1;
-        private required float[,] _weights2;
-        private required float[,] _weights3;
-        private required float[] _bias1;
-        private required float[] _bias2;
-        private required float[] _bias3;
-        private required float[,] _m1, _v1, _m2, _v2, _m3, _v3;
-        private required float[] _mb1, _mb2, _mb3;
-        private required float[] _vb1, _vb2, _vb3;
+        private float[,] _weights1;
+        private float[,] _weights2;
+        private float[,] _weights3;
+        private float[] _bias1;
+        private float[] _bias2;
+        private float[] _bias3;
+        private float[,] _m1, _v1, _m2, _v2, _m3, _v3;
+        private float[] _mb1, _mb2, _mb3;
+        private float[] _vb1, _vb2, _vb3;
         private int _t;
         private bool _isInitialized;
 
-        private required Queue<(Vector3[] Features, Vector3 Target)> _trainingBuffer;
+        private Queue<(Vector3[] Features, Vector3 Target)> _trainingBuffer;
         private int _maxTrainingBufferSize;
         private float _trainingLoss;
         private float _inferenceTime;

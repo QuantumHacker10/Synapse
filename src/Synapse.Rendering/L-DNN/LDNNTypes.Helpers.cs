@@ -112,19 +112,19 @@ namespace GDNN.Lighting.LDNN
     public class GBuffer
     {
         /// <summary>Depth buffer (linear view-space depth).</summary>
-        public required float[] Depth { get; set; }
+        public float[] Depth { get; set; }
         /// <summary>Normal buffer (world-space normals, XYZ).</summary>
-        public required Vector3[] Normals { get; set; }
+        public Vector3[] Normals { get; set; }
         /// <summary>Albedo buffer (base color).</summary>
-        public required Vector3[] Albedo { get; set; }
+        public Vector3[] Albedo { get; set; }
         /// <summary>Velocity buffer (screen-space motion vectors).</summary>
-        public required Vector2[] Velocity { get; set; }
+        public Vector2[] Velocity { get; set; }
         /// <summary>Material buffer (roughness, metallic packed).</summary>
-        public required Vector4[] MaterialProps { get; set; }
+        public Vector4[] MaterialProps { get; set; }
         /// <summary>Specular buffer.</summary>
-        public required Vector3[] Specular { get; set; }
+        public Vector3[] Specular { get; set; }
         /// <summary>Emissive buffer.</summary>
-        public required Vector3[] Emissive { get; set; }
+        public Vector3[] Emissive { get; set; }
         /// <summary>Width of the G-Buffer.</summary>
         public int Width { get; set; }
         /// <summary>Height of the G-Buffer.</summary>
@@ -175,7 +175,7 @@ namespace GDNN.Lighting.LDNN
     public class RenderContext
     {
         /// <summary>Command list for GPU command submission.</summary>
-        public required object CommandList { get; set; }
+        public object CommandList { get; set; }
         /// <summary>Current frame index.</summary>
         public int FrameIndex { get; set; }
         /// <summary>Render target width.</summary>
@@ -380,13 +380,13 @@ namespace GDNN.Lighting.LDNN
         /// <summary>Total memory budget in bytes.</summary>
         public long TotalMemoryBudgetBytes { get; init; }
         /// <summary>Time allocated per cascade level.</summary>
-        public required float[] TimePerLevelMs { get; init; }
+        public float[] TimePerLevelMs { get; init; }
         /// <summary>Memory allocated per cascade level.</summary>
-        public required long[] MemoryPerLevelBytes { get; init; }
+        public long[] MemoryPerLevelBytes { get; init; }
         /// <summary>Ray count allocated per cascade level.</summary>
-        public required int[] RaysPerLevel { get; init; }
+        public int[] RaysPerLevel { get; init; }
         /// <summary>Resolution per cascade level.</summary>
-        public required int[] ResolutionPerLevel { get; init; }
+        public int[] ResolutionPerLevel { get; init; }
         /// <summary>Whether allocation was successful within budget.</summary>
         public bool WithinBudget { get; init; }
     }

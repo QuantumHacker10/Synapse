@@ -19178,7 +19178,7 @@ namespace GDNN.Core.NEAT
     public sealed class OperatorRanking
     {
         /// <summary>Operator name.</summary>
-        public required string OperatorName { get; init; }
+        public string OperatorName { get; init; }
         /// <summary>Q-value.</summary>
         public double QValue { get; init; }
         /// <summary>Average improvement.</summary>

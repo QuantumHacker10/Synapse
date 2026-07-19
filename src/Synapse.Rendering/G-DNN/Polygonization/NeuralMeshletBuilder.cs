@@ -13,18 +13,18 @@ namespace GDNN.Polygonization;
 public sealed class NeuralMeshlet
 {
     /// <summary>Indices des sommets dans le maillage source (≤ MaxVertices).</summary>
-    public required int[] VertexIndices { get; init; }
+    public int[] VertexIndices { get; init; }
 
     /// <summary>Triangles en indexation locale au meshlet (triplets, ≤ MaxTriangles).</summary>
-    public required byte[] LocalIndices { get; init; }
+    public byte[] LocalIndices { get; init; }
 
-    public required AABB Bounds { get; init; }
+    public AABB Bounds { get; init; }
 
     /// <summary>Axe moyen du cône de normales.</summary>
-    public required Vector3 ConeAxis { get; init; }
+    public Vector3 ConeAxis { get; init; }
 
     /// <summary>cos(angle) du cône de normales ; -1 = cône dégénéré (pas de culling backface).</summary>
-    public required float ConeCutoff { get; init; }
+    public float ConeCutoff { get; init; }
 
     public int VertexCount => VertexIndices.Length;
     public int TriangleCount => LocalIndices.Length / 3;

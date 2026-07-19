@@ -201,10 +201,10 @@ public readonly struct HLSLType : IEquatable<HLSLType>
 public sealed class HLSLVariable
 {
     /// <summary>Variable name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>HLSL type.</summary>
-    public required HLSLType Type { get; init; }
+    public HLSLType Type { get; init; }
 
     /// <summary>Optional semantic (e.g. SV_POSITION).</summary>
     public string? Semantic { get; init; }
@@ -259,10 +259,10 @@ public sealed class HLSLVariable
 public sealed class HLSLParameter
 {
     /// <summary>Parameter name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>HLSL type.</summary>
-    public required HLSLType Type { get; init; }
+    public HLSLType Type { get; init; }
 
     /// <summary>Whether this is an input parameter.</summary>
     public bool IsInput { get; init; } = true;
@@ -299,10 +299,10 @@ public sealed class HLSLParameter
 public sealed class HLSLFunction
 {
     /// <summary>Return type.</summary>
-    public required HLSLType ReturnType { get; init; }
+    public HLSLType ReturnType { get; init; }
 
     /// <summary>Function name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>Function parameters.</summary>
     public List<HLSLParameter> Parameters { get; init; } = new();

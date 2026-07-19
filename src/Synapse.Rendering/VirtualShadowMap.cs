@@ -51,7 +51,7 @@ namespace GDNN.Rendering.Shadows
         public Matrix4x4 ViewProjection { get; set; }
         public float NearPlane { get; set; }
         public float FarPlane { get; set; }
-        public required VSMTile[] Tiles { get; set; }
+        public VSMTile[] Tiles { get; set; }
         public int TileCountX { get; set; }
         public int TileCountY { get; set; }
     }
@@ -65,8 +65,8 @@ namespace GDNN.Rendering.Shadows
         public int ClipmapLevel { get; set; }
         public uint Hash { get; set; }
         public int LastAccessFrame { get; set; }
-        public required float[] DepthData { get; set; }
-        public required float[] NormalData { get; set; }
+        public float[] DepthData { get; set; }
+        public float[] NormalData { get; set; }
     }
 
     public class VirtualShadowMap : IDisposable

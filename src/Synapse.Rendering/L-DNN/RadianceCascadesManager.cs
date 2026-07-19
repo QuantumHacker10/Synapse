@@ -19,15 +19,15 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class RadianceCascadesManager
     {
-        private required CascadeConfig _config;
-        private required CascadeLevelConfig[] _levels;
-        private required Vector3[][] _cascadeData;
-        private required Vector3[][] _temporalHistory;
-        private required float[][] _varianceData;
-        private required int[][] _sampleCounts;
-        private required int[] _resolutionPerLevel;
-        private required float[] _importancePerLevel;
-        private required float[] _timeAllocationPerLevel;
+        private CascadeConfig _config;
+        private CascadeLevelConfig[] _levels;
+        private Vector3[][] _cascadeData;
+        private Vector3[][] _temporalHistory;
+        private float[][] _varianceData;
+        private int[][] _sampleCounts;
+        private int[] _resolutionPerLevel;
+        private float[] _importancePerLevel;
+        private float[] _timeAllocationPerLevel;
         private int _totalLevels;
         private int _frameIndex;
         private bool _isInitialized;

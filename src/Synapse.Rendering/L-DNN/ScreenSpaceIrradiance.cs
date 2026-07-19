@@ -24,8 +24,8 @@ namespace GDNN.Lighting.LDNN
         private const float STEP_SIZE = 1.0f;
         private const float Thickness = 0.5f;
 
-        private required Vector3[] _ssgiResult;
-        private required float[] _ssgiConfidence;
+        private Vector3[] _ssgiResult;
+        private float[] _ssgiConfidence;
         private int _width;
         private int _height;
         private bool _isInitialized;

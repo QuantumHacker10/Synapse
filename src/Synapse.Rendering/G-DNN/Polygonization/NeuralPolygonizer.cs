@@ -14,9 +14,9 @@ namespace GDNN.Polygonization;
 /// </summary>
 public sealed class NeuralPolygonMesh
 {
-    public required Vector3[] Positions { get; init; }
-    public required Vector3[] Normals { get; init; }
-    public required int[] Indices { get; init; }
+    public Vector3[] Positions { get; init; }
+    public Vector3[] Normals { get; init; }
+    public int[] Indices { get; init; }
 
     public int VertexCount => Positions.Length;
     public int TriangleCount => Indices.Length / 3;

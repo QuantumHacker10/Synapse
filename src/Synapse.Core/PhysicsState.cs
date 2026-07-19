@@ -2154,17 +2154,17 @@ public struct FieldGradient
 public sealed class CompiledLaw
 {
     /// <summary>Identifiant unique de la loi.</summary>
-    public required string Id { get; init; }
+    public string Id { get; init; }
     /// <summary>Nom descriptif de la loi.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
     /// <summary>Expression mathematique source (pour reference).</summary>
-    public required string Expression { get; init; }
+    public string Expression { get; init; }
     /// <summary>Couche cible : quels champs cette loi affecte.</summary>
-    public required FieldLayer TargetLayer { get; init; }
+    public FieldLayer TargetLayer { get; init; }
     /// <summary>Evaluateur compile pour un point unique (hot-path).</summary>
-    public required Func<PhysicsState, FieldGradient, double, PhysicsState> Evaluate { get; init; }
+    public Func<PhysicsState, FieldGradient, double, PhysicsState> Evaluate { get; init; }
     /// <summary>Evaluation en lot (bulk) pour des tableaux de points.</summary>
-    public required Action<nint, int, double> BulkEvaluate { get; init; }
+    public Action<nint, int, double> BulkEvaluate { get; init; }
     /// <summary>Numero de version (incremente a chaque modification).</summary>
     public int Version { get; init; } = 1;
     /// <summary>ID de la version parente (pour le historique).</summary>
@@ -2362,11 +2362,11 @@ public struct StochasticState
 public sealed class PhysicsConstraint
 {
     /// <summary>Nom descriptif de la contrainte.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
     /// <summary>Fonction residuelle : retourne 0 si la contrainte est satisfaite.</summary>
-    public required Func<PhysicsState, FieldGradient, double> Residual { get; init; }
+    public Func<PhysicsState, FieldGradient, double> Residual { get; init; }
     /// <summary>Couche cible de la contrainte.</summary>
-    public required FieldLayer TargetLayer { get; init; }
+    public FieldLayer TargetLayer { get; init; }
     /// <summary>Poids dans la fonction de perte (importance relative).</summary>
     public double Weight { get; set; } = 1.0;
     /// <summary>Si vrai, la contrainte est verifiee exactement (penalite dure).</summary>
@@ -3885,7 +3885,7 @@ public class KdTree
     {
         public int PointIndex;
         public int Axis;
-        public required KdNode Left, Right;
+        public KdNode? Left, Right;
         public BoundingBox3D Bounds;
     }
 

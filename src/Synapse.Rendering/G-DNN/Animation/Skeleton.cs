@@ -117,7 +117,7 @@ namespace GDNN.Animation
         public sealed class AnimationClipReference
         {
             /// <summary>The animation clip data.</summary>
-            public required AnimationClip Clip;
+            public AnimationClip Clip;
 
             /// <summary>Weight for blending when this clip is active.</summary>
             public float Weight;

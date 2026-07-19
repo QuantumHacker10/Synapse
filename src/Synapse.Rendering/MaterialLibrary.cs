@@ -310,7 +310,7 @@ namespace GDNN.Rendering.ArtPipeline
         public string Name { get; set; } = "";
         public MaterialAssetType AssetType { get; set; }
         public MaterialPresetCategory Category { get; set; }
-        public required MaterialPreset Preset { get; set; }
+        public MaterialPreset Preset { get; set; }
         public List<MaterialVariant> Variants { get; set; } = new();
         public string SourcePath { get; set; } = "";
         public DateTime LastModified { get; set; } = DateTime.UtcNow;

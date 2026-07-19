@@ -269,16 +269,16 @@ public readonly struct ShaderVariantKey : IEquatable<ShaderVariantKey>, ICompara
 public sealed class ShaderVariant
 {
     /// <summary>The unique key for this variant.</summary>
-    public required ShaderVariantKey Key { get; init; }
+    public ShaderVariantKey Key { get; init; }
 
     /// <summary>Compiled shader bytecode.</summary>
-    public required byte[] Bytecode { get; init; }
+    public byte[] Bytecode { get; init; }
 
     /// <summary>Vertex shader bytecode (for pixel shaders, may be null).</summary>
     public byte[]? VertexBytecode { get; init; }
 
     /// <summary>Shader entry point name.</summary>
-    public required string EntryPoint { get; init; }
+    public string EntryPoint { get; init; }
 
     /// <summary>Shader source hash for cache validation.</summary>
     public string? SourceHash { get; init; }

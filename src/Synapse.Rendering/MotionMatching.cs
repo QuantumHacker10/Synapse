@@ -101,9 +101,9 @@ namespace GDNN.Rendering.Animation
 
     public class MotionMatchingDatabase
     {
-        public required MotionFrame[] Frames { get; set; }
-        public required MotionFeature[] Features { get; set; }
-        public required TrajectoryPoint[,] Trajectories { get; set; }
+        public MotionFrame[] Frames { get; set; }
+        public MotionFeature[] Features { get; set; }
+        public TrajectoryPoint[,] Trajectories { get; set; }
         public int FrameCount { get; set; }
         public float TotalDuration { get; set; }
         public int JointCount { get; set; }

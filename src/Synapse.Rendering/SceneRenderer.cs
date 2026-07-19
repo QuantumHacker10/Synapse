@@ -1813,9 +1813,9 @@ namespace GDNN.Rendering.Engine
 
         private class SceneMeshData
         {
-            public required float[] VertexData;
+            public float[] VertexData;
             public int VertexStride;
-            public required uint[] IndexData;
+            public uint[] IndexData;
             public int MaterialIndex;
             public Matrix4x4 WorldMatrix;
         }

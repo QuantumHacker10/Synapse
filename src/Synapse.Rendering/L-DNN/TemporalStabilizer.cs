@@ -17,10 +17,10 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class TemporalStabilizer
     {
-        private required TemporalConfig _config;
-        private required Vector3[] _historyBuffer;
-        private required float[] _historyWeight;
-        private required float[] _varianceBuffer;
+        private TemporalConfig _config;
+        private Vector3[] _historyBuffer;
+        private float[] _historyWeight;
+        private float[] _varianceBuffer;
         private int _width;
         private int _height;
         private int _historyLength;

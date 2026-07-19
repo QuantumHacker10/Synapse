@@ -211,7 +211,7 @@ namespace GDNN.Streaming
     public sealed class StageExecutionRecord
     {
         /// <summary>Stage name.</summary>
-        public required string StageName { get; init; }
+        public string StageName { get; init; }
 
         /// <summary>Current status.</summary>
         public PipelineStageStatus Status { get; set; } = PipelineStageStatus.Pending;
@@ -246,7 +246,7 @@ namespace GDNN.Streaming
     public sealed class PipelineJob
     {
         /// <summary>Unique job identifier.</summary>
-        public required string JobId { get; init; }
+        public string JobId { get; init; }
 
         /// <summary>Human-readable job name.</summary>
         public string? Name { get; set; }
@@ -427,10 +427,10 @@ namespace GDNN.Streaming
     public sealed class PipelineStageEventArgs : EventArgs
     {
         /// <summary>Job identifier.</summary>
-        public required string JobId { get; init; }
+        public string JobId { get; init; }
 
         /// <summary>Stage name.</summary>
-        public required string StageName { get; init; }
+        public string StageName { get; init; }
 
         /// <summary>Current stage status.</summary>
         public PipelineStageStatus Status { get; init; }

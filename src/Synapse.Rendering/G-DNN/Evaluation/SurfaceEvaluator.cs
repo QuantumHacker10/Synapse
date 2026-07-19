@@ -40,10 +40,10 @@ namespace GDNN.Evaluation
     public sealed class LodLevel
     {
         /// <summary>The neural network for this LOD level.</summary>
-        public required ISdfNetwork Network { get; init; }
+        public ISdfNetwork Network { get; init; }
 
         /// <summary>Maximum world-space distance at which this LOD is used.</summary>
-        public required float MaxDistance { get; init; }
+        public float MaxDistance { get; init; }
 
         /// <summary>Scale factor applied to the SDF output at this LOD.</summary>
         public float Scale { get; init; } = 1.0f;

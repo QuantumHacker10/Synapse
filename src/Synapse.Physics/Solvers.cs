@@ -2027,10 +2027,10 @@ public sealed class ThermodynamicEnsemble : IDisposable
 public sealed class Reaction
 {
     /// <summary>Species indices of reactants (can be empty for zeroth-order).</summary>
-    public required int[] Reactants { get; init; }
+    public int[] Reactants { get; init; }
 
     /// <summary>Species indices of products (can be empty for degradation).</summary>
-    public required int[] Products { get; init; }
+    public int[] Products { get; init; }
 
     /// <summary>Reaction rate constant.</summary>
     public double RateConstant { get; init; }
@@ -2039,10 +2039,10 @@ public sealed class Reaction
     public bool Irreversible { get; init; } = true;
 
     /// <summary>Stoichiometric coefficient for each reactant (parallel to Reactants).</summary>
-    public required int[] ReactantCoefficients { get; init; }
+    public int[] ReactantCoefficients { get; init; }
 
     /// <summary>Stoichiometric coefficient for each product (parallel to Products).</summary>
-    public required int[] ProductCoefficients { get; init; }
+    public int[] ProductCoefficients { get; init; }
 
     /// <summary>Human-readable label.</summary>
     public string Label { get; init; } = string.Empty;
@@ -2085,7 +2085,7 @@ public sealed class CRNConfig
     public bool Stochastic { get; init; }
     public bool UseReactionDiffusion { get; init; }
     public (int Nx, int Ny, int Nz) GridSize { get; init; } = (50, 50, 1);
-    public required double[] DiffusionCoefficients { get; init; }  // per species
+    public double[] DiffusionCoefficients { get; init; }  // per species
     public double Dx { get; init; } = 0.01;               // spatial cell size
     public double Dt { get; init; } = 0.0001;             // spatial time step
     public int SpatialSteps { get; init; } = 10_000;
@@ -2623,7 +2623,7 @@ public sealed class NBodyConfig
     public bool ComputeRadiation { get; init; }          // post-Newtonian radiation
     public int RadiationOrder { get; init; } = 2;        // PN order (1 = 1PN, 2 = 2PN)
     public double GravitationalConstant { get; init; } = 1.0;
-    public required double[] Masses { get; init; }                // per-body masses (null = unit)
+    public double[] Masses { get; init; }                // per-body masses (null = unit)
     public bool RecordTrajectory { get; init; }
     public int TrajectoryInterval { get; init; } = 100;
 }
@@ -2662,7 +2662,7 @@ internal sealed class BHNode
     public double TotalMass;
     public double HalfSize;
     public int BodyIndex = -1;       // leaf: index into body array
-    public required BHNode[] Children;        // 8 children (null for leaf or empty)
+    public BHNode[] Children;        // 8 children (null for leaf or empty)
     public int ChildCount;
 }
 
@@ -3537,7 +3537,7 @@ public sealed class LBMConfig
     public double OutletPressure { get; init; } = 1.0;
     public bool UseMultiphase { get; init; }            // Shan-Chen pseudopotential
     public double GShanChen { get; init; } = -4.7;      // Shan-Chen interaction strength
-    public required double[] BodyForce { get; init; }             // external force (fx, fy, fz)
+    public double[] BodyForce { get; init; }             // external force (fx, fy, fz)
     public int OutputInterval { get; init; } = 1000;
 }
 
@@ -6340,11 +6340,11 @@ public sealed class InterfaceData
 /// </summary>
 public sealed class CouplingLink
 {
-    public required string SourceSolver { get; init; }
-    public required string TargetSolver { get; init; }
-    public required string SourceField { get; init; }
-    public required string TargetField { get; init; }
-    public required Func<double[], double[]> TransferFunction { get; init; }
+    public string SourceSolver { get; init; }
+    public string TargetSolver { get; init; }
+    public string SourceField { get; init; }
+    public string TargetField { get; init; }
+    public Func<double[], double[]> TransferFunction { get; init; }
 }
 
 /// <summary>

@@ -19,12 +19,12 @@ public readonly record struct ClusterKey(int Level, int Index);
 /// </summary>
 public sealed class StreamedCluster
 {
-    public required Vector3[] Positions { get; init; }
-    public required Vector3[] Normals { get; init; }
-    public required byte[] LocalIndices { get; init; }
-    public required AABB Bounds { get; init; }
-    public required Vector3 ConeAxis { get; init; }
-    public required float ConeCutoff { get; init; }
+    public Vector3[] Positions { get; init; }
+    public Vector3[] Normals { get; init; }
+    public byte[] LocalIndices { get; init; }
+    public AABB Bounds { get; init; }
+    public Vector3 ConeAxis { get; init; }
+    public float ConeCutoff { get; init; }
 
     public int VertexCount => Positions.Length;
     public int TriangleCount => LocalIndices.Length / 3;
@@ -179,11 +179,11 @@ public static class MeshletCodec
 /// prioriser et culler un cluster SANS le charger.</summary>
 public sealed class ClusterDirectoryEntry
 {
-    public required ClusterKey Key { get; init; }
-    public required AABB Bounds { get; init; }
-    public required float GeometricError { get; init; }
-    public required long Offset { get; init; }
-    public required int Length { get; init; }
+    public ClusterKey Key { get; init; }
+    public AABB Bounds { get; init; }
+    public float GeometricError { get; init; }
+    public long Offset { get; init; }
+    public int Length { get; init; }
 }
 
 /// <summary>

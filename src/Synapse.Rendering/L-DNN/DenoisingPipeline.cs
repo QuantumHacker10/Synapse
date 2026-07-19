@@ -17,10 +17,10 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class DenoisingPipeline
     {
-        private required DenoiseConfig _config;
-        private required Vector3[] _tempBufferA;
-        private required Vector3[] _tempBufferB;
-        private required float[] _varianceBuffer;
+        private DenoiseConfig _config;
+        private Vector3[] _tempBufferA;
+        private Vector3[] _tempBufferB;
+        private float[] _varianceBuffer;
         private int _width;
         private int _height;
         private bool _isInitialized;

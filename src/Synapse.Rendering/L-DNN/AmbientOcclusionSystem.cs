@@ -17,10 +17,10 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class AmbientOcclusionSystem
     {
-        private required float[] _aoBuffer;
-        private required float[] _temporalHistory;
-        private required Vector3[] _hemisphereKernel;
-        private required Vector3[] _noiseTexture;
+        private float[] _aoBuffer;
+        private float[] _temporalHistory;
+        private Vector3[] _hemisphereKernel;
+        private Vector3[] _noiseTexture;
         private int _width;
         private int _height;
         private int _kernelSize;

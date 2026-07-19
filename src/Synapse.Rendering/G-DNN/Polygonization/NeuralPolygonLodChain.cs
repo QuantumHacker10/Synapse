@@ -9,13 +9,13 @@ namespace GDNN.Polygonization;
 /// <summary>Un niveau de la chaîne de polygones neuronaux.</summary>
 public sealed class NeuralPolygonLod
 {
-    public required int Level { get; init; }
-    public required int GridResolution { get; init; }
-    public required NeuralPolygonMesh Mesh { get; init; }
-    public required IReadOnlyList<NeuralMeshlet> Meshlets { get; init; }
+    public int Level { get; init; }
+    public int GridResolution { get; init; }
+    public NeuralPolygonMesh Mesh { get; init; }
+    public IReadOnlyList<NeuralMeshlet> Meshlets { get; init; }
 
     /// <summary>Erreur géométrique world-space de ce niveau (diagonale de voxel).</summary>
-    public required float GeometricError { get; init; }
+    public float GeometricError { get; init; }
 }
 
 /// <summary>

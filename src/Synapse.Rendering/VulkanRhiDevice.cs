@@ -1417,8 +1417,8 @@ namespace GDNN.RHI.Vulkan
         public BufferUsageFlag Usage { get; set; }
         public MemoryPropertyFlag MemoryProperties { get; set; }
         public SharingMode SharingMode { get; set; } = SharingMode.Exclusive;
-        public required uint[] QueueFamilyIndices { get; set; }
-        public required string DebugName { get; set; }
+        public uint[] QueueFamilyIndices { get; set; }
+        public string DebugName { get; set; }
     }
 
     /// <summary>Texture creation description</summary>
@@ -1436,34 +1436,34 @@ namespace GDNN.RHI.Vulkan
         public ImageUsageFlag Usage { get; set; } = ImageUsageFlag.Sampled | ImageUsageFlag.TransferDst;
         public SharingMode SharingMode { get; set; } = SharingMode.Exclusive;
         public ImageLayout InitialLayout { get; set; } = ImageLayout.Undefined;
-        public required uint[] QueueFamilyIndices { get; set; }
-        public required string DebugName { get; set; }
+        public uint[] QueueFamilyIndices { get; set; }
+        public string DebugName { get; set; }
     }
 
     /// <summary>Render pass creation description</summary>
     public class RenderPassDescription
     {
-        public required AttachmentDescription[] Attachments { get; set; }
-        public required SubpassDescription[] Subpasses { get; set; }
-        public required SubpassDependency[] Dependencies { get; set; }
-        public required string DebugName { get; set; }
+        public AttachmentDescription[] Attachments { get; set; }
+        public SubpassDescription[] Subpasses { get; set; }
+        public SubpassDependency[] Dependencies { get; set; }
+        public string DebugName { get; set; }
     }
 
     /// <summary>Framebuffer creation description</summary>
     public class FramebufferDescription
     {
         public IntPtr RenderPass { get; set; }
-        public required IntPtr[] Attachments { get; set; }
+        public IntPtr[] Attachments { get; set; }
         public uint Width { get; set; }
         public uint Height { get; set; }
         public uint Layers { get; set; } = 1;
-        public required string DebugName { get; set; }
+        public string DebugName { get; set; }
     }
 
     /// <summary>Pipeline creation description</summary>
     public class PipelineDescription
     {
-        public required PipelineShaderStageCreateInfo[] ShaderStages { get; set; }
+        public PipelineShaderStageCreateInfo[] ShaderStages { get; set; }
         public PipelineVertexInputStateCreateInfo VertexInputState { get; set; }
         public PipelineInputAssemblyStateCreateInfo InputAssemblyState { get; set; }
         public PipelineTessellationStateCreateInfo TessellationState { get; set; }
@@ -1479,7 +1479,7 @@ namespace GDNN.RHI.Vulkan
         public PipelineCreateFlag Flags { get; set; }
         public IntPtr BasePipelineHandle { get; set; } = IntPtr.Zero;
         public int BasePipelineIndex { get; set; } = -1;
-        public required string DebugName { get; set; }
+        public string DebugName { get; set; }
     }
 
     /// <summary>Compute pipeline creation description</summary>
@@ -1490,15 +1490,15 @@ namespace GDNN.RHI.Vulkan
         public PipelineCreateFlag Flags { get; set; }
         public IntPtr BasePipelineHandle { get; set; } = IntPtr.Zero;
         public int BasePipelineIndex { get; set; } = -1;
-        public required string DebugName { get; set; }
+        public string DebugName { get; set; }
     }
 
     /// <summary>Descriptor set layout description</summary>
     public class LayoutDescription
     {
-        public required DescriptorSetLayoutBinding[] Bindings { get; set; }
+        public DescriptorSetLayoutBinding[] Bindings { get; set; }
         public DescriptorSetLayoutCreateFlag Flags { get; set; }
-        public required string DebugName { get; set; }
+        public string DebugName { get; set; }
     }
 
     /// <summary>Descriptor set layout binding</summary>
@@ -1517,8 +1517,8 @@ namespace GDNN.RHI.Vulkan
     {
         public DescriptorPoolCreateFlag Flags { get; set; }
         public uint MaxSets { get; set; }
-        public required DescriptorPoolSize[] PoolSizes { get; set; }
-        public required string DebugName { get; set; }
+        public DescriptorPoolSize[] PoolSizes { get; set; }
+        public string DebugName { get; set; }
     }
 
     /// <summary>Descriptor pool size</summary>
@@ -1533,7 +1533,7 @@ namespace GDNN.RHI.Vulkan
     public class DescriptorSetAllocation
     {
         public IntPtr Pool { get; set; }
-        public required IntPtr[] Layouts { get; set; }
+        public IntPtr[] Layouts { get; set; }
     }
 
     /// <summary>Descriptor write operation</summary>
@@ -1543,8 +1543,8 @@ namespace GDNN.RHI.Vulkan
         public uint DstBinding { get; set; }
         public uint DstArrayElement { get; set; }
         public DescriptorType DescriptorType { get; set; }
-        public required DescriptorImageInfo[] ImageInfos { get; set; }
-        public required DescriptorBufferInfo[] BufferInfos { get; set; }
+        public DescriptorImageInfo[] ImageInfos { get; set; }
+        public DescriptorBufferInfo[] BufferInfos { get; set; }
     }
 
     /// <summary>Descriptor image info</summary>
@@ -1581,15 +1581,15 @@ namespace GDNN.RHI.Vulkan
         public float MinLod { get; set; } = 0.0f;
         public float MaxLod { get; set; } = 1000.0f;
         public SampleCountFlag SampleCountFlags { get; set; } = SampleCountFlag.Count1;
-        public required string DebugName { get; set; }
+        public string DebugName { get; set; }
     }
 
     /// <summary>Hardware capabilities query result</summary>
     public class HardwareCapabilities
     {
-        public required string DeviceName { get; set; }
-        public required string DriverVersion { get; set; }
-        public required string VendorId { get; set; }
+        public string DeviceName { get; set; }
+        public string DriverVersion { get; set; }
+        public string VendorId { get; set; }
         public uint DeviceId { get; set; }
         public uint ApiVersion { get; set; }
         public ulong DedicatedVideoMemory { get; set; }
@@ -1630,13 +1630,13 @@ namespace GDNN.RHI.Vulkan
         public bool SupportsDynamicRendering { get; set; }
         public bool SupportsSynchronization2 { get; set; }
         public PhysicalDeviceMemoryProperties MemoryProperties { get; set; }
-        public required string[] SupportedExtensions { get; set; }
+        public string[] SupportedExtensions { get; set; }
     }
 
     /// <summary>Pipeline cache creation info</summary>
     public class PipelineCacheInfo
     {
-        public required byte[] InitialData { get; set; }
+        public byte[] InitialData { get; set; }
     }
 
     /// <summary>Command buffer allocation info</summary>
@@ -1727,12 +1727,12 @@ namespace GDNN.RHI.Vulkan
     public class VulkanPhysicalDeviceInfo
     {
         public IntPtr Handle { get; set; }
-        public required string DeviceName { get; set; }
+        public string DeviceName { get; set; }
         public uint VendorId { get; set; }
         public uint DeviceId { get; set; }
         public uint ApiVersion { get; set; }
         public uint DriverVersion { get; set; }
-        public required QueueFamilyProperties[] QueueFamilyProperties { get; set; }
+        public QueueFamilyProperties[] QueueFamilyProperties { get; set; }
         public PhysicalDeviceMemoryProperties MemoryProperties { get; set; }
         public SampleCountFlag MaxColorBufferSampleCounts { get; set; }
         public SampleCountFlag MaxDepthBufferSampleCounts { get; set; }
@@ -1771,8 +1771,8 @@ namespace GDNN.RHI.Vulkan
     public class VulkanSwapchainSupportDetails
     {
         public SurfaceCapabilities Capabilities { get; set; }
-        public required SurfaceFormatKHR[] Formats { get; set; }
-        public required PresentMode[] PresentModes { get; set; }
+        public SurfaceFormatKHR[] Formats { get; set; }
+        public PresentMode[] PresentModes { get; set; }
 
         public SurfaceFormatKHR ChooseSurfaceFormat(VulkanFormat preferred = VulkanFormat.B8G8R8A8Srgb, PresentMode colorSpace = PresentMode.Fifo)
         {
@@ -6076,7 +6076,7 @@ namespace GDNN.RHI.Vulkan
     /// <summary>Memory budget information</summary>
     public class MemoryBudgetInfo
     {
-        public required HeapBudget[] HeapBudgets { get; set; }
+        public HeapBudget[] HeapBudgets { get; set; }
     }
 
     /// <summary>Per-heap budget info</summary>
@@ -6103,7 +6103,7 @@ namespace GDNN.RHI.Vulkan
     internal class DefragmentationPass
     {
         public uint MemoryType { get; set; }
-        public required List<MemoryBlock> Blocks { get; set; }
+        public List<MemoryBlock> Blocks { get; set; }
     }
     // =========================================================================
     // VulkanDescriptorManager
@@ -6383,8 +6383,8 @@ namespace GDNN.RHI.Vulkan
         public IntPtr DescriptorSet { get; set; }
         public uint Binding { get; set; }
         public DescriptorType Type { get; set; }
-        public required DescriptorImageInfo[] ImageInfos { get; set; }
-        public required DescriptorBufferInfo[] BufferInfos { get; set; }
+        public DescriptorImageInfo[] ImageInfos { get; set; }
+        public DescriptorBufferInfo[] BufferInfos { get; set; }
     }
     // =========================================================================
     // VulkanPipelineCache
@@ -6554,9 +6554,9 @@ namespace GDNN.RHI.Vulkan
     /// <summary>Pipeline cache warming entry</summary>
     internal class PipelineCacheEntry
     {
-        public required string Hash { get; set; }
+        public string Hash { get; set; }
         public IntPtr Pipeline { get; set; }
-        public required byte[] SerializedData { get; set; }
+        public byte[] SerializedData { get; set; }
     }
     // =========================================================================
     // VulkanSyncManager
@@ -7214,7 +7214,7 @@ namespace GDNN.RHI.Vulkan
     /// <summary>Deferred deletion entry</summary>
     internal class DeferredDeletion
     {
-        public required TrackedResource Resource { get; set; }
+        public TrackedResource Resource { get; set; }
         public long DeletionFrame { get; set; }
         public int FramesToWait { get; set; }
     }

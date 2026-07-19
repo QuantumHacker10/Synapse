@@ -17,14 +17,14 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class VolumetricLighting
     {
-        private required VolumeFogConfig _config;
-        private required Vector3[,,] _froxelRadiance;
-        private required float[,,] _froxelTransmittance;
-        private required Vector3[,,] _temporalHistory;
+        private VolumeFogConfig _config;
+        private Vector3[,,] _froxelRadiance;
+        private float[,,] _froxelTransmittance;
+        private Vector3[,,] _temporalHistory;
         private int _gridX;
         private int _gridY;
         private int _gridZ;
-        private required float[] _depthSlices;
+        private float[] _depthSlices;
         private bool _isInitialized;
 
         private const float PI = MathF.PI;

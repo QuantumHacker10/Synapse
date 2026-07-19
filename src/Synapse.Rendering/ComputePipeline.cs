@@ -30,7 +30,7 @@ namespace GDNN.Rendering.Compute
     public class ComputeBuffer : IDisposable
     {
         public IntPtr Handle { get; set; }
-        public required VulkanBuffer Buffer { get; set; }
+        public VulkanBuffer Buffer { get; set; }
         public uint ElementCount { get; set; }
         public uint Stride { get; set; }
         public bool IsStorageBuffer { get; set; }
@@ -48,7 +48,7 @@ namespace GDNN.Rendering.Compute
     public class ComputeTexture : IDisposable
     {
         public IntPtr Handle { get; set; }
-        public required VulkanTexture Texture { get; set; }
+        public VulkanTexture Texture { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
         private bool _disposed;
@@ -65,16 +65,16 @@ namespace GDNN.Rendering.Compute
     public class ComputeJob
     {
         public int JobId { get; set; }
-        public required string KernelName { get; set; }
+        public string KernelName { get; set; }
         public uint GroupCountX { get; set; }
         public uint GroupCountY { get; set; }
         public uint GroupCountZ { get; set; }
-        public required float[] PushConstants { get; set; }
-        public required ComputeBuffer[] Buffers { get; set; }
-        public required ComputeTexture[] Textures { get; set; }
-        public required ManualResetEventSlim CompletionEvent { get; set; }
+        public float[] PushConstants { get; set; }
+        public ComputeBuffer[] Buffers { get; set; }
+        public ComputeTexture[] Textures { get; set; }
+        public ManualResetEventSlim CompletionEvent { get; set; }
         public bool IsCompleted { get; set; }
-        public required Exception Error { get; set; }
+        public Exception Error { get; set; }
     }
 
     public class ComputeDispatcher : IDisposable

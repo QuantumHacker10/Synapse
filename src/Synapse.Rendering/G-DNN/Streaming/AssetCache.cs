@@ -70,10 +70,10 @@ namespace GDNN.Streaming
     internal sealed class CacheEntry
     {
         /// <summary>Cache key.</summary>
-        public required string Key { get; init; }
+        public string Key { get; init; }
 
         /// <summary>Cached asset value.</summary>
-        public required NeuralAsset Value { get; set; }
+        public NeuralAsset Value { get; set; }
 
         /// <summary>Size of this entry in bytes.</summary>
         public long SizeBytes { get; set; }
@@ -717,7 +717,7 @@ namespace GDNN.Streaming
     public sealed class CacheEvictionEventArgs : EventArgs
     {
         /// <summary>Evicted entry key.</summary>
-        public required string Key { get; init; }
+        public string Key { get; init; }
 
         /// <summary>Size of the evicted entry in bytes.</summary>
         public long SizeBytes { get; init; }

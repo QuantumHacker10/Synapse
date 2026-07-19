@@ -19,11 +19,11 @@ namespace GDNN.Rendering.Engine
         private const int MAX_FRAMES_IN_FLIGHT = 2;
         private const string APP_NAME = "Synapse Engine";
 
-        private required VulkanRhiDevice _rhi;
+        private VulkanRhiDevice _rhi;
         private IntPtr _window;
         private IntPtr _surface;
         private bool _disposed;
-        private required SceneRenderer _sceneRenderer;
+        private SceneRenderer _sceneRenderer;
 
         private IntPtr[] _imageAvailableSemaphores = new IntPtr[MAX_FRAMES_IN_FLIGHT];
         private IntPtr[] _renderFinishedSemaphores = new IntPtr[MAX_FRAMES_IN_FLIGHT];
@@ -31,18 +31,18 @@ namespace GDNN.Rendering.Engine
         private VulkanCommandBuffer[] _commandBuffers = new VulkanCommandBuffer[MAX_FRAMES_IN_FLIGHT];
         private uint _currentFrame;
 
-        private required VulkanRenderPass _renderPass;
-        private required VulkanPipelineLayout _pipelineLayout;
-        private required VulkanPipeline _graphicsPipeline;
-        private required VulkanTexture[] _swapchainDepthImages;
-        private required VulkanFramebuffer[] _framebuffers;
-        private required DescriptorSetLayout _descriptorSetLayout;
-        private required DescriptorPool _descriptorPool;
-        private required DescriptorSet[] _descriptorSets;
+        private VulkanRenderPass _renderPass;
+        private VulkanPipelineLayout _pipelineLayout;
+        private VulkanPipeline _graphicsPipeline;
+        private VulkanTexture[] _swapchainDepthImages;
+        private VulkanFramebuffer[] _framebuffers;
+        private DescriptorSetLayout _descriptorSetLayout;
+        private DescriptorPool _descriptorPool;
+        private DescriptorSet[] _descriptorSets;
         private VulkanBuffer[] _uniformBuffers = new VulkanBuffer[MAX_FRAMES_IN_FLIGHT];
         private IntPtr[] _uniformMapped = new IntPtr[MAX_FRAMES_IN_FLIGHT];
-        private required VulkanBuffer _vertexBuffer;
-        private required VulkanBuffer _indexBuffer;
+        private VulkanBuffer _vertexBuffer;
+        private VulkanBuffer _indexBuffer;
         private uint _indexCount;
 
         private Stopwatch _frameTimer = new();

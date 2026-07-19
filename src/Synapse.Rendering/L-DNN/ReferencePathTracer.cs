@@ -27,7 +27,7 @@ namespace GDNN.Lighting.LDNN
         private const float INV_PI = 1.0f / MathF.PI;
         private const float INV_TWO_PI = 1.0f / (2.0f * MathF.PI);
 
-        private required FilmPixel[,] _film;
+        private FilmPixel[,] _film;
         private int _width;
         private int _height;
         private int _totalSamples;

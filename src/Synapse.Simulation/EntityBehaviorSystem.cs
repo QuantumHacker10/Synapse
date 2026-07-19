@@ -4292,7 +4292,7 @@ namespace GDNN.Sentience
 
     public class PerceptionEventData : SentienceEvent
     {
-        public required PerceptionEvent Perception { get; set; }
+        public PerceptionEvent Perception { get; set; }
     }
 
     public class DamageEventData : SentienceEvent

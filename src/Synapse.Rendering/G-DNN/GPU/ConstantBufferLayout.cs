@@ -58,10 +58,10 @@ public enum ConstantBufferAlignment
 public sealed class ConstantBufferField
 {
     /// <summary>Field name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>HLSL type name.</summary>
-    public required string TypeName { get; init; }
+    public string TypeName { get; init; }
 
     /// <summary>Offset in bytes from the start of the constant buffer.</summary>
     public int Offset { get; set; }
@@ -102,10 +102,10 @@ public sealed class ConstantBufferField
 public sealed class ConstantBufferLayout
 {
     /// <summary>Constant buffer name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>Register binding (e.g. "b0").</summary>
-    public required string Register { get; init; }
+    public string Register { get; init; }
 
     /// <summary>Fields in this constant buffer.</summary>
     public List<ConstantBufferField> Fields { get; init; } = new();

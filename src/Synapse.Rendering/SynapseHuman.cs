@@ -420,8 +420,8 @@ namespace GDNN.Rendering.ArtPipeline
         public ClothingType Type { get; set; }
         public ClothingMaterial Material { get; set; }
         public string MeshPath { get; set; } = "";
-        public required MeshAsset Mesh { get; set; }
-        public required SubstrateMaterial MaterialInstance { get; set; }
+        public MeshAsset Mesh { get; set; }
+        public SubstrateMaterial MaterialInstance { get; set; }
         public Color3 PrimaryColor { get; set; } = new Color3(0.3f, 0.3f, 0.35f);
         public Color3 SecondaryColor { get; set; } = Color3.Black;
         public float Roughness { get; set; } = 0.7f;
@@ -924,7 +924,7 @@ namespace GDNN.Rendering.ArtPipeline
 
     internal class HumanExportData
     {
-        public required string Name { get; set; }
+        public string Name { get; set; }
         public HumanGender Gender { get; set; }
         public HumanEthnicity Ethnicity { get; set; }
         public HumanAgeGroup AgeGroup { get; set; }
@@ -933,7 +933,7 @@ namespace GDNN.Rendering.ArtPipeline
         public HumanHairStyle HairStyle { get; set; }
         public int ClothingCount { get; set; }
         public int AnimationCount { get; set; }
-        public required int[] MorphTargetGroups { get; set; }
+        public int[] MorphTargetGroups { get; set; }
     }
 
     // =========================================================================

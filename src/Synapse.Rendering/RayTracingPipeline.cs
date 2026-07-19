@@ -69,7 +69,7 @@ namespace GDNN.Rendering.RayTracing
     {
         public IntPtr Handle { get; set; }
         public RTAccelerationStructureType Type { get; set; }
-        public required VulkanBuffer Buffer { get; set; }
+        public VulkanBuffer Buffer { get; set; }
         public ulong CompactSize { get; set; }
         private bool _disposed;
 
@@ -85,7 +85,7 @@ namespace GDNN.Rendering.RayTracing
     public class RShaderBindingTable : IDisposable
     {
         public IntPtr Handle { get; set; }
-        public required VulkanBuffer Buffer { get; set; }
+        public VulkanBuffer Buffer { get; set; }
         public ulong RayGenOffset { get; set; }
         public ulong MissOffset { get; set; }
         public ulong HitGroupOffset { get; set; }

@@ -22,13 +22,13 @@ namespace GDNN.Lighting.LDNN
         private const int CLUSTER_Z_SLICES = 16;
 
         private List<LightConfig> _allLights = new();
-        private required List<int>[,] _tileLightLists;
-        private required List<int>[][][] _clusterLightLists;
+        private List<int>[,] _tileLightLists;
+        private List<int>[][][] _clusterLightLists;
         private int _tileCountX;
         private int _tileCountY;
         private int _screenWidth;
         private int _screenHeight;
-        private required float[] _clusterDepths;
+        private float[] _clusterDepths;
         private bool _isInitialized;
 
         /// <summary>Number of tiles in the X direction.</summary>

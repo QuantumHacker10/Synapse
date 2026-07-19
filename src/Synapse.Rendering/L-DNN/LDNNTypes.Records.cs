@@ -117,7 +117,7 @@ namespace GDNN.Lighting.LDNN
         /// <summary>World-space position of the probe.</summary>
         public Vector3 Position { get; init; }
         /// <summary>SH coefficients for directional irradiance (9 coefficients for L2 SH).</summary>
-        public required Vector4[] SHCoefficients { get; init; }
+        public Vector4[] SHCoefficients { get; init; }
         /// <summary>Validity flag for the probe.</summary>
         public bool IsValid { get; init; }
         /// <summary>Frame when this probe was last updated.</summary>
@@ -192,9 +192,9 @@ namespace GDNN.Lighting.LDNN
         /// <summary>Cell size in world units.</summary>
         public float CellSize { get; init; }
         /// <summary>Radiance data (RGB per cell).</summary>
-        public required Vector3[] RadianceData { get; init; }
+        public Vector3[] RadianceData { get; init; }
         /// <summary>Transmittance data per cell.</summary>
-        public required float[] TransmittanceData { get; init; }
+        public float[] TransmittanceData { get; init; }
         /// <summary>Frame when the field was last updated.</summary>
         public int LastUpdateFrame { get; init; }
         /// <summary>Whether the field needs regeneration.</summary>
@@ -394,7 +394,7 @@ namespace GDNN.Lighting.LDNN
         /// <summary>Albedo at the hit point.</summary>
         public Vector3 Albedo { get; init; }
         /// <summary>Material properties at the hit point.</summary>
-        public required MaterialProperties Material { get; init; }
+        public MaterialProperties Material { get; init; }
         /// <summary>Triangle index in the mesh.</summary>
         public int TriangleIndex { get; init; }
         /// <summary>Primitive index for procedural geometry.</summary>
@@ -488,7 +488,7 @@ namespace GDNN.Lighting.LDNN
         /// <summary>Importance weight of this event.</summary>
         public float Importance { get; init; }
         /// <summary>Material properties at the event.</summary>
-        public required MaterialProperties Material { get; init; }
+        public MaterialProperties Material { get; init; }
         /// <summary>Path depth of this event.</summary>
         public int Depth { get; init; }
     }

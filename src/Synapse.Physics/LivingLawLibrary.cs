@@ -113,40 +113,40 @@ public readonly record struct BoundaryConditionDef(
 public sealed record LawDefinition
 {
     /// <summary>Unique identifier (e.g. "mechanics.newton2").</summary>
-    public required string Id { get; init; }
+    public string Id { get; init; }
 
     /// <summary>Human-readable name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>Broad scientific category.</summary>
-    public required LawCategory Category { get; init; }
+    public LawCategory Category { get; init; }
 
     /// <summary>Mathematical expression (LaTeX or plain-text).</summary>
-    public required string Expression { get; init; }
+    public string Expression { get; init; }
 
     /// <summary>Plain-text description of the law.</summary>
-    public required string Description { get; init; }
+    public string Description { get; init; }
 
     /// <summary>Ordered list of named parameters.</summary>
-    public required IReadOnlyList<LawParameter> Parameters { get; init; }
+    public IReadOnlyList<LawParameter> Parameters { get; init; }
 
     /// <summary>Variables that appear in the expression.</summary>
-    public required IReadOnlyList<LawVariable> Variables { get; init; }
+    public IReadOnlyList<LawVariable> Variables { get; init; }
 
     /// <summary>Boundary / applicability conditions.</summary>
-    public required IReadOnlyList<BoundaryConditionDef> BoundaryConditionDefs { get; init; }
+    public IReadOnlyList<BoundaryConditionDef> BoundaryConditionDefs { get; init; }
 
     /// <summary>Specific domains where the law is valid.</summary>
-    public required IReadOnlyList<string> ApplicableDomains { get; init; }
+    public IReadOnlyList<string> ApplicableDomains { get; init; }
 
     /// <summary>Academic reference (paper, book, DOI).</summary>
-    public required string Reference { get; init; }
+    public string Reference { get; init; }
 
     /// <summary>Semantic version string.</summary>
-    public required string Version { get; init; }
+    public string Version { get; init; }
 
     /// <summary>UTC creation timestamp.</summary>
-    public required DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
 
     /// <summary>Severity of applicability restrictions.</summary>
     public DomainRestriction Restriction { get; init; } = DomainRestriction.None;

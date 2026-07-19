@@ -324,11 +324,11 @@ namespace GDNN.Materials.SubstrateOmega
 
     public record ShaderSource
     {
-        public required string Source { get; init; }
+        public string Source { get; init; }
         public ShaderLanguage Language { get; init; }
         public ShaderStage Stage { get; init; }
         public MaterialFeatureFlags Features { get; init; }
-        public required string Hash { get; init; }
+        public string Hash { get; init; }
         public List<string> Includes { get; init; } = new();
         public Dictionary<string, string> Defines { get; init; } = new();
         public int EstimatedInstructionCount { get; init; }
@@ -985,7 +985,7 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class PropertyGene
     {
-        public required string PropertyName { get; set; }
+        public string PropertyName { get; set; }
         public MaterialPropertyType PropertyType { get; set; }
         public float Value { get; set; }
         public float MinValue { get; set; }
@@ -1043,17 +1043,17 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class SynapticConnection
     {
-        public required string SourceGenome { get; set; }
-        public required string SourceProperty { get; set; }
-        public required string TargetGenome { get; set; }
-        public required string TargetProperty { get; set; }
+        public string SourceGenome { get; set; }
+        public string SourceProperty { get; set; }
+        public string TargetGenome { get; set; }
+        public string TargetProperty { get; set; }
         public float Weight { get; set; } = 1.0f;
         public SynapticConnectionType Type { get; set; } = SynapticConnectionType.Excitatory;
     }
 
     public class ActivationKernel
     {
-        public required string Name { get; set; }
+        public string Name { get; set; }
         public float Strength { get; set; } = 1.0f;
         public float Bias { get; set; }
         public ActivationFunction Function { get; set; } = ActivationFunction.Linear;
@@ -1396,12 +1396,12 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class MaterialLayer
     {
-        public required string Name { get; set; }
+        public string Name { get; set; }
         public float Opacity { get; set; } = 1.0f;
         public LayerBlendMode BlendMode { get; set; } = LayerBlendMode.AlphaBlend;
         public int UVSet { get; set; }
-        public required SubstrateMaterial Material { get; set; }
-        public required TextureReference Mask { get; set; }
+        public SubstrateMaterial Material { get; set; }
+        public TextureReference Mask { get; set; }
         public float HeightBlendSharpness { get; set; } = 10.0f;
         public bool IsEnabled { get; set; } = true;
         public float SortOrder { get; set; }
@@ -2223,7 +2223,7 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class MaterialLayerEntry
     {
-        public required string Name { get; set; }
+        public string Name { get; set; }
         public float Opacity { get; set; } = 1.0f;
         public LayerBlendMode BlendMode { get; set; } = LayerBlendMode.AlphaBlend;
         public float SortOrder { get; set; }
@@ -2231,8 +2231,8 @@ namespace GDNN.Materials.SubstrateOmega
         public bool IsEnabled { get; set; } = true;
         public float HeightBlendSharpness { get; set; } = 10.0f;
 
-        private required SubstrateMaterial _material;
-        private required TextureReference _maskTexture;
+        private SubstrateMaterial _material;
+        private TextureReference _maskTexture;
 
         public void SetMaterial(SubstrateMaterial material) => _material = material;
         public void SetMask(TextureReference mask) => _maskTexture = mask;
@@ -2482,12 +2482,12 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class ManagedTexture
     {
-        public required string Path { get; set; }
+        public string Path { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
         public TextureCompression Format { get; set; }
-        public required byte[] Data { get; set; }
-        public required byte[][] MipData { get; set; }
+        public byte[] Data { get; set; }
+        public byte[][] MipData { get; set; }
         public int MipLevels { get; set; }
         public long SizeBytes { get; set; }
         public DateTime LastAccessTime { get; set; }
@@ -2497,7 +2497,7 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class TextureAtlas
     {
-        public required string Name { get; set; }
+        public string Name { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
         public List<TextureAtlasEntry> Entries { get; set; } = new();
@@ -2505,7 +2505,7 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class TextureAtlasEntry
     {
-        public required string TexturePath { get; set; }
+        public string TexturePath { get; set; }
         public float U0 { get; set; }
         public float V0 { get; set; }
         public float U1 { get; set; }
@@ -5367,7 +5367,7 @@ namespace GDNN.Materials.SubstrateOmega
 
         private class CachedMaterialEntry
         {
-            public required SubstrateMaterial Material { get; set; }
+            public SubstrateMaterial Material { get; set; }
             public DateTime LastAccess { get; set; }
             public int AccessCount { get; set; }
         }
@@ -5427,10 +5427,10 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class MaterialChangedEventArgs : EventArgs
     {
-        public required string MaterialId { get; set; }
-        public required string PropertyName { get; set; }
-        public required object OldValue { get; set; }
-        public required object NewValue { get; set; }
+        public string MaterialId { get; set; }
+        public string PropertyName { get; set; }
+        public object OldValue { get; set; }
+        public object NewValue { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
 
@@ -5853,10 +5853,10 @@ namespace GDNN.Materials.SubstrateOmega
 
     public class MaterialDiffEntry
     {
-        public required string PropertyName { get; set; }
+        public string PropertyName { get; set; }
         public MaterialDiffType Type { get; set; }
-        public required object OldValue { get; set; }
-        public required object NewValue { get; set; }
+        public object OldValue { get; set; }
+        public object NewValue { get; set; }
     }
 
     public enum MaterialDiffType { Added, Removed, Changed }

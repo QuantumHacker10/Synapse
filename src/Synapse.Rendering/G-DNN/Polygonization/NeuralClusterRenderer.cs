@@ -8,10 +8,10 @@ namespace GDNN.Polygonization;
 /// <summary>Vue caméra minimale pour la sélection et le culling de clusters.</summary>
 public readonly struct CameraView
 {
-    public required Vector3 Position { get; init; }
-    public required Matrix4x4 ViewProjection { get; init; }
-    public required float VerticalFovRadians { get; init; }
-    public required int ScreenHeightPixels { get; init; }
+    public Vector3 Position { get; init; }
+    public Matrix4x4 ViewProjection { get; init; }
+    public float VerticalFovRadians { get; init; }
+    public int ScreenHeightPixels { get; init; }
 
     public static CameraView CreatePerspectiveLookAt(
         Vector3 position, Vector3 target, float verticalFovRadians,

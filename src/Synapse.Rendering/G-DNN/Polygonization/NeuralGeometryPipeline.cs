@@ -30,14 +30,14 @@ public sealed class NeuralGeometryPipelineOptions
 /// <summary>Rapport d'un tick du pipeline — toutes les métriques d'une frame.</summary>
 public sealed class PipelineFrameReport
 {
-    public required TrainingSliceReport Training { get; init; }
+    public TrainingSliceReport Training { get; init; }
     public bool Rebuilt { get; init; }
     public double RebuildMs { get; init; }
 
     /// <summary>La chaîne de ce tick provient-elle du cache disque ?</summary>
     public bool LoadedFromCache { get; init; }
-    public required ClusterCullStats Culling { get; init; }
-    public required IReadOnlyList<NeuralMeshlet> VisibleClusters { get; init; }
+    public ClusterCullStats Culling { get; init; }
+    public IReadOnlyList<NeuralMeshlet> VisibleClusters { get; init; }
     public long ExtractedGeometryVersion { get; init; }
 
     public override string ToString() =>

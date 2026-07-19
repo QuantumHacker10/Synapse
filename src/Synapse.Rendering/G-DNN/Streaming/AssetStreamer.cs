@@ -101,7 +101,7 @@ namespace GDNN.Streaming
     public sealed class AssetEntry
     {
         /// <summary>Unique identifier for this asset.</summary>
-        public required string AssetId { get; init; }
+        public string AssetId { get; init; }
 
         /// <summary>The neural asset data, null if not yet loaded.</summary>
         public NeuralAsset? Asset { get; set; }
@@ -430,7 +430,7 @@ namespace GDNN.Streaming
     public sealed class AssetLoadProgressEventArgs : EventArgs
     {
         /// <summary>Asset identifier.</summary>
-        public required string AssetId { get; init; }
+        public string AssetId { get; init; }
 
         /// <summary>Current loading state.</summary>
         public AssetLoadingState State { get; init; }

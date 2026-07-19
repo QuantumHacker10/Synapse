@@ -18,7 +18,7 @@ namespace GDNN.Lighting.LDNN
     public class IrradianceCacheManager
     {
         private IrradianceCacheType _cacheType;
-        private required List<IrradianceProbe> _probes;
+        private List<IrradianceProbe> _probes;
         private int _maxProbes;
         private float _probeSpacing;
         private int _frameIndex;
