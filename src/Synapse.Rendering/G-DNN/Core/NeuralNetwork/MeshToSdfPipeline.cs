@@ -9,34 +9,65 @@ using GDNN.Rendering.MeshIO;
 namespace GDNN.Core.NeuralNetwork;
 
 /// <summary>
-/// Offline pipeline: load a triangle mesh and train a hash-encoded SDF network against it.
+/// Training options for <see cref="MeshToSdfPipeline"/>.
 /// </summary>
 public sealed class MeshToSdfOptions
 {
+    /// <summary>Number of surface/near-surface samples per training epoch.</summary>
     public int SampleCount { get; init; } = 4096;
+
+    /// <summary>Training epoch count.</summary>
     public int Epochs { get; init; } = 40;
+
+    /// <summary>Optional RNG seed for reproducible runs.</summary>
     public int? RandomSeed { get; init; }
+
+    /// <summary>MLP weight learning rate.</summary>
     public float LearningRate { get; init; } = 5e-3f;
+
+    /// <summary>Hash-grid learning rate.</summary>
     public float HashLearningRate { get; init; } = 5e-2f;
+
+    /// <summary>Mesh loader overrides (scale, axis flip, etc.).</summary>
     public MeshLoadConfig? LoadConfig { get; init; }
+
+    /// <summary>When set, writes a serialized <see cref="NeuralAsset"/> to this path.</summary>
     public string? OutputAssetPath { get; init; }
+
+    /// <summary>Stable mesh id stored in the exported neural asset.</summary>
     public Guid? TargetMeshId { get; init; }
 }
 
+/// <summary>Outcome of a mesh-to-SDF training run.</summary>
 public sealed class MeshToSdfResult
 {
+    /// <summary>True when training and optional export succeeded.</summary>
     public bool Success { get; init; }
+
+    /// <summary>Human-readable failure reason when <see cref="Success"/> is false.</summary>
     public string ErrorMessage { get; init; } = "";
+
+    /// <summary>Trained hash-encoded SDF network.</summary>
     public HashEncodedDeepMLP? Network { get; init; }
+
+    /// <summary>Per-epoch loss metrics from the offline trainer.</summary>
     public OfflineHashMeshTrainer.TrainingReport? Report { get; init; }
+
+    /// <summary>Triangle mesh used as the ground-truth SDF oracle.</summary>
     public ReferenceMeshSdf? ReferenceMesh { get; init; }
+
+    /// <summary>Serialized asset when <see cref="MeshToSdfOptions.OutputAssetPath"/> was set.</summary>
     public NeuralAsset? SavedAsset { get; init; }
 }
 
+/// <summary>
+/// Offline workflow: load a triangle mesh, train a hash-encoded neural SDF, optionally export a neural asset.
+/// </summary>
 public static class MeshToSdfPipeline
 {
     private static readonly MeshLoader SharedLoader = new();
 
+    /// <summary>Loads a mesh from disk and trains a hash-encoded SDF against it.</summary>
     public static async Task<MeshToSdfResult> TrainFromFileAsync(
         string meshPath,
         MeshToSdfOptions? options = null,
@@ -63,6 +94,7 @@ public static class MeshToSdfPipeline
         return await Task.Run(() => TrainFromAsset(loadResult.Asset, options, ct), ct);
     }
 
+    /// <summary>Trains a hash-encoded SDF from an already-loaded mesh asset.</summary>
     public static MeshToSdfResult TrainFromAsset(
         MeshAsset asset,
         MeshToSdfOptions? options = null,
@@ -119,6 +151,7 @@ public static class MeshToSdfPipeline
         };
     }
 
+    /// <summary>Builds a triangle oracle used as ground truth during offline SDF training.</summary>
     public static ReferenceMeshSdf BuildReferenceMesh(MeshAsset asset)
     {
         ArgumentNullException.ThrowIfNull(asset);
@@ -149,6 +182,7 @@ public static class MeshToSdfPipeline
         return new ReferenceMeshSdf(vertices.ToArray(), indices.ToArray());
     }
 
+    /// <summary>Wraps a trained network and source mesh metadata into a serializable neural asset.</summary>
     public static NeuralAsset CreateNeuralAsset(
         HashEncodedDeepMLP network,
         MeshAsset sourceMesh,

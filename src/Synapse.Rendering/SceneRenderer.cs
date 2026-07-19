@@ -1102,6 +1102,11 @@ namespace GDNN.Rendering.Engine
             cmd.EndRenderPass();
         }
 
+        /// <summary>
+        /// Runs L-DNN global illumination using G-Buffer proxies. When scene meshes and lights exist,
+        /// camera matrices are still placeholders until Vulkan attachment readback is wired; the hybrid
+        /// RT teacher path may run when hardware RT is available.
+        /// </summary>
         public void RenderGI()
         {
             if (!_initialized) return;

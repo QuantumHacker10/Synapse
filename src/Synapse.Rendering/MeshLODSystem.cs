@@ -175,13 +175,16 @@ namespace GDNN.Rendering.LOD
     // =========================================================================
 
     /// <summary>
-    /// Generates LOD levels from a base mesh using mesh simplification algorithms.
-    /// Supports vertex clustering, quadric error metrics, and edge collapse.
+    /// Generates LOD levels from a base mesh by reducing triangle count per level.
+    /// Uses a lightweight stochastic decimation placeholder (not full QEM/edge collapse).
     /// </summary>
     public class LodGenerator
     {
         private readonly Random _rng = new(42);
 
+        /// <summary>
+        /// Produces <paramref name="targetLevelCount"/> LOD levels with decreasing triangle budgets.
+        /// </summary>
         public List<LodLevel> GenerateLevels(
             List<Vector3> vertices,
             List<uint> indices,
@@ -224,6 +227,10 @@ namespace GDNN.Rendering.LOD
             return levels;
         }
 
+        /// <summary>
+        /// Stochastic triangle removal until the target count is reached.
+        /// Deterministic seed for reproducible tests; replace with QEM when production mesh IO is wired.
+        /// </summary>
         private List<uint> SimplifyMesh(List<uint> indices, int targetTriangles, LodGenerationQuality quality)
         {
             int currentTriangles = indices.Count / 3;

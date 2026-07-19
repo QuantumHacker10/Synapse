@@ -18,6 +18,14 @@ using Synapse.Simulation.DigitalTwins;
 
 namespace Synapse.Runtime
 {
+    /// <summary>
+    /// Central runtime facade for G-DNN Studio: physics, simulation, LLM, rendering,
+    /// and scene I/O. Call <see cref="InitializeModules"/> once, then either
+    /// <see cref="InitializeRender"/> (GLFW) or <see cref="InitializeRenderFromHwnd"/>
+    /// (embedded Windows viewport). Per-frame work is driven by <see cref="FrameOrchestrator"/>
+    /// via <see cref="TickPhysics"/>, <see cref="TickSimulationAsync"/>, and
+    /// <see cref="TickRender"/>.
+    /// </summary>
     public sealed class EngineHost : IAsyncDisposable
     {
         private readonly SynapseConfig _config;
@@ -39,33 +47,66 @@ namespace Synapse.Runtime
         private double _bestFitness;
         private bool _simulationPlaying = true;
 
+        /// <summary>Creates a host bound to application config and logging.</summary>
         public EngineHost(SynapseConfig config, ISynapseLogger logger)
         {
             _config = config;
             _logger = logger;
         }
 
+        /// <summary>Vulkan render engine, or null before render init.</summary>
         public RenderEngine? RenderEngine => _renderEngine;
+
+        /// <summary>Current in-memory scene document (entities, camera, active law).</summary>
         public SceneDocument Scene => _scene;
+
+        /// <summary>Living-law compiler, available after <see cref="InitializeModules"/>.</summary>
         public LivingLawCompiler? LawCompiler => _lawCompiler;
+
+        /// <summary>Multi-provider LLM router.</summary>
         public HybridLlmRouter? LlmRouter => _llmRouter;
+
+        /// <summary>Sentient entity manager for simulation ticks.</summary>
         public SentienceManager? Sentience => _sentience;
+
+        /// <summary>Registered digital twins (demo world by default).</summary>
         public IDigitalTwinRegistry Twins => _twins;
+
+        /// <summary>Whether <see cref="InitializeRender"/> or <see cref="InitializeRenderFromHwnd"/> completed.</summary>
         public bool IsRenderInitialized => _renderInitialized;
+
+        /// <summary>When false, <see cref="TickSimulationAsync"/> is skipped.</summary>
         public bool SimulationPlaying
         {
             get => _simulationPlaying;
             set => _simulationPlaying = value;
         }
 
+        /// <summary>Id of the physics law currently applied to the field.</summary>
         public string? ActiveLawId => _activeLawId;
+
+        /// <summary>Coarse average temperature (K) sampled from the physics field.</summary>
         public float AverageFieldTemperature { get; private set; } = 300f;
+
+        /// <summary>Number of sentient entities in the simulation.</summary>
         public int EntityCount => _sentience?.EntityCount ?? 0;
+
+        /// <summary>Human-readable quality preset from the adaptive quality manager.</summary>
         public string QualityPresetName => _quality?.CurrentLevel.Preset.ToString() ?? _config.QualityPreset;
+
+        /// <summary>Latest NEAT-G generation index after evolution runs.</summary>
         public int EvolutionGeneration => _evolutionGeneration;
+
+        /// <summary>Best fitness from the last evolution step.</summary>
         public double BestFitness => _bestFitness;
+
+        /// <summary>True while a background NEAT-G run is in progress.</summary>
         public bool EvolutionRunning => _evolutionCts is { IsCancellationRequested: false } && _evolution != null;
 
+        /// <summary>
+        /// Lazily constructs physics, simulation, LLM, quality, and twin subsystems.
+        /// Safe to call multiple times.
+        /// </summary>
         public void InitializeModules()
         {
             if (_modulesInitialized) return;
@@ -89,6 +130,7 @@ namespace Synapse.Runtime
             _logger.Info("EngineHost", "Modules initialized (Physics, Simulation, LLM, Quality, Twins)");
         }
 
+        /// <summary>Creates a standalone GLFW render surface.</summary>
         public void InitializeRender(int width, int height, bool enableValidation = true)
         {
             if (_renderInitialized) return;
@@ -100,6 +142,7 @@ namespace Synapse.Runtime
             _logger.Info("EngineHost", $"RenderEngine initialized {width}x{height}");
         }
 
+        /// <summary>Embeds Vulkan into a native window handle (Windows only; falls back to GLFW elsewhere).</summary>
         public void InitializeRenderFromHwnd(IntPtr hwnd, int width, int height, bool enableValidation = true)
         {
             if (_renderInitialized) return;
@@ -118,6 +161,7 @@ namespace Synapse.Runtime
             _logger.Info("EngineHost", $"RenderEngine initialized from HWND {width}x{height}");
         }
 
+        /// <summary>Loads a <c>.synapse</c> project or resets to the built-in demo when <paramref name="path"/> is null.</summary>
         public async Task LoadSceneAsync(string? path, CancellationToken cancellationToken = default)
         {
             InitializeModules();
@@ -142,6 +186,7 @@ namespace Synapse.Runtime
             _logger.Info("EngineHost", $"Scene loaded: {_scene.Name} ({_scene.Entities.Count} entities)");
         }
 
+        /// <summary>Persists the scene and syncs the active camera from the render engine when available.</summary>
         public async Task SaveSceneAsync(string path, CancellationToken cancellationToken = default)
         {
             if (_renderEngine != null)
@@ -161,6 +206,7 @@ namespace Synapse.Runtime
             _logger.Info("EngineHost", $"Scene saved: {path}");
         }
 
+        /// <summary>Applies the active living law to the physics field for one timestep.</summary>
         public void TickPhysics(float dt)
         {
             if (_lawCompiler == null || _physicsField == null || string.IsNullOrEmpty(_activeLawId)) return;
@@ -182,6 +228,7 @@ namespace Synapse.Runtime
                 _logger.Debug("Physics", "Exceeded physics budget");
         }
 
+        /// <summary>Advances sentient entities when <see cref="SimulationPlaying"/> is true.</summary>
         public async Task TickSimulationAsync(float dt, CancellationToken cancellationToken)
         {
             if (!_simulationPlaying || _sentience == null) return;
@@ -195,6 +242,7 @@ namespace Synapse.Runtime
             }
         }
 
+        /// <summary>Submits one Vulkan frame when the render engine is initialized and not paused.</summary>
         public void TickRender()
         {
             if (_renderEngine == null || !_renderInitialized) return;
@@ -202,6 +250,7 @@ namespace Synapse.Runtime
             _renderEngine.RenderFrame();
         }
 
+        /// <summary>Feeds frame timing into the adaptive quality manager.</summary>
         public void TickQuality(float dt, float frameMs)
         {
             if (_quality == null) return;
@@ -209,6 +258,7 @@ namespace Synapse.Runtime
             _quality.Update(dt);
         }
 
+        /// <summary>Hot-reloads or compiles a living law and marks it active on success.</summary>
         public CompilationResult CompileLaw(string lawId, string expression)
         {
             InitializeModules();
@@ -226,6 +276,7 @@ namespace Synapse.Runtime
             return result;
         }
 
+        /// <summary>Returns all laws from the built-in library plus any user-defined entries.</summary>
         public IReadOnlyList<(string Id, string Name, string Expression)> ListLaws()
         {
             InitializeModules();
@@ -234,6 +285,7 @@ namespace Synapse.Runtime
                 .ToList();
         }
 
+        /// <summary>Routes a single user prompt through the hybrid LLM stack (local first, then cloud).</summary>
         public async Task<LlmResponse?> ChatAsync(string prompt, CancellationToken cancellationToken = default)
         {
             InitializeModules();
@@ -262,6 +314,7 @@ namespace Synapse.Runtime
             }
         }
 
+        /// <summary>Runs NEAT-G evolution asynchronously until completion or <see cref="CancelEvolution"/>.</summary>
         public async Task StartEvolutionAsync(int population, int generations, CancellationToken cancellationToken = default)
         {
             InitializeModules();
@@ -300,8 +353,10 @@ namespace Synapse.Runtime
             }
         }
 
+        /// <summary>Requests cancellation of an in-flight evolution run.</summary>
         public void CancelEvolution() => _evolutionCts?.Cancel();
 
+        /// <summary>Spawns a sentient NPC and mirrors it in the scene document.</summary>
         public SentientEntity SpawnAgent(string profile, Vector3 position)
         {
             InitializeModules();
@@ -318,6 +373,7 @@ namespace Synapse.Runtime
             return entity;
         }
 
+        /// <summary>Adds a scene entity; spawns a patrol agent when <paramref name="type"/> is Character.</summary>
         public Guid CreateSceneEntity(string name, string type)
         {
             InitializeModules();
@@ -336,6 +392,7 @@ namespace Synapse.Runtime
             return id;
         }
 
+        /// <summary>Removes an entity from the scene and the simulation manager.</summary>
         public bool DeleteSceneEntity(Guid id)
         {
             InitializeModules();
@@ -484,6 +541,7 @@ namespace Synapse.Runtime
         private static QualityPreset ParseQuality(string name) =>
             Enum.TryParse<QualityPreset>(name, true, out var p) ? p : QualityPreset.High;
 
+        /// <summary>Releases evolution, LLM, quality, and render resources.</summary>
         public async ValueTask DisposeAsync()
         {
             CancelEvolution();

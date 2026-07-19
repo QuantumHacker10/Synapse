@@ -8,6 +8,10 @@ using GDNN.Scene;
 
 namespace GDNN.Rendering.Bridge
 {
+    /// <summary>
+    /// Thin integration layer between deferred rendering and <see cref="LDNNRenderer"/>.
+    /// Owns G-Buffer proxies, camera/light state, static GI caching, and LLM lighting apply.
+    /// </summary>
     public class LDNNBridge : IDisposable
     {
         private LDNNRenderer _ldnn;
@@ -24,18 +28,21 @@ namespace GDNN.Rendering.Bridge
         private int? _lastStateHash;
         private Vector3[,]? _cachedIrradiance;
 
+        /// <summary>Monotonic frame counter from the underlying L-DNN renderer.</summary>
         public int FrameIndex => _ldnn?.FrameIndex ?? 0;
+
+        /// <summary>True after <see cref="Initialize"/> completes.</summary>
         public bool IsInitialized => _initialized;
 
         /// <summary>
-        /// Réutilise le résultat GI de la frame précédente quand caméra, lumières
-        /// et G-Buffer n'ont pas changé (scène statique).
+        /// Reuses the previous GI result when camera, lights, and G-Buffer version are unchanged.
         /// </summary>
         public bool EnableStaticSceneCache { get; set; } = true;
 
-        /// <summary>Nombre de frames servies depuis le cache statique.</summary>
+        /// <summary>Number of frames served from the static GI cache.</summary>
         public long StaticCacheHits { get; private set; }
 
+        /// <summary>Allocates G-Buffer storage for the given viewport size.</summary>
         public LDNNBridge(int width, int height)
         {
             _width = width;
@@ -45,6 +52,7 @@ namespace GDNN.Rendering.Bridge
             _lights = new List<LightConfig>();
         }
 
+        /// <summary>Constructs and initializes the L-DNN renderer with the given or default config.</summary>
         public void Initialize(LDNNConfig config = null)
         {
             _config = config ?? CreateDefaultConfig();
@@ -53,6 +61,7 @@ namespace GDNN.Rendering.Bridge
             _initialized = true;
         }
 
+        /// <summary>Resizes internal buffers and invalidates cached GI.</summary>
         public void Resize(int width, int height)
         {
             InvalidateGICache();
@@ -69,6 +78,7 @@ namespace GDNN.Rendering.Bridge
             _gbuffer.Emissive = new Vector3[width * height];
         }
 
+        /// <summary>Updates view/projection matrices and derived camera vectors for GI.</summary>
         public void UpdateCamera(
             Matrix4x4 view, Matrix4x4 projection,
             Vector3 position, Vector3 forward, Vector3 right, Vector3 up,
@@ -93,11 +103,13 @@ namespace GDNN.Rendering.Bridge
             _cameraState.Recompute();
         }
 
+        /// <summary>Replaces the light list used by the next GI pass.</summary>
         public void SetLights(List<LightConfig> lights)
         {
             _lights = lights ?? new List<LightConfig>();
         }
 
+        /// <summary>Appends a directional light with neural shadow settings.</summary>
         public void AddDirectionalLight(Vector3 direction, Vector3 color, float intensity)
         {
             _lights.Add(new LightConfig
@@ -113,6 +125,7 @@ namespace GDNN.Rendering.Bridge
             });
         }
 
+        /// <summary>Appends a point light with neural shadow settings.</summary>
         public void AddPointLight(Vector3 position, Vector3 color, float intensity, float range)
         {
             _lights.Add(new LightConfig
@@ -129,6 +142,7 @@ namespace GDNN.Rendering.Bridge
             });
         }
 
+        /// <summary>Copies depth/normal/albedo/emissive arrays into the internal G-Buffer.</summary>
         public void FillGBuffer(
             float[] depthData,
             Vector3[] normalData,
@@ -146,6 +160,7 @@ namespace GDNN.Rendering.Bridge
                 Array.Copy(emissiveData, _gbuffer.Emissive, emissiveData.Length);
         }
 
+        /// <summary>Fills the G-Buffer with uniform constants (used when GPU readback is not wired).</summary>
         public void FillGBufferFromConstants(
             float fillDepth, Vector3 fillNormal, Vector3 fillAlbedo)
         {
@@ -164,8 +179,8 @@ namespace GDNN.Rendering.Bridge
         }
 
         /// <summary>
-        /// Invalide le cache de résultats GI (à appeler quand la scène change
-        /// par un canal non suivi par le bridge).
+        /// Clears cached GI output. Call when the scene changes through a path
+        /// not tracked by camera, lights, or G-Buffer version.
         /// </summary>
         public void InvalidateGICache()
         {
@@ -190,8 +205,7 @@ namespace GDNN.Rendering.Bridge
         }
 
         /// <summary>
-        /// Hash de l'état influençant le rendu GI : caméra, lumières,
-        /// contenu du G-Buffer (par version) et dimensions.
+        /// Hash of state that affects GI: dimensions, G-Buffer version, camera, and lights.
         /// </summary>
         private int ComputeStateHash()
         {
@@ -218,6 +232,7 @@ namespace GDNN.Rendering.Bridge
             return hash.ToHashCode();
         }
 
+        /// <summary>Runs one L-DNN GI frame and returns per-pixel irradiance (may be cache-hit).</summary>
         public Vector3[,] RenderGI()
         {
             if (!_initialized || _ldnn == null)
@@ -257,6 +272,7 @@ namespace GDNN.Rendering.Bridge
             return irradiance;
         }
 
+        /// <summary>Placeholder ambient-occlusion query (returns 1 = fully lit).</summary>
         public float ComputeAO(int px, int py)
         {
             if (px < 0 || px >= _width || py < 0 || py >= _height) return 1.0f;
@@ -342,9 +358,10 @@ namespace GDNN.Rendering.Bridge
             };
         }
 
-        /// <summary>Accès au renderer L-DNN (tests / outils).</summary>
+        /// <summary>Underlying L-DNN renderer (tests and tooling).</summary>
         public LDNNRenderer Renderer => _ldnn;
 
+        /// <summary>Shuts down the L-DNN renderer and releases GPU resources.</summary>
         public void Dispose()
         {
             if (_disposed) return;

@@ -1,3 +1,5 @@
+// LLM scene hint DTOs (LightingParams, SdfHint) used by HybridLlmRouter, EngineHost, and LlmSceneApplicator.
+
 namespace GDNN.Scene;
 
 /// <summary>

@@ -11,12 +11,10 @@ using GDNN.Core.NeuralNetwork;
 namespace GDNN.Polygonization;
 
 /// <summary>
-/// Cache disque des chaînes de LOD polygonales extraites d'un SDF neuronal.
+/// On-disk cache for polygonized neural SDF LOD chains.
 ///
-/// La clé de cache est un hash du contenu du réseau (tables de hachage +
-/// poids MLP), des bornes d'extraction et des paramètres de polygonisation :
-/// un asset statique dont le réseau n'a pas changé recharge sa chaîne depuis
-/// le disque au lieu de repolygoniser tous les niveaux au démarrage.
+/// Cache keys hash network weights, extraction bounds, and polygonization parameters so
+/// unchanged static assets reload from disk instead of re-polygonizing every level at startup.
 /// </summary>
 public sealed class PolygonizationCache
 {
@@ -32,12 +30,12 @@ public sealed class PolygonizationCache
         Directory.CreateDirectory(directory);
     }
 
-    /// <summary>Répertoire de stockage du cache.</summary>
+    /// <summary>Root directory where cached LOD chains are stored.</summary>
     public string CacheDirectory => _directory;
 
     /// <summary>
-    /// Calcule la clé de cache d'un réseau pour des paramètres d'extraction donnés.
-    /// Deux réseaux aux poids identiques produisent la même clé.
+    /// Computes a stable cache key from network weights and extraction parameters.
+    /// Two networks with identical weights produce the same key.
     /// </summary>
     public static string ComputeKey(
         HashEncodedDeepMLP network, AABB bounds, int baseResolution, int levelCount)
@@ -66,9 +64,8 @@ public sealed class PolygonizationCache
     }
 
     /// <summary>
-    /// Tente de charger une chaîne depuis le cache. Retourne false si absente
-    /// ou illisible (fichier corrompu ou format obsolète — l'entrée est alors
-    /// supprimée).
+    /// Tries to load a LOD chain from disk. Returns false when missing or corrupt
+    /// (stale entries are deleted automatically).
     /// </summary>
     public bool TryLoad(string key, out NeuralPolygonLodChain? chain)
     {
@@ -107,7 +104,7 @@ public sealed class PolygonizationCache
         }
     }
 
-    /// <summary>Écrit une chaîne dans le cache (remplace l'entrée existante).</summary>
+    /// <summary>Writes a LOD chain to disk (replaces any existing entry).</summary>
     public void Store(string key, NeuralPolygonLodChain chain)
     {
         ArgumentNullException.ThrowIfNull(chain);
@@ -132,7 +129,7 @@ public sealed class PolygonizationCache
         File.Move(tempPath, path, overwrite: true);
     }
 
-    /// <summary>Supprime une entrée du cache si elle existe.</summary>
+    /// <summary>Removes a cache entry when present.</summary>
     public bool Evict(string key) => TryDelete(PathForKey(key));
 
     private string PathForKey(string key) => Path.Combine(_directory, key + ".gdnnlod");

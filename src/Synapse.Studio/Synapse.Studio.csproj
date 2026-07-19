@@ -23,11 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Legacy scaffold kept for reference; replaced by ViewModels/MainWindowViewModel.cs -->
-    <Compile Remove="MainWindowViewModel.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Synapse.Runtime\Synapse.Runtime.csproj" />
     <ProjectReference Include="..\Synapse.Core\Synapse.Core.csproj" />
     <ProjectReference Include="..\Synapse.Rendering\Synapse.Rendering.csproj" />

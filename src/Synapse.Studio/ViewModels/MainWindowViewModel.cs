@@ -20,6 +20,10 @@ using EntityType = GDNN.Studio.Contracts.EntityType;
 
 namespace GDNN.Studio.ViewModels
 {
+    /// <summary>
+    /// Avalonia view model for G-DNN Studio: scene editing, living laws, LLM console,
+    /// evolution, blueprint/sculpt tools, and status HUD bound to <see cref="EngineHost"/>.
+    /// </summary>
     public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         private readonly EngineHost _host;
