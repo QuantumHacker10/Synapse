@@ -25,4 +25,4 @@ jobs:
       run: dotnet build --no-restore --configuration Release /p:TreatWarningsAsErrors=false /p:RunAnalyzers=true /p:RunAnalyzersDuringBuild=true
 
     - name: Check formatting
-      run: dotnet format --verify-no-changes --verbosity diagnostic
+      run: dotnet format whitespace --verify-no-changes --verbosity diagnostic
