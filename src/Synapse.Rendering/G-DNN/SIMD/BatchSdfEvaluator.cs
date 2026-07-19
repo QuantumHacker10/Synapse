@@ -35,13 +35,13 @@ public static class BatchSdfEvaluator
                 EvaluateBatch(quantized, positions, distancesOut);
                 break;
             default:
-            {
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-                network.EvaluateBatch(positions, distancesOut);
-                sw.Stop();
-                LastBatchTimeMs = sw.Elapsed.TotalMilliseconds;
-                break;
-            }
+                {
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    network.EvaluateBatch(positions, distancesOut);
+                    sw.Stop();
+                    LastBatchTimeMs = sw.Elapsed.TotalMilliseconds;
+                    break;
+                }
         }
     }
 

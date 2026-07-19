@@ -397,9 +397,12 @@ namespace GDNN.Core.Genome
         /// <summary>Creates a species identifier from domain, phylum, and variant.</summary>
         public static SpeciesId Create(string domain, string phylum, string variant)
         {
-            if (string.IsNullOrWhiteSpace(domain)) throw new ArgumentException("Domain cannot be empty.", nameof(domain));
-            if (string.IsNullOrWhiteSpace(phylum)) throw new ArgumentException("Phylum cannot be empty.", nameof(phylum));
-            if (string.IsNullOrWhiteSpace(variant)) throw new ArgumentException("Variant cannot be empty.", nameof(variant));
+            if (string.IsNullOrWhiteSpace(domain))
+                throw new ArgumentException("Domain cannot be empty.", nameof(domain));
+            if (string.IsNullOrWhiteSpace(phylum))
+                throw new ArgumentException("Phylum cannot be empty.", nameof(phylum));
+            if (string.IsNullOrWhiteSpace(variant))
+                throw new ArgumentException("Variant cannot be empty.", nameof(variant));
             return new SpeciesId($"{domain.ToLowerInvariant()}.{phylum.ToLowerInvariant()}.{variant.ToLowerInvariant()}");
         }
 
@@ -540,9 +543,12 @@ namespace GDNN.Core.Genome
 
         public GenomeVersion(int major, int minor, int patch)
         {
-            if (major < 0) throw new ArgumentOutOfRangeException(nameof(major), "Major version cannot be negative.");
-            if (minor < 0) throw new ArgumentOutOfRangeException(nameof(minor), "Minor version cannot be negative.");
-            if (patch < 0) throw new ArgumentOutOfRangeException(nameof(patch), "Patch version cannot be negative.");
+            if (major < 0)
+                throw new ArgumentOutOfRangeException(nameof(major), "Major version cannot be negative.");
+            if (minor < 0)
+                throw new ArgumentOutOfRangeException(nameof(minor), "Minor version cannot be negative.");
+            if (patch < 0)
+                throw new ArgumentOutOfRangeException(nameof(patch), "Patch version cannot be negative.");
             Major = major;
             Minor = minor;
             Patch = patch;
@@ -571,8 +577,10 @@ namespace GDNN.Core.Genome
         /// <summary>Tries to parse a version string.</summary>
         public static bool TryParse(string? input, out GenomeVersion result)
         {
-            if (string.IsNullOrWhiteSpace(input)) { result = Initial; return false; }
-            try { result = Parse(input); return true; }
+            if (string.IsNullOrWhiteSpace(input))
+            { result = Initial; return false; }
+            try
+            { result = Parse(input); return true; }
             catch { result = Initial; return false; }
         }
 
@@ -595,9 +603,11 @@ namespace GDNN.Core.Genome
         public int CompareTo(GenomeVersion other)
         {
             var cmp = Major.CompareTo(other.Major);
-            if (cmp != 0) return cmp;
+            if (cmp != 0)
+                return cmp;
             cmp = Minor.CompareTo(other.Minor);
-            if (cmp != 0) return cmp;
+            if (cmp != 0)
+                return cmp;
             return Patch.CompareTo(other.Patch);
         }
 
@@ -677,18 +687,19 @@ namespace GDNN.Core.Genome
             LodPolicy? lodPolicy = null,
             string? author = null,
             string? description = null) => this with
-        {
-            SemanticTag = semanticTag ?? SemanticTag,
-            ComplexityBudget = complexityBudget ?? ComplexityBudget,
-            LodPolicy = lodPolicy ?? LodPolicy,
-            Author = author ?? Author,
-            Description = description ?? Description
-        };
+            {
+                SemanticTag = semanticTag ?? SemanticTag,
+                ComplexityBudget = complexityBudget ?? ComplexityBudget,
+                LodPolicy = lodPolicy ?? LodPolicy,
+                Author = author ?? Author,
+                Description = description ?? Description
+            };
 
         /// <summary>Adds a tag to the metadata tags set.</summary>
         public GenomeMetadata WithTag(string tag)
         {
-            if (string.IsNullOrWhiteSpace(tag)) throw new ArgumentException("Tag cannot be null or empty.", nameof(tag));
+            if (string.IsNullOrWhiteSpace(tag))
+                throw new ArgumentException("Tag cannot be null or empty.", nameof(tag));
             return this with { Tags = Tags.Add(tag.Trim()) };
         }
 
@@ -701,7 +712,8 @@ namespace GDNN.Core.Genome
         /// <summary>Adds or updates a custom property.</summary>
         public GenomeMetadata WithProperty(string key, string value)
         {
-            if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException("Property key cannot be null or empty.", nameof(key));
+            if (string.IsNullOrWhiteSpace(key))
+                throw new ArgumentException("Property key cannot be null or empty.", nameof(key));
             return this with { CustomProperties = CustomProperties.SetItem(key, value) };
         }
 
@@ -907,41 +919,70 @@ namespace GDNN.Core.Genome
         /// <summary>Gets the default compute cost for a given neuron kind.</summary>
         public static float GetDefaultComputeCostForKind(NeuronKind kind) => kind switch
         {
-            NeuronKind.SDFPrimitive => 1.0f, NeuronKind.DisplacementField => 3.0f,
-            NeuronKind.CurvatureModulator => 4.0f, NeuronKind.ColorField => 1.0f,
-            NeuronKind.NormalMap => 2.0f, NeuronKind.RoughnessMap => 1.0f,
-            NeuronKind.MetallicMap => 1.0f, NeuronKind.EmissiveMap => 1.0f,
-            NeuronKind.OpacityMap => 1.0f, NeuronKind.SubsurfaceScattering => 8.0f,
-            NeuronKind.Displacement => 2.0f, NeuronKind.Tessellation => 5.0f,
-            NeuronKind.LODSelector => 1.0f, NeuronKind.OcclusionCuller => 2.0f,
-            NeuronKind.FrustumCuller => 1.5f, NeuronKind.AnimationCurve => 2.0f,
-            NeuronKind.ParticleEmitter => 4.0f, NeuronKind.PhysicsCollider => 3.0f,
-            NeuronKind.FluidSolver => 10.0f, NeuronKind.ClothSimulator => 8.0f,
-            NeuronKind.Voxelizer => 6.0f, NeuronKind.MarchingCube => 7.0f,
-            NeuronKind.RayMarcher => 9.0f, NeuronKind.FieldGenerator => 3.0f,
-            NeuronKind.WaveFunction => 5.0f, NeuronKind.TensorReshaper => 1.0f,
-            NeuronKind.AttentionHead => 6.0f, NeuronKind.ConvolutionKernel => 4.0f,
-            NeuronKind.PoolingLayer => 2.0f, NeuronKind.NormalizationLayer => 2.0f,
-            NeuronKind.EmbeddingLookup => 3.0f, NeuronKind.PositionalEncoder => 2.0f,
-            NeuronKind.CrossAttentionLayer => 7.0f, NeuronKind.SelfAttentionLayer => 6.0f,
-            NeuronKind.FeedForwardLayer => 4.0f, NeuronKind.GeometricTransform => 2.0f,
-            NeuronKind.CSGOperation => 3.0f, NeuronKind.ProceduralTexture => 5.0f,
-            NeuronKind.TerrainSculptor => 5.0f, NeuronKind.LatticeGenerator => 4.0f,
-            NeuronKind.FractalSubdivision => 6.0f, NeuronKind.HarmonicOscillator => 2.0f,
-            NeuronKind.GravitationalField => 4.0f, NeuronKind.ElectromagneticField => 5.0f,
-            NeuronKind.VolumetricDensity => 7.0f, NeuronKind.ScreenSpaceReflection => 6.0f,
-            NeuronKind.GlobalIllumination => 10.0f, NeuronKind.AmbientOcclusion => 5.0f,
-            NeuronKind.ShadowMap => 4.0f, NeuronKind.PostProcessChain => 3.0f,
+            NeuronKind.SDFPrimitive => 1.0f,
+            NeuronKind.DisplacementField => 3.0f,
+            NeuronKind.CurvatureModulator => 4.0f,
+            NeuronKind.ColorField => 1.0f,
+            NeuronKind.NormalMap => 2.0f,
+            NeuronKind.RoughnessMap => 1.0f,
+            NeuronKind.MetallicMap => 1.0f,
+            NeuronKind.EmissiveMap => 1.0f,
+            NeuronKind.OpacityMap => 1.0f,
+            NeuronKind.SubsurfaceScattering => 8.0f,
+            NeuronKind.Displacement => 2.0f,
+            NeuronKind.Tessellation => 5.0f,
+            NeuronKind.LODSelector => 1.0f,
+            NeuronKind.OcclusionCuller => 2.0f,
+            NeuronKind.FrustumCuller => 1.5f,
+            NeuronKind.AnimationCurve => 2.0f,
+            NeuronKind.ParticleEmitter => 4.0f,
+            NeuronKind.PhysicsCollider => 3.0f,
+            NeuronKind.FluidSolver => 10.0f,
+            NeuronKind.ClothSimulator => 8.0f,
+            NeuronKind.Voxelizer => 6.0f,
+            NeuronKind.MarchingCube => 7.0f,
+            NeuronKind.RayMarcher => 9.0f,
+            NeuronKind.FieldGenerator => 3.0f,
+            NeuronKind.WaveFunction => 5.0f,
+            NeuronKind.TensorReshaper => 1.0f,
+            NeuronKind.AttentionHead => 6.0f,
+            NeuronKind.ConvolutionKernel => 4.0f,
+            NeuronKind.PoolingLayer => 2.0f,
+            NeuronKind.NormalizationLayer => 2.0f,
+            NeuronKind.EmbeddingLookup => 3.0f,
+            NeuronKind.PositionalEncoder => 2.0f,
+            NeuronKind.CrossAttentionLayer => 7.0f,
+            NeuronKind.SelfAttentionLayer => 6.0f,
+            NeuronKind.FeedForwardLayer => 4.0f,
+            NeuronKind.GeometricTransform => 2.0f,
+            NeuronKind.CSGOperation => 3.0f,
+            NeuronKind.ProceduralTexture => 5.0f,
+            NeuronKind.TerrainSculptor => 5.0f,
+            NeuronKind.LatticeGenerator => 4.0f,
+            NeuronKind.FractalSubdivision => 6.0f,
+            NeuronKind.HarmonicOscillator => 2.0f,
+            NeuronKind.GravitationalField => 4.0f,
+            NeuronKind.ElectromagneticField => 5.0f,
+            NeuronKind.VolumetricDensity => 7.0f,
+            NeuronKind.ScreenSpaceReflection => 6.0f,
+            NeuronKind.GlobalIllumination => 10.0f,
+            NeuronKind.AmbientOcclusion => 5.0f,
+            NeuronKind.ShadowMap => 4.0f,
+            NeuronKind.PostProcessChain => 3.0f,
             _ => 1.0f
         };
 
         /// <summary>Gets the default memory estimate for a given neuron kind.</summary>
         public static int GetDefaultMemoryEstimateForKind(NeuronKind kind) => kind switch
         {
-            NeuronKind.SDFPrimitive => 64, NeuronKind.DisplacementField => 128,
-            NeuronKind.CurvatureModulator => 192, NeuronKind.ColorField => 48,
-            NeuronKind.ConvolutionKernel => 256, NeuronKind.EmbeddingLookup => 4096,
-            NeuronKind.Voxelizer => 8192, NeuronKind.VolumetricDensity => 16384,
+            NeuronKind.SDFPrimitive => 64,
+            NeuronKind.DisplacementField => 128,
+            NeuronKind.CurvatureModulator => 192,
+            NeuronKind.ColorField => 48,
+            NeuronKind.ConvolutionKernel => 256,
+            NeuronKind.EmbeddingLookup => 4096,
+            NeuronKind.Voxelizer => 8192,
+            NeuronKind.VolumetricDensity => 16384,
             _ => 96
         };
 
@@ -1191,7 +1232,8 @@ namespace GDNN.Core.Genome
         public NeuronGene? GetNeuron(int neuronId)
         {
             foreach (var neuron in Neurons)
-                if (neuron.Id == neuronId) return neuron;
+                if (neuron.Id == neuronId)
+                    return neuron;
             return null;
         }
 
@@ -1199,7 +1241,8 @@ namespace GDNN.Core.Genome
         public SynapseGene? GetSynapse(int synapseId)
         {
             foreach (var synapse in Synapses)
-                if (synapse.Id == synapseId) return synapse;
+                if (synapse.Id == synapseId)
+                    return synapse;
             return null;
         }
 
@@ -1208,7 +1251,8 @@ namespace GDNN.Core.Genome
         {
             var builder = ImmutableArray.CreateBuilder<SynapseGene>();
             foreach (var synapse in Synapses)
-                if (synapse.SourceNeuronId == neuronId) builder.Add(synapse);
+                if (synapse.SourceNeuronId == neuronId)
+                    builder.Add(synapse);
             return builder.ToImmutable();
         }
 
@@ -1217,7 +1261,8 @@ namespace GDNN.Core.Genome
         {
             var builder = ImmutableArray.CreateBuilder<SynapseGene>();
             foreach (var synapse in Synapses)
-                if (synapse.TargetNeuronId == neuronId) builder.Add(synapse);
+                if (synapse.TargetNeuronId == neuronId)
+                    builder.Add(synapse);
             return builder.ToImmutable();
         }
 
@@ -1226,7 +1271,8 @@ namespace GDNN.Core.Genome
         {
             var builder = ImmutableArray.CreateBuilder<NeuronGene>();
             foreach (var neuron in Neurons)
-                if (neuron.LayerIndex == layerIndex) builder.Add(neuron);
+                if (neuron.LayerIndex == layerIndex)
+                    builder.Add(neuron);
             return builder.ToImmutable();
         }
 
@@ -1235,7 +1281,8 @@ namespace GDNN.Core.Genome
         {
             var builder = ImmutableArray.CreateBuilder<NeuronGene>();
             foreach (var neuron in Neurons)
-                if (neuron.IsEnabled) builder.Add(neuron);
+                if (neuron.IsEnabled)
+                    builder.Add(neuron);
             return builder.ToImmutable();
         }
 
@@ -1244,7 +1291,8 @@ namespace GDNN.Core.Genome
         {
             var builder = ImmutableArray.CreateBuilder<NeuronGene>();
             foreach (var neuron in Neurons)
-                if (neuron.Kind == kind) builder.Add(neuron);
+                if (neuron.Kind == kind)
+                    builder.Add(neuron);
             return builder.ToImmutable();
         }
 
@@ -1253,7 +1301,8 @@ namespace GDNN.Core.Genome
         {
             var builder = ImmutableArray.CreateBuilder<NeuronGene>();
             foreach (var neuron in Neurons)
-                if (neuron.SemanticRole == role) builder.Add(neuron);
+                if (neuron.SemanticRole == role)
+                    builder.Add(neuron);
             return builder.ToImmutable();
         }
 
@@ -1293,7 +1342,8 @@ namespace GDNN.Core.Genome
         public bool ContainsNeuron(int neuronId)
         {
             foreach (var neuron in Neurons)
-                if (neuron.Id == neuronId) return true;
+                if (neuron.Id == neuronId)
+                    return true;
             return false;
         }
 
@@ -1301,7 +1351,8 @@ namespace GDNN.Core.Genome
         public bool ContainsSynapse(int synapseId)
         {
             foreach (var synapse in Synapses)
-                if (synapse.Id == synapseId) return true;
+                if (synapse.Id == synapseId)
+                    return true;
             return false;
         }
 
@@ -1309,7 +1360,8 @@ namespace GDNN.Core.Genome
         public bool ContainsNeuronKind(NeuronKind kind)
         {
             foreach (var neuron in Neurons)
-                if (neuron.Kind == kind) return true;
+                if (neuron.Kind == kind)
+                    return true;
             return false;
         }
 
@@ -1318,14 +1370,16 @@ namespace GDNN.Core.Genome
         {
             int count = 0;
             foreach (var neuron in Neurons)
-                if (neuron.Kind == kind) count++;
+                if (neuron.Kind == kind)
+                    count++;
             return count;
         }
 
         /// <summary>Computes the average weight of all synapses.</summary>
         public float AverageSynapseWeight()
         {
-            if (Synapses.Length == 0) return 0f;
+            if (Synapses.Length == 0)
+                return 0f;
             float sum = 0f;
             foreach (var synapse in Synapses)
                 sum += synapse.Weight;
@@ -1335,7 +1389,8 @@ namespace GDNN.Core.Genome
         /// <summary>Computes the weight standard deviation of all synapses.</summary>
         public float WeightStandardDeviation()
         {
-            if (Synapses.Length <= 1) return 0f;
+            if (Synapses.Length <= 1)
+                return 0f;
             var mean = AverageSynapseWeight();
             float sumSqDiff = 0f;
             foreach (var synapse in Synapses)
@@ -1349,40 +1404,48 @@ namespace GDNN.Core.Genome
         /// <summary>Gets the neuron with the highest fan-out (most outgoing connections).</summary>
         public NeuronGene? GetHighestFanOutNeuron()
         {
-            if (Neurons.Length == 0) return null;
+            if (Neurons.Length == 0)
+                return null;
             var best = Neurons[0];
             for (int i = 1; i < Neurons.Length; i++)
-                if (Neurons[i].FanOut > best.FanOut) best = Neurons[i];
+                if (Neurons[i].FanOut > best.FanOut)
+                    best = Neurons[i];
             return best;
         }
 
         /// <summary>Gets the neuron with the highest fan-in (most incoming connections).</summary>
         public NeuronGene? GetHighestFanInNeuron()
         {
-            if (Neurons.Length == 0) return null;
+            if (Neurons.Length == 0)
+                return null;
             var best = Neurons[0];
             for (int i = 1; i < Neurons.Length; i++)
-                if (Neurons[i].FanIn > best.FanIn) best = Neurons[i];
+                if (Neurons[i].FanIn > best.FanIn)
+                    best = Neurons[i];
             return best;
         }
 
         /// <summary>Gets the synapse with the largest absolute weight.</summary>
         public SynapseGene? GetStrongestSynapse()
         {
-            if (Synapses.Length == 0) return null;
+            if (Synapses.Length == 0)
+                return null;
             var best = Synapses[0];
             for (int i = 1; i < Synapses.Length; i++)
-                if (Math.Abs(Synapses[i].Weight) > Math.Abs(best.Weight)) best = Synapses[i];
+                if (Math.Abs(Synapses[i].Weight) > Math.Abs(best.Weight))
+                    best = Synapses[i];
             return best;
         }
 
         /// <summary>Gets the synapse with the smallest absolute weight.</summary>
         public SynapseGene? GetWeakestSynapse()
         {
-            if (Synapses.Length == 0) return null;
+            if (Synapses.Length == 0)
+                return null;
             var best = Synapses[0];
             for (int i = 1; i < Synapses.Length; i++)
-                if (Math.Abs(Synapses[i].Weight) < Math.Abs(best.Weight)) best = Synapses[i];
+                if (Math.Abs(Synapses[i].Weight) < Math.Abs(best.Weight))
+                    best = Synapses[i];
             return best;
         }
 
@@ -1450,12 +1513,18 @@ namespace GDNN.Core.Genome
         public ImmutableArray<MutationType> GetMutationTypes()
         {
             var types = ImmutableArray.CreateBuilder<MutationType>();
-            if (AddedNeurons.Length > 0) types.Add(MutationType.Insertion);
-            if (RemovedNeurons.Length > 0) types.Add(MutationType.Deletion);
-            if (ModifiedNeurons.Length > 0) types.Add(MutationType.PointMutation);
-            if (AddedSynapses.Length > 0) types.Add(MutationType.SynapseGrowth);
-            if (RemovedSynapses.Length > 0) types.Add(MutationType.SynapsePruning);
-            if (ModifiedSynapses.Length > 0) types.Add(MutationType.WeightPerturbation);
+            if (AddedNeurons.Length > 0)
+                types.Add(MutationType.Insertion);
+            if (RemovedNeurons.Length > 0)
+                types.Add(MutationType.Deletion);
+            if (ModifiedNeurons.Length > 0)
+                types.Add(MutationType.PointMutation);
+            if (AddedSynapses.Length > 0)
+                types.Add(MutationType.SynapseGrowth);
+            if (RemovedSynapses.Length > 0)
+                types.Add(MutationType.SynapsePruning);
+            if (ModifiedSynapses.Length > 0)
+                types.Add(MutationType.WeightPerturbation);
             return types.ToImmutable();
         }
 
@@ -1640,9 +1709,11 @@ namespace GDNN.Core.Genome
         /// <summary>Merges two profiles from sequential observation windows.</summary>
         public NeuronActivationProfile MergeWith(NeuronActivationProfile other)
         {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
             var totalCount = ActivationCount + other.ActivationCount;
-            if (totalCount == 0) return this;
+            if (totalCount == 0)
+                return this;
             return new NeuronActivationProfile
             {
                 NeuronId = NeuronId,
@@ -1720,7 +1791,8 @@ namespace GDNN.Core.Genome
         /// <summary>Merges metrics from multiple frames.</summary>
         public GenomePerformanceMetrics MergeWith(GenomePerformanceMetrics other)
         {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
             return new GenomePerformanceMetrics
             {
                 FrameTimeMs = FrameTimeMs + other.FrameTimeMs,
@@ -1840,11 +1912,13 @@ namespace GDNN.Core.Genome
             if (_neurons.Any(n => n.Id == neuron.Id))
             {
                 var msg = $"Duplicate neuron ID {neuron.Id}.";
-                if (_strictValidation) throw new InvalidOperationException(msg);
+                if (_strictValidation)
+                    throw new InvalidOperationException(msg);
                 _validationWarnings.Add(msg);
             }
             _neurons.Add(neuron);
-            if (neuron.Id >= _nextNeuronId) _nextNeuronId = neuron.Id + 1;
+            if (neuron.Id >= _nextNeuronId)
+                _nextNeuronId = neuron.Id + 1;
             return this;
         }
 
@@ -1854,7 +1928,8 @@ namespace GDNN.Core.Genome
         {
             var neuron = NeuronGene.Create(_nextNeuronId++, kind, layerIndex)
                 .WithActivation(activation ?? NeuronGene.GetDefaultActivationForKind(kind))
-                with { SemanticRole = role };
+                with
+            { SemanticRole = role };
             _neurons.Add(neuron);
             return this;
         }
@@ -1862,7 +1937,8 @@ namespace GDNN.Core.Genome
         /// <summary>Adds a batch of neurons to the genome.</summary>
         public GeoGenomeBuilder AddNeurons(IEnumerable<NeuronGene> neurons)
         {
-            foreach (var neuron in neurons) AddNeuron(neuron);
+            foreach (var neuron in neurons)
+                AddNeuron(neuron);
             return this;
         }
 
@@ -1872,11 +1948,13 @@ namespace GDNN.Core.Genome
             if (_synapses.Any(s => s.Id == synapse.Id))
             {
                 var msg = $"Duplicate synapse ID {synapse.Id}.";
-                if (_strictValidation) throw new InvalidOperationException(msg);
+                if (_strictValidation)
+                    throw new InvalidOperationException(msg);
                 _validationWarnings.Add(msg);
             }
             _synapses.Add(synapse);
-            if (synapse.Id >= _nextSynapseId) _nextSynapseId = synapse.Id + 1;
+            if (synapse.Id >= _nextSynapseId)
+                _nextSynapseId = synapse.Id + 1;
             return this;
         }
 
@@ -1917,7 +1995,8 @@ namespace GDNN.Core.Genome
         /// <summary>Sets the complexity budget (maximum neuron count).</summary>
         public GeoGenomeBuilder WithComplexityBudget(int budget)
         {
-            if (budget <= 0) throw new ArgumentOutOfRangeException(nameof(budget), "Complexity budget must be positive.");
+            if (budget <= 0)
+                throw new ArgumentOutOfRangeException(nameof(budget), "Complexity budget must be positive.");
             _complexityBudget = budget;
             return this;
         }
@@ -1981,7 +2060,8 @@ namespace GDNN.Core.Genome
         /// <summary>Adds a tag to the genome metadata.</summary>
         public GeoGenomeBuilder WithTag(string tag)
         {
-            if (string.IsNullOrWhiteSpace(tag)) throw new ArgumentException("Tag cannot be empty.", nameof(tag));
+            if (string.IsNullOrWhiteSpace(tag))
+                throw new ArgumentException("Tag cannot be empty.", nameof(tag));
             _tags.Add(tag.Trim());
             return this;
         }
@@ -1989,7 +2069,8 @@ namespace GDNN.Core.Genome
         /// <summary>Adds a custom property to the genome metadata.</summary>
         public GeoGenomeBuilder WithCustomProperty(string key, string value)
         {
-            if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException("Property key cannot be empty.", nameof(key));
+            if (string.IsNullOrWhiteSpace(key))
+                throw new ArgumentException("Property key cannot be empty.", nameof(key));
             _customProperties[key] = value;
             return this;
         }
@@ -2052,7 +2133,8 @@ namespace GDNN.Core.Genome
 
         private void ValidateCycles()
         {
-            if (_neurons.Count == 0 || _synapses.Count == 0) return;
+            if (_neurons.Count == 0 || _synapses.Count == 0)
+                return;
             var adjacency = new Dictionary<int, List<int>>();
             foreach (var neuron in _neurons)
                 adjacency[neuron.Id] = new List<int>();
@@ -2063,13 +2145,16 @@ namespace GDNN.Core.Genome
             var recursionStack = new HashSet<int>();
             bool HasCycle(int nodeId)
             {
-                if (recursionStack.Contains(nodeId)) return true;
-                if (visited.Contains(nodeId)) return false;
+                if (recursionStack.Contains(nodeId))
+                    return true;
+                if (visited.Contains(nodeId))
+                    return false;
                 visited.Add(nodeId);
                 recursionStack.Add(nodeId);
                 if (adjacency.TryGetValue(nodeId, out var neighbors))
                     foreach (var neighbor in neighbors)
-                        if (HasCycle(neighbor)) return true;
+                        if (HasCycle(neighbor))
+                            return true;
                 recursionStack.Remove(nodeId);
                 return false;
             }
@@ -2080,7 +2165,8 @@ namespace GDNN.Core.Genome
 
         private void ValidateDisconnectedComponents()
         {
-            if (_neurons.Count <= 1) return;
+            if (_neurons.Count <= 1)
+                return;
             var adjacency = new Dictionary<int, List<int>>();
             foreach (var neuron in _neurons)
                 adjacency[neuron.Id] = new List<int>();
@@ -2103,7 +2189,8 @@ namespace GDNN.Core.Genome
                     var current = queue.Dequeue();
                     if (adjacency.TryGetValue(current, out var neighbors))
                         foreach (var neighbor in neighbors)
-                            if (visited.Add(neighbor)) queue.Enqueue(neighbor);
+                            if (visited.Add(neighbor))
+                                queue.Enqueue(neighbor);
                 }
             }
             foreach (var neuron in _neurons)
@@ -2185,19 +2272,23 @@ namespace GDNN.Core.Genome
                 if (adjacency.TryGetValue(v, out var neighbors))
                     foreach (var w in neighbors)
                     {
-                        if (!indices.ContainsKey(w)) { StrongConnect(w); lowlinks[v] = Math.Min(lowlinks[v], lowlinks[w]); }
-                        else if (onStack.Contains(w)) lowlinks[v] = Math.Min(lowlinks[v], indices[w]);
+                        if (!indices.ContainsKey(w))
+                        { StrongConnect(w); lowlinks[v] = Math.Min(lowlinks[v], lowlinks[w]); }
+                        else if (onStack.Contains(w))
+                            lowlinks[v] = Math.Min(lowlinks[v], indices[w]);
                     }
                 if (lowlinks[v] == indices[v])
                 {
                     var scc = new List<int>();
                     int w;
-                    do { w = stack.Pop(); onStack.Remove(w); scc.Add(w); } while (w != v);
+                    do
+                    { w = stack.Pop(); onStack.Remove(w); scc.Add(w); } while (w != v);
                     result.Add(ImmutableArray.Create(scc.ToArray()));
                 }
             }
             foreach (var neuron in _neurons)
-                if (!indices.ContainsKey(neuron.Id)) StrongConnect(neuron.Id);
+                if (!indices.ContainsKey(neuron.Id))
+                    StrongConnect(neuron.Id);
             return ImmutableArray.Create(result.ToArray());
         }
 
@@ -2206,15 +2297,19 @@ namespace GDNN.Core.Genome
         {
             var inDegree = new Dictionary<int, int>();
             var adjacency = new Dictionary<int, List<int>>();
-            foreach (var neuron in _neurons) { inDegree[neuron.Id] = 0; adjacency[neuron.Id] = new List<int>(); }
+            foreach (var neuron in _neurons)
+            { inDegree[neuron.Id] = 0; adjacency[neuron.Id] = new List<int>(); }
             foreach (var synapse in _synapses)
             {
                 if (adjacency.ContainsKey(synapse.SourceNeuronId))
                     adjacency[synapse.SourceNeuronId].Add(synapse.TargetNeuronId);
-                if (inDegree.ContainsKey(synapse.TargetNeuronId)) inDegree[synapse.TargetNeuronId]++;
+                if (inDegree.ContainsKey(synapse.TargetNeuronId))
+                    inDegree[synapse.TargetNeuronId]++;
             }
             var queue = new Queue<int>();
-            foreach (var kvp in inDegree) if (kvp.Value == 0) queue.Enqueue(kvp.Key);
+            foreach (var kvp in inDegree)
+                if (kvp.Value == 0)
+                    queue.Enqueue(kvp.Key);
             var order = new List<int>();
             while (queue.Count > 0)
             {
@@ -2230,14 +2325,17 @@ namespace GDNN.Core.Genome
         /// <summary>Automatically detects and assigns the species based on neuron composition.</summary>
         public SpeciesId DetectSpecies()
         {
-            if (_forcedSpecies.HasValue) return _forcedSpecies.Value;
+            if (_forcedSpecies.HasValue)
+                return _forcedSpecies.Value;
             var kindCounts = new Dictionary<NeuronKind, int>();
             foreach (var neuron in _neurons)
             {
-                if (!kindCounts.ContainsKey(neuron.Kind)) kindCounts[neuron.Kind] = 0;
+                if (!kindCounts.ContainsKey(neuron.Kind))
+                    kindCounts[neuron.Kind] = 0;
                 kindCounts[neuron.Kind]++;
             }
-            if (kindCounts.Count == 0) return SpeciesId.Default;
+            if (kindCounts.Count == 0)
+                return SpeciesId.Default;
             var dominantKind = kindCounts.OrderByDescending(kvp => kvp.Value).First().Key;
             var domain = dominantKind switch
             {
@@ -2278,9 +2376,15 @@ namespace GDNN.Core.Genome
             var species = DetectSpecies();
             var metadata = new GenomeMetadata
             {
-                SemanticTag = _semanticTag, ComplexityBudget = _complexityBudget, LodPolicy = _lodPolicy,
-                Author = _author, Description = _description, License = _license,
-                Classification = _classification, Strategy = _strategy, Objective = _objective,
+                SemanticTag = _semanticTag,
+                ComplexityBudget = _complexityBudget,
+                LodPolicy = _lodPolicy,
+                Author = _author,
+                Description = _description,
+                License = _license,
+                Classification = _classification,
+                Strategy = _strategy,
+                Objective = _objective,
                 Tags = ImmutableHashSet.Create(StringComparer.OrdinalIgnoreCase, _tags.ToArray()),
                 CustomProperties = ImmutableDictionary.CreateRange(StringComparer.OrdinalIgnoreCase, _customProperties),
                 State = GenomeState.Draft
@@ -2290,9 +2394,11 @@ namespace GDNN.Core.Genome
                 Id = GenomeId.New(),
                 Neurons = ImmutableArray.Create(_neurons.ToArray()),
                 Synapses = ImmutableArray.Create(_synapses.ToArray()),
-                Species = species, Metadata = metadata,
+                Species = species,
+                Metadata = metadata,
                 Version = GenomeVersion.Current,
-                CreatedAt = DateTimeOffset.UtcNow, ModifiedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
+                ModifiedAt = DateTimeOffset.UtcNow
             };
             return genome with { TopologyHash = GenomeHasher.ComputeTopologyHash(genome) };
         }
@@ -2303,9 +2409,15 @@ namespace GDNN.Core.Genome
             var species = DetectSpecies();
             var metadata = new GenomeMetadata
             {
-                SemanticTag = _semanticTag, ComplexityBudget = _complexityBudget, LodPolicy = _lodPolicy,
-                Author = _author, Description = _description, License = _license,
-                Classification = _classification, Strategy = _strategy, Objective = _objective,
+                SemanticTag = _semanticTag,
+                ComplexityBudget = _complexityBudget,
+                LodPolicy = _lodPolicy,
+                Author = _author,
+                Description = _description,
+                License = _license,
+                Classification = _classification,
+                Strategy = _strategy,
+                Objective = _objective,
                 Tags = ImmutableHashSet.Create(StringComparer.OrdinalIgnoreCase, _tags.ToArray()),
                 CustomProperties = ImmutableDictionary.CreateRange(StringComparer.OrdinalIgnoreCase, _customProperties),
                 State = GenomeState.Draft
@@ -2315,9 +2427,11 @@ namespace GDNN.Core.Genome
                 Id = GenomeId.New(),
                 Neurons = ImmutableArray.Create(_neurons.ToArray()),
                 Synapses = ImmutableArray.Create(_synapses.ToArray()),
-                Species = species, Metadata = metadata,
+                Species = species,
+                Metadata = metadata,
                 Version = GenomeVersion.Current,
-                CreatedAt = DateTimeOffset.UtcNow, ModifiedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
+                ModifiedAt = DateTimeOffset.UtcNow
             };
             return genome with { TopologyHash = GenomeHasher.ComputeTopologyHash(genome) };
         }
@@ -2338,7 +2452,8 @@ namespace GDNN.Core.Genome
             Vector3? position = null, int layerIndex = 0)
         {
             return NeuronGene.Create(id ?? NextId(), NeuronKind.SDFPrimitive, layerIndex)
-                .WithParameter("radius", radius) with { Position = position ?? Vector3.Zero };
+                .WithParameter("radius", radius) with
+            { Position = position ?? Vector3.Zero };
         }
 
         public static NeuronGene CreateSDFPrimitive(int? id = null, float radius = 1.0f,
@@ -2346,7 +2461,8 @@ namespace GDNN.Core.Genome
         {
             return NeuronGene.Create(id ?? NextId(), NeuronKind.SDFPrimitive, layerIndex)
                 .WithParameter("radius", radius).WithParameter("smoothness", smoothness)
-                with { Position = position ?? Vector3.Zero };
+                with
+            { Position = position ?? Vector3.Zero };
         }
 
         public static NeuronGene CreateDisplacementField(int? id = null, float amplitude = 0.5f,
@@ -2497,7 +2613,9 @@ namespace GDNN.Core.Genome
         public static NeuronGene CreateTensorReshaper(int? id = null, int[]? targetShape = null, int layerIndex = 0)
         {
             var n = NeuronGene.Create(id ?? NextId(), NeuronKind.TensorReshaper, layerIndex);
-            if (targetShape != null) for (int i = 0; i < targetShape.Length; i++) n = n.WithParameter($"dim_{i}", targetShape[i]);
+            if (targetShape != null)
+                for (int i = 0; i < targetShape.Length; i++)
+                    n = n.WithParameter($"dim_{i}", targetShape[i]);
             return n;
         }
 
@@ -2568,7 +2686,9 @@ namespace GDNN.Core.Genome
         public static NeuronGene CreateGeometricTransform(int? id = null, Vector3? translation = null,
             Vector3? rotation = null, Vector3? scale = null, int layerIndex = 0)
         {
-            var t = translation ?? Vector3.Zero; var r = rotation ?? Vector3.Zero; var s = scale ?? Vector3.One;
+            var t = translation ?? Vector3.Zero;
+            var r = rotation ?? Vector3.Zero;
+            var s = scale ?? Vector3.One;
             return NeuronGene.Create(id ?? NextId(), NeuronKind.GeometricTransform, layerIndex)
                 .WithParameter("tx", t.X).WithParameter("ty", t.Y).WithParameter("tz", t.Z)
                 .WithParameter("rx", r.X).WithParameter("ry", r.Y).WithParameter("rz", r.Z)
@@ -2580,8 +2700,13 @@ namespace GDNN.Core.Genome
         {
             var opCode = operation.ToLowerInvariant() switch
             {
-                "union" => 0.0f, "intersection" => 1.0f, "subtraction" => 2.0f,
-                "smooth_union" => 3.0f, "smooth_intersection" => 4.0f, "smooth_subtraction" => 5.0f, _ => 0.0f
+                "union" => 0.0f,
+                "intersection" => 1.0f,
+                "subtraction" => 2.0f,
+                "smooth_union" => 3.0f,
+                "smooth_intersection" => 4.0f,
+                "smooth_subtraction" => 5.0f,
+                _ => 0.0f
             };
             return NeuronGene.Create(id ?? NextId(), NeuronKind.CSGOperation, layerIndex)
                 .WithParameter("operation", opCode).WithParameter("smoothRadius", smoothRadius);
@@ -2690,12 +2815,15 @@ namespace GDNN.Core.Genome
                 builder.AddNeuron(NeuronGene.Create(i + 1, kind, rng.Next(0, Math.Max(1, neuronCount / 3 + 1))));
             }
             var ids = Enumerable.Range(1, neuronCount).ToList();
-            int synId = 1; int attempts = 0;
+            int synId = 1;
+            int attempts = 0;
             while (synId <= synapseCount && attempts < synapseCount * 3)
             {
                 attempts++;
-                var si = rng.Next(ids.Count); var ti = rng.Next(ids.Count);
-                if (si == ti) continue;
+                var si = rng.Next(ids.Count);
+                var ti = rng.Next(ids.Count);
+                if (si == ti)
+                    continue;
                 var w = (float)(rng.NextDouble() * 4.0 - 2.0);
                 var types = Enum.GetValues<SynapseType>();
                 builder.AddSynapse(SynapseGene.Create(synId++, ids[si], ids[ti], w, types[rng.Next(types.Length)]));
@@ -2710,10 +2838,13 @@ namespace GDNN.Core.Genome
             if (rng.NextDouble() < mutationRate)
             {
                 var b = source.Bias;
-                m = m with { Bias = new Vector3(b.X + (float)(rng.NextDouble() * 0.4 - 0.2),
+                m = m with
+                {
+                    Bias = new Vector3(b.X + (float)(rng.NextDouble() * 0.4 - 0.2),
                     b.Y + (float)(rng.NextDouble() * 0.4 - 0.2), b.Z + (float)(rng.NextDouble() * 0.4 - 0.2)),
                     WeightScale = source.WeightScale * (float)(0.8 + rng.NextDouble() * 0.4),
-                    LastModified = DateTimeOffset.UtcNow };
+                    LastModified = DateTimeOffset.UtcNow
+                };
             }
             if (rng.NextDouble() < mutationRate)
             {
@@ -2772,7 +2903,9 @@ namespace GDNN.Core.Genome
         public static SynapseGene CreateRandom(int minId, int maxId, Random? rng = null, SynapseType? pref = null)
         {
             rng ??= new Random();
-            int s, t; do { s = rng.Next(minId, maxId + 1); t = rng.Next(minId, maxId + 1); } while (s == t);
+            int s, t;
+            do
+            { s = rng.Next(minId, maxId + 1); t = rng.Next(minId, maxId + 1); } while (s == t);
             var w = (float)(rng.NextDouble() * 4.0 - 2.0);
             var tp = pref ?? Enum.GetValues<SynapseType>()[rng.Next(Enum.GetValues<SynapseType>().Length)];
             return SynapseGene.Create(NextId(), s, t, w, tp);
@@ -2782,7 +2915,8 @@ namespace GDNN.Core.Genome
         {
             rng ??= new Random();
             var b = ImmutableArray.CreateBuilder<SynapseGene>();
-            for (int i = 0; i < count; i++) b.Add(CreateRandom(minId, maxId, rng));
+            for (int i = 0; i < count; i++)
+                b.Add(CreateRandom(minId, maxId, rng));
             return b.ToImmutable();
         }
 
@@ -2897,23 +3031,34 @@ namespace GDNN.Core.Genome
 
         public bool DetectCycles(ImmutableArray<NeuronGene> neurons, ImmutableArray<SynapseGene> synapses)
         {
-            if (neurons.Length == 0 || synapses.Length == 0) return false;
+            if (neurons.Length == 0 || synapses.Length == 0)
+                return false;
             var adj = new Dictionary<int, List<int>>();
-            foreach (var n in neurons) adj[n.Id] = new List<int>();
+            foreach (var n in neurons)
+                adj[n.Id] = new List<int>();
             foreach (var s in synapses)
-                if (adj.ContainsKey(s.SourceNeuronId)) adj[s.SourceNeuronId].Add(s.TargetNeuronId);
-            var visited = new HashSet<int>(); var stack = new HashSet<int>();
+                if (adj.ContainsKey(s.SourceNeuronId))
+                    adj[s.SourceNeuronId].Add(s.TargetNeuronId);
+            var visited = new HashSet<int>();
+            var stack = new HashSet<int>();
             bool HasCycle(int v)
             {
-                if (stack.Contains(v)) return true;
-                if (visited.Contains(v)) return false;
-                visited.Add(v); stack.Add(v);
+                if (stack.Contains(v))
+                    return true;
+                if (visited.Contains(v))
+                    return false;
+                visited.Add(v);
+                stack.Add(v);
                 if (adj.TryGetValue(v, out var nb))
-                    foreach (var w in nb) if (HasCycle(w)) return true;
-                stack.Remove(v); return false;
+                    foreach (var w in nb)
+                        if (HasCycle(w))
+                            return true;
+                stack.Remove(v);
+                return false;
             }
             foreach (var n in neurons)
-                if (!visited.Contains(n.Id) && HasCycle(n.Id)) return true;
+                if (!visited.Contains(n.Id) && HasCycle(n.Id))
+                    return true;
             return false;
         }
 
@@ -2921,51 +3066,73 @@ namespace GDNN.Core.Genome
             ImmutableArray<NeuronGene> neurons, ImmutableArray<SynapseGene> synapses)
         {
             var adj = new Dictionary<int, List<int>>();
-            foreach (var n in neurons) adj[n.Id] = new List<int>();
+            foreach (var n in neurons)
+                adj[n.Id] = new List<int>();
             foreach (var s in synapses)
-                if (adj.ContainsKey(s.SourceNeuronId)) adj[s.SourceNeuronId].Add(s.TargetNeuronId);
-            int idx = 0; var stk = new Stack<int>(); var onStk = new HashSet<int>();
-            var indices = new Dictionary<int, int>(); var low = new Dictionary<int, int>();
+                if (adj.ContainsKey(s.SourceNeuronId))
+                    adj[s.SourceNeuronId].Add(s.TargetNeuronId);
+            int idx = 0;
+            var stk = new Stack<int>();
+            var onStk = new HashSet<int>();
+            var indices = new Dictionary<int, int>();
+            var low = new Dictionary<int, int>();
             var result = new List<ImmutableArray<int>>();
             void SC(int v)
             {
-                indices[v] = idx; low[v] = idx; idx++; stk.Push(v); onStk.Add(v);
+                indices[v] = idx;
+                low[v] = idx;
+                idx++;
+                stk.Push(v);
+                onStk.Add(v);
                 if (adj.TryGetValue(v, out var nb))
                     foreach (var w in nb)
                     {
-                        if (!indices.ContainsKey(w)) { SC(w); low[v] = Math.Min(low[v], low[w]); }
-                        else if (onStk.Contains(w)) low[v] = Math.Min(low[v], indices[w]);
+                        if (!indices.ContainsKey(w))
+                        { SC(w); low[v] = Math.Min(low[v], low[w]); }
+                        else if (onStk.Contains(w))
+                            low[v] = Math.Min(low[v], indices[w]);
                     }
                 if (low[v] == indices[v])
                 {
-                    var scc = new List<int>(); int w;
-                    do { w = stk.Pop(); onStk.Remove(w); scc.Add(w); } while (w != v);
+                    var scc = new List<int>();
+                    int w;
+                    do
+                    { w = stk.Pop(); onStk.Remove(w); scc.Add(w); } while (w != v);
                     result.Add(ImmutableArray.Create(scc.ToArray()));
                 }
             }
-            foreach (var n in neurons) if (!indices.ContainsKey(n.Id)) SC(n.Id);
+            foreach (var n in neurons)
+                if (!indices.ContainsKey(n.Id))
+                    SC(n.Id);
             return ImmutableArray.Create(result.ToArray());
         }
 
         public ImmutableArray<int> FindOrphanNeurons(ImmutableArray<NeuronGene> neurons, ImmutableArray<SynapseGene> synapses)
         {
             var connected = new HashSet<int>();
-            foreach (var s in synapses) { connected.Add(s.SourceNeuronId); connected.Add(s.TargetNeuronId); }
+            foreach (var s in synapses)
+            { connected.Add(s.SourceNeuronId); connected.Add(s.TargetNeuronId); }
             var orphans = ImmutableArray.CreateBuilder<int>();
-            foreach (var n in neurons) if (!connected.Contains(n.Id)) orphans.Add(n.Id);
+            foreach (var n in neurons)
+                if (!connected.Contains(n.Id))
+                    orphans.Add(n.Id);
             return orphans.ToImmutable();
         }
 
         private void ValidateNeuronIdsUnique(ImmutableArray<NeuronGene> neurons, GenomeValidationReport report)
         {
             var seen = new HashSet<int>();
-            foreach (var n in neurons) if (!seen.Add(n.Id)) { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Duplicate neuron ID: {n.Id}.")); report.HasStructuralIssues = true; }
+            foreach (var n in neurons)
+                if (!seen.Add(n.Id))
+                { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Duplicate neuron ID: {n.Id}.")); report.HasStructuralIssues = true; }
         }
 
         private void ValidateSynapseIdsUnique(ImmutableArray<SynapseGene> synapses, GenomeValidationReport report)
         {
             var seen = new HashSet<int>();
-            foreach (var s in synapses) if (!seen.Add(s.Id)) { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Duplicate synapse ID: {s.Id}.")); report.HasStructuralIssues = true; }
+            foreach (var s in synapses)
+                if (!seen.Add(s.Id))
+                { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Duplicate synapse ID: {s.Id}.")); report.HasStructuralIssues = true; }
         }
 
         private void ValidateSynapseReferences(ImmutableArray<NeuronGene> neurons, ImmutableArray<SynapseGene> synapses, GenomeValidationReport report)
@@ -2973,28 +3140,33 @@ namespace GDNN.Core.Genome
             var ids = new HashSet<int>(neurons.Select(n => n.Id));
             foreach (var s in synapses)
             {
-                if (!ids.Contains(s.SourceNeuronId)) { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Synapse {s.Id} refs non-existent source {s.SourceNeuronId}.")); report.HasStructuralIssues = true; }
-                if (!ids.Contains(s.TargetNeuronId)) { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Synapse {s.Id} refs non-existent target {s.TargetNeuronId}.")); report.HasStructuralIssues = true; }
+                if (!ids.Contains(s.SourceNeuronId))
+                { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Synapse {s.Id} refs non-existent source {s.SourceNeuronId}.")); report.HasStructuralIssues = true; }
+                if (!ids.Contains(s.TargetNeuronId))
+                { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Synapse {s.Id} refs non-existent target {s.TargetNeuronId}.")); report.HasStructuralIssues = true; }
             }
         }
 
         private void ValidateSelfConnections(ImmutableArray<SynapseGene> synapses, GenomeValidationReport report)
         {
             foreach (var s in synapses)
-                if (s.SourceNeuronId == s.TargetNeuronId) { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Self-connection: synapse {s.Id}.")); report.HasStructuralIssues = true; }
+                if (s.SourceNeuronId == s.TargetNeuronId)
+                { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Self-connection: synapse {s.Id}.")); report.HasStructuralIssues = true; }
         }
 
         private void ValidateWeightBounds(ImmutableArray<SynapseGene> synapses, GenomeValidationReport report)
         {
             foreach (var s in synapses)
-                if (!s.IsWeightInBounds) { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Synapse {s.Id} weight {s.Weight} out of bounds.")); report.HasStructuralIssues = true; }
+                if (!s.IsWeightInBounds)
+                { _results.Add(new ValidationResult(ValidationSeverity.Error, $"Synapse {s.Id} weight {s.Weight} out of bounds.")); report.HasStructuralIssues = true; }
         }
 
         private void ValidateDuplicateConnections(ImmutableArray<SynapseGene> synapses, GenomeValidationReport report)
         {
             var seen = new HashSet<(int, int)>();
             foreach (var s in synapses)
-                if (!seen.Add((s.SourceNeuronId, s.TargetNeuronId))) { _results.Add(new ValidationResult(ValidationSeverity.Warning, $"Duplicate connection {s.SourceNeuronId}->{s.TargetNeuronId}.")); report.HasStructuralIssues = true; }
+                if (!seen.Add((s.SourceNeuronId, s.TargetNeuronId)))
+                { _results.Add(new ValidationResult(ValidationSeverity.Warning, $"Duplicate connection {s.SourceNeuronId}->{s.TargetNeuronId}.")); report.HasStructuralIssues = true; }
         }
 
         private void ValidateNeuronParameters(ImmutableArray<NeuronGene> neurons, GenomeValidationReport report)
@@ -3019,39 +3191,57 @@ namespace GDNN.Core.Genome
 
         private void ValidateDisconnectedComponents(ImmutableArray<NeuronGene> neurons, ImmutableArray<SynapseGene> synapses, GenomeValidationReport report)
         {
-            if (neurons.Length <= 1) return;
+            if (neurons.Length <= 1)
+                return;
             var adj = new Dictionary<int, List<int>>();
-            foreach (var n in neurons) adj[n.Id] = new List<int>();
+            foreach (var n in neurons)
+                adj[n.Id] = new List<int>();
             foreach (var s in synapses)
             {
-                if (adj.ContainsKey(s.SourceNeuronId)) adj[s.SourceNeuronId].Add(s.TargetNeuronId);
-                if (adj.ContainsKey(s.TargetNeuronId)) adj[s.TargetNeuronId].Add(s.SourceNeuronId);
+                if (adj.ContainsKey(s.SourceNeuronId))
+                    adj[s.SourceNeuronId].Add(s.TargetNeuronId);
+                if (adj.ContainsKey(s.TargetNeuronId))
+                    adj[s.TargetNeuronId].Add(s.SourceNeuronId);
             }
-            var visited = new HashSet<int>(); int comps = 0;
+            var visited = new HashSet<int>();
+            int comps = 0;
             void Bfs(int start)
             {
-                var q = new Queue<int>(); q.Enqueue(start); visited.Add(start);
-                while (q.Count > 0) { var c = q.Dequeue(); if (adj.TryGetValue(c, out var nb)) foreach (var nb2 in nb) if (visited.Add(nb2)) q.Enqueue(nb2); }
+                var q = new Queue<int>();
+                q.Enqueue(start);
+                visited.Add(start);
+                while (q.Count > 0)
+                { var c = q.Dequeue(); if (adj.TryGetValue(c, out var nb)) foreach (var nb2 in nb) if (visited.Add(nb2)) q.Enqueue(nb2); }
             }
-            foreach (var n in neurons) if (!visited.Contains(n.Id)) { Bfs(n.Id); comps++; }
+            foreach (var n in neurons)
+                if (!visited.Contains(n.Id))
+                { Bfs(n.Id); comps++; }
             report.DisconnectedComponentCount = comps;
-            if (comps > 1) _results.Add(new ValidationResult(ValidationSeverity.Warning, $"Genome has {comps} disconnected components."));
+            if (comps > 1)
+                _results.Add(new ValidationResult(ValidationSeverity.Warning, $"Genome has {comps} disconnected components."));
         }
 
         private void ValidateReachability(ImmutableArray<NeuronGene> neurons, ImmutableArray<SynapseGene> synapses, GenomeValidationReport report)
         {
-            if (neurons.Length <= 1) return;
+            if (neurons.Length <= 1)
+                return;
             var adj = new Dictionary<int, List<int>>();
-            foreach (var n in neurons) adj[n.Id] = new List<int>();
+            foreach (var n in neurons)
+                adj[n.Id] = new List<int>();
             foreach (var s in synapses)
-                if (adj.ContainsKey(s.SourceNeuronId)) adj[s.SourceNeuronId].Add(s.TargetNeuronId);
+                if (adj.ContainsKey(s.SourceNeuronId))
+                    adj[s.SourceNeuronId].Add(s.TargetNeuronId);
             int unreachableCount = 0;
             foreach (var start in neurons)
             {
                 var reachable = new HashSet<int>();
-                var q = new Queue<int>(); q.Enqueue(start.Id); reachable.Add(start.Id);
-                while (q.Count > 0) { var c = q.Dequeue(); if (adj.TryGetValue(c, out var nb)) foreach (var w in nb) if (reachable.Add(w)) q.Enqueue(w); }
-                if (neurons.Length - reachable.Count > 0) unreachableCount++;
+                var q = new Queue<int>();
+                q.Enqueue(start.Id);
+                reachable.Add(start.Id);
+                while (q.Count > 0)
+                { var c = q.Dequeue(); if (adj.TryGetValue(c, out var nb)) foreach (var w in nb) if (reachable.Add(w)) q.Enqueue(w); }
+                if (neurons.Length - reachable.Count > 0)
+                    unreachableCount++;
             }
             report.UnreachableNeuronCount = unreachableCount;
         }
@@ -3072,9 +3262,11 @@ namespace GDNN.Core.Genome
             foreach (var n in neurons.OrderBy(n => n.Id))
             {
                 Span<byte> b = stackalloc byte[4];
-                BinaryPrimitives.WriteInt32BigEndian(b, n.Id); h.AppendData(b);
+                BinaryPrimitives.WriteInt32BigEndian(b, n.Id);
+                h.AppendData(b);
                 h.AppendData(new byte[] { (byte)n.Kind });
-                BinaryPrimitives.WriteInt32BigEndian(b, n.LayerIndex); h.AppendData(b);
+                BinaryPrimitives.WriteInt32BigEndian(b, n.LayerIndex);
+                h.AppendData(b);
             }
             h.AppendData(BitConverter.GetBytes(synapses.Length));
             foreach (var s in synapses.OrderBy(s => s.Id))
@@ -3096,8 +3288,10 @@ namespace GDNN.Core.Genome
             h.AppendData(new byte[] { (byte)metadata.Classification, (byte)metadata.Strategy, (byte)metadata.Objective, (byte)metadata.LodPolicy, (byte)metadata.State });
             h.AppendData(BitConverter.GetBytes(metadata.Generation));
             h.AppendData(Encoding.UTF8.GetBytes(species.Value));
-            foreach (var t in metadata.Tags.OrderBy(t => t, StringComparer.Ordinal)) h.AppendData(Encoding.UTF8.GetBytes(t));
-            foreach (var p in metadata.CustomProperties.OrderBy(k => k.Key, StringComparer.Ordinal)) { h.AppendData(Encoding.UTF8.GetBytes(p.Key)); h.AppendData(Encoding.UTF8.GetBytes(p.Value)); }
+            foreach (var t in metadata.Tags.OrderBy(t => t, StringComparer.Ordinal))
+                h.AppendData(Encoding.UTF8.GetBytes(t));
+            foreach (var p in metadata.CustomProperties.OrderBy(k => k.Key, StringComparer.Ordinal))
+            { h.AppendData(Encoding.UTF8.GetBytes(p.Key)); h.AppendData(Encoding.UTF8.GetBytes(p.Value)); }
             return Convert.ToHexString(h.GetHashAndReset());
         }
 
@@ -3123,12 +3317,14 @@ namespace GDNN.Core.Genome
         public static string UpdateTopologyHashForNeuronModification(string prev, int nid,
             NeuronKind oldK, NeuronKind newK, int oldL, int newL)
         {
-            if (oldK == newK && oldL == newL) return prev;
+            if (oldK == newK && oldL == newL)
+                return prev;
             using var h = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             h.AppendData(Convert.FromHexString(prev));
             h.AppendData(new byte[] { 0x01 });
             Span<byte> b = stackalloc byte[4];
-            BinaryPrimitives.WriteInt32BigEndian(b, nid); h.AppendData(b);
+            BinaryPrimitives.WriteInt32BigEndian(b, nid);
+            h.AppendData(b);
             h.AppendData(new byte[] { (byte)oldK, (byte)newK });
             Span<byte> lb = stackalloc byte[8];
             BinaryPrimitives.WriteInt32BigEndian(lb, oldL);
@@ -3165,12 +3361,14 @@ namespace GDNN.Core.Genome
 
         public static string UpdateTopologyHashForWeightChange(string prev, int synId, float oldW, float newW)
         {
-            if (Math.Abs(oldW - newW) < float.Epsilon) return prev;
+            if (Math.Abs(oldW - newW) < float.Epsilon)
+                return prev;
             using var h = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             h.AppendData(Convert.FromHexString(prev));
             h.AppendData(new byte[] { 0x04 });
             Span<byte> b = stackalloc byte[4];
-            BinaryPrimitives.WriteInt32BigEndian(b, synId); h.AppendData(b);
+            BinaryPrimitives.WriteInt32BigEndian(b, synId);
+            h.AppendData(b);
             Span<byte> wb = stackalloc byte[8];
             BinaryPrimitives.WriteInt32BigEndian(wb, BitConverter.SingleToInt32Bits(oldW));
             BinaryPrimitives.WriteInt32BigEndian(wb[4..], BitConverter.SingleToInt32Bits(newW));
@@ -3186,8 +3384,10 @@ namespace GDNN.Core.Genome
                 hash = hash * 31 + genome.Id.GetHashCode();
                 hash = hash * 31 + genome.Neurons.Length;
                 hash = hash * 31 + genome.Synapses.Length;
-                foreach (var n in genome.Neurons) { hash = hash * 31 + n.Id; hash = hash * 31 + (int)n.Kind; hash = hash * 31 + n.LayerIndex; }
-                foreach (var s in genome.Synapses) { hash = hash * 31 + s.Id; hash = hash * 31 + s.SourceNeuronId; hash = hash * 31 + s.TargetNeuronId; hash = hash * 31 + BitConverter.SingleToInt32Bits(s.Weight); }
+                foreach (var n in genome.Neurons)
+                { hash = hash * 31 + n.Id; hash = hash * 31 + (int)n.Kind; hash = hash * 31 + n.LayerIndex; }
+                foreach (var s in genome.Synapses)
+                { hash = hash * 31 + s.Id; hash = hash * 31 + s.SourceNeuronId; hash = hash * 31 + s.TargetNeuronId; hash = hash * 31 + BitConverter.SingleToInt32Bits(s.Weight); }
                 return hash;
             }
         }
@@ -3210,24 +3410,39 @@ namespace GDNN.Core.Genome
             GenomeId tgtId, ImmutableArray<NeuronGene> tgtN, ImmutableArray<SynapseGene> tgtS,
             GenomeMetadata? srcMeta = null, GenomeMetadata? tgtMeta = null)
         {
-            var srcND = srcN.ToDictionary(n => n.Id); var tgtND = tgtN.ToDictionary(n => n.Id);
-            var addedN = ImmutableArray.CreateBuilder<NeuronGene>(); var removedN = ImmutableArray.CreateBuilder<int>();
+            var srcND = srcN.ToDictionary(n => n.Id);
+            var tgtND = tgtN.ToDictionary(n => n.Id);
+            var addedN = ImmutableArray.CreateBuilder<NeuronGene>();
+            var removedN = ImmutableArray.CreateBuilder<int>();
             var modifiedN = ImmutableArray.CreateBuilder<(NeuronGene, NeuronGene)>();
-            foreach (var t in tgtN) { if (srcND.TryGetValue(t.Id, out var s)) { if (!s.Equals(t)) modifiedN.Add((s, t)); } else addedN.Add(t); }
-            foreach (var s in srcN) if (!tgtND.ContainsKey(s.Id)) removedN.Add(s.Id);
+            foreach (var t in tgtN)
+            { if (srcND.TryGetValue(t.Id, out var s)) { if (!s.Equals(t)) modifiedN.Add((s, t)); } else addedN.Add(t); }
+            foreach (var s in srcN)
+                if (!tgtND.ContainsKey(s.Id))
+                    removedN.Add(s.Id);
 
-            var srcSD = srcS.ToDictionary(s => s.Id); var tgtSD = tgtS.ToDictionary(s => s.Id);
-            var addedS = ImmutableArray.CreateBuilder<SynapseGene>(); var removedS = ImmutableArray.CreateBuilder<int>();
+            var srcSD = srcS.ToDictionary(s => s.Id);
+            var tgtSD = tgtS.ToDictionary(s => s.Id);
+            var addedS = ImmutableArray.CreateBuilder<SynapseGene>();
+            var removedS = ImmutableArray.CreateBuilder<int>();
             var modifiedS = ImmutableArray.CreateBuilder<(SynapseGene, SynapseGene)>();
-            foreach (var t in tgtS) { if (srcSD.TryGetValue(t.Id, out var s)) { if (!s.Equals(t)) modifiedS.Add((s, t)); } else addedS.Add(t); }
-            foreach (var s in srcS) if (!tgtSD.ContainsKey(s.Id)) removedS.Add(s.Id);
+            foreach (var t in tgtS)
+            { if (srcSD.TryGetValue(t.Id, out var s)) { if (!s.Equals(t)) modifiedS.Add((s, t)); } else addedS.Add(t); }
+            foreach (var s in srcS)
+                if (!tgtSD.ContainsKey(s.Id))
+                    removedS.Add(s.Id);
 
             GenomeMetadata? metaChanges = (srcMeta != null && tgtMeta != null && !srcMeta.Equals(tgtMeta)) ? tgtMeta : null;
             return new GenomeDiff
             {
-                SourceGenomeId = srcId, TargetGenomeId = tgtId,
-                AddedNeurons = addedN.ToImmutable(), RemovedNeurons = removedN.ToImmutable(), ModifiedNeurons = modifiedN.ToImmutable(),
-                AddedSynapses = addedS.ToImmutable(), RemovedSynapses = removedS.ToImmutable(), ModifiedSynapses = modifiedS.ToImmutable(),
+                SourceGenomeId = srcId,
+                TargetGenomeId = tgtId,
+                AddedNeurons = addedN.ToImmutable(),
+                RemovedNeurons = removedN.ToImmutable(),
+                ModifiedNeurons = modifiedN.ToImmutable(),
+                AddedSynapses = addedS.ToImmutable(),
+                RemovedSynapses = removedS.ToImmutable(),
+                ModifiedSynapses = modifiedS.ToImmutable(),
                 MetadataChanges = metaChanges
             };
         }
@@ -3238,17 +3453,32 @@ namespace GDNN.Core.Genome
         public GeoGenome ApplyDiff(GenomeId srcId, ImmutableArray<NeuronGene> srcN, ImmutableArray<SynapseGene> srcS,
             SpeciesId species, GenomeMetadata srcMeta, GenomeDiff diff)
         {
-            var nd = srcN.ToDictionary(n => n.Id); var sd = srcS.ToDictionary(s => s.Id);
-            foreach (var rid in diff.RemovedNeurons) nd.Remove(rid);
-            foreach (var a in diff.AddedNeurons) nd[a.Id] = a;
-            foreach (var (o, m) in diff.ModifiedNeurons) nd[m.Id] = m;
-            foreach (var rid in diff.RemovedSynapses) sd.Remove(rid);
-            foreach (var a in diff.AddedSynapses) sd[a.Id] = a;
-            foreach (var (o, m) in diff.ModifiedSynapses) sd[m.Id] = m;
+            var nd = srcN.ToDictionary(n => n.Id);
+            var sd = srcS.ToDictionary(s => s.Id);
+            foreach (var rid in diff.RemovedNeurons)
+                nd.Remove(rid);
+            foreach (var a in diff.AddedNeurons)
+                nd[a.Id] = a;
+            foreach (var (o, m) in diff.ModifiedNeurons)
+                nd[m.Id] = m;
+            foreach (var rid in diff.RemovedSynapses)
+                sd.Remove(rid);
+            foreach (var a in diff.AddedSynapses)
+                sd[a.Id] = a;
+            foreach (var (o, m) in diff.ModifiedSynapses)
+                sd[m.Id] = m;
             var meta = diff.MetadataChanges ?? srcMeta;
-            var genome = new GeoGenome { Id = diff.TargetGenomeId, Neurons = ImmutableArray.Create(nd.Values.ToArray()),
-                Synapses = ImmutableArray.Create(sd.Values.ToArray()), Species = species, Metadata = meta,
-                Version = GenomeVersion.Current, CreatedAt = DateTimeOffset.UtcNow, ModifiedAt = DateTimeOffset.UtcNow };
+            var genome = new GeoGenome
+            {
+                Id = diff.TargetGenomeId,
+                Neurons = ImmutableArray.Create(nd.Values.ToArray()),
+                Synapses = ImmutableArray.Create(sd.Values.ToArray()),
+                Species = species,
+                Metadata = meta,
+                Version = GenomeVersion.Current,
+                CreatedAt = DateTimeOffset.UtcNow,
+                ModifiedAt = DateTimeOffset.UtcNow
+            };
             return genome with { TopologyHash = GenomeHasher.ComputeTopologyHash(genome) };
         }
 
@@ -3262,27 +3492,40 @@ namespace GDNN.Core.Genome
             if (baseDiff.SourceGenomeId != otherDiff.SourceGenomeId)
                 throw new ArgumentException("Cannot merge diffs with different source genomes.");
             var an = new Dictionary<int, NeuronGene>();
-            foreach (var n in baseDiff.AddedNeurons) an[n.Id] = n;
-            foreach (var n in otherDiff.AddedNeurons) an[n.Id] = n;
+            foreach (var n in baseDiff.AddedNeurons)
+                an[n.Id] = n;
+            foreach (var n in otherDiff.AddedNeurons)
+                an[n.Id] = n;
             var rn = new HashSet<int>(baseDiff.RemovedNeurons);
-            foreach (var id in otherDiff.RemovedNeurons) rn.Add(id);
+            foreach (var id in otherDiff.RemovedNeurons)
+                rn.Add(id);
             var mn = new Dictionary<int, (NeuronGene, NeuronGene)>();
-            foreach (var m in baseDiff.ModifiedNeurons) mn[m.Original.Id] = m;
-            foreach (var m in otherDiff.ModifiedNeurons) mn[m.Original.Id] = m;
+            foreach (var m in baseDiff.ModifiedNeurons)
+                mn[m.Original.Id] = m;
+            foreach (var m in otherDiff.ModifiedNeurons)
+                mn[m.Original.Id] = m;
             var asy = new Dictionary<int, SynapseGene>();
-            foreach (var s in baseDiff.AddedSynapses) asy[s.Id] = s;
-            foreach (var s in otherDiff.AddedSynapses) asy[s.Id] = s;
+            foreach (var s in baseDiff.AddedSynapses)
+                asy[s.Id] = s;
+            foreach (var s in otherDiff.AddedSynapses)
+                asy[s.Id] = s;
             var rs = new HashSet<int>(baseDiff.RemovedSynapses);
-            foreach (var id in otherDiff.RemovedSynapses) rs.Add(id);
+            foreach (var id in otherDiff.RemovedSynapses)
+                rs.Add(id);
             var ms = new Dictionary<int, (SynapseGene, SynapseGene)>();
-            foreach (var m in baseDiff.ModifiedSynapses) ms[m.Original.Id] = m;
-            foreach (var m in otherDiff.ModifiedSynapses) ms[m.Original.Id] = m;
+            foreach (var m in baseDiff.ModifiedSynapses)
+                ms[m.Original.Id] = m;
+            foreach (var m in otherDiff.ModifiedSynapses)
+                ms[m.Original.Id] = m;
             return new GenomeDiff
             {
-                SourceGenomeId = baseDiff.SourceGenomeId, TargetGenomeId = baseDiff.TargetGenomeId,
-                AddedNeurons = ImmutableArray.Create(an.Values.ToArray()), RemovedNeurons = ImmutableArray.Create(rn.ToArray()),
+                SourceGenomeId = baseDiff.SourceGenomeId,
+                TargetGenomeId = baseDiff.TargetGenomeId,
+                AddedNeurons = ImmutableArray.Create(an.Values.ToArray()),
+                RemovedNeurons = ImmutableArray.Create(rn.ToArray()),
                 ModifiedNeurons = ImmutableArray.Create(mn.Values.ToArray()),
-                AddedSynapses = ImmutableArray.Create(asy.Values.ToArray()), RemovedSynapses = ImmutableArray.Create(rs.ToArray()),
+                AddedSynapses = ImmutableArray.Create(asy.Values.ToArray()),
+                RemovedSynapses = ImmutableArray.Create(rs.ToArray()),
                 ModifiedSynapses = ImmutableArray.Create(ms.Values.ToArray()),
                 MetadataChanges = otherDiff.MetadataChanges ?? baseDiff.MetadataChanges
             };
@@ -3293,20 +3536,30 @@ namespace GDNN.Core.Genome
         {
             var b2l = ComputeDiff(baseGenome, localGenome);
             var b2r = ComputeDiff(baseGenome, remoteGenome);
-            var conflicts = new List<string>(); bool hasConflicts = false;
+            var conflicts = new List<string>();
+            bool hasConflicts = false;
             var lm = b2l.ModifiedNeurons.ToDictionary(m => m.Original.Id);
             var rm = b2r.ModifiedNeurons.ToDictionary(m => m.Original.Id);
-            foreach (var kvp in lm) if (rm.ContainsKey(kvp.Key)) { hasConflicts = true; conflicts.Add($"Conflicting neuron {kvp.Key} mod."); }
+            foreach (var kvp in lm)
+                if (rm.ContainsKey(kvp.Key))
+                { hasConflicts = true; conflicts.Add($"Conflicting neuron {kvp.Key} mod."); }
             var lms = b2l.ModifiedSynapses.ToDictionary(m => m.Original.Id);
             var rms = b2r.ModifiedSynapses.ToDictionary(m => m.Original.Id);
-            foreach (var kvp in lms) if (rms.ContainsKey(kvp.Key)) { hasConflicts = true; conflicts.Add($"Conflicting synapse {kvp.Key} mod."); }
+            foreach (var kvp in lms)
+                if (rms.ContainsKey(kvp.Key))
+                { hasConflicts = true; conflicts.Add($"Conflicting synapse {kvp.Key} mod."); }
             var lrn = new HashSet<int>(b2l.RemovedNeurons);
             var rrn = new HashSet<int>(b2r.RemovedNeurons);
-            foreach (var id in lrn) if (rm.ContainsKey(id)) { hasConflicts = true; conflicts.Add($"Neuron {id} removed locally but modified remotely."); }
-            foreach (var id in rrn) if (lm.ContainsKey(id)) { hasConflicts = true; conflicts.Add($"Neuron {id} removed remotely but modified locally."); }
+            foreach (var id in lrn)
+                if (rm.ContainsKey(id))
+                { hasConflicts = true; conflicts.Add($"Neuron {id} removed locally but modified remotely."); }
+            foreach (var id in rrn)
+                if (lm.ContainsKey(id))
+                { hasConflicts = true; conflicts.Add($"Neuron {id} removed remotely but modified locally."); }
             if (!hasConflicts)
             {
-                try { var merged = MergeDiffs(b2l, b2r); return (ApplyDiff(baseGenome, merged), false, conflicts); }
+                try
+                { var merged = MergeDiffs(b2l, b2r); return (ApplyDiff(baseGenome, merged), false, conflicts); }
                 catch (Exception ex) { conflicts.Add($"Merge failed: {ex.Message}"); return (localGenome, true, conflicts); }
             }
             return (remoteGenome, true, conflicts);
@@ -3339,9 +3592,11 @@ namespace GDNN.Core.Genome
             writer.Write(genome.ModifiedAt.ToUnixTimeMilliseconds());
             WriteMetadata(writer, genome.Metadata);
             writer.Write(genome.Neurons.Length);
-            foreach (var n in genome.Neurons) WriteNeuron(writer, n);
+            foreach (var n in genome.Neurons)
+                WriteNeuron(writer, n);
             writer.Write(genome.Synapses.Length);
-            foreach (var s in genome.Synapses) WriteSynapse(writer, s);
+            foreach (var s in genome.Synapses)
+                WriteSynapse(writer, s);
             return ms.ToArray();
         }
 
@@ -3350,29 +3605,40 @@ namespace GDNN.Core.Genome
             using var ms = new MemoryStream(data);
             using var reader = new BinaryReader(ms, Encoding.UTF8, true);
             var magic = reader.ReadUInt32();
-            if (magic != MagicNumber) throw new InvalidDataException($"Invalid magic number: 0x{magic:X8}");
+            if (magic != MagicNumber)
+                throw new InvalidDataException($"Invalid magic number: 0x{magic:X8}");
             var formatVersion = reader.ReadInt32();
             if (formatVersion > CurrentFormatVersion)
                 throw new InvalidDataException($"Unsupported format version: {formatVersion}");
             var id = new GenomeId(new Guid(reader.ReadBytes(16)));
             var species = new SpeciesId(ReadString(reader));
             var topologyHash = ReadString(reader);
-            var major = reader.ReadInt32(); var minor = reader.ReadInt32(); var patch = reader.ReadInt32();
+            var major = reader.ReadInt32();
+            var minor = reader.ReadInt32();
+            var patch = reader.ReadInt32();
             var version = new GenomeVersion(major, minor, patch);
             var created = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
             var modified = DateTimeOffset.FromUnixTimeMilliseconds(reader.ReadInt64());
             var metadata = ReadMetadata(reader);
             var nCount = reader.ReadInt32();
             var neurons = new NeuronGene[nCount];
-            for (int i = 0; i < nCount; i++) neurons[i] = ReadNeuron(reader);
+            for (int i = 0; i < nCount; i++)
+                neurons[i] = ReadNeuron(reader);
             var sCount = reader.ReadInt32();
             var synapses = new SynapseGene[sCount];
-            for (int i = 0; i < sCount; i++) synapses[i] = ReadSynapse(reader);
+            for (int i = 0; i < sCount; i++)
+                synapses[i] = ReadSynapse(reader);
             return new GeoGenome
             {
-                Id = id, Neurons = ImmutableArray.Create(neurons), Synapses = ImmutableArray.Create(synapses),
-                Species = species, Metadata = metadata, TopologyHash = topologyHash,
-                Version = version, CreatedAt = created, ModifiedAt = modified
+                Id = id,
+                Neurons = ImmutableArray.Create(neurons),
+                Synapses = ImmutableArray.Create(synapses),
+                Species = species,
+                Metadata = metadata,
+                TopologyHash = topologyHash,
+                Version = version,
+                CreatedAt = created,
+                ModifiedAt = modified
             };
         }
 
@@ -3400,7 +3666,8 @@ namespace GDNN.Core.Genome
         public static async Task SerializeToFileAsync(GeoGenome genome, string filePath, SerializationFormat format = SerializationFormat.Binary)
         {
             var dir = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
             switch (format)
             {
                 case SerializationFormat.Binary:
@@ -3417,7 +3684,8 @@ namespace GDNN.Core.Genome
 
         public static async Task<GeoGenome> DeserializeFromFileAsync(string filePath)
         {
-            if (!File.Exists(filePath)) throw new FileNotFoundException($"Genome file not found: {filePath}");
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"Genome file not found: {filePath}");
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
             if (ext == ".json")
             {
@@ -3431,7 +3699,8 @@ namespace GDNN.Core.Genome
         public static string MigrateToVersion(GeoGenome genome, int targetMajor, int targetMinor, int targetPatch)
         {
             var target = new GenomeVersion(targetMajor, targetMinor, targetPatch);
-            if (genome.Version >= target) return "Already at or above target version.";
+            if (genome.Version >= target)
+                return "Already at or above target version.";
             if (genome.Version.Major < 2)
             {
                 // Migration from v1.x to v2.x: add new fields with defaults
@@ -3471,11 +3740,14 @@ namespace GDNN.Core.Genome
             w.Write((byte)m.State);
             w.Write(m.EstimatedMemoryBytes);
             w.Write(m.ParentIds.Length);
-            foreach (var pid in m.ParentIds) w.Write(pid.Value.ToByteArray());
+            foreach (var pid in m.ParentIds)
+                w.Write(pid.Value.ToByteArray());
             w.Write(m.Tags.Count);
-            foreach (var t in m.Tags) WriteString(w, t);
+            foreach (var t in m.Tags)
+                WriteString(w, t);
             w.Write(m.CustomProperties.Count);
-            foreach (var kvp in m.CustomProperties) { WriteString(w, kvp.Key); WriteString(w, kvp.Value); }
+            foreach (var kvp in m.CustomProperties)
+            { WriteString(w, kvp.Key); WriteString(w, kvp.Value); }
         }
 
         private static GenomeMetadata ReadMetadata(BinaryReader r)
@@ -3484,8 +3756,11 @@ namespace GDNN.Core.Genome
             var budget = r.ReadInt32();
             var lod = (LodPolicy)r.ReadByte();
             var lastEvolved = DateTimeOffset.FromUnixTimeMilliseconds(r.ReadInt64());
-            var author = ReadString(r); var license = ReadString(r); var desc = ReadString(r);
-            var gen = r.ReadInt32(); var fitness = r.ReadDouble();
+            var author = ReadString(r);
+            var license = ReadString(r);
+            var desc = ReadString(r);
+            var gen = r.ReadInt32();
+            var fitness = r.ReadDouble();
             var cls = (GenomeClassification)r.ReadByte();
             var strat = (EvolutionStrategy)r.ReadByte();
             var obj = (FitnessObjective)r.ReadByte();
@@ -3493,20 +3768,35 @@ namespace GDNN.Core.Genome
             var memBytes = r.ReadInt64();
             var pCount = r.ReadInt32();
             var parents = ImmutableArray.CreateBuilder<GenomeId>();
-            for (int i = 0; i < pCount; i++) parents.Add(new GenomeId(new Guid(r.ReadBytes(16))));
+            for (int i = 0; i < pCount; i++)
+                parents.Add(new GenomeId(new Guid(r.ReadBytes(16))));
             var tCount = r.ReadInt32();
             var tags = ImmutableHashSet.CreateBuilder(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < tCount; i++) tags.Add(ReadString(r));
+            for (int i = 0; i < tCount; i++)
+                tags.Add(ReadString(r));
             var propCount = r.ReadInt32();
             var props = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < propCount; i++) { var k = ReadString(r); var v = ReadString(r); props[k] = v; }
+            for (int i = 0; i < propCount; i++)
+            { var k = ReadString(r); var v = ReadString(r); props[k] = v; }
             return new GenomeMetadata
             {
-                SemanticTag = tag, ComplexityBudget = budget, LodPolicy = lod, LastEvolved = lastEvolved,
-                Author = author, License = license, Description = desc, Generation = gen, FitnessScore = fitness,
-                Classification = cls, Strategy = strat, Objective = obj, State = state,
-                EstimatedMemoryBytes = memBytes, ParentIds = parents.ToImmutable(),
-                Tags = tags.ToImmutable(), CustomProperties = props.ToImmutable()
+                SemanticTag = tag,
+                ComplexityBudget = budget,
+                LodPolicy = lod,
+                LastEvolved = lastEvolved,
+                Author = author,
+                License = license,
+                Description = desc,
+                Generation = gen,
+                FitnessScore = fitness,
+                Classification = cls,
+                Strategy = strat,
+                Objective = obj,
+                State = state,
+                EstimatedMemoryBytes = memBytes,
+                ParentIds = parents.ToImmutable(),
+                Tags = tags.ToImmutable(),
+                CustomProperties = props.ToImmutable()
             };
         }
 
@@ -3515,20 +3805,27 @@ namespace GDNN.Core.Genome
             w.Write(n.Id);
             w.Write((byte)n.Kind);
             w.Write((byte)n.Activation);
-            w.Write(n.Bias.X); w.Write(n.Bias.Y); w.Write(n.Bias.Z);
+            w.Write(n.Bias.X);
+            w.Write(n.Bias.Y);
+            w.Write(n.Bias.Z);
             w.Write(n.WeightScale);
             w.Write(n.Parameters.Count);
-            foreach (var kvp in n.Parameters) { WriteString(w, kvp.Key); w.Write(kvp.Value); }
+            foreach (var kvp in n.Parameters)
+            { WriteString(w, kvp.Key); w.Write(kvp.Value); }
             w.Write(n.SynapseTargets.Length);
-            foreach (var t in n.SynapseTargets) w.Write(t);
+            foreach (var t in n.SynapseTargets)
+                w.Write(t);
             w.Write(n.LayerIndex);
             w.Write(n.IsEnabled);
             w.Write((byte)n.SemanticRole);
             w.Write(n.ActivationParameter);
             w.Write(n.ActivationParameter2);
-            w.Write(n.Position.X); w.Write(n.Position.Y); w.Write(n.Position.Z);
+            w.Write(n.Position.X);
+            w.Write(n.Position.Y);
+            w.Write(n.Position.Z);
             w.Write(n.LastModified.ToUnixTimeMilliseconds());
-            w.Write(n.FanIn); w.Write(n.FanOut);
+            w.Write(n.FanIn);
+            w.Write(n.FanOut);
             w.Write(n.ComputeCost);
             w.Write(n.IsTrainable);
             w.Write(n.EstimatedMemoryBytes);
@@ -3539,56 +3836,102 @@ namespace GDNN.Core.Genome
             var id = r.ReadInt32();
             var kind = (NeuronKind)r.ReadByte();
             var act = (ActivationKernel)r.ReadByte();
-            var bx = r.ReadSingle(); var by = r.ReadSingle(); var bz = r.ReadSingle();
+            var bx = r.ReadSingle();
+            var by = r.ReadSingle();
+            var bz = r.ReadSingle();
             var ws = r.ReadSingle();
             var pCount = r.ReadInt32();
             var pDict = ImmutableDictionary<string, float>.Empty;
-            for (int i = 0; i < pCount; i++) { var k = ReadString(r); var v = r.ReadSingle(); pDict = pDict.SetItem(k, v); }
+            for (int i = 0; i < pCount; i++)
+            { var k = ReadString(r); var v = r.ReadSingle(); pDict = pDict.SetItem(k, v); }
             var tCount = r.ReadInt32();
             var targets = ImmutableArray.CreateBuilder<int>();
-            for (int i = 0; i < tCount; i++) targets.Add(r.ReadInt32());
+            for (int i = 0; i < tCount; i++)
+                targets.Add(r.ReadInt32());
             var layer = r.ReadInt32();
             var enabled = r.ReadByte() != 0;
             var role = (NeuronSemanticRole)r.ReadByte();
-            var ap1 = r.ReadSingle(); var ap2 = r.ReadSingle();
-            var px = r.ReadSingle(); var py = r.ReadSingle(); var pz = r.ReadSingle();
+            var ap1 = r.ReadSingle();
+            var ap2 = r.ReadSingle();
+            var px = r.ReadSingle();
+            var py = r.ReadSingle();
+            var pz = r.ReadSingle();
             var lastMod = DateTimeOffset.FromUnixTimeMilliseconds(r.ReadInt64());
-            var fi = r.ReadInt32(); var fo = r.ReadInt32();
-            var cc = r.ReadSingle(); var trainable = r.ReadByte() != 0; var mem = r.ReadInt32();
+            var fi = r.ReadInt32();
+            var fo = r.ReadInt32();
+            var cc = r.ReadSingle();
+            var trainable = r.ReadByte() != 0;
+            var mem = r.ReadInt32();
             return new NeuronGene
             {
-                Id = id, Kind = kind, Activation = act,
-                Bias = new Vector3(bx, by, bz), WeightScale = ws, Parameters = pDict,
-                SynapseTargets = targets.ToImmutable(), LayerIndex = layer, IsEnabled = enabled,
-                SemanticRole = role, ActivationParameter = ap1, ActivationParameter2 = ap2,
-                Position = new Vector3(px, py, pz), LastModified = lastMod,
-                FanIn = fi, FanOut = fo, ComputeCost = cc, IsTrainable = trainable, EstimatedMemoryBytes = mem
+                Id = id,
+                Kind = kind,
+                Activation = act,
+                Bias = new Vector3(bx, by, bz),
+                WeightScale = ws,
+                Parameters = pDict,
+                SynapseTargets = targets.ToImmutable(),
+                LayerIndex = layer,
+                IsEnabled = enabled,
+                SemanticRole = role,
+                ActivationParameter = ap1,
+                ActivationParameter2 = ap2,
+                Position = new Vector3(px, py, pz),
+                LastModified = lastMod,
+                FanIn = fi,
+                FanOut = fo,
+                ComputeCost = cc,
+                IsTrainable = trainable,
+                EstimatedMemoryBytes = mem
             };
         }
 
         private static void WriteSynapse(BinaryWriter w, SynapseGene s)
         {
-            w.Write(s.Id); w.Write(s.SourceNeuronId); w.Write(s.TargetNeuronId);
-            w.Write(s.Weight); w.Write(s.Plasticity); w.Write(s.LearningRate); w.Write(s.Delay);
-            w.Write(s.IsPlastic); w.Write((byte)s.SynapseType);
-            w.Write(s.WeightDecay); w.Write(s.MaxWeight); w.Write(s.MinWeight);
-            w.Write(s.IsEnabled); w.Write(s.Confidence); w.Write(s.LayerDistance);
-            w.Write(s.EstimatedLatencyUs); w.Write(s.UsageFrequency);
-            w.Write(s.InitialWeight); w.Write(s.UpdateCount);
+            w.Write(s.Id);
+            w.Write(s.SourceNeuronId);
+            w.Write(s.TargetNeuronId);
+            w.Write(s.Weight);
+            w.Write(s.Plasticity);
+            w.Write(s.LearningRate);
+            w.Write(s.Delay);
+            w.Write(s.IsPlastic);
+            w.Write((byte)s.SynapseType);
+            w.Write(s.WeightDecay);
+            w.Write(s.MaxWeight);
+            w.Write(s.MinWeight);
+            w.Write(s.IsEnabled);
+            w.Write(s.Confidence);
+            w.Write(s.LayerDistance);
+            w.Write(s.EstimatedLatencyUs);
+            w.Write(s.UsageFrequency);
+            w.Write(s.InitialWeight);
+            w.Write(s.UpdateCount);
         }
 
         private static SynapseGene ReadSynapse(BinaryReader r)
         {
             return new SynapseGene
             {
-                Id = r.ReadInt32(), SourceNeuronId = r.ReadInt32(), TargetNeuronId = r.ReadInt32(),
-                Weight = r.ReadSingle(), Plasticity = r.ReadSingle(), LearningRate = r.ReadSingle(),
-                Delay = r.ReadSingle(), IsPlastic = r.ReadByte() != 0,
+                Id = r.ReadInt32(),
+                SourceNeuronId = r.ReadInt32(),
+                TargetNeuronId = r.ReadInt32(),
+                Weight = r.ReadSingle(),
+                Plasticity = r.ReadSingle(),
+                LearningRate = r.ReadSingle(),
+                Delay = r.ReadSingle(),
+                IsPlastic = r.ReadByte() != 0,
                 SynapseType = (SynapseType)r.ReadByte(),
-                WeightDecay = r.ReadSingle(), MaxWeight = r.ReadSingle(), MinWeight = r.ReadSingle(),
-                IsEnabled = r.ReadByte() != 0, Confidence = r.ReadSingle(), LayerDistance = r.ReadInt32(),
-                EstimatedLatencyUs = r.ReadSingle(), UsageFrequency = r.ReadSingle(),
-                InitialWeight = r.ReadSingle(), UpdateCount = r.ReadInt32()
+                WeightDecay = r.ReadSingle(),
+                MaxWeight = r.ReadSingle(),
+                MinWeight = r.ReadSingle(),
+                IsEnabled = r.ReadByte() != 0,
+                Confidence = r.ReadSingle(),
+                LayerDistance = r.ReadInt32(),
+                EstimatedLatencyUs = r.ReadSingle(),
+                UsageFrequency = r.ReadSingle(),
+                InitialWeight = r.ReadSingle(),
+                UpdateCount = r.ReadInt32()
             };
         }
     }
@@ -3694,7 +4037,8 @@ namespace GDNN.Core.Genome
 
         public static float GetSparsity(this GeoGenome g)
         {
-            if (g.Neurons.Length <= 1) return 0f;
+            if (g.Neurons.Length <= 1)
+                return 0f;
             int maxPossible = g.Neurons.Length * (g.Neurons.Length - 1);
             return maxPossible > 0 ? 1.0f - (float)g.Synapses.Length / maxPossible : 0f;
         }
@@ -3705,7 +4049,8 @@ namespace GDNN.Core.Genome
             {
                 var src = g.GetNeuron(s.SourceNeuronId);
                 var tgt = g.GetNeuron(s.TargetNeuronId);
-                if (src.HasValue && tgt.HasValue && src.Value.LayerIndex > tgt.Value.LayerIndex) return false;
+                if (src.HasValue && tgt.HasValue && src.Value.LayerIndex > tgt.Value.LayerIndex)
+                    return false;
             }
             return true;
         }
@@ -3713,12 +4058,16 @@ namespace GDNN.Core.Genome
         public static GeoGenome TopologicalSort(this GeoGenome g)
         {
             var builder = GeoGenomeBuilder.Create().WithStrictValidation(false);
-            foreach (var n in g.Neurons) builder.AddNeuron(n);
-            foreach (var s in g.Synapses) builder.AddSynapse(s);
+            foreach (var n in g.Neurons)
+                builder.AddNeuron(n);
+            foreach (var s in g.Synapses)
+                builder.AddSynapse(s);
             var order = builder.ComputeTopologicalOrder();
-            if (order == null) return g;
+            if (order == null)
+                return g;
             var layerMap = new Dictionary<int, int>();
-            for (int i = 0; i < order.Value.Length; i++) layerMap[order.Value[i]] = i;
+            for (int i = 0; i < order.Value.Length; i++)
+                layerMap[order.Value[i]] = i;
             var neurons = ImmutableArray.Create(g.Neurons.Select(n =>
                 n with { LayerIndex = layerMap.TryGetValue(n.Id, out var l) ? l : n.LayerIndex }).ToArray());
             return g with { Neurons = neurons, ModifiedAt = DateTimeOffset.UtcNow };
@@ -3739,7 +4088,8 @@ namespace GDNN.Core.Genome
 
         public static bool IsConnected(this GeoGenome g)
         {
-            if (g.Neurons.Length <= 1) return true;
+            if (g.Neurons.Length <= 1)
+                return true;
             var report = new GenomeValidator().ValidateConnectivity(g.Id, g.Neurons, g.Synapses);
             return report.DisconnectedComponentCount <= 1;
         }
@@ -3750,9 +4100,13 @@ namespace GDNN.Core.Genome
         {
             return new GenomePerformanceMetrics
             {
-                FrameTimeMs = frameTimeMs, DrawCalls = drawCalls, Triangles = triangles,
-                ActiveNeurons = g.EnabledNeuronCount, ActiveSynapses = g.EnabledSynapseCount,
-                GpuMemoryBytes = g.EstimatedMemoryBytes, CpuMemoryBytes = g.EstimatedMemoryBytes / 2
+                FrameTimeMs = frameTimeMs,
+                DrawCalls = drawCalls,
+                Triangles = triangles,
+                ActiveNeurons = g.EnabledNeuronCount,
+                ActiveSynapses = g.EnabledSynapseCount,
+                GpuMemoryBytes = g.EstimatedMemoryBytes,
+                CpuMemoryBytes = g.EstimatedMemoryBytes / 2
             };
         }
     }
@@ -3814,7 +4168,8 @@ namespace GDNN.Core.Genome
 
         public bool Add(GeoGenome genome)
         {
-            if (!_pool.TryAdd(genome.Id, genome)) return false;
+            if (!_pool.TryAdd(genome.Id, genome))
+                return false;
             Interlocked.Add(ref _totalMemoryEstimate, genome.EstimatedMemoryBytes);
             Interlocked.Increment(ref _addCount);
             _speciesIndex.GetOrAdd(genome.Species, _ => new ConcurrentBag<GenomeId>()).Add(genome.Id);
@@ -3825,7 +4180,8 @@ namespace GDNN.Core.Genome
 
         public bool Remove(GenomeId id)
         {
-            if (!_pool.TryRemove(id, out var genome)) return false;
+            if (!_pool.TryRemove(id, out var genome))
+                return false;
             Interlocked.Add(ref _totalMemoryEstimate, -genome.EstimatedMemoryBytes);
             Interlocked.Increment(ref _removeCount);
             return true;
@@ -3837,19 +4193,23 @@ namespace GDNN.Core.Genome
 
         public ImmutableArray<GeoGenome> FindBySpecies(SpeciesId species)
         {
-            if (!_speciesIndex.TryGetValue(species, out var ids)) return ImmutableArray<GeoGenome>.Empty;
+            if (!_speciesIndex.TryGetValue(species, out var ids))
+                return ImmutableArray<GeoGenome>.Empty;
             var result = ImmutableArray.CreateBuilder<GeoGenome>();
             foreach (var id in ids)
-                if (_pool.TryGetValue(id, out var g)) result.Add(g);
+                if (_pool.TryGetValue(id, out var g))
+                    result.Add(g);
             return result.ToImmutable();
         }
 
         public ImmutableArray<GeoGenome> FindByTag(string tag)
         {
-            if (!_tagIndex.TryGetValue(tag, out var ids)) return ImmutableArray<GeoGenome>.Empty;
+            if (!_tagIndex.TryGetValue(tag, out var ids))
+                return ImmutableArray<GeoGenome>.Empty;
             var result = ImmutableArray.CreateBuilder<GeoGenome>();
             foreach (var id in ids)
-                if (_pool.TryGetValue(id, out var g)) result.Add(g);
+                if (_pool.TryGetValue(id, out var g))
+                    result.Add(g);
             return result.ToImmutable();
         }
 
@@ -3857,7 +4217,8 @@ namespace GDNN.Core.Genome
         {
             var result = ImmutableArray.CreateBuilder<GeoGenome>();
             foreach (var g in _pool.Values)
-                if (g.ContainsNeuronKind(kind)) result.Add(g);
+                if (g.ContainsNeuronKind(kind))
+                    result.Add(g);
             return result.ToImmutable();
         }
 
@@ -3865,7 +4226,8 @@ namespace GDNN.Core.Genome
         {
             var result = ImmutableArray.CreateBuilder<GeoGenome>();
             foreach (var g in _pool.Values)
-                if (g.Metadata.Classification == cls) result.Add(g);
+                if (g.Metadata.Classification == cls)
+                    result.Add(g);
             return result.ToImmutable();
         }
 
@@ -3873,7 +4235,8 @@ namespace GDNN.Core.Genome
         {
             var result = ImmutableArray.CreateBuilder<GeoGenome>();
             foreach (var g in _pool.Values)
-                if (g.Metadata.State == state) result.Add(g);
+                if (g.Metadata.State == state)
+                    result.Add(g);
             return result.ToImmutable();
         }
 
@@ -3881,7 +4244,8 @@ namespace GDNN.Core.Genome
         {
             var result = ImmutableArray.CreateBuilder<GeoGenome>();
             foreach (var g in _pool.Values)
-                if (g.Metadata.FitnessScore >= min && g.Metadata.FitnessScore <= max) result.Add(g);
+                if (g.Metadata.FitnessScore >= min && g.Metadata.FitnessScore <= max)
+                    result.Add(g);
             return result.ToImmutable();
         }
 
@@ -3889,7 +4253,8 @@ namespace GDNN.Core.Genome
         {
             GeoGenome? best = null;
             foreach (var g in _pool.Values)
-                if (best == null || g.Metadata.FitnessScore > best.Value.Metadata.FitnessScore) best = g;
+                if (best == null || g.Metadata.FitnessScore > best.Value.Metadata.FitnessScore)
+                    best = g;
             return best;
         }
 
@@ -3897,7 +4262,8 @@ namespace GDNN.Core.Genome
         {
             GeoGenome? worst = null;
             foreach (var g in _pool.Values)
-                if (worst == null || g.Metadata.FitnessScore < worst.Value.Metadata.FitnessScore) worst = g;
+                if (worst == null || g.Metadata.FitnessScore < worst.Value.Metadata.FitnessScore)
+                    worst = g;
             return worst;
         }
 
@@ -3937,7 +4303,8 @@ namespace GDNN.Core.Genome
         public IEnumerable<GeoGenome> Query(Func<GeoGenome, bool> predicate)
         {
             foreach (var g in _pool.Values)
-                if (predicate(g)) yield return g;
+                if (predicate(g))
+                    yield return g;
         }
 
         public int RemoveWhere(Func<GeoGenome, bool> predicate)
@@ -3945,7 +4312,8 @@ namespace GDNN.Core.Genome
             int count = 0;
             var toRemove = new List<GenomeId>();
             foreach (var kvp in _pool)
-                if (predicate(kvp.Value)) toRemove.Add(kvp.Key);
+                if (predicate(kvp.Value))
+                    toRemove.Add(kvp.Key);
             foreach (var id in toRemove)
             {
                 if (_pool.TryRemove(id, out var genome))
@@ -4006,7 +4374,8 @@ namespace GDNN.Core.Genome
 
         public bool Register(GeoGenome genome)
         {
-            if (!_genomes.TryAdd(genome.Id, genome)) return false;
+            if (!_genomes.TryAdd(genome.Id, genome))
+                return false;
             Interlocked.Increment(ref _registrationCount);
             GenomeRegistered?.Invoke(this, new GenomeRegisteredEventArgs(genome.Id, genome.Species));
             return true;
@@ -4014,7 +4383,8 @@ namespace GDNN.Core.Genome
 
         public bool Unregister(GenomeId id)
         {
-            if (!_genomes.TryRemove(id, out _)) return false;
+            if (!_genomes.TryRemove(id, out _))
+                return false;
             Interlocked.Increment(ref _unregistrationCount);
             _profiles.TryRemove(id, out _);
             _evolutionHistory.TryRemove(id, out _);
@@ -4029,7 +4399,8 @@ namespace GDNN.Core.Genome
 
         public bool Update(GeoGenome genome)
         {
-            if (!_genomes.ContainsKey(genome.Id)) return false;
+            if (!_genomes.ContainsKey(genome.Id))
+                return false;
             _genomes[genome.Id] = genome;
             GenomeModified?.Invoke(this, new GenomeModifiedEventArgs(genome.Id));
             return true;
@@ -4058,21 +4429,26 @@ namespace GDNN.Core.Genome
         public IReadOnlyList<GenomeEvolutionEvent> GetEvolutionHistory(GenomeId genomeId)
         {
             if (_evolutionHistory.TryGetValue(genomeId, out var history))
-                lock (history) { return history.ToArray(); }
+                lock (history)
+                { return history.ToArray(); }
             return Array.Empty<GenomeEvolutionEvent>();
         }
 
         public IReadOnlyList<GenomeEvolutionEvent> GetGlobalEvolutionHistory()
         {
-            lock (_historyLock) { return _globalHistory.ToArray(); }
+            lock (_historyLock)
+            { return _globalHistory.ToArray(); }
         }
 
         public bool CreateSnapshot(GenomeId genomeId, string label = "", string description = "")
         {
-            if (!_genomes.TryGetValue(genomeId, out var genome)) return false;
+            if (!_genomes.TryGetValue(genomeId, out var genome))
+                return false;
             var snapshot = new GenomeSnapshot
             {
-                Genome = genome, Label = label, Description = description,
+                Genome = genome,
+                Label = label,
+                Description = description,
                 StackIndex = _snapshots.GetOrAdd(genomeId, _ => new List<GenomeSnapshot>()).Count
             };
             _snapshots.AddOrUpdate(genomeId,
@@ -4083,21 +4459,26 @@ namespace GDNN.Core.Genome
 
         public GenomeSnapshot? GetSnapshot(GenomeId genomeId, int stackIndex)
         {
-            if (!_snapshots.TryGetValue(genomeId, out var list)) return null;
-            lock (list) { return list.FirstOrDefault(s => s.StackIndex == stackIndex); }
+            if (!_snapshots.TryGetValue(genomeId, out var list))
+                return null;
+            lock (list)
+            { return list.FirstOrDefault(s => s.StackIndex == stackIndex); }
         }
 
         public IReadOnlyList<GenomeSnapshot> GetAllSnapshots(GenomeId genomeId)
         {
-            if (!_snapshots.TryGetValue(genomeId, out var list)) return Array.Empty<GenomeSnapshot>();
-            lock (list) { return list.ToArray(); }
+            if (!_snapshots.TryGetValue(genomeId, out var list))
+                return Array.Empty<GenomeSnapshot>();
+            lock (list)
+            { return list.ToArray(); }
         }
 
         public ImmutableArray<GeoGenome> Query(Func<GeoGenome, bool> predicate)
         {
             var result = ImmutableArray.CreateBuilder<GeoGenome>();
             foreach (var g in _genomes.Values)
-                if (predicate(g)) result.Add(g);
+                if (predicate(g))
+                    result.Add(g);
             return result.ToImmutable();
         }
 
@@ -4105,7 +4486,8 @@ namespace GDNN.Core.Genome
         {
             var result = ImmutableArray.CreateBuilder<GeoGenome>();
             foreach (var g in _genomes.Values)
-                if (g.Species == species) result.Add(g);
+                if (g.Species == species)
+                    result.Add(g);
             return result.ToImmutable();
         }
 
@@ -4113,7 +4495,8 @@ namespace GDNN.Core.Genome
         {
             var result = ImmutableArray.CreateBuilder<GeoGenome>();
             foreach (var g in _genomes.Values)
-                if (g.Metadata.State == state) result.Add(g);
+                if (g.Metadata.State == state)
+                    result.Add(g);
             return result.ToImmutable();
         }
 
@@ -4121,7 +4504,8 @@ namespace GDNN.Core.Genome
         {
             var result = ImmutableArray.CreateBuilder<GeoGenome>();
             foreach (var g in _genomes.Values)
-                if (g.Metadata.Classification == cls) result.Add(g);
+                if (g.Metadata.Classification == cls)
+                    result.Add(g);
             return result.ToImmutable();
         }
 
@@ -4147,7 +4531,8 @@ namespace GDNN.Core.Genome
             _profiles.Clear();
             _evolutionHistory.Clear();
             _snapshots.Clear();
-            lock (_historyLock) { _globalHistory.Clear(); }
+            lock (_historyLock)
+            { _globalHistory.Clear(); }
         }
     }
 
@@ -4182,7 +4567,8 @@ namespace GDNN.Core.Genome
             var size = genome.NeuronCount;
             var matrix = new int[size, size];
             var idToIndex = new Dictionary<int, int>();
-            for (int i = 0; i < genome.Neurons.Length; i++) idToIndex[genome.Neurons[i].Id] = i;
+            for (int i = 0; i < genome.Neurons.Length; i++)
+                idToIndex[genome.Neurons[i].Id] = i;
             foreach (var s in genome.Synapses)
                 if (idToIndex.TryGetValue(s.SourceNeuronId, out var src) && idToIndex.TryGetValue(s.TargetNeuronId, out var tgt))
                     matrix[src, tgt] = 1;
@@ -4193,17 +4579,21 @@ namespace GDNN.Core.Genome
         {
             var inDeg = new Dictionary<int, int>();
             var outDeg = new Dictionary<int, int>();
-            foreach (var n in genome.Neurons) { inDeg[n.Id] = 0; outDeg[n.Id] = 0; }
+            foreach (var n in genome.Neurons)
+            { inDeg[n.Id] = 0; outDeg[n.Id] = 0; }
             foreach (var s in genome.Synapses)
             {
-                if (inDeg.ContainsKey(s.TargetNeuronId)) inDeg[s.TargetNeuronId]++;
-                if (outDeg.ContainsKey(s.SourceNeuronId)) outDeg[s.SourceNeuronId]++;
+                if (inDeg.ContainsKey(s.TargetNeuronId))
+                    inDeg[s.TargetNeuronId]++;
+                if (outDeg.ContainsKey(s.SourceNeuronId))
+                    outDeg[s.SourceNeuronId]++;
             }
             var dist = new Dictionary<int, int>();
             foreach (var n in genome.Neurons)
             {
                 var total = (inDeg.TryGetValue(n.Id, out var ind) ? ind : 0) + (outDeg.TryGetValue(n.Id, out var oud) ? oud : 0);
-                if (!dist.ContainsKey(total)) dist[total] = 0;
+                if (!dist.ContainsKey(total))
+                    dist[total] = 0;
                 dist[total]++;
             }
             return dist;
@@ -4212,22 +4602,27 @@ namespace GDNN.Core.Genome
         public static Dictionary<int, float> ComputeClusteringCoefficients(GeoGenome genome)
         {
             var neighbors = new Dictionary<int, HashSet<int>>();
-            foreach (var n in genome.Neurons) neighbors[n.Id] = new HashSet<int>();
+            foreach (var n in genome.Neurons)
+                neighbors[n.Id] = new HashSet<int>();
             foreach (var s in genome.Synapses)
             {
-                if (neighbors.ContainsKey(s.SourceNeuronId)) neighbors[s.SourceNeuronId].Add(s.TargetNeuronId);
-                if (neighbors.ContainsKey(s.TargetNeuronId)) neighbors[s.TargetNeuronId].Add(s.SourceNeuronId);
+                if (neighbors.ContainsKey(s.SourceNeuronId))
+                    neighbors[s.SourceNeuronId].Add(s.TargetNeuronId);
+                if (neighbors.ContainsKey(s.TargetNeuronId))
+                    neighbors[s.TargetNeuronId].Add(s.SourceNeuronId);
             }
             var coeffs = new Dictionary<int, float>();
             foreach (var n in genome.Neurons)
             {
                 var nbs = neighbors[n.Id];
-                if (nbs.Count < 2) { coeffs[n.Id] = 0f; continue; }
+                if (nbs.Count < 2)
+                { coeffs[n.Id] = 0f; continue; }
                 int triangles = 0;
                 var nbArr = nbs.ToArray();
                 for (int i = 0; i < nbArr.Length; i++)
                     for (int j = i + 1; j < nbArr.Length; j++)
-                        if (neighbors[nbArr[i]].Contains(nbArr[j])) triangles++;
+                        if (neighbors[nbArr[i]].Contains(nbArr[j]))
+                            triangles++;
                 coeffs[n.Id] = (float)triangles / (nbs.Count * (nbs.Count - 1) / 2);
             }
             return coeffs;
@@ -4238,7 +4633,8 @@ namespace GDNN.Core.Genome
             var n = genome.NeuronCount;
             var dist = new int[n, n];
             var idToIndex = new Dictionary<int, int>();
-            for (int i = 0; i < genome.Neurons.Length; i++) idToIndex[genome.Neurons[i].Id] = i;
+            for (int i = 0; i < genome.Neurons.Length; i++)
+                idToIndex[genome.Neurons[i].Id] = i;
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n; j++)
                     dist[i, j] = (i == j) ? 0 : int.MaxValue / 2;
@@ -4259,7 +4655,8 @@ namespace GDNN.Core.Genome
             int maxDist = 0;
             for (int i = 0; i < dist.GetLength(0); i++)
                 for (int j = 0; j < dist.GetLength(1); j++)
-                    if (dist[i, j] < int.MaxValue / 2 && dist[i, j] > maxDist) maxDist = dist[i, j];
+                    if (dist[i, j] < int.MaxValue / 2 && dist[i, j] > maxDist)
+                        maxDist = dist[i, j];
             return maxDist;
         }
 
@@ -4271,8 +4668,10 @@ namespace GDNN.Core.Genome
             {
                 int ecc = 0;
                 for (int j = 0; j < dist.GetLength(1); j++)
-                    if (dist[i, j] < int.MaxValue / 2 && dist[i, j] > ecc) ecc = dist[i, j];
-                if (ecc < minEcc) minEcc = ecc;
+                    if (dist[i, j] < int.MaxValue / 2 && dist[i, j] > ecc)
+                        ecc = dist[i, j];
+                if (ecc < minEcc)
+                    minEcc = ecc;
             }
             return minEcc;
         }
@@ -4280,20 +4679,24 @@ namespace GDNN.Core.Genome
         public static ImmutableArray<int> FindSourceNeurons(GeoGenome genome)
         {
             var hasIncoming = new HashSet<int>();
-            foreach (var s in genome.Synapses) hasIncoming.Add(s.TargetNeuronId);
+            foreach (var s in genome.Synapses)
+                hasIncoming.Add(s.TargetNeuronId);
             var sources = ImmutableArray.CreateBuilder<int>();
             foreach (var n in genome.Neurons)
-                if (!hasIncoming.Contains(n.Id)) sources.Add(n.Id);
+                if (!hasIncoming.Contains(n.Id))
+                    sources.Add(n.Id);
             return sources.ToImmutable();
         }
 
         public static ImmutableArray<int> FindSinkNeurons(GeoGenome genome)
         {
             var hasOutgoing = new HashSet<int>();
-            foreach (var s in genome.Synapses) hasOutgoing.Add(s.SourceNeuronId);
+            foreach (var s in genome.Synapses)
+                hasOutgoing.Add(s.SourceNeuronId);
             var sinks = ImmutableArray.CreateBuilder<int>();
             foreach (var n in genome.Neurons)
-                if (!hasOutgoing.Contains(n.Id)) sinks.Add(n.Id);
+                if (!hasOutgoing.Contains(n.Id))
+                    sinks.Add(n.Id);
             return sinks.ToImmutable();
         }
 
@@ -4302,9 +4705,11 @@ namespace GDNN.Core.Genome
             var n = genome.NeuronCount;
             var idToIndex = new Dictionary<int, int>();
             var indexToId = new Dictionary<int, int>();
-            for (int i = 0; i < genome.Neurons.Length; i++) { idToIndex[genome.Neurons[i].Id] = i; indexToId[i] = genome.Neurons[i].Id; }
+            for (int i = 0; i < genome.Neurons.Length; i++)
+            { idToIndex[genome.Neurons[i].Id] = i; indexToId[i] = genome.Neurons[i].Id; }
             var adj = new List<int>[n];
-            for (int i = 0; i < n; i++) adj[i] = new List<int>();
+            for (int i = 0; i < n; i++)
+                adj[i] = new List<int>();
             foreach (var s in genome.Synapses)
             {
                 if (idToIndex.TryGetValue(s.SourceNeuronId, out var src) && idToIndex.TryGetValue(s.TargetNeuronId, out var tgt))
@@ -4315,38 +4720,49 @@ namespace GDNN.Core.Genome
             {
                 var stack = new Stack<int>();
                 var predecessors = new List<int>[n];
-                for (int i = 0; i < n; i++) predecessors[i] = new List<int>();
+                for (int i = 0; i < n; i++)
+                    predecessors[i] = new List<int>();
                 var sigma = new float[n];
                 var dist = new int[n];
-                for (int i = 0; i < n; i++) { sigma[i] = 0; dist[i] = -1; }
-                sigma[s] = 1; dist[s] = 0;
-                var queue = new Queue<int>(); queue.Enqueue(s);
+                for (int i = 0; i < n; i++)
+                { sigma[i] = 0; dist[i] = -1; }
+                sigma[s] = 1;
+                dist[s] = 0;
+                var queue = new Queue<int>();
+                queue.Enqueue(s);
                 while (queue.Count > 0)
                 {
-                    var v = queue.Dequeue(); stack.Push(v);
+                    var v = queue.Dequeue();
+                    stack.Push(v);
                     foreach (var w in adj[v])
                     {
-                        if (dist[w] < 0) { dist[w] = dist[v] + 1; queue.Enqueue(w); }
-                        if (dist[w] == dist[v] + 1) { sigma[w] += sigma[v]; predecessors[w].Add(v); }
+                        if (dist[w] < 0)
+                        { dist[w] = dist[v] + 1; queue.Enqueue(w); }
+                        if (dist[w] == dist[v] + 1)
+                        { sigma[w] += sigma[v]; predecessors[w].Add(v); }
                     }
                 }
                 var delta = new float[n];
                 while (stack.Count > 0)
                 {
                     var w = stack.Pop();
-                    foreach (var v in predecessors[w]) delta[v] += (sigma[v] / sigma[w]) * (1 + delta[w]);
-                    if (w != s) centrality[w] += delta[w];
+                    foreach (var v in predecessors[w])
+                        delta[v] += (sigma[v] / sigma[w]) * (1 + delta[w]);
+                    if (w != s)
+                        centrality[w] += delta[w];
                 }
             }
             var result = new Dictionary<int, float>();
-            for (int i = 0; i < n; i++) result[indexToId[i]] = centrality[i];
+            for (int i = 0; i < n; i++)
+                result[indexToId[i]] = centrality[i];
             return result;
         }
 
         public static float ComputeDensity(GeoGenome genome)
         {
             var n = genome.NeuronCount;
-            if (n <= 1) return 0f;
+            if (n <= 1)
+                return 0f;
             int maxEdges = n * (n - 1);
             return maxEdges > 0 ? (float)genome.SynapseCount / maxEdges : 0f;
         }
@@ -4357,27 +4773,38 @@ namespace GDNN.Core.Genome
             int totalDist = 0, count = 0;
             for (int i = 0; i < dist.GetLength(0); i++)
                 for (int j = 0; j < dist.GetLength(1); j++)
-                    if (i != j && dist[i, j] < int.MaxValue / 2) { totalDist += dist[i, j]; count++; }
+                    if (i != j && dist[i, j] < int.MaxValue / 2)
+                    { totalDist += dist[i, j]; count++; }
             return count > 0 ? (float)totalDist / count : 0f;
         }
 
         public static int CountConnectedComponents(GeoGenome genome)
         {
-            if (genome.NeuronCount == 0) return 0;
+            if (genome.NeuronCount == 0)
+                return 0;
             var adj = new Dictionary<int, List<int>>();
-            foreach (var n in genome.Neurons) adj[n.Id] = new List<int>();
+            foreach (var n in genome.Neurons)
+                adj[n.Id] = new List<int>();
             foreach (var s in genome.Synapses)
             {
-                if (adj.ContainsKey(s.SourceNeuronId)) adj[s.SourceNeuronId].Add(s.TargetNeuronId);
-                if (adj.ContainsKey(s.TargetNeuronId)) adj[s.TargetNeuronId].Add(s.SourceNeuronId);
+                if (adj.ContainsKey(s.SourceNeuronId))
+                    adj[s.SourceNeuronId].Add(s.TargetNeuronId);
+                if (adj.ContainsKey(s.TargetNeuronId))
+                    adj[s.TargetNeuronId].Add(s.SourceNeuronId);
             }
-            var visited = new HashSet<int>(); int count = 0;
+            var visited = new HashSet<int>();
+            int count = 0;
             void Bfs(int start)
             {
-                var q = new Queue<int>(); q.Enqueue(start); visited.Add(start);
-                while (q.Count > 0) { var c = q.Dequeue(); if (adj.TryGetValue(c, out var nb)) foreach (var nb2 in nb) if (visited.Add(nb2)) q.Enqueue(nb2); }
+                var q = new Queue<int>();
+                q.Enqueue(start);
+                visited.Add(start);
+                while (q.Count > 0)
+                { var c = q.Dequeue(); if (adj.TryGetValue(c, out var nb)) foreach (var nb2 in nb) if (visited.Add(nb2)) q.Enqueue(nb2); }
             }
-            foreach (var n in genome.Neurons) if (!visited.Contains(n.Id)) { Bfs(n.Id); count++; }
+            foreach (var n in genome.Neurons)
+                if (!visited.Contains(n.Id))
+                { Bfs(n.Id); count++; }
             return count;
         }
 
@@ -4389,7 +4816,8 @@ namespace GDNN.Core.Genome
             for (int i = 0; i < n; i++)
             {
                 int degree = 0;
-                for (int j = 0; j < n; j++) { if (adjMatrix[i, j] != 0) degree++; laplacian[i, j] = -adjMatrix[i, j]; }
+                for (int j = 0; j < n; j++)
+                { if (adjMatrix[i, j] != 0) degree++; laplacian[i, j] = -adjMatrix[i, j]; }
                 laplacian[i, i] = degree;
             }
             return laplacian;
@@ -4399,9 +4827,11 @@ namespace GDNN.Core.Genome
         {
             var lap = ComputeLaplacianMatrix(genome);
             var n = lap.GetLength(0);
-            if (n <= 1) return 0f;
+            if (n <= 1)
+                return 0f;
             var eigenvalues = new float[n];
-            for (int i = 0; i < n; i++) eigenvalues[i] = lap[i, i];
+            for (int i = 0; i < n; i++)
+                eigenvalues[i] = lap[i, i];
             Array.Sort(eigenvalues);
             return n >= 2 ? eigenvalues[1] : 0f;
         }
@@ -4417,16 +4847,25 @@ namespace GDNN.Core.Genome
         public static GeoGenome Merge(GenomeId resultId, GeoGenome g1, GeoGenome g2, bool allowOverwrite = false)
         {
             var nd = new Dictionary<int, NeuronGene>();
-            foreach (var n in g1.Neurons) nd[n.Id] = n;
-            foreach (var n in g2.Neurons) { if (!allowOverwrite && nd.ContainsKey(n.Id)) throw new InvalidOperationException($"Duplicate neuron ID {n.Id}."); nd[n.Id] = n; }
+            foreach (var n in g1.Neurons)
+                nd[n.Id] = n;
+            foreach (var n in g2.Neurons)
+            { if (!allowOverwrite && nd.ContainsKey(n.Id)) throw new InvalidOperationException($"Duplicate neuron ID {n.Id}."); nd[n.Id] = n; }
             var sd = new Dictionary<int, SynapseGene>();
-            foreach (var s in g1.Synapses) sd[s.Id] = s;
-            foreach (var s in g2.Synapses) { if (!allowOverwrite && sd.ContainsKey(s.Id)) throw new InvalidOperationException($"Duplicate synapse ID {s.Id}."); sd[s.Id] = s; }
+            foreach (var s in g1.Synapses)
+                sd[s.Id] = s;
+            foreach (var s in g2.Synapses)
+            { if (!allowOverwrite && sd.ContainsKey(s.Id)) throw new InvalidOperationException($"Duplicate synapse ID {s.Id}."); sd[s.Id] = s; }
             var genome = new GeoGenome
             {
-                Id = resultId, Neurons = ImmutableArray.Create(nd.Values.ToArray()), Synapses = ImmutableArray.Create(sd.Values.ToArray()),
-                Species = g1.Species, Metadata = g1.Metadata with { ParentIds = ImmutableArray.Create(g1.Id, g2.Id), Strategy = EvolutionStrategy.Hybrid },
-                Version = GenomeVersion.Current, CreatedAt = DateTimeOffset.UtcNow, ModifiedAt = DateTimeOffset.UtcNow
+                Id = resultId,
+                Neurons = ImmutableArray.Create(nd.Values.ToArray()),
+                Synapses = ImmutableArray.Create(sd.Values.ToArray()),
+                Species = g1.Species,
+                Metadata = g1.Metadata with { ParentIds = ImmutableArray.Create(g1.Id, g2.Id), Strategy = EvolutionStrategy.Hybrid },
+                Version = GenomeVersion.Current,
+                CreatedAt = DateTimeOffset.UtcNow,
+                ModifiedAt = DateTimeOffset.UtcNow
             };
             return genome with { TopologyHash = GenomeHasher.ComputeTopologyHash(genome) };
         }
@@ -4437,18 +4876,25 @@ namespace GDNN.Core.Genome
             var builder = GeoGenomeBuilder.Create().WithStrictValidation(false);
             foreach (var n in p1.Neurons)
             {
-                if (rng.NextDouble() < rate) builder.AddNeuron(n);
-                else if (p2.ContainsNeuron(n.Id)) builder.AddNeuron(p2.GetNeuron(n.Id)!.Value);
-                else builder.AddNeuron(n);
+                if (rng.NextDouble() < rate)
+                    builder.AddNeuron(n);
+                else if (p2.ContainsNeuron(n.Id))
+                    builder.AddNeuron(p2.GetNeuron(n.Id)!.Value);
+                else
+                    builder.AddNeuron(n);
             }
             foreach (var s in p1.Synapses)
             {
-                if (rng.NextDouble() < rate) builder.AddSynapse(s);
-                else if (p2.ContainsSynapse(s.Id)) builder.AddSynapse(p2.GetSynapse(s.Id)!.Value);
-                else builder.AddSynapse(s);
+                if (rng.NextDouble() < rate)
+                    builder.AddSynapse(s);
+                else if (p2.ContainsSynapse(s.Id))
+                    builder.AddSynapse(p2.GetSynapse(s.Id)!.Value);
+                else
+                    builder.AddSynapse(s);
             }
             foreach (var s in p2.Synapses)
-                if (!builder.BuildUnchecked().ContainsSynapse(s.Id) && rng.NextDouble() < rate * 0.3f) builder.AddSynapse(s);
+                if (!builder.BuildUnchecked().ContainsSynapse(s.Id) && rng.NextDouble() < rate * 0.3f)
+                    builder.AddSynapse(s);
             var offspring = builder.WithSpecies(p1.Species).WithSemanticTag($"crossover-{p1.Id.ToCompactString()[..8]}x{p2.Id.ToCompactString()[..8]}").Build();
             return offspring with { Metadata = offspring.Metadata with { ParentIds = ImmutableArray.Create(p1.Id, p2.Id), Generation = Math.Max(p1.Metadata.Generation, p2.Metadata.Generation) + 1 } };
         }
@@ -4463,31 +4909,40 @@ namespace GDNN.Core.Genome
                 switch (mt)
                 {
                     case MutationType.PointMutation:
-                        if (g.Neurons.Length > 0) { var idx = rng.Next(g.Neurons.Length); g = g with { Neurons = g.Neurons.SetItem(idx, NeuronGeneFactory.CloneWithMutation(g.Neurons[idx], 1.0f, rng.Next())) }; }
+                        if (g.Neurons.Length > 0)
+                        { var idx = rng.Next(g.Neurons.Length); g = g with { Neurons = g.Neurons.SetItem(idx, NeuronGeneFactory.CloneWithMutation(g.Neurons[idx], 1.0f, rng.Next())) }; }
                         break;
                     case MutationType.WeightPerturbation:
-                        if (g.Synapses.Length > 0) { var idx = rng.Next(g.Synapses.Length); g = g with { Synapses = g.Synapses.SetItem(idx, SynapseGeneFactory.CloneWithPerturbation(g.Synapses[idx], 0.2f, rng)) }; }
+                        if (g.Synapses.Length > 0)
+                        { var idx = rng.Next(g.Synapses.Length); g = g with { Synapses = g.Synapses.SetItem(idx, SynapseGeneFactory.CloneWithPerturbation(g.Synapses[idx], 0.2f, rng)) }; }
                         break;
                     case MutationType.BiasDrift:
-                        if (g.Neurons.Length > 0) { var idx = rng.Next(g.Neurons.Length); var n = g.Neurons[idx]; g = g with { Neurons = g.Neurons.SetItem(idx, n with { Bias = n.Bias + new Vector3((float)(rng.NextDouble() * 0.4 - 0.2), (float)(rng.NextDouble() * 0.4 - 0.2), (float)(rng.NextDouble() * 0.4 - 0.2)), LastModified = DateTimeOffset.UtcNow }) }; }
+                        if (g.Neurons.Length > 0)
+                        { var idx = rng.Next(g.Neurons.Length); var n = g.Neurons[idx]; g = g with { Neurons = g.Neurons.SetItem(idx, n with { Bias = n.Bias + new Vector3((float)(rng.NextDouble() * 0.4 - 0.2), (float)(rng.NextDouble() * 0.4 - 0.2), (float)(rng.NextDouble() * 0.4 - 0.2)), LastModified = DateTimeOffset.UtcNow }) }; }
                         break;
                     case MutationType.ActivationShift:
-                        if (g.Neurons.Length > 0) { var idx = rng.Next(g.Neurons.Length); var acts = Enum.GetValues<ActivationKernel>(); g = g with { Neurons = g.Neurons.SetItem(idx, g.Neurons[idx] with { Activation = acts[rng.Next(acts.Length)], LastModified = DateTimeOffset.UtcNow }) }; }
+                        if (g.Neurons.Length > 0)
+                        { var idx = rng.Next(g.Neurons.Length); var acts = Enum.GetValues<ActivationKernel>(); g = g with { Neurons = g.Neurons.SetItem(idx, g.Neurons[idx] with { Activation = acts[rng.Next(acts.Length)], LastModified = DateTimeOffset.UtcNow }) }; }
                         break;
                     case MutationType.SynapseGrowth:
-                        if (g.Neurons.Length > 1) { var si = rng.Next(g.Neurons.Length); var ti = rng.Next(g.Neurons.Length); if (si != ti) g = g.AddSynapse(SynapseGene.Create(g.Synapses.Length + 1, g.Neurons[si].Id, g.Neurons[ti].Id, (float)(rng.NextDouble() * 2.0 - 1.0))); }
+                        if (g.Neurons.Length > 1)
+                        { var si = rng.Next(g.Neurons.Length); var ti = rng.Next(g.Neurons.Length); if (si != ti) g = g.AddSynapse(SynapseGene.Create(g.Synapses.Length + 1, g.Neurons[si].Id, g.Neurons[ti].Id, (float)(rng.NextDouble() * 2.0 - 1.0))); }
                         break;
                     case MutationType.SynapsePruning:
-                        if (g.Synapses.Length > 0) { int w = 0; float mw = float.MaxValue; for (int j = 0; j < g.Synapses.Length; j++) if (Math.Abs(g.Synapses[j].Weight) < mw) { mw = Math.Abs(g.Synapses[j].Weight); w = j; } g = g with { Synapses = g.Synapses.RemoveAt(w) }; }
+                        if (g.Synapses.Length > 0)
+                        { int w = 0; float mw = float.MaxValue; for (int j = 0; j < g.Synapses.Length; j++) if (Math.Abs(g.Synapses[j].Weight) < mw) { mw = Math.Abs(g.Synapses[j].Weight); w = j; } g = g with { Synapses = g.Synapses.RemoveAt(w) }; }
                         break;
                     case MutationType.GeneSilencing:
-                        if (g.Neurons.Length > 0) { var idx = rng.Next(g.Neurons.Length); g = g with { Neurons = g.Neurons.SetItem(idx, g.Neurons[idx] with { IsEnabled = false }) }; }
+                        if (g.Neurons.Length > 0)
+                        { var idx = rng.Next(g.Neurons.Length); g = g with { Neurons = g.Neurons.SetItem(idx, g.Neurons[idx] with { IsEnabled = false }) }; }
                         break;
                     case MutationType.GeneActivation:
-                        if (g.Neurons.Length > 0) { var idx = rng.Next(g.Neurons.Length); g = g with { Neurons = g.Neurons.SetItem(idx, g.Neurons[idx] with { IsEnabled = true }) }; }
+                        if (g.Neurons.Length > 0)
+                        { var idx = rng.Next(g.Neurons.Length); g = g with { Neurons = g.Neurons.SetItem(idx, g.Neurons[idx] with { IsEnabled = true }) }; }
                         break;
                     case MutationType.Duplication:
-                        if (g.Neurons.Length > 0 && g.Neurons.Length < g.Metadata.ComplexityBudget) { var idx = rng.Next(g.Neurons.Length); var o = g.Neurons[idx]; g = g.AddNeuron(o with { Id = g.Neurons.Max(n => n.Id) + 1, Position = o.Position + new Vector3((float)(rng.NextDouble() * 2 - 1), 0, (float)(rng.NextDouble() * 2 - 1)), LastModified = DateTimeOffset.UtcNow }); }
+                        if (g.Neurons.Length > 0 && g.Neurons.Length < g.Metadata.ComplexityBudget)
+                        { var idx = rng.Next(g.Neurons.Length); var o = g.Neurons[idx]; g = g.AddNeuron(o with { Id = g.Neurons.Max(n => n.Id) + 1, Position = o.Position + new Vector3((float)(rng.NextDouble() * 2 - 1), 0, (float)(rng.NextDouble() * 2 - 1)), LastModified = DateTimeOffset.UtcNow }); }
                         break;
                 }
             }
@@ -4496,13 +4951,17 @@ namespace GDNN.Core.Genome
 
         public static float ComputeEvolutionaryDistance(GeoGenome g1, GeoGenome g2)
         {
-            var n1d = g1.Neurons.ToDictionary(n => n.Id); var n2d = g2.Neurons.ToDictionary(n => n.Id);
+            var n1d = g1.Neurons.ToDictionary(n => n.Id);
+            var n2d = g2.Neurons.ToDictionary(n => n.Id);
             float nd = 0;
-            foreach (var kvp in n1d) { if (n2d.TryGetValue(kvp.Key, out var n2)) { if (kvp.Value.Kind != n2.Kind) nd += 1f; if (kvp.Value.Activation != n2.Activation) nd += 0.5f; nd += Vector3.Distance(kvp.Value.Bias, n2.Bias); } else nd += 2f; }
+            foreach (var kvp in n1d)
+            { if (n2d.TryGetValue(kvp.Key, out var n2)) { if (kvp.Value.Kind != n2.Kind) nd += 1f; if (kvp.Value.Activation != n2.Activation) nd += 0.5f; nd += Vector3.Distance(kvp.Value.Bias, n2.Bias); } else nd += 2f; }
             nd += Math.Abs(g1.NeuronCount - g2.NeuronCount) * 0.5f;
-            var s1d = g1.Synapses.ToDictionary(s => s.Id); var s2d = g2.Synapses.ToDictionary(s => s.Id);
+            var s1d = g1.Synapses.ToDictionary(s => s.Id);
+            var s2d = g2.Synapses.ToDictionary(s => s.Id);
             float sd = 0;
-            foreach (var kvp in s1d) { if (s2d.TryGetValue(kvp.Key, out var s2)) { sd += Math.Abs(kvp.Value.Weight - s2.Weight); if (kvp.Value.SynapseType != s2.SynapseType) sd += 0.5f; } else sd += 2f; }
+            foreach (var kvp in s1d)
+            { if (s2d.TryGetValue(kvp.Key, out var s2)) { sd += Math.Abs(kvp.Value.Weight - s2.Weight); if (kvp.Value.SynapseType != s2.SynapseType) sd += 0.5f; } else sd += 2f; }
             sd += Math.Abs(g1.SynapseCount - g2.SynapseCount) * 0.5f;
             int max = Math.Max(g1.NeuronCount + g1.SynapseCount, g2.NeuronCount + g2.SynapseCount);
             return max > 0 ? (nd + sd) / max : 0f;
@@ -4510,7 +4969,8 @@ namespace GDNN.Core.Genome
 
         public static GeoGenome Subsample(GeoGenome genome, int targetCount, int seed = -1)
         {
-            if (genome.NeuronCount <= targetCount) return genome;
+            if (genome.NeuronCount <= targetCount)
+                return genome;
             var rng = seed >= 0 ? new Random(seed) : new Random();
             var keep = genome.Neurons.OrderBy(_ => rng.Next()).Take(targetCount).ToImmutableArray();
             var keepIds = new HashSet<int>(keep.Select(n => n.Id));
@@ -4524,22 +4984,30 @@ namespace GDNN.Core.Genome
             t = Math.Clamp(t, 0f, 1f);
             var rng = seed >= 0 ? new Random(seed) : new Random();
             var builder = GeoGenomeBuilder.Create().WithStrictValidation(false);
-            var fromN = from.Neurons.ToDictionary(n => n.Id); var toN = to.Neurons.ToDictionary(n => n.Id);
+            var fromN = from.Neurons.ToDictionary(n => n.Id);
+            var toN = to.Neurons.ToDictionary(n => n.Id);
             foreach (var n in from.Neurons)
             {
                 if (toN.TryGetValue(n.Id, out var tn))
                     builder.AddNeuron(n with { Bias = Vector3.Lerp(n.Bias, tn.Bias, t), WeightScale = n.WeightScale + (tn.WeightScale - n.WeightScale) * t, Activation = rng.NextDouble() < t ? tn.Activation : n.Activation, LastModified = DateTimeOffset.UtcNow });
-                else builder.AddNeuron(n);
+                else
+                    builder.AddNeuron(n);
             }
             foreach (var n in to.Neurons)
-                if (!fromN.ContainsKey(n.Id) && rng.NextDouble() > t) builder.AddNeuron(n);
-            var fromS = from.Synapses.ToDictionary(s => s.Id); var toS = to.Synapses.ToDictionary(s => s.Id);
+                if (!fromN.ContainsKey(n.Id) && rng.NextDouble() > t)
+                    builder.AddNeuron(n);
+            var fromS = from.Synapses.ToDictionary(s => s.Id);
+            var toS = to.Synapses.ToDictionary(s => s.Id);
             foreach (var s in from.Synapses)
             {
-                if (toS.TryGetValue(s.Id, out var ts)) builder.AddSynapse(s with { Weight = s.Weight + (ts.Weight - s.Weight) * t });
-                else builder.AddSynapse(s);
+                if (toS.TryGetValue(s.Id, out var ts))
+                    builder.AddSynapse(s with { Weight = s.Weight + (ts.Weight - s.Weight) * t });
+                else
+                    builder.AddSynapse(s);
             }
-            foreach (var s in to.Synapses) if (!fromS.ContainsKey(s.Id) && rng.NextDouble() > t) builder.AddSynapse(s);
+            foreach (var s in to.Synapses)
+                if (!fromS.ContainsKey(s.Id) && rng.NextDouble() > t)
+                    builder.AddSynapse(s);
             var result = builder.WithSpecies(from.Species).WithSemanticTag($"crossfade-{t:P0}").Build();
             return result with { Metadata = result.Metadata with { ParentIds = ImmutableArray.Create(from.Id, to.Id), Generation = Math.Max(from.Metadata.Generation, to.Metadata.Generation) + 1 } };
         }
@@ -4557,8 +5025,10 @@ namespace GDNN.Core.Genome
         {
             var total = population.Sum(g => Math.Max(0, g.Metadata.FitnessScore));
             var probs = new Dictionary<GenomeId, float>();
-            if (total <= 0) { var u = 1.0f / population.Length; foreach (var g in population) probs[g.Id] = u; return probs; }
-            foreach (var g in population) probs[g.Id] = (float)(Math.Max(0, g.Metadata.FitnessScore) / total);
+            if (total <= 0)
+            { var u = 1.0f / population.Length; foreach (var g in population) probs[g.Id] = u; return probs; }
+            foreach (var g in population)
+                probs[g.Id] = (float)(Math.Max(0, g.Metadata.FitnessScore) / total);
             return probs;
         }
     }
@@ -4592,12 +5062,16 @@ namespace GDNN.Core.Genome
         {
             lock (_lock)
             {
-                if (population.Length == 0) return;
+                if (population.Length == 0)
+                    return;
                 var fitnesses = population.Select(g => g.Metadata.FitnessScore).ToArray();
                 _snapshots.Add(new GenomeStatisticsSnapshot
                 {
-                    Generation = generation, PopulationSize = population.Length,
-                    AverageFitness = fitnesses.Average(), MaxFitness = fitnesses.Max(), MinFitness = fitnesses.Min(),
+                    Generation = generation,
+                    PopulationSize = population.Length,
+                    AverageFitness = fitnesses.Average(),
+                    MaxFitness = fitnesses.Max(),
+                    MinFitness = fitnesses.Min(),
                     FitnessStdDev = StdDev(fitnesses),
                     AverageNeuronCount = population.Average(g => (double)g.NeuronCount),
                     AverageSynapseCount = population.Average(g => (double)g.SynapseCount),
@@ -4616,16 +5090,23 @@ namespace GDNN.Core.Genome
         {
             lock (_lock)
             {
-                if (_snapshots.Count == 0) return new GenomeEvolutionSummary();
-                var f = _snapshots[0]; var l = _snapshots[^1];
+                if (_snapshots.Count == 0)
+                    return new GenomeEvolutionSummary();
+                var f = _snapshots[0];
+                var l = _snapshots[^1];
                 return new GenomeEvolutionSummary
                 {
-                    TotalGenerations = _snapshots.Count, InitialPopulationSize = f.PopulationSize, FinalPopulationSize = l.PopulationSize,
+                    TotalGenerations = _snapshots.Count,
+                    InitialPopulationSize = f.PopulationSize,
+                    FinalPopulationSize = l.PopulationSize,
                     FitnessImprovement = l.AverageFitness - f.AverageFitness,
                     FitnessImprovementPercentage = f.AverageFitness != 0 ? ((l.AverageFitness - f.AverageFitness) / Math.Abs(f.AverageFitness)) * 100 : 0,
-                    PeakFitness = _snapshots.Max(s => s.MaxFitness), AverageFitnessOverTime = _snapshots.Average(s => s.AverageFitness),
-                    FinalSpeciesCount = l.SpeciesDistribution.Count, FinalDiversityIndex = l.DiversityIndex,
-                    TotalNeuronGrowth = l.AverageNeuronCount - f.AverageNeuronCount, TotalSynapseGrowth = l.AverageSynapseCount - f.AverageSynapseCount
+                    PeakFitness = _snapshots.Max(s => s.MaxFitness),
+                    AverageFitnessOverTime = _snapshots.Average(s => s.AverageFitness),
+                    FinalSpeciesCount = l.SpeciesDistribution.Count,
+                    FinalDiversityIndex = l.DiversityIndex,
+                    TotalNeuronGrowth = l.AverageNeuronCount - f.AverageNeuronCount,
+                    TotalSynapseGrowth = l.AverageSynapseCount - f.AverageSynapseCount
                 };
             }
         }

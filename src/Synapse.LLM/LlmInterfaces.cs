@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;

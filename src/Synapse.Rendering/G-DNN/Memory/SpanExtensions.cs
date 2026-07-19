@@ -1,23 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-using GDNN.Rendering.Compat;
-
-
 // ============================================================
 // FILE: SpanExtensions.cs
 // PATH: Memory/SpanExtensions.cs
@@ -29,11 +10,28 @@ using GDNN.Rendering.Compat;
 // High-performance extension methods for Span<T> and ReadOnlySpan<T> with SIMD acceleration.
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
+using GDNN.Rendering.Compat;
 
 namespace GDNN.Memory;
 
@@ -58,7 +56,8 @@ public static unsafe class SpanExtensions
         if (source.Length != destination.Length)
             throw new ArgumentException("Source and destination must have the same length.");
 
-        if (source.Length == 0) return;
+        if (source.Length == 0)
+            return;
 
         fixed (byte* srcPtr = &MemoryMarshal.GetReference(source))
         fixed (byte* dstPtr = &MemoryMarshal.GetReference(destination))
@@ -82,7 +81,8 @@ public static unsafe class SpanExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void SimdMemoryCopy(byte* source, byte* destination, nuint length)
     {
-        if (length == 0) return;
+        if (length == 0)
+            return;
 
         // Small copies: use simple byte copy to avoid SIMD overhead.
         if (length < 32)
@@ -154,7 +154,8 @@ public static unsafe class SpanExtensions
         if (source.Length != destination.Length)
             throw new ArgumentException("Source and destination must have the same length.");
 
-        if (source.Length == 0) return;
+        if (source.Length == 0)
+            return;
 
         int byteCount = source.Length * Unsafe.SizeOf<T>();
 
@@ -176,7 +177,8 @@ public static unsafe class SpanExtensions
     /// <param name="value">The byte value to set.</param>
     public static void SimdSet(this Span<byte> span, byte value)
     {
-        if (span.Length == 0) return;
+        if (span.Length == 0)
+            return;
 
         fixed (byte* ptr = &MemoryMarshal.GetReference(span))
         {
@@ -235,7 +237,8 @@ public static unsafe class SpanExtensions
     /// <returns>The index of the first occurrence, or -1 if not found.</returns>
     public static int SimdIndexOf(this ReadOnlySpan<byte> span, byte value)
     {
-        if (span.Length == 0) return -1;
+        if (span.Length == 0)
+            return -1;
 
         fixed (byte* ptr = &MemoryMarshal.GetReference(span))
         {
@@ -264,7 +267,8 @@ public static unsafe class SpanExtensions
             // Check remaining bytes.
             for (; i < length; i++)
             {
-                if (source[i] == value) return i;
+                if (source[i] == value)
+                    return i;
             }
             return -1;
         }
@@ -286,14 +290,16 @@ public static unsafe class SpanExtensions
 
             for (; i < length; i++)
             {
-                if (source[i] == value) return i;
+                if (source[i] == value)
+                    return i;
             }
             return -1;
         }
 
         for (int i = 0; i < length; i++)
         {
-            if (source[i] == value) return i;
+            if (source[i] == value)
+                return i;
         }
         return -1;
     }
@@ -325,7 +331,8 @@ public static unsafe class SpanExtensions
     /// <returns>The index of the value, or -1 if not found.</returns>
     public static int SimdBinarySearch(this ReadOnlySpan<float> span, float value)
     {
-        if (span.Length == 0) return -1;
+        if (span.Length == 0)
+            return -1;
 
         fixed (float* ptr = &MemoryMarshal.GetReference(span))
         {
@@ -354,7 +361,8 @@ public static unsafe class SpanExtensions
     /// </summary>
     public static int SimdBinarySearch(this ReadOnlySpan<int> span, int value)
     {
-        if (span.Length == 0) return -1;
+        if (span.Length == 0)
+            return -1;
 
         fixed (int* ptr = &MemoryMarshal.GetReference(span))
         {
@@ -386,7 +394,8 @@ public static unsafe class SpanExtensions
     /// <returns>The count of matching elements.</returns>
     public static int SimdCount(this ReadOnlySpan<byte> span, byte value)
     {
-        if (span.Length == 0) return 0;
+        if (span.Length == 0)
+            return 0;
 
         fixed (byte* ptr = &MemoryMarshal.GetReference(span))
         {
@@ -423,14 +432,16 @@ public static unsafe class SpanExtensions
 
             for (; i < length; i++)
             {
-                if (source[i] == value) count++;
+                if (source[i] == value)
+                    count++;
             }
             return count;
         }
 
         for (int i = 0; i < length; i++)
         {
-            if (source[i] == value) count++;
+            if (source[i] == value)
+                count++;
         }
         return count;
     }
@@ -443,7 +454,8 @@ public static unsafe class SpanExtensions
     {
         for (int i = 0; i < span.Length; i++)
         {
-            if (predicate(span[i])) return true;
+            if (predicate(span[i]))
+                return true;
         }
         return false;
     }
@@ -456,7 +468,8 @@ public static unsafe class SpanExtensions
     {
         for (int i = 0; i < span.Length; i++)
         {
-            if (!predicate(span[i])) return false;
+            if (!predicate(span[i]))
+                return false;
         }
         return true;
     }
@@ -472,7 +485,8 @@ public static unsafe class SpanExtensions
     /// <param name="span">The span to sort in-place.</param>
     public static void SimdSort(this Span<float> span)
     {
-        if (span.Length <= 1) return;
+        if (span.Length <= 1)
+            return;
         SimdQuicksort(span);
     }
 
@@ -524,9 +538,12 @@ public static unsafe class SpanExtensions
     {
         // Median-of-three pivot selection.
         int mid = lo + (hi - lo) / 2;
-        if (data[mid] < data[lo]) SwapFloat(data, lo, mid);
-        if (data[hi] < data[lo]) SwapFloat(data, lo, hi);
-        if (data[mid] < data[hi]) SwapFloat(data, mid, hi);
+        if (data[mid] < data[lo])
+            SwapFloat(data, lo, mid);
+        if (data[hi] < data[lo])
+            SwapFloat(data, lo, hi);
+        if (data[mid] < data[hi])
+            SwapFloat(data, mid, hi);
 
         float pivot = data[hi];
         int i = lo - 1;
@@ -573,7 +590,8 @@ public static unsafe class SpanExtensions
     /// <param name="span">The unsigned int span to sort in-place.</param>
     public static void SimdRadixSort(this Span<uint> span)
     {
-        if (span.Length <= 1) return;
+        if (span.Length <= 1)
+            return;
 
         // Allocate a temporary buffer on the stack if small enough, otherwise heap.
         int length = span.Length;
@@ -637,7 +655,8 @@ public static unsafe class SpanExtensions
     /// <param name="span">The int span to sort in-place.</param>
     public static void SimdRadixSort(this Span<int> span)
     {
-        if (span.Length <= 1) return;
+        if (span.Length <= 1)
+            return;
 
         // Reinterpret as uint for radix sort, applying bias.
         Span<uint> unsigned = MemoryMarshal.Cast<int, uint>(span);
@@ -659,7 +678,8 @@ public static unsafe class SpanExtensions
     /// <param name="span">The float span to sort in-place.</param>
     public static void SimdRadixSortFloat(this Span<float> span)
     {
-        if (span.Length <= 1) return;
+        if (span.Length <= 1)
+            return;
 
         Span<uint> unsigned = MemoryMarshal.Cast<float, uint>(span);
         const uint SignBit = 0x80000000;
@@ -742,7 +762,8 @@ public static unsafe class SpanExtensions
     /// <returns>The number of unique elements.</returns>
     public static int SimdUnique<T>(this Span<T> span) where T : struct, IEquatable<T>
     {
-        if (span.Length <= 1) return span.Length;
+        if (span.Length <= 1)
+            return span.Length;
 
         int writeIdx = 1;
 
@@ -774,8 +795,10 @@ public static unsafe class SpanExtensions
 
         while (lo <= hi)
         {
-            while (lo <= hi && predicate(span[lo])) lo++;
-            while (lo <= hi && !predicate(span[hi])) hi--;
+            while (lo <= hi && predicate(span[lo]))
+                lo++;
+            while (lo <= hi && !predicate(span[hi]))
+                hi--;
 
             if (lo < hi)
             {
@@ -1172,7 +1195,8 @@ public static unsafe class SpanExtensions
     /// </summary>
     public static float SimdSum(this ReadOnlySpan<float> span)
     {
-        if (span.Length == 0) return 0f;
+        if (span.Length == 0)
+            return 0f;
 
         fixed (float* ptr = &MemoryMarshal.GetReference(span))
         {
@@ -1242,7 +1266,8 @@ public static unsafe class SpanExtensions
     /// </summary>
     public static (float Value, int Index) SimdMin(this ReadOnlySpan<float> span)
     {
-        if (span.Length == 0) throw new ArgumentException("Span is empty.");
+        if (span.Length == 0)
+            throw new ArgumentException("Span is empty.");
 
         float minVal = float.MaxValue;
         int minIdx = 0;
@@ -1281,7 +1306,8 @@ public static unsafe class SpanExtensions
     /// </summary>
     public static (float Value, int Index) SimdMax(this ReadOnlySpan<float> span)
     {
-        if (span.Length == 0) throw new ArgumentException("Span is empty.");
+        if (span.Length == 0)
+            throw new ArgumentException("Span is empty.");
 
         float maxVal = float.MinValue;
         int maxIdx = 0;
@@ -1360,8 +1386,10 @@ public static unsafe class SpanExtensions
     /// </summary>
     public static bool SimdSequenceEqual(this ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
     {
-        if (a.Length != b.Length) return false;
-        if (a.Length == 0) return true;
+        if (a.Length != b.Length)
+            return false;
+        if (a.Length == 0)
+            return true;
 
         fixed (byte* aPtr = &MemoryMarshal.GetReference(a))
         fixed (byte* bPtr = &MemoryMarshal.GetReference(b))
@@ -1402,7 +1430,8 @@ public static unsafe class SpanExtensions
 
         for (; i < length; i++)
         {
-            if (a[i] != b[i]) return false;
+            if (a[i] != b[i])
+                return false;
         }
 
         return true;
@@ -1413,7 +1442,8 @@ public static unsafe class SpanExtensions
     /// </summary>
     public static bool SimdApproxEqual(this ReadOnlySpan<float> a, ReadOnlySpan<float> b, float tolerance = 1e-6f)
     {
-        if (a.Length != b.Length) return false;
+        if (a.Length != b.Length)
+            return false;
 
         for (int i = 0; i < a.Length; i++)
         {

@@ -128,7 +128,8 @@ namespace GDNN.Rendering.Animation
 
         public void AddFrame(MotionFrame frame, int index)
         {
-            if (index < 0 || index >= FrameCount) return;
+            if (index < 0 || index >= FrameCount)
+                return;
             Frames[index] = frame;
             Features[index] = ExtractFeature(frame);
         }
@@ -209,7 +210,8 @@ namespace GDNN.Rendering.Animation
 
         public MotionPose Update(float deltaTime, Vector3 rootPosition, Quaternion rootRotation)
         {
-            if (_database == null || !_isPlaying) return default;
+            if (_database == null || !_isPlaying)
+                return default;
 
             _currentTime += deltaTime * _playbackSpeed;
             _matchCooldown -= deltaTime;
@@ -239,7 +241,8 @@ namespace GDNN.Rendering.Animation
 
         private bool ShouldSearchForMatch()
         {
-            if (_database == null) return false;
+            if (_database == null)
+                return false;
             float currentSpeed = _inputSpeed;
             return currentSpeed > 0.1f || MathF.Abs(_inputDirection) > 0.1f;
         }
@@ -279,7 +282,8 @@ namespace GDNN.Rendering.Animation
 
         private int FindBestMatchingFrame()
         {
-            if (_database == null || _database.FrameCount == 0) return -1;
+            if (_database == null || _database.FrameCount == 0)
+                return -1;
 
             int searchStart = Math.Max(0, _lastSearchStart - _config.SearchWindow / 2);
             int searchEnd = Math.Min(_database.FrameCount, _lastSearchStart + _config.SearchWindow);
@@ -317,7 +321,8 @@ namespace GDNN.Rendering.Animation
 
         private float ComputeMatchCost(int frameIndex)
         {
-            if (frameIndex < 0 || frameIndex >= _database.FrameCount) return float.MaxValue;
+            if (frameIndex < 0 || frameIndex >= _database.FrameCount)
+                return float.MaxValue;
 
             var feature = _database.Features[frameIndex];
 
@@ -360,7 +365,8 @@ namespace GDNN.Rendering.Animation
 
         private void UpdateBlend(float deltaTime)
         {
-            if (!_blendState.IsBlending) return;
+            if (!_blendState.IsBlending)
+                return;
 
             _blendState.BlendElapsed += deltaTime;
             _blendState.BlendAlpha = MathF.Min(_blendState.BlendElapsed / _blendState.BlendDuration, 1.0f);
@@ -400,7 +406,8 @@ namespace GDNN.Rendering.Animation
 
         public MotionPose GetBlendedPose()
         {
-            if (!_blendState.IsBlending) return SamplePose(_currentFrameIndex);
+            if (!_blendState.IsBlending)
+                return SamplePose(_currentFrameIndex);
 
             var from = _blendState.FromPose;
             var to = _blendState.ToPose;
@@ -447,7 +454,8 @@ namespace GDNN.Rendering.Animation
         public void Pause() => _isPlaying = false;
         public void Seek(float time)
         {
-            if (_database == null) return;
+            if (_database == null)
+                return;
             _currentTime = time;
             for (int i = 0; i < _database.FrameCount; i++)
             {
@@ -461,7 +469,8 @@ namespace GDNN.Rendering.Animation
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
         }
     }

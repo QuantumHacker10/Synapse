@@ -228,7 +228,8 @@ namespace GDNN.Rendering.VirtualTextures
 
         public void RequestTiles(int layerIndex, Vector2 uvMin, Vector2 uvMax, int screenTileSize)
         {
-            if (_layers == null || layerIndex >= _layers.Length) return;
+            if (_layers == null || layerIndex >= _layers.Length)
+                return;
 
             var layer = _layers[layerIndex];
             int mipLevel = CalculateMipLevel(screenTileSize);
@@ -263,7 +264,8 @@ namespace GDNN.Rendering.VirtualTextures
                 _residentTiles = 0;
                 _streamingTiles = 0;
 
-                if (_layers == null) return;
+                if (_layers == null)
+                    return;
 
                 for (int l = 0; l < _layers.Length; l++)
                 {
@@ -299,7 +301,8 @@ namespace GDNN.Rendering.VirtualTextures
             while (_streamingQueue.TryDequeueLoad(out var tile) && processed < _config.MaxTilesPerFrame)
             {
                 int pageIndex = AllocatePage();
-                if (pageIndex < 0) break;
+                if (pageIndex < 0)
+                    break;
 
                 var page = _physicalPages[pageIndex];
                 page.VirtualTileX = tile.TileX;
@@ -468,18 +471,20 @@ namespace GDNN.Rendering.VirtualTextures
             };
         }
 
-        public VTTileData SampleVirtualTexture(int layerIndex, float u, float v)
+        public VTTileData? SampleVirtualTexture(int layerIndex, float u, float v)
         {
             lock (_lock)
             {
-                if (_layers == null || layerIndex >= _layers.Length) return null;
+                if (_layers == null || layerIndex >= _layers.Length)
+                    return null;
 
                 var layer = _layers[layerIndex];
                 int tileX = Math.Clamp((int)(u * layer.TileCountX), 0, layer.TileCountX - 1);
                 int tileY = Math.Clamp((int)(v * layer.TileCountY), 0, layer.TileCountY - 1);
 
                 var tile = layer.Tiles[tileX, tileY];
-                if (tile.State != VTTileState.Resident || tile.PhysicalPageIndex < 0) return null;
+                if (tile.State != VTTileState.Resident || tile.PhysicalPageIndex < 0)
+                    return null;
 
                 var page = _physicalPages[tile.PhysicalPageIndex];
                 return new VTTileData
@@ -559,13 +564,15 @@ namespace GDNN.Rendering.VirtualTextures
                 streamingTiles = _streamingTiles;
                 physicalPages = 0;
                 for (int i = 0; i < _physicalPages.Length; i++)
-                    if (_physicalPages[i].IsAllocated) physicalPages++;
+                    if (_physicalPages[i].IsAllocated)
+                        physicalPages++;
             }
         }
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _streamingRunning = false;
             _streamingSignal?.Set();

@@ -284,7 +284,8 @@ namespace GDNN.Rendering.Geometry
         {
             lock (_lock)
             {
-                if (!_meshData.TryGetValue(meshId, out var mesh)) return;
+                if (!_meshData.TryGetValue(meshId, out var mesh))
+                    return;
 
                 mesh.Vertices?.Dispose();
                 mesh.Vertices = new VertexBuffer(vertexStride);
@@ -305,7 +306,8 @@ namespace GDNN.Rendering.Geometry
         {
             lock (_lock)
             {
-                if (!_meshData.TryGetValue(meshId, out var mesh)) return;
+                if (!_meshData.TryGetValue(meshId, out var mesh))
+                    return;
 
                 mesh.Vertices?.Dispose();
                 mesh.Vertices = new VertexBuffer(vertexStride);
@@ -342,7 +344,8 @@ namespace GDNN.Rendering.Geometry
 
         public MeshData? GetMeshData(int meshId)
         {
-            lock (_lock) { return _meshData.TryGetValue(meshId, out var mesh) ? mesh : null; }
+            lock (_lock)
+            { return _meshData.TryGetValue(meshId, out var mesh) ? mesh : null; }
         }
 
         public void DestroyMesh(int meshId)
@@ -364,7 +367,8 @@ namespace GDNN.Rendering.Geometry
 
         public void SubmitDraw(DrawCommand command)
         {
-            lock (_lock) { _pendingCommands.Add(command); }
+            lock (_lock)
+            { _pendingCommands.Add(command); }
         }
 
         public void SubmitDraw(int meshId, Matrix4x4 worldMatrix, int materialId = -1, RenderQueue queue = RenderQueue.Opaque, int instanceCount = 1)
@@ -431,7 +435,8 @@ namespace GDNN.Rendering.Geometry
 
         public void ClearCommands()
         {
-            lock (_lock) { _pendingCommands.Clear(); }
+            lock (_lock)
+            { _pendingCommands.Clear(); }
         }
 
         public void ResetStats()
@@ -443,7 +448,8 @@ namespace GDNN.Rendering.Geometry
 
         public GPUMesh? GetGPUMesh(int meshId)
         {
-            lock (_lock) { return _gpuMeshes.TryGetValue(meshId, out var gpu) ? gpu : null; }
+            lock (_lock)
+            { return _gpuMeshes.TryGetValue(meshId, out var gpu) ? gpu : null; }
         }
 
         public GPUMesh UploadToGPU(int meshId)
@@ -472,23 +478,27 @@ namespace GDNN.Rendering.Geometry
 
         public void SetMaterial(int materialId, MaterialState state)
         {
-            lock (_lock) { _materials[materialId] = state; }
+            lock (_lock)
+            { _materials[materialId] = state; }
         }
 
         public MaterialState? GetMaterial(int materialId)
         {
-            lock (_lock) { return _materials.TryGetValue(materialId, out var state) ? state : null; }
+            lock (_lock)
+            { return _materials.TryGetValue(materialId, out var state) ? state : null; }
         }
 
         private void ComputeBounds(MeshData mesh)
         {
-            if (mesh.Vertices == null || mesh.Vertices.IsEmpty) return;
+            if (mesh.Vertices == null || mesh.Vertices.IsEmpty)
+                return;
 
             var data = mesh.Vertices.GetData();
             int stride = mesh.Vertices.Stride;
             int count = mesh.Vertices.VertexCount;
 
-            if (count == 0 || stride < 3) return;
+            if (count == 0 || stride < 3)
+                return;
 
             float minX = float.MaxValue, minY = float.MaxValue, minZ = float.MaxValue;
             float maxX = float.MinValue, maxY = float.MinValue, maxZ = float.MinValue;
@@ -496,18 +506,25 @@ namespace GDNN.Rendering.Geometry
             for (int i = 0; i < count; i++)
             {
                 int offset = i * stride;
-                if (offset + 2 >= data.Length) break;
+                if (offset + 2 >= data.Length)
+                    break;
 
                 float x = data[offset];
                 float y = data[offset + 1];
                 float z = data[offset + 2];
 
-                if (x < minX) minX = x;
-                if (y < minY) minY = y;
-                if (z < minZ) minZ = z;
-                if (x > maxX) maxX = x;
-                if (y > maxY) maxY = y;
-                if (z > maxZ) maxZ = z;
+                if (x < minX)
+                    minX = x;
+                if (y < minY)
+                    minY = y;
+                if (z < minZ)
+                    minZ = z;
+                if (x > maxX)
+                    maxX = x;
+                if (y > maxY)
+                    maxY = y;
+                if (z > maxZ)
+                    maxZ = z;
             }
 
             mesh.Bounds = new BoundingBox3D(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
@@ -515,7 +532,8 @@ namespace GDNN.Rendering.Geometry
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             foreach (var mesh in _meshData.Values)

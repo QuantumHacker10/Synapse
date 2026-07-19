@@ -41,11 +41,13 @@ namespace Synapse.Infrastructure.Configuration
                 if (json.Length > 1_000_000)
                     throw new InvalidOperationException("Config file exceeds size limit.");
                 var loaded = JsonSerializer.Deserialize(json, SynapseConfigJsonContext.Default.SynapseConfig);
-                if (loaded != null) config = loaded;
+                if (loaded != null)
+                    config = loaded;
             }
 
             ApplyEnvironment(config);
-            if (args != null) ApplyCli(config, args);
+            if (args != null)
+                ApplyCli(config, args);
 
             // Normalize projects directory and validate optional scene path.
             config.ProjectsDirectory = Path.GetFullPath(config.ProjectsDirectory);
@@ -80,11 +82,14 @@ namespace Synapse.Infrastructure.Configuration
         private static void ApplyEnvironment(SynapseConfig config)
         {
             var w = Environment.GetEnvironmentVariable("SYNAPSE_WIDTH");
-            if (int.TryParse(w, out var width)) config.Width = width;
+            if (int.TryParse(w, out var width))
+                config.Width = width;
             var h = Environment.GetEnvironmentVariable("SYNAPSE_HEIGHT");
-            if (int.TryParse(h, out var height)) config.Height = height;
+            if (int.TryParse(h, out var height))
+                config.Height = height;
             var scene = Environment.GetEnvironmentVariable("SYNAPSE_SCENE");
-            if (!string.IsNullOrWhiteSpace(scene)) config.ScenePath = scene;
+            if (!string.IsNullOrWhiteSpace(scene))
+                config.ScenePath = scene;
 
             config.Llm.OpenAiApiKey ??= Environment.GetEnvironmentVariable("OPENAI_API_KEY");
             config.Llm.AnthropicApiKey ??= Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
@@ -103,10 +108,12 @@ namespace Synapse.Infrastructure.Configuration
                 switch (arg)
                 {
                     case "--width":
-                        if (int.TryParse(Next(), out var w)) config.Width = w;
+                        if (int.TryParse(Next(), out var w))
+                            config.Width = w;
                         break;
                     case "--height":
-                        if (int.TryParse(Next(), out var h)) config.Height = h;
+                        if (int.TryParse(Next(), out var h))
+                            config.Height = h;
                         break;
                     case "--validation":
                         config.EnableValidation = true;
@@ -122,7 +129,8 @@ namespace Synapse.Infrastructure.Configuration
                         break;
                     case "--quality":
                         var q = Next();
-                        if (!string.IsNullOrWhiteSpace(q)) config.QualityPreset = q!;
+                        if (!string.IsNullOrWhiteSpace(q))
+                            config.QualityPreset = q!;
                         break;
                 }
             }

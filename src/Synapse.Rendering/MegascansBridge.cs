@@ -335,7 +335,8 @@ namespace GDNN.Rendering.ArtPipeline
         public async Task<List<MegascansScanEntry>> ImportDirectoryAsync(string rootDirectory, CancellationToken ct = default)
         {
             var results = new List<MegascansScanEntry>();
-            if (!Directory.Exists(rootDirectory)) return results;
+            if (!Directory.Exists(rootDirectory))
+                return results;
 
             var subdirs = Directory.GetDirectories(rootDirectory, "*", SearchOption.TopDirectoryOnly);
             var tasks = subdirs.Select(dir => ImportAssetAsync(dir, ct));
@@ -361,7 +362,8 @@ namespace GDNN.Rendering.ArtPipeline
             if (!string.IsNullOrEmpty(textures?.Normal) || !string.IsNullOrEmpty(textures?.NormalDX))
             {
                 string normalPath = _config.UseNormalDX ? textures.NormalDX : textures.NormalGL;
-                if (string.IsNullOrEmpty(normalPath)) normalPath = textures.Normal ?? textures.NormalDX;
+                if (string.IsNullOrEmpty(normalPath))
+                    normalPath = textures.Normal ?? textures.NormalDX;
                 if (!string.IsNullOrEmpty(normalPath))
                     mat.SetTexture(TextureChannel.Normal, new TextureReference(normalPath, TextureChannel.Normal));
             }
@@ -553,12 +555,15 @@ namespace GDNN.Rendering.ArtPipeline
             {
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
-                if (root.TryGetProperty("name", out var name)) asset.Name = name.GetString() ?? "";
-                if (root.TryGetProperty("description", out var desc)) asset.Description = desc.GetString() ?? "";
+                if (root.TryGetProperty("name", out var name))
+                    asset.Name = name.GetString() ?? "";
+                if (root.TryGetProperty("description", out var desc))
+                    asset.Description = desc.GetString() ?? "";
                 if (root.TryGetProperty("id", out var id))
                 {
                     var rawId = id.GetString() ?? Guid.NewGuid().ToString("N");
-                    try { asset.Id = Synapse.Core.Security.PathSecurity.RequireSafeAssetId(rawId); }
+                    try
+                    { asset.Id = Synapse.Core.Security.PathSecurity.RequireSafeAssetId(rawId); }
                     catch { asset.Id = Guid.NewGuid().ToString("N"); }
                 }
                 if (root.TryGetProperty("type", out var type))
@@ -602,11 +607,15 @@ namespace GDNN.Rendering.ArtPipeline
                 }
                 if (root.TryGetProperty("size", out var sizeElement))
                 {
-                    if (sizeElement.TryGetProperty("x", out var sx)) asset.TileSizeU = sx.GetSingle();
-                    if (sizeElement.TryGetProperty("y", out var sy)) asset.TileSizeV = sy.GetSingle();
+                    if (sizeElement.TryGetProperty("x", out var sx))
+                        asset.TileSizeU = sx.GetSingle();
+                    if (sizeElement.TryGetProperty("y", out var sy))
+                        asset.TileSizeV = sy.GetSingle();
                 }
-                if (root.TryGetProperty("tiling", out var tiling)) asset.IsTiling = tiling.GetBoolean();
-                if (root.TryGetProperty("surfaceArea", out var area)) asset.SurfaceArea = area.GetSingle();
+                if (root.TryGetProperty("tiling", out var tiling))
+                    asset.IsTiling = tiling.GetBoolean();
+                if (root.TryGetProperty("surfaceArea", out var area))
+                    asset.SurfaceArea = area.GetSingle();
             }
             catch { }
 
@@ -614,7 +623,8 @@ namespace GDNN.Rendering.ArtPipeline
                 asset.Name = new DirectoryInfo(directory).Name;
             if (string.IsNullOrWhiteSpace(asset.Id))
                 asset.Id = Guid.NewGuid().ToString("N");
-            try { asset.Id = Synapse.Core.Security.PathSecurity.RequireSafeAssetId(asset.Id); }
+            try
+            { asset.Id = Synapse.Core.Security.PathSecurity.RequireSafeAssetId(asset.Id); }
             catch { asset.Id = Guid.NewGuid().ToString("N"); }
             Directory.CreateDirectory(_config.LibraryRootPath);
             asset.LibraryPath = Synapse.Core.Security.PathSecurity.CombineUnderRoot(_config.LibraryRootPath, asset.Id);
@@ -628,7 +638,8 @@ namespace GDNN.Rendering.ArtPipeline
             foreach (var file in files)
             {
                 string ext = Path.GetExtension(file).ToLowerInvariant();
-                if (ext is not (".png" or ".jpg" or ".jpeg" or ".tga" or ".exr" or ".tif" or ".tiff" or ".bmp")) continue;
+                if (ext is not (".png" or ".jpg" or ".jpeg" or ".tga" or ".exr" or ".tif" or ".tiff" or ".bmp"))
+                    continue;
                 string filename = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
                 if (filename.Contains("albedo") || filename.Contains("basecolor") || filename.Contains("diffuse") || filename == "color")
                     textures.BaseColor = file;
@@ -749,7 +760,8 @@ namespace GDNN.Rendering.ArtPipeline
             foreach (var c in candidates)
             {
                 string path = Path.Combine(directory, c);
-                if (File.Exists(path)) return path;
+                if (File.Exists(path))
+                    return path;
             }
             var jsonFiles = Directory.GetFiles(directory, "*.json", SearchOption.TopDirectoryOnly);
             return jsonFiles.FirstOrDefault();
@@ -782,7 +794,9 @@ namespace GDNN.Rendering.ArtPipeline
                         Directory.CreateDirectory(Synapse.Core.Security.PathSecurity.EnsureUnderRoot(targetDir, destParent));
                     File.Copy(file, destPath, overwrite: true);
                     if (_config.ImportMode == MegascansImportMode.MoveToLibrary)
-                        try { File.Delete(file); } catch { }
+                        try
+                        { File.Delete(file); }
+                        catch { }
                 }
             }
         }
@@ -800,7 +814,8 @@ namespace GDNN.Rendering.ArtPipeline
 
         public IReadOnlyList<MegascansScanEntry> SearchImportedAssets(string query)
         {
-            if (string.IsNullOrWhiteSpace(query)) return GetAllImportedAssets();
+            if (string.IsNullOrWhiteSpace(query))
+                return GetAllImportedAssets();
             var lower = query.ToLowerInvariant();
             return _importedAssets.Values
                 .Where(e => e.Asset != null &&

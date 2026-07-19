@@ -1,4 +1,11 @@
 using System;
+// ============================================================
+// FILE: NeuralLayerWeights.cs
+// PATH: Core/NeuralNetwork/NeuralLayerWeights.cs
+// ============================================================
+
+
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
@@ -7,7 +14,10 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Numerics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -15,18 +25,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-
-
-// ============================================================
-// FILE: NeuralLayerWeights.cs
-// PATH: Core/NeuralNetwork/NeuralLayerWeights.cs
-// ============================================================
-
-
-using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Numerics;
 
 namespace GDNN.Core.NeuralNetwork;
 
@@ -93,25 +91,79 @@ public readonly struct NeuralLayerWeights : IEquatable<NeuralLayerWeights>
         if (weights.Length < TotalFloatCount)
             throw new ArgumentException($"Expected at least {TotalFloatCount} weights, got {weights.Length}.");
 
-        _w00 = weights[0]; _w01 = weights[1]; _w02 = weights[2]; _w03 = weights[3];
-        _w04 = weights[4]; _w05 = weights[5]; _w06 = weights[6]; _w07 = weights[7];
-        _w10 = weights[8]; _w11 = weights[9]; _w12 = weights[10]; _w13 = weights[11];
-        _w14 = weights[12]; _w15 = weights[13]; _w16 = weights[14]; _w17 = weights[15];
-        _w20 = weights[16]; _w21 = weights[17]; _w22 = weights[18]; _w23 = weights[19];
-        _w24 = weights[20]; _w25 = weights[21]; _w26 = weights[22]; _w27 = weights[23];
-        _w30 = weights[24]; _w31 = weights[25]; _w32 = weights[26]; _w33 = weights[27];
-        _w34 = weights[28]; _w35 = weights[29]; _w36 = weights[30]; _w37 = weights[31];
-        _w40 = weights[32]; _w41 = weights[33]; _w42 = weights[34]; _w43 = weights[35];
-        _w44 = weights[36]; _w45 = weights[37]; _w46 = weights[38]; _w47 = weights[39];
-        _w50 = weights[40]; _w51 = weights[41]; _w52 = weights[42]; _w53 = weights[43];
-        _w54 = weights[44]; _w55 = weights[45]; _w56 = weights[46]; _w57 = weights[47];
-        _w60 = weights[48]; _w61 = weights[49]; _w62 = weights[50]; _w63 = weights[51];
-        _w64 = weights[52]; _w65 = weights[53]; _w66 = weights[54]; _w67 = weights[55];
-        _w70 = weights[56]; _w71 = weights[57]; _w72 = weights[58]; _w73 = weights[59];
-        _w74 = weights[60]; _w75 = weights[61]; _w76 = weights[62]; _w77 = weights[63];
+        _w00 = weights[0];
+        _w01 = weights[1];
+        _w02 = weights[2];
+        _w03 = weights[3];
+        _w04 = weights[4];
+        _w05 = weights[5];
+        _w06 = weights[6];
+        _w07 = weights[7];
+        _w10 = weights[8];
+        _w11 = weights[9];
+        _w12 = weights[10];
+        _w13 = weights[11];
+        _w14 = weights[12];
+        _w15 = weights[13];
+        _w16 = weights[14];
+        _w17 = weights[15];
+        _w20 = weights[16];
+        _w21 = weights[17];
+        _w22 = weights[18];
+        _w23 = weights[19];
+        _w24 = weights[20];
+        _w25 = weights[21];
+        _w26 = weights[22];
+        _w27 = weights[23];
+        _w30 = weights[24];
+        _w31 = weights[25];
+        _w32 = weights[26];
+        _w33 = weights[27];
+        _w34 = weights[28];
+        _w35 = weights[29];
+        _w36 = weights[30];
+        _w37 = weights[31];
+        _w40 = weights[32];
+        _w41 = weights[33];
+        _w42 = weights[34];
+        _w43 = weights[35];
+        _w44 = weights[36];
+        _w45 = weights[37];
+        _w46 = weights[38];
+        _w47 = weights[39];
+        _w50 = weights[40];
+        _w51 = weights[41];
+        _w52 = weights[42];
+        _w53 = weights[43];
+        _w54 = weights[44];
+        _w55 = weights[45];
+        _w56 = weights[46];
+        _w57 = weights[47];
+        _w60 = weights[48];
+        _w61 = weights[49];
+        _w62 = weights[50];
+        _w63 = weights[51];
+        _w64 = weights[52];
+        _w65 = weights[53];
+        _w66 = weights[54];
+        _w67 = weights[55];
+        _w70 = weights[56];
+        _w71 = weights[57];
+        _w72 = weights[58];
+        _w73 = weights[59];
+        _w74 = weights[60];
+        _w75 = weights[61];
+        _w76 = weights[62];
+        _w77 = weights[63];
 
-        _b0 = weights[64]; _b1 = weights[65]; _b2 = weights[66]; _b3 = weights[67];
-        _b4 = weights[68]; _b5 = weights[69]; _b6 = weights[70]; _b7 = weights[71];
+        _b0 = weights[64];
+        _b1 = weights[65];
+        _b2 = weights[66];
+        _b3 = weights[67];
+        _b4 = weights[68];
+        _b5 = weights[69];
+        _b6 = weights[70];
+        _b7 = weights[71];
     }
 
     /// <summary>
@@ -151,14 +203,70 @@ public readonly struct NeuralLayerWeights : IEquatable<NeuralLayerWeights>
     {
         return index switch
         {
-            0 => _w00, 1 => _w01, 2 => _w02, 3 => _w03, 4 => _w04, 5 => _w05, 6 => _w06, 7 => _w07,
-            8 => _w10, 9 => _w11, 10 => _w12, 11 => _w13, 12 => _w14, 13 => _w15, 14 => _w16, 15 => _w17,
-            16 => _w20, 17 => _w21, 18 => _w22, 19 => _w23, 20 => _w24, 21 => _w25, 22 => _w26, 23 => _w27,
-            24 => _w30, 25 => _w31, 26 => _w32, 27 => _w33, 28 => _w34, 29 => _w35, 30 => _w36, 31 => _w37,
-            32 => _w40, 33 => _w41, 34 => _w42, 35 => _w43, 36 => _w44, 37 => _w45, 38 => _w46, 39 => _w47,
-            40 => _w50, 41 => _w51, 42 => _w52, 43 => _w53, 44 => _w54, 45 => _w55, 46 => _w56, 47 => _w57,
-            48 => _w60, 49 => _w61, 50 => _w62, 51 => _w63, 52 => _w64, 53 => _w65, 54 => _w66, 55 => _w67,
-            56 => _w70, 57 => _w71, 58 => _w72, 59 => _w73, 60 => _w74, 61 => _w75, 62 => _w76, 63 => _w77,
+            0 => _w00,
+            1 => _w01,
+            2 => _w02,
+            3 => _w03,
+            4 => _w04,
+            5 => _w05,
+            6 => _w06,
+            7 => _w07,
+            8 => _w10,
+            9 => _w11,
+            10 => _w12,
+            11 => _w13,
+            12 => _w14,
+            13 => _w15,
+            14 => _w16,
+            15 => _w17,
+            16 => _w20,
+            17 => _w21,
+            18 => _w22,
+            19 => _w23,
+            20 => _w24,
+            21 => _w25,
+            22 => _w26,
+            23 => _w27,
+            24 => _w30,
+            25 => _w31,
+            26 => _w32,
+            27 => _w33,
+            28 => _w34,
+            29 => _w35,
+            30 => _w36,
+            31 => _w37,
+            32 => _w40,
+            33 => _w41,
+            34 => _w42,
+            35 => _w43,
+            36 => _w44,
+            37 => _w45,
+            38 => _w46,
+            39 => _w47,
+            40 => _w50,
+            41 => _w51,
+            42 => _w52,
+            43 => _w53,
+            44 => _w54,
+            45 => _w55,
+            46 => _w56,
+            47 => _w57,
+            48 => _w60,
+            49 => _w61,
+            50 => _w62,
+            51 => _w63,
+            52 => _w64,
+            53 => _w65,
+            54 => _w66,
+            55 => _w67,
+            56 => _w70,
+            57 => _w71,
+            58 => _w72,
+            59 => _w73,
+            60 => _w74,
+            61 => _w75,
+            62 => _w76,
+            63 => _w77,
             _ => throw new ArgumentOutOfRangeException(nameof(index))
         };
     }
@@ -444,7 +552,8 @@ public readonly struct NeuralLayerWeights : IEquatable<NeuralLayerWeights>
 
         for (int i = 0; i < TotalFloatCount; i++)
         {
-            if (selfSpan[i] != otherSpan[i]) return false;
+            if (selfSpan[i] != otherSpan[i])
+                return false;
         }
         return true;
     }

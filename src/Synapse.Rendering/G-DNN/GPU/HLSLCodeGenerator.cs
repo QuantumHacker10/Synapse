@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: HLSLCodeGenerator.cs
 // PATH: GPU/HLSLCodeGenerator.cs
@@ -24,10 +6,26 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.GPU;
 
@@ -203,10 +201,10 @@ public readonly struct HLSLType : IEquatable<HLSLType>
 public sealed class HLSLVariable
 {
     /// <summary>Variable name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>HLSL type.</summary>
-    public required HLSLType Type { get; init; }
+    public HLSLType Type { get; init; }
 
     /// <summary>Optional semantic (e.g. SV_POSITION).</summary>
     public string? Semantic { get; init; }
@@ -227,7 +225,8 @@ public sealed class HLSLVariable
     public string ToDeclaration()
     {
         var sb = new StringBuilder();
-        if (IsConst) sb.Append("const ");
+        if (IsConst)
+            sb.Append("const ");
         sb.Append(Type.FullName);
         sb.Append(' ');
         sb.Append(Name);
@@ -245,7 +244,8 @@ public sealed class HLSLVariable
     public string ToParameter()
     {
         var sb = new StringBuilder();
-        if (IsInout) sb.Append("inout ");
+        if (IsInout)
+            sb.Append("inout ");
         sb.Append(Type.FullName);
         sb.Append(' ');
         sb.Append(Name);
@@ -259,10 +259,10 @@ public sealed class HLSLVariable
 public sealed class HLSLParameter
 {
     /// <summary>Parameter name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>HLSL type.</summary>
-    public required HLSLType Type { get; init; }
+    public HLSLType Type { get; init; }
 
     /// <summary>Whether this is an input parameter.</summary>
     public bool IsInput { get; init; } = true;
@@ -280,8 +280,10 @@ public sealed class HLSLParameter
     public string ToParameterString()
     {
         var sb = new StringBuilder();
-        if (IsInout) sb.Append("inout ");
-        else if (IsOutput) sb.Append("out ");
+        if (IsInout)
+            sb.Append("inout ");
+        else if (IsOutput)
+            sb.Append("out ");
         sb.Append(Type.FullName);
         sb.Append(' ');
         sb.Append(Name);
@@ -297,10 +299,10 @@ public sealed class HLSLParameter
 public sealed class HLSLFunction
 {
     /// <summary>Return type.</summary>
-    public required HLSLType ReturnType { get; init; }
+    public HLSLType ReturnType { get; init; }
 
     /// <summary>Function name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>Function parameters.</summary>
     public List<HLSLParameter> Parameters { get; init; } = new();
@@ -325,7 +327,8 @@ public sealed class HLSLFunction
         sb.Append($"{ReturnType.FullName} {Name}(");
         for (int i = 0; i < Parameters.Count; i++)
         {
-            if (i > 0) sb.Append(", ");
+            if (i > 0)
+                sb.Append(", ");
             sb.Append(Parameters[i].ToParameterString());
         }
         sb.Append(')');
@@ -393,12 +396,18 @@ public sealed class HLSLCodeGenerator
     /// </summary>
     public static string FloatLiteral(float value)
     {
-        if (value == 0.0f) return "0.0";
-        if (value == 1.0f) return "1.0";
-        if (value == -1.0f) return "-1.0";
-        if (float.IsNaN(value)) return "asfloat(0x7FC00000)";
-        if (float.IsPositiveInfinity(value)) return "asfloat(0x7F800000)";
-        if (float.IsNegativeInfinity(value)) return "asfloat(0xFF800000)";
+        if (value == 0.0f)
+            return "0.0";
+        if (value == 1.0f)
+            return "1.0";
+        if (value == -1.0f)
+            return "-1.0";
+        if (float.IsNaN(value))
+            return "asfloat(0x7FC00000)";
+        if (float.IsPositiveInfinity(value))
+            return "asfloat(0x7F800000)";
+        if (float.IsNegativeInfinity(value))
+            return "asfloat(0xFF800000)";
 
         string formatted = value.ToString("G");
         if (!formatted.Contains('.') && !formatted.Contains('e') && !formatted.Contains('E'))

@@ -7,17 +7,17 @@ using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using GDNN.RHI.Vulkan;
 using GDNN.Platform;
-using GDNN.Rendering.Shaders;
 using GDNN.Rendering.Bridge;
+using GDNN.Rendering.Shaders;
+using GDNN.RHI.Vulkan;
 
 namespace GDNN.Rendering.Engine
 {
     public class RenderEngine : IDisposable
     {
         private const int MAX_FRAMES_IN_FLIGHT = 2;
-        private const string APP_NAME = "GDNN Synapse Engine";
+        private const string APP_NAME = "Synapse Engine";
 
         private VulkanRhiDevice _rhi;
         private IntPtr _window;
@@ -101,7 +101,8 @@ namespace GDNN.Rendering.Engine
         {
             if (!OperatingSystem.IsWindows())
                 throw new PlatformNotSupportedException("InitializeFromHwnd is only supported on Windows. Use Initialize() (GLFW) on Linux/macOS.");
-            if (hwnd == IntPtr.Zero) throw new ArgumentNullException(nameof(hwnd));
+            if (hwnd == IntPtr.Zero)
+                throw new ArgumentNullException(nameof(hwnd));
             NativeLibraryResolver.EnsureRegistered();
             _useGlfw = false;
             _externalHwnd = hwnd;
@@ -308,8 +309,10 @@ namespace GDNN.Rendering.Engine
 
             Marshal.FreeHGlobal(cmdBufferArrayPtr);
             Marshal.FreeHGlobal(waitStagePtr);
-            if (waitSemaphorePtr != IntPtr.Zero) Marshal.FreeHGlobal(waitSemaphorePtr);
-            if (signalSemaphorePtr != IntPtr.Zero) Marshal.FreeHGlobal(signalSemaphorePtr);
+            if (waitSemaphorePtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(waitSemaphorePtr);
+            if (signalSemaphorePtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(signalSemaphorePtr);
         }
 
         private unsafe void PresentRaw(IntPtr waitSemaphore, uint imageIndex)
@@ -336,7 +339,8 @@ namespace GDNN.Rendering.Engine
 
             Marshal.FreeHGlobal(presentInfo.pSwapchains);
             Marshal.FreeHGlobal(presentInfo.pImageIndices);
-            if (presentInfo.pWaitSemaphores != IntPtr.Zero) Marshal.FreeHGlobal(presentInfo.pWaitSemaphores);
+            if (presentInfo.pWaitSemaphores != IntPtr.Zero)
+                Marshal.FreeHGlobal(presentInfo.pWaitSemaphores);
         }
 
         [StructLayout(LayoutKind.Sequential)] private struct VkSemaphoreCreateInfoRaw { public uint sType; public IntPtr pNext; public uint flags; }
@@ -413,7 +417,8 @@ namespace GDNN.Rendering.Engine
             {
                 _swapchainDepthImages[i] = _rhi.CreateTexture(new TextureDescription
                 {
-                    Width = extent.Width, Height = extent.Height,
+                    Width = extent.Width,
+                    Height = extent.Height,
                     Format = VulkanFormat.D32Sfloat,
                     Usage = ImageUsageFlag.DepthStencilAttachment,
                     Tiling = ImageTiling.Optimal,
@@ -439,7 +444,9 @@ namespace GDNN.Rendering.Engine
                 {
                     RenderPass = _renderPass.Handle,
                     Attachments = attachments,
-                    Width = extent.Width, Height = extent.Height, Layers = 1
+                    Width = extent.Width,
+                    Height = extent.Height,
+                    Layers = 1
                 });
             }
         }
@@ -461,7 +468,8 @@ namespace GDNN.Rendering.Engine
             });
 
             var layouts = new IntPtr[MAX_FRAMES_IN_FLIGHT];
-            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) layouts[i] = _descriptorSetLayout.Handle;
+            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+                layouts[i] = _descriptorSetLayout.Handle;
 
             _descriptorSets = _rhi.AllocateDescriptorSets(new DescriptorSetAllocation { Pool = _descriptorPool.Handle, Layouts = layouts });
 
@@ -514,14 +522,20 @@ namespace GDNN.Rendering.Engine
                 ViewportState = new PipelineViewportStateCreateInfo { ViewportCount = 1, ScissorCount = 1 },
                 RasterizationState = new PipelineRasterizationStateCreateInfo
                 {
-                    DepthClampEnable = false, RasterizerDiscardEnable = false,
-                    PolygonMode = PolygonMode.Fill, CullMode = CullModeFlag.Back,
-                    FrontFace = FrontFace.CounterClockwise, DepthBiasEnable = false, LineWidth = 1.0f
+                    DepthClampEnable = false,
+                    RasterizerDiscardEnable = false,
+                    PolygonMode = PolygonMode.Fill,
+                    CullMode = CullModeFlag.Back,
+                    FrontFace = FrontFace.CounterClockwise,
+                    DepthBiasEnable = false,
+                    LineWidth = 1.0f
                 },
                 MultisampleState = new PipelineMultisampleStateCreateInfo { RasterizationSamples = SampleCountFlag.Count1 },
                 DepthStencilState = new PipelineDepthStencilStateCreateInfo
                 {
-                    DepthTestEnable = true, DepthWriteEnable = true, DepthCompareOp = CompareOp.LessOrEqual
+                    DepthTestEnable = true,
+                    DepthWriteEnable = true,
+                    DepthCompareOp = CompareOp.LessOrEqual
                 },
                 ColorBlendState = new PipelineColorBlendStateCreateInfo
                 {
@@ -604,12 +618,14 @@ namespace GDNN.Rendering.Engine
         {
             var staging = _rhi.CreateBuffer(new BufferDescription
             {
-                Size = (ulong)data.Length, Usage = BufferUsageFlag.TransferSrc,
+                Size = (ulong)data.Length,
+                Usage = BufferUsageFlag.TransferSrc,
                 MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent
             });
 
             var mapped = staging.Map();
-            fixed (byte* src = data) { System.Buffer.MemoryCopy(src, (void*)mapped, data.Length, data.Length); }
+            fixed (byte* src = data)
+            { System.Buffer.MemoryCopy(src, (void*)mapped, data.Length, data.Length); }
             staging.Unmap();
 
             var cmd = _rhi.CreateCommandBuffer();
@@ -628,7 +644,8 @@ namespace GDNN.Rendering.Engine
             {
                 _uniformBuffers[i] = _rhi.CreateBuffer(new BufferDescription
                 {
-                    Size = bufferSize, Usage = BufferUsageFlag.UniformBuffer,
+                    Size = bufferSize,
+                    Usage = BufferUsageFlag.UniformBuffer,
                     MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent
                 });
                 _uniformMapped[i] = _uniformBuffers[i].Map();
@@ -653,7 +670,8 @@ namespace GDNN.Rendering.Engine
 
         public void RenderFrame()
         {
-            if (_paused || _disposed) return;
+            if (_paused || _disposed)
+                return;
 
             _deltaTime = (float)_frameTimer.Elapsed.TotalSeconds;
             _frameTimer.Restart();
@@ -670,7 +688,8 @@ namespace GDNN.Rendering.Engine
             if (_useGlfw)
             {
                 GlfwWindow.PollEvents();
-                if (GlfwWindow.ShouldClose(_window)) { _disposed = true; return; }
+                if (GlfwWindow.ShouldClose(_window))
+                { _disposed = true; return; }
                 HandleInput();
             }
 
@@ -679,17 +698,19 @@ namespace GDNN.Rendering.Engine
 
             uint imageIndex = AcquireNextImageRaw(_imageAvailableSemaphores[_currentFrame]);
             GetFramebufferSize(out int fbW, out int fbH);
-            if (fbW == 0 || fbH == 0) fbW = fbH = 1;
+            if (fbW == 0 || fbH == 0)
+                fbW = fbH = 1;
             var view = Matrix4x4.CreateLookAt(_cameraPos, _cameraPos + _cameraFront, _cameraUp);
             var proj = Matrix4x4.CreatePerspectiveFieldOfView(MathHelper.Deg2Rad(_fov), (float)fbW / fbH, 0.1f, 100.0f);
             proj.M11 *= -1;
             UpdateUniformBuffer((int)_currentFrame);
             if (_sceneRenderer != null && _sceneRenderer.IsInitialized)
             {
+                _sceneRenderer.ConsumePendingGBufferReadback();
                 _sceneRenderer.UpdateUniforms((int)_currentFrame, view, proj, _cameraPos, _totalTime);
-                // GPU: shadow → G-Buffer → lighting. CPU GI/post overlap the submit.
+                var right = Vector3.Normalize(Vector3.Cross(_cameraFront, _cameraUp));
+                _sceneRenderer.RenderGI(view, proj, _cameraPos, _cameraFront, right);
                 _sceneRenderer.RecordCommandBuffer(_commandBuffers[_currentFrame], imageIndex, (int)_currentFrame);
-                _sceneRenderer.RenderGI();
                 _sceneRenderer.RenderPostProcess((float)fbW / fbH);
             }
             else
@@ -698,6 +719,8 @@ namespace GDNN.Rendering.Engine
             }
             SubmitRaw(_commandBuffers[_currentFrame], _imageAvailableSemaphores[_currentFrame], _renderFinishedSemaphores[_currentFrame], _inFlightFences[_currentFrame]);
             PresentRaw(_renderFinishedSemaphores[_currentFrame], imageIndex);
+            WaitForFenceRaw(_inFlightFences[_currentFrame]);
+            _sceneRenderer?.ScheduleGBufferReadback(imageIndex, (int)_currentFrame);
 
             _currentFrame = (_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
         }
@@ -720,13 +743,16 @@ namespace GDNN.Rendering.Engine
             double mouseX, mouseY;
             GlfwWindow.GetCursorPos(_window, out mouseX, out mouseY);
 
-            if (_firstMouse) { _lastMouseX = mouseX; _lastMouseY = mouseY; _firstMouse = false; }
+            if (_firstMouse)
+            { _lastMouseX = mouseX; _lastMouseY = mouseY; _firstMouse = false; }
 
             float xoffset = (float)(mouseX - _lastMouseX) * 0.1f;
             float yoffset = (float)(_lastMouseY - mouseY) * 0.1f;
-            _lastMouseX = mouseX; _lastMouseY = mouseY;
+            _lastMouseX = mouseX;
+            _lastMouseY = mouseY;
 
-            _yaw += xoffset; _pitch += yoffset;
+            _yaw += xoffset;
+            _pitch += yoffset;
             _pitch = Math.Clamp(_pitch, -89.0f, 89.0f);
 
             _cameraFront = Vector3.Normalize(new Vector3(
@@ -735,18 +761,25 @@ namespace GDNN.Rendering.Engine
                 MathF.Sin(MathHelper.Deg2Rad(_yaw)) * MathF.Cos(MathHelper.Deg2Rad(_pitch))));
 
             float speed = 3.0f * _deltaTime;
-            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_W) == GlfwWindow.GLFW_PRESS) _cameraPos += speed * _cameraFront;
-            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_S) == GlfwWindow.GLFW_PRESS) _cameraPos -= speed * _cameraFront;
-            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_A) == GlfwWindow.GLFW_PRESS) _cameraPos -= Vector3.Normalize(Vector3.Cross(_cameraFront, _cameraUp)) * speed;
-            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_D) == GlfwWindow.GLFW_PRESS) _cameraPos += Vector3.Normalize(Vector3.Cross(_cameraFront, _cameraUp)) * speed;
-            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_SPACE) == GlfwWindow.GLFW_PRESS) _cameraPos += _cameraUp * speed;
-            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_ESCAPE) == GlfwWindow.GLFW_PRESS) GlfwWindow.SetWindowShouldClose(_window, 1);
+            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_W) == GlfwWindow.GLFW_PRESS)
+                _cameraPos += speed * _cameraFront;
+            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_S) == GlfwWindow.GLFW_PRESS)
+                _cameraPos -= speed * _cameraFront;
+            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_A) == GlfwWindow.GLFW_PRESS)
+                _cameraPos -= Vector3.Normalize(Vector3.Cross(_cameraFront, _cameraUp)) * speed;
+            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_D) == GlfwWindow.GLFW_PRESS)
+                _cameraPos += Vector3.Normalize(Vector3.Cross(_cameraFront, _cameraUp)) * speed;
+            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_SPACE) == GlfwWindow.GLFW_PRESS)
+                _cameraPos += _cameraUp * speed;
+            if (GlfwWindow.GetKey(_window, GlfwWindow.GLFW_KEY_ESCAPE) == GlfwWindow.GLFW_PRESS)
+                GlfwWindow.SetWindowShouldClose(_window, 1);
         }
 
         private unsafe void UpdateUniformBuffer(int idx)
         {
             GetFramebufferSize(out int w, out int h);
-            if (w == 0 || h == 0) return;
+            if (w == 0 || h == 0)
+                return;
 
             var view = Matrix4x4.CreateLookAt(_cameraPos, _cameraPos + _cameraFront, _cameraUp);
             var proj = Matrix4x4.CreatePerspectiveFieldOfView(MathHelper.Deg2Rad(_fov), (float)w / h, 0.1f, 100.0f);
@@ -788,23 +821,32 @@ namespace GDNN.Rendering.Engine
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_rhi?.Device != IntPtr.Zero && _vkDeviceWaitIdle != IntPtr.Zero)
                 Marshal.GetDelegateForFunctionPointer<DeviceWaitIdleDel>(_vkDeviceWaitIdle)(_rhi.Device);
 
             for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
             {
-                if (_uniformBuffers[i] != null) { _uniformBuffers[i].Unmap(); _uniformBuffers[i].Dispose(); }
+                if (_uniformBuffers[i] != null)
+                { _uniformBuffers[i].Unmap(); _uniformBuffers[i].Dispose(); }
             }
-            _vertexBuffer?.Dispose(); _indexBuffer?.Dispose();
+            _vertexBuffer?.Dispose();
+            _indexBuffer?.Dispose();
             _sceneRenderer?.Dispose();
-            _graphicsPipeline?.Dispose(); _pipelineLayout?.Dispose();
-            _renderPass?.Dispose(); _descriptorPool?.Dispose(); _descriptorSetLayout?.Dispose();
-            foreach (var fb in _framebuffers) fb?.Dispose();
-            foreach (var di in _swapchainDepthImages) di?.Dispose();
+            _graphicsPipeline?.Dispose();
+            _pipelineLayout?.Dispose();
+            _renderPass?.Dispose();
+            _descriptorPool?.Dispose();
+            _descriptorSetLayout?.Dispose();
+            foreach (var fb in _framebuffers)
+                fb?.Dispose();
+            foreach (var di in _swapchainDepthImages)
+                di?.Dispose();
             _rhi?.Dispose();
-            if (_useGlfw && _window != IntPtr.Zero) GlfwWindow.DestroyWindow(_window);
+            if (_useGlfw && _window != IntPtr.Zero)
+                GlfwWindow.DestroyWindow(_window);
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate VulkanResult DeviceWaitIdleDel(IntPtr device);

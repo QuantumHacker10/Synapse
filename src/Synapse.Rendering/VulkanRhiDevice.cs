@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // GDNN Engine - Vulkan 1.4 Render Hardware Interface Backend
 // File: VulkanRhiDevice.cs
 // Description: Complete Vulkan RHI implementation for the G-DNN Engine
@@ -786,8 +786,12 @@ namespace GDNN.RHI.Vulkan
 
         public Viewport(float x, float y, float width, float height, float minDepth = 0f, float maxDepth = 1f)
         {
-            X = x; Y = y; Width = width; Height = height;
-            MinDepth = minDepth; MaxDepth = maxDepth;
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+            MinDepth = minDepth;
+            MaxDepth = maxDepth;
         }
     }
 
@@ -933,8 +937,11 @@ namespace GDNN.RHI.Vulkan
 
         public ImageSubresourceRange(ImageAspectFlag aspectMask, uint baseMipLevel, uint levelCount, uint baseArrayLayer, uint layerCount)
         {
-            AspectMask = aspectMask; BaseMipLevel = baseMipLevel; LevelCount = levelCount;
-            BaseArrayLayer = baseArrayLayer; LayerCount = layerCount;
+            AspectMask = aspectMask;
+            BaseMipLevel = baseMipLevel;
+            LevelCount = levelCount;
+            BaseArrayLayer = baseArrayLayer;
+            LayerCount = layerCount;
         }
     }
 
@@ -949,8 +956,10 @@ namespace GDNN.RHI.Vulkan
 
         public ImageSubresourceLayers(ImageAspectFlag aspectMask, uint mipLevel, uint baseArrayLayer, uint layerCount)
         {
-            AspectMask = aspectMask; MipLevel = mipLevel;
-            BaseArrayLayer = baseArrayLayer; LayerCount = layerCount;
+            AspectMask = aspectMask;
+            MipLevel = mipLevel;
+            BaseArrayLayer = baseArrayLayer;
+            LayerCount = layerCount;
         }
     }
 
@@ -1023,8 +1032,13 @@ namespace GDNN.RHI.Vulkan
 
         public StencilOpState(StencilOp failOp, StencilOp passOp, StencilOp depthFailOp, CompareOp compareOp)
         {
-            FailOp = failOp; PassOp = passOp; DepthFailOp = depthFailOp;
-            CompareOp = compareOp; CompareMask = 0xFFFFFFFF; WriteMask = 0xFFFFFFFF; Reference = 0;
+            FailOp = failOp;
+            PassOp = passOp;
+            DepthFailOp = depthFailOp;
+            CompareOp = compareOp;
+            CompareMask = 0xFFFFFFFF;
+            WriteMask = 0xFFFFFFFF;
+            Reference = 0;
         }
     }
 
@@ -1043,18 +1057,26 @@ namespace GDNN.RHI.Vulkan
 
         public static PipelineColorBlendAttachmentState Disabled() => new PipelineColorBlendAttachmentState
         {
-            BlendEnable = false, SrcColorBlendFactor = BlendFactor.One, DstColorBlendFactor = BlendFactor.Zero,
-            ColorBlendOp = BlendOp.Add, SrcAlphaBlendFactor = BlendFactor.One,
-            DstAlphaBlendFactor = BlendFactor.Zero, AlphaBlendOp = BlendOp.Add,
+            BlendEnable = false,
+            SrcColorBlendFactor = BlendFactor.One,
+            DstColorBlendFactor = BlendFactor.Zero,
+            ColorBlendOp = BlendOp.Add,
+            SrcAlphaBlendFactor = BlendFactor.One,
+            DstAlphaBlendFactor = BlendFactor.Zero,
+            AlphaBlendOp = BlendOp.Add,
             ColorWriteMask = ColorComponentFlag.RGBA
         };
 
         public static PipelineColorBlendAttachmentState AlphaBlending() => new PipelineColorBlendAttachmentState
         {
-            BlendEnable = true, SrcColorBlendFactor = BlendFactor.SrcAlpha,
-            DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha, ColorBlendOp = BlendOp.Add,
-            SrcAlphaBlendFactor = BlendFactor.One, DstAlphaBlendFactor = BlendFactor.OneMinusSrcAlpha,
-            AlphaBlendOp = BlendOp.Add, ColorWriteMask = ColorComponentFlag.RGBA
+            BlendEnable = true,
+            SrcColorBlendFactor = BlendFactor.SrcAlpha,
+            DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha,
+            ColorBlendOp = BlendOp.Add,
+            SrcAlphaBlendFactor = BlendFactor.One,
+            DstAlphaBlendFactor = BlendFactor.OneMinusSrcAlpha,
+            AlphaBlendOp = BlendOp.Add,
+            ColorWriteMask = ColorComponentFlag.RGBA
         };
     }
 
@@ -1688,10 +1710,14 @@ namespace GDNN.RHI.Vulkan
             get
             {
                 var families = new HashSet<int>();
-                if (GraphicsFamily >= 0) families.Add(GraphicsFamily);
-                if (ComputeFamily >= 0) families.Add(ComputeFamily);
-                if (TransferFamily >= 0) families.Add(TransferFamily);
-                if (PresentFamily >= 0) families.Add(PresentFamily);
+                if (GraphicsFamily >= 0)
+                    families.Add(GraphicsFamily);
+                if (ComputeFamily >= 0)
+                    families.Add(ComputeFamily);
+                if (TransferFamily >= 0)
+                    families.Add(TransferFamily);
+                if (PresentFamily >= 0)
+                    families.Add(PresentFamily);
                 return families.Select(x => (uint)x).ToArray();
             }
         }
@@ -1757,7 +1783,8 @@ namespace GDNN.RHI.Vulkan
                     if (format.Format == preferred && (int)format.ColorSpace == (int)colorSpace)
                         return format;
                 }
-                if (Formats.Length > 0) return Formats[0];
+                if (Formats.Length > 0)
+                    return Formats[0];
             }
             return new SurfaceFormatKHR { Format = preferred, ColorSpace = colorSpace };
         }
@@ -1768,7 +1795,8 @@ namespace GDNN.RHI.Vulkan
             {
                 foreach (var mode in PresentModes)
                 {
-                    if (mode == preferred) return mode;
+                    if (mode == preferred)
+                        return mode;
                 }
             }
             return PresentMode.Fifo;
@@ -1948,25 +1976,27 @@ namespace GDNN.RHI.Vulkan
         [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
         private static extern void vkDestroyDevice(IntPtr device, IntPtr pAllocator);
 
-        private T GetDeviceProc<T>(string name) where T : Delegate
+        private T? GetDeviceProc<T>(string name) where T : Delegate
         {
             var namePtr = Marshal.StringToHGlobalAnsi(name);
             try
             {
                 var ptr = vkGetDeviceProcAddr(_logicalDevice, namePtr);
-                if (ptr == IntPtr.Zero) return null;
+                if (ptr == IntPtr.Zero)
+                    return null;
                 return Marshal.GetDelegateForFunctionPointer<T>(ptr);
             }
             finally { Marshal.FreeHGlobal(namePtr); }
         }
 
-        private T GetInstanceProc<T>(string name) where T : Delegate
+        private T? GetInstanceProc<T>(string name) where T : Delegate
         {
             var namePtr = Marshal.StringToHGlobalAnsi(name);
             try
             {
                 var ptr = vkGetInstanceProcAddr(_instance, namePtr);
-                if (ptr == IntPtr.Zero) return null;
+                if (ptr == IntPtr.Zero)
+                    return null;
                 return Marshal.GetDelegateForFunctionPointer<T>(ptr);
             }
             finally { Marshal.FreeHGlobal(namePtr); }
@@ -2247,7 +2277,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Creates the Vulkan debug messenger</summary>
         private void CreateDebugMessenger()
         {
-            if (!_creationInfo.EnableValidation) return;
+            if (!_creationInfo.EnableValidation)
+                return;
             try
             {
                 _vkCreateDebugUtilsMessenger = GetInstanceProc<VkCreateDebugUtilsMessengerDelegate>("vkCreateDebugUtilsMessengerEXT");
@@ -2393,7 +2424,8 @@ namespace GDNN.RHI.Vulkan
         {
             uint deviceCount = 0;
             vkEnumeratePhysicalDevices(_instance, ref deviceCount, IntPtr.Zero);
-            if (deviceCount == 0) throw new InvalidOperationException("No Vulkan physical devices found");
+            if (deviceCount == 0)
+                throw new InvalidOperationException("No Vulkan physical devices found");
 
             var devicesPtr = Marshal.AllocHGlobal((int)(deviceCount * IntPtr.Size));
             try
@@ -2438,15 +2470,19 @@ namespace GDNN.RHI.Vulkan
             for (uint i = 0; i < queueFamilyCount; i++)
             {
                 var props = queueFamilyProperties[i];
-                if ((props.queueFlags & QueueFlag.Graphics) != 0) _queueFamilyIndices.GraphicsFamily = (int)i;
-                if ((props.queueFlags & QueueFlag.Compute) != 0 && _queueFamilyIndices.ComputeFamily < 0) _queueFamilyIndices.ComputeFamily = (int)i;
-                if ((props.queueFlags & QueueFlag.Transfer) != 0 && _queueFamilyIndices.TransferFamily < 0) _queueFamilyIndices.TransferFamily = (int)i;
+                if ((props.queueFlags & QueueFlag.Graphics) != 0)
+                    _queueFamilyIndices.GraphicsFamily = (int)i;
+                if ((props.queueFlags & QueueFlag.Compute) != 0 && _queueFamilyIndices.ComputeFamily < 0)
+                    _queueFamilyIndices.ComputeFamily = (int)i;
+                if ((props.queueFlags & QueueFlag.Transfer) != 0 && _queueFamilyIndices.TransferFamily < 0)
+                    _queueFamilyIndices.TransferFamily = (int)i;
 
                 if (_surface != IntPtr.Zero)
                 {
                     IntPtr supported = IntPtr.Zero;
                     vkGetPhysicalDeviceSurfaceSupport(_physicalDevice, i, _surface, ref supported);
-                    if (supported != IntPtr.Zero) _queueFamilyIndices.PresentFamily = (int)i;
+                    if (supported != IntPtr.Zero)
+                        _queueFamilyIndices.PresentFamily = (int)i;
                 }
             }
             _device.QueueIndices = _queueFamilyIndices;
@@ -2528,7 +2564,8 @@ namespace GDNN.RHI.Vulkan
 
             var extensionPtrs = extensions.Select(e => Marshal.StringToHGlobalAnsi(e)).ToArray();
             var layerNames = new List<string>();
-            if (_creationInfo.EnableValidation) layerNames.Add("VK_LAYER_KHRONOS_validation");
+            if (_creationInfo.EnableValidation)
+                layerNames.Add("VK_LAYER_KHRONOS_validation");
             var layerPtrs = layerNames.Select(l => Marshal.StringToHGlobalAnsi(l)).ToArray();
 
             var createInfo = new VkDeviceCreateInfo
@@ -2558,8 +2595,10 @@ namespace GDNN.RHI.Vulkan
             var result = vkCreateDevice(_physicalDevice, ref createInfo, IntPtr.Zero, ref _logicalDevice);
             Marshal.FreeHGlobal(featuresPtr);
             Marshal.FreeHGlobal(priorityPtr);
-            foreach (var ptr in extensionPtrs) Marshal.FreeHGlobal(ptr);
-            foreach (var ptr in layerPtrs) Marshal.FreeHGlobal(ptr);
+            foreach (var ptr in extensionPtrs)
+                Marshal.FreeHGlobal(ptr);
+            foreach (var ptr in layerPtrs)
+                Marshal.FreeHGlobal(ptr);
 
             if (result != VulkanResult.Success)
                 throw new InvalidOperationException($"Failed to create Vulkan logical device: {result}");
@@ -2780,13 +2819,15 @@ namespace GDNN.RHI.Vulkan
                 for (uint i = 0; i < queueFamilyCount; i++)
                 {
                     var qfp = Marshal.PtrToStructure<VkQueueFamilyProperties>(qfpPtr + (int)(i * 48));
-                    if ((qfp.queueFlags & QueueFlag.Graphics) != 0) _queueFamilyIndices.GraphicsFamily = (int)i;
+                    if ((qfp.queueFlags & QueueFlag.Graphics) != 0)
+                        _queueFamilyIndices.GraphicsFamily = (int)i;
                     if ((qfp.queueFlags & QueueFlag.Compute) != 0 && _queueFamilyIndices.ComputeFamily < 0)
                         _queueFamilyIndices.ComputeFamily = (int)i;
 
                     IntPtr supported = new IntPtr(1);
                     vkGetPhysicalDeviceSurfaceSupport(_physicalDevice, i, surface, ref supported);
-                    if (supported != IntPtr.Zero) _queueFamilyIndices.PresentFamily = (int)i;
+                    if (supported != IntPtr.Zero)
+                        _queueFamilyIndices.PresentFamily = (int)i;
                 }
             }
             finally { Marshal.FreeHGlobal(qfpPtr); }
@@ -3057,11 +3098,18 @@ namespace GDNN.RHI.Vulkan
                 throw new InvalidOperationException($"Failed to create render pass: {res}");
 
             // Free allocated memory
-            if (attachmentPtr != IntPtr.Zero) Marshal.FreeHGlobal(attachmentPtr);
-            if (subpassPtr != IntPtr.Zero) Marshal.FreeHGlobal(subpassPtr);
-            if (dependencyPtr != IntPtr.Zero) Marshal.FreeHGlobal(dependencyPtr);
-            foreach (var ptr in colorAttachRefs) if (ptr != IntPtr.Zero) Marshal.FreeHGlobal(ptr);
-            foreach (var ptr in inputAttachRefs) if (ptr != IntPtr.Zero) Marshal.FreeHGlobal(ptr);
+            if (attachmentPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(attachmentPtr);
+            if (subpassPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(subpassPtr);
+            if (dependencyPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(dependencyPtr);
+            foreach (var ptr in colorAttachRefs)
+                if (ptr != IntPtr.Zero)
+                    Marshal.FreeHGlobal(ptr);
+            foreach (var ptr in inputAttachRefs)
+                if (ptr != IntPtr.Zero)
+                    Marshal.FreeHGlobal(ptr);
 
             var rp = new VulkanRenderPass(_device, renderPass, description);
             _renderPasses.Add(rp);
@@ -3352,7 +3400,8 @@ namespace GDNN.RHI.Vulkan
 
             IntPtr layout = IntPtr.Zero;
             var result = _vkCreateDescriptorSetLayout(_logicalDevice, ref createInfo, IntPtr.Zero, ref layout);
-            if (bindingsPtr != IntPtr.Zero) Marshal.FreeHGlobal(bindingsPtr);
+            if (bindingsPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(bindingsPtr);
 
             if (result != VulkanResult.Success)
                 throw new InvalidOperationException($"Failed to create descriptor set layout: {result}");
@@ -3394,7 +3443,8 @@ namespace GDNN.RHI.Vulkan
 
             IntPtr pool = IntPtr.Zero;
             var result = _vkCreateDescriptorPool(_logicalDevice, ref createInfo, IntPtr.Zero, ref pool);
-            if (poolSizesPtr != IntPtr.Zero) Marshal.FreeHGlobal(poolSizesPtr);
+            if (poolSizesPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(poolSizesPtr);
 
             if (result != VulkanResult.Success)
                 throw new InvalidOperationException($"Failed to create descriptor pool: {result}");
@@ -3438,7 +3488,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Updates descriptor sets with new binding data</summary>
         public void UpdateDescriptorSets(DescriptorWrite[] writes)
         {
-            if (writes == null || writes.Length == 0) return;
+            if (writes == null || writes.Length == 0)
+                return;
 
             int writeStructSize = Marshal.SizeOf<VkWriteDescriptorSet>();
             var writePtrs = new IntPtr[writes.Length];
@@ -3512,7 +3563,8 @@ namespace GDNN.RHI.Vulkan
 
             _vkUpdateDescriptorSets(_logicalDevice, (uint)writes.Length, writesArrayPtr, 0, IntPtr.Zero);
 
-            foreach (var ptr in tempAllocs) Marshal.FreeHGlobal(ptr);
+            foreach (var ptr in tempAllocs)
+                Marshal.FreeHGlobal(ptr);
         }
 
         /// <summary>Creates a shader module from SPIR-V bytecode</summary>
@@ -3728,7 +3780,8 @@ namespace GDNN.RHI.Vulkan
 
             var extensionPtrs = extensions.Select(e => Marshal.StringToHGlobalAnsi(e)).ToArray();
             var layerNames = new List<string>();
-            if (_creationInfo.EnableValidation) layerNames.Add("VK_LAYER_KHRONOS_validation");
+            if (_creationInfo.EnableValidation)
+                layerNames.Add("VK_LAYER_KHRONOS_validation");
             var layerPtrs = layerNames.Select(l => Marshal.StringToHGlobalAnsi(l)).ToArray();
 
             var createInfo = new VkInstanceCreateInfo
@@ -3755,8 +3808,10 @@ namespace GDNN.RHI.Vulkan
 
             var result = vkCreateInstance(ref createInfo, IntPtr.Zero, ref _instance);
             Marshal.FreeHGlobal(createInfo.pApplicationInfo);
-            foreach (var ptr in extensionPtrs) Marshal.FreeHGlobal(ptr);
-            foreach (var ptr in layerPtrs) Marshal.FreeHGlobal(ptr);
+            foreach (var ptr in extensionPtrs)
+                Marshal.FreeHGlobal(ptr);
+            foreach (var ptr in layerPtrs)
+                Marshal.FreeHGlobal(ptr);
 
             if (result != VulkanResult.Success)
                 throw new InvalidOperationException($"Failed to create Vulkan instance: {result}");
@@ -3773,7 +3828,7 @@ namespace GDNN.RHI.Vulkan
                     Marshal.WriteIntPtr(setLayoutsPtr + i * IntPtr.Size, setLayouts[i]);
             }
 
-            VkPushConstantRange[] pushRanges = null;
+            VkPushConstantRange[]? pushRanges = null;
             IntPtr pushRangesPtr = IntPtr.Zero;
             if (pushConstants != null && pushConstants.Length > 0)
             {
@@ -3805,8 +3860,10 @@ namespace GDNN.RHI.Vulkan
             IntPtr layout = IntPtr.Zero;
             var result = _vkCreatePipelineLayout(_logicalDevice, ref createInfo, IntPtr.Zero, ref layout);
 
-            if (setLayoutsPtr != IntPtr.Zero) Marshal.FreeHGlobal(setLayoutsPtr);
-            if (pushRangesPtr != IntPtr.Zero) Marshal.FreeHGlobal(pushRangesPtr);
+            if (setLayoutsPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(setLayoutsPtr);
+            if (pushRangesPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(pushRangesPtr);
 
             if (result != VulkanResult.Success)
                 throw new InvalidOperationException($"Failed to create pipeline layout: {result}");
@@ -3862,8 +3919,10 @@ namespace GDNN.RHI.Vulkan
             var result = _vkQueueSubmit(_graphicsQueue, 1, ref submitInfo, fence);
             Marshal.FreeHGlobal(cmdBufferArrayPtr);
             Marshal.FreeHGlobal(waitStagePtr);
-            if (waitSemaphorePtr != IntPtr.Zero) Marshal.FreeHGlobal(waitSemaphorePtr);
-            if (signalSemaphorePtr != IntPtr.Zero) Marshal.FreeHGlobal(signalSemaphorePtr);
+            if (waitSemaphorePtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(waitSemaphorePtr);
+            if (signalSemaphorePtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(signalSemaphorePtr);
 
             if (result != VulkanResult.Success)
                 throw new InvalidOperationException($"Failed to submit command buffer: {result}");
@@ -3878,7 +3937,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Disposes the device and all resources</summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             WaitForIdle();
             Cleanup();
@@ -3887,16 +3947,26 @@ namespace GDNN.RHI.Vulkan
 
         private void Cleanup()
         {
-            foreach (var s in _samplers) s?.Dispose();
-            foreach (var sm in _shaderModules) sm?.Dispose();
-            foreach (var p in _pipelines) p?.Dispose();
-            foreach (var cp in _computePipelines) cp?.Dispose();
-            foreach (var fb in _framebuffers) fb?.Dispose();
-            foreach (var rp in _renderPasses) rp?.Dispose();
-            foreach (var t in _textures) t?.Dispose();
-            foreach (var b in _buffers) b?.Dispose();
-            foreach (var dpl in _descriptorPools) dpl?.Dispose();
-            foreach (var dsl in _descriptorSetLayouts) dsl?.Dispose();
+            foreach (var s in _samplers)
+                s?.Dispose();
+            foreach (var sm in _shaderModules)
+                sm?.Dispose();
+            foreach (var p in _pipelines)
+                p?.Dispose();
+            foreach (var cp in _computePipelines)
+                cp?.Dispose();
+            foreach (var fb in _framebuffers)
+                fb?.Dispose();
+            foreach (var rp in _renderPasses)
+                rp?.Dispose();
+            foreach (var t in _textures)
+                t?.Dispose();
+            foreach (var b in _buffers)
+                b?.Dispose();
+            foreach (var dpl in _descriptorPools)
+                dpl?.Dispose();
+            foreach (var dsl in _descriptorSetLayouts)
+                dsl?.Dispose();
 
             _memoryAllocator?.Dispose();
             _syncManager?.Dispose();
@@ -3992,7 +4062,7 @@ namespace GDNN.RHI.Vulkan
             _vkDestroyImageView = LoadDeviceFunction<DestroyImageViewDel>("vkDestroyImageView");
         }
 
-        private T LoadDeviceFunction<T>(string name) where T : Delegate
+        private T? LoadDeviceFunction<T>(string name) where T : Delegate
         {
             var namePtr = Marshal.StringToHGlobalAnsi(name);
             try
@@ -4106,7 +4176,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Resizes the swapchain</summary>
         public void Resize(uint width, uint height)
         {
-            if (width == 0 || height == 0) return;
+            if (width == 0 || height == 0)
+                return;
             _extent = new Extent2D(width, height);
             CleanupImageViews();
             CleanupImages();
@@ -4143,14 +4214,17 @@ namespace GDNN.RHI.Vulkan
 
         private void CleanupImageViews()
         {
-            if (_imageViews == null) return;
+            if (_imageViews == null)
+                return;
             foreach (var iv in _imageViews)
-                if (iv != IntPtr.Zero) _vkDestroyImageView?.Invoke(_device.LogicalDevice, iv, IntPtr.Zero);
+                if (iv != IntPtr.Zero)
+                    _vkDestroyImageView?.Invoke(_device.LogicalDevice, iv, IntPtr.Zero);
         }
 
         private void CleanupImages()
         {
-            if (_imageWrappers == null) return;
+            if (_imageWrappers == null)
+                return;
             foreach (var img in _imageWrappers)
                 img?.Dispose();
             _imageWrappers = null;
@@ -4159,7 +4233,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             CleanupImageViews();
             CleanupImages();
@@ -4193,6 +4268,7 @@ namespace GDNN.RHI.Vulkan
         private CmdPipelineBarrierDel _vkCmdPipelineBarrier;
         private CmdCopyBufferDel _vkCmdCopyBuffer;
         private CmdCopyBufferToImageDel _vkCmdCopyBufferToImage;
+        private CmdCopyImageToBufferDel _vkCmdCopyImageToBuffer;
         private CmdPushConstantsDel _vkCmdPushConstants;
         private CmdSetViewportDel _vkCmdSetViewport;
         private CmdSetScissorDel _vkCmdSetScissor;
@@ -4217,6 +4293,7 @@ namespace GDNN.RHI.Vulkan
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdPipelineBarrierDel(IntPtr cmdBuffer, PipelineStageFlag srcStageMask, PipelineStageFlag dstStageMask, uint dependencyFlags, uint memoryBarrierCount, IntPtr pMemoryBarriers, uint bufferMemoryBarrierCount, IntPtr pBufferMemoryBarriers, uint imageMemoryBarrierCount, IntPtr pImageMemoryBarriers);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdCopyBufferDel(IntPtr cmdBuffer, IntPtr srcBuffer, IntPtr dstBuffer, uint regionCount, ref BufferCopy pRegions);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdCopyBufferToImageDel(IntPtr cmdBuffer, IntPtr buffer, IntPtr image, uint imageLayout, uint regionCount, ref BufferImageCopy pRegions);
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdCopyImageToBufferDel(IntPtr cmdBuffer, IntPtr srcImage, uint srcImageLayout, IntPtr dstBuffer, uint regionCount, ref BufferImageCopy pRegions);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdPushConstantsDel(IntPtr cmdBuffer, IntPtr layout, ShaderStageFlag stageFlags, uint offset, uint size, IntPtr pValues);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdSetViewportDel(IntPtr cmdBuffer, uint firstViewport, uint viewportCount, ref Viewport pViewports);
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] private delegate void CmdSetScissorDel(IntPtr cmdBuffer, uint firstScissor, uint scissorCount, ref Rect2D pScissors);
@@ -4258,6 +4335,7 @@ namespace GDNN.RHI.Vulkan
             _vkCmdPipelineBarrier = Marshal.GetDelegateForFunctionPointer<CmdPipelineBarrierDel>(load("vkCmdPipelineBarrier"));
             _vkCmdCopyBuffer = Marshal.GetDelegateForFunctionPointer<CmdCopyBufferDel>(load("vkCmdCopyBuffer"));
             _vkCmdCopyBufferToImage = Marshal.GetDelegateForFunctionPointer<CmdCopyBufferToImageDel>(load("vkCmdCopyBufferToImage"));
+            _vkCmdCopyImageToBuffer = Marshal.GetDelegateForFunctionPointer<CmdCopyImageToBufferDel>(load("vkCmdCopyImageToBuffer"));
             _vkCmdPushConstants = Marshal.GetDelegateForFunctionPointer<CmdPushConstantsDel>(load("vkCmdPushConstants"));
             _vkCmdSetViewport = Marshal.GetDelegateForFunctionPointer<CmdSetViewportDel>(load("vkCmdSetViewport"));
             _vkCmdSetScissor = Marshal.GetDelegateForFunctionPointer<CmdSetScissorDel>(load("vkCmdSetScissor"));
@@ -4320,7 +4398,8 @@ namespace GDNN.RHI.Vulkan
                 flags = (uint)flags
             };
             var result = vkBeginCommandBuffer(_commandBuffer, ref beginInfo);
-            if (result == VulkanResult.Success) _isRecording = true;
+            if (result == VulkanResult.Success)
+                _isRecording = true;
             return result;
         }
 
@@ -4328,7 +4407,8 @@ namespace GDNN.RHI.Vulkan
         public VulkanResult End()
         {
             var result = vkEndCommandBuffer(_commandBuffer);
-            if (result == VulkanResult.Success) _isRecording = false;
+            if (result == VulkanResult.Success)
+                _isRecording = false;
             return result;
         }
 
@@ -4357,7 +4437,8 @@ namespace GDNN.RHI.Vulkan
             {
                 beginInfo.renderArea = new VkRenderPassBeginInfo_Rect2D
                 {
-                    x = 0, y = 0,
+                    x = 0,
+                    y = 0,
                     width = framebuffer.Width,
                     height = framebuffer.Height
                 };
@@ -4366,13 +4447,16 @@ namespace GDNN.RHI.Vulkan
             {
                 beginInfo.renderArea = new VkRenderPassBeginInfo_Rect2D
                 {
-                    x = renderArea.Offset.X, y = renderArea.Offset.Y,
-                    width = renderArea.Extent.Width, height = renderArea.Extent.Height
+                    x = renderArea.Offset.X,
+                    y = renderArea.Offset.Y,
+                    width = renderArea.Extent.Width,
+                    height = renderArea.Extent.Height
                 };
             }
 
             _vkCmdBeginRenderPass(_commandBuffer, ref beginInfo, 0);
-            if (clearValuesPtr != IntPtr.Zero) Marshal.FreeHGlobal(clearValuesPtr);
+            if (clearValuesPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(clearValuesPtr);
         }
 
         /// <summary>Ends the current render pass</summary>
@@ -4395,11 +4479,14 @@ namespace GDNN.RHI.Vulkan
         public void BindVertexBuffers(VulkanBuffer[] buffers, ulong[] offsets)
         {
             var bufferHandles = new IntPtr[buffers.Length];
-            for (int i = 0; i < buffers.Length; i++) bufferHandles[i] = buffers[i].Handle;
+            for (int i = 0; i < buffers.Length; i++)
+                bufferHandles[i] = buffers[i].Handle;
             var bufferPtr = Marshal.AllocHGlobal(buffers.Length * IntPtr.Size);
-            for (int i = 0; i < buffers.Length; i++) Marshal.WriteIntPtr(bufferPtr + i * IntPtr.Size, bufferHandles[i]);
+            for (int i = 0; i < buffers.Length; i++)
+                Marshal.WriteIntPtr(bufferPtr + i * IntPtr.Size, bufferHandles[i]);
             var offsetPtr = Marshal.AllocHGlobal(buffers.Length * sizeof(ulong));
-            for (int i = 0; i < buffers.Length; i++) Marshal.WriteInt64(offsetPtr + i * sizeof(ulong), (long)offsets[i]);
+            for (int i = 0; i < buffers.Length; i++)
+                Marshal.WriteInt64(offsetPtr + i * sizeof(ulong), (long)offsets[i]);
             _vkCmdBindVertexBuffers(_commandBuffer, 0, (uint)buffers.Length, ref bufferPtr, ref offsets[0]);
             Marshal.FreeHGlobal(bufferPtr);
             Marshal.FreeHGlobal(offsetPtr);
@@ -4493,16 +4580,20 @@ namespace GDNN.RHI.Vulkan
                 (uint)bufBarrierCount, bufBarrierPtr,
                 (uint)imgBarrierCount, imgBarrierPtr);
 
-            if (memBarrierPtr != IntPtr.Zero) Marshal.FreeHGlobal(memBarrierPtr);
-            if (bufBarrierPtr != IntPtr.Zero) Marshal.FreeHGlobal(bufBarrierPtr);
-            if (imgBarrierPtr != IntPtr.Zero) Marshal.FreeHGlobal(imgBarrierPtr);
+            if (memBarrierPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(memBarrierPtr);
+            if (bufBarrierPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(bufBarrierPtr);
+            if (imgBarrierPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(imgBarrierPtr);
         }
 
         /// <summary>Copies data between buffers</summary>
         public void CopyBuffer(VulkanBuffer srcBuffer, VulkanBuffer dstBuffer, BufferCopy[] regions)
         {
             int regionCount = regions?.Length ?? 0;
-            if (regionCount == 0) return;
+            if (regionCount == 0)
+                return;
             int sz = Marshal.SizeOf<BufferCopy>();
             var regionsPtr = Marshal.AllocHGlobal(regionCount * sz);
             for (int i = 0; i < regionCount; i++)
@@ -4515,14 +4606,25 @@ namespace GDNN.RHI.Vulkan
         public void CopyBufferToImage(VulkanBuffer buffer, VulkanTexture image, ImageLayout imageLayout, BufferImageCopy[] regions)
         {
             int regionCount = regions?.Length ?? 0;
-            if (regionCount == 0) return;
+            if (regionCount == 0)
+                return;
             _vkCmdCopyBufferToImage(_commandBuffer, buffer.Handle, image.Handle, (uint)imageLayout, (uint)regionCount, ref regions[0]);
+        }
+
+        /// <summary>Copies image data to a buffer</summary>
+        public void CopyImageToBuffer(VulkanTexture image, ImageLayout imageLayout, VulkanBuffer buffer, BufferImageCopy[] regions)
+        {
+            int regionCount = regions?.Length ?? 0;
+            if (regionCount == 0)
+                return;
+            _vkCmdCopyImageToBuffer(_commandBuffer, image.Handle, (uint)imageLayout, buffer.Handle, (uint)regionCount, ref regions[0]);
         }
 
         /// <summary>Pushes constant data to the shader</summary>
         public void PushConstants(ShaderStageFlag stageFlags, uint offset, byte[] data)
         {
-            if (data == null || data.Length == 0) return;
+            if (data == null || data.Length == 0)
+                return;
             var dataPtr = Marshal.AllocHGlobal(data.Length);
             Marshal.Copy(data, 0, dataPtr, data.Length);
             _vkCmdPushConstants(_commandBuffer, IntPtr.Zero, stageFlags, offset, (uint)data.Length, dataPtr);
@@ -4532,7 +4634,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Pushes constant data to the shader with layout</summary>
         public void PushConstants(IntPtr pipelineLayout, ShaderStageFlag stageFlags, uint offset, byte[] data)
         {
-            if (data == null || data.Length == 0) return;
+            if (data == null || data.Length == 0)
+                return;
             var dataPtr = Marshal.AllocHGlobal(data.Length);
             Marshal.Copy(data, 0, dataPtr, data.Length);
             _vkCmdPushConstants(_commandBuffer, pipelineLayout, stageFlags, offset, (uint)data.Length, dataPtr);
@@ -4542,7 +4645,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Binds descriptor sets to the command buffer</summary>
         public void BindDescriptorSets(PipelineBindPoint pipelineBindPoint, IntPtr layout, uint firstSet, IntPtr[] descriptorSets, uint[] dynamicOffsets = null)
         {
-            if (descriptorSets == null || descriptorSets.Length == 0) return;
+            if (descriptorSets == null || descriptorSets.Length == 0)
+                return;
             int setCount = descriptorSets.Length;
             int dynOffsetCount = dynamicOffsets?.Length ?? 0;
             var setsPtr = Marshal.AllocHGlobal(setCount * IntPtr.Size);
@@ -4557,7 +4661,8 @@ namespace GDNN.RHI.Vulkan
             }
             _vkCmdBindDescriptorSets(_commandBuffer, (uint)pipelineBindPoint, layout, firstSet, (uint)setCount, setsPtr, (uint)dynOffsetCount, dynPtr);
             Marshal.FreeHGlobal(setsPtr);
-            if (dynPtr != IntPtr.Zero) Marshal.FreeHGlobal(dynPtr);
+            if (dynPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(dynPtr);
         }
 
         /// <summary>Sets the viewport</summary>
@@ -4576,7 +4681,8 @@ namespace GDNN.RHI.Vulkan
         internal void CopyImage(VulkanTexture srcImage, ImageLayout srcLayout, VulkanTexture dstImage, ImageLayout dstLayout, VkImageCopy[] regions)
         {
             int regionCount = regions?.Length ?? 0;
-            if (regionCount == 0) return;
+            if (regionCount == 0)
+                return;
             int sz = Marshal.SizeOf<VkImageCopy>();
             var regionsPtr = Marshal.AllocHGlobal(regionCount * sz);
             for (int i = 0; i < regionCount; i++)
@@ -4589,7 +4695,8 @@ namespace GDNN.RHI.Vulkan
         public void BlitImage(VulkanTexture srcImage, ImageLayout srcLayout, VulkanTexture dstImage, ImageLayout dstLayout, ImageBlit[] regions, Filter filter = Filter.Linear)
         {
             int regionCount = regions?.Length ?? 0;
-            if (regionCount == 0) return;
+            if (regionCount == 0)
+                return;
             int sz = Marshal.SizeOf<ImageBlit>();
             var regionsPtr = Marshal.AllocHGlobal(regionCount * sz);
             for (int i = 0; i < regionCount; i++)
@@ -4602,7 +4709,8 @@ namespace GDNN.RHI.Vulkan
         public void ResolveImage(VulkanTexture srcImage, ImageLayout srcLayout, VulkanTexture dstImage, ImageLayout dstLayout, ImageResolve[] regions)
         {
             int regionCount = regions?.Length ?? 0;
-            if (regionCount == 0) return;
+            if (regionCount == 0)
+                return;
             int sz = Marshal.SizeOf<ImageResolve>();
             var regionsPtr = Marshal.AllocHGlobal(regionCount * sz);
             for (int i = 0; i < regionCount; i++)
@@ -4638,7 +4746,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             GC.SuppressFinalize(this);
         }
@@ -4723,8 +4832,10 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Maps the buffer into CPU address space</summary>
         public IntPtr Map(ulong offset = 0, ulong size = 0)
         {
-            if (_isMapped) return _mappedData;
-            if (size == 0) size = _description.Size;
+            if (_isMapped)
+                return _mappedData;
+            if (size == 0)
+                size = _description.Size;
             IntPtr data = IntPtr.Zero;
             var result = _vkMapMemory(_device.LogicalDevice, _memory, offset, size, 0, ref data);
             if (result == VulkanResult.Success)
@@ -4738,7 +4849,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Unmaps the buffer from CPU address space</summary>
         public void Unmap()
         {
-            if (!_isMapped) return;
+            if (!_isMapped)
+                return;
             _vkUnmapMemory(_device.LogicalDevice, _memory);
             _mappedData = IntPtr.Zero;
             _isMapped = false;
@@ -4747,7 +4859,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Flushes mapped memory ranges to make them visible to the device</summary>
         public void Flush(ulong start = 0, ulong size = 0)
         {
-            if (size == 0) size = _description.Size;
+            if (size == 0)
+                size = _description.Size;
             var range = new VkMappedMemoryRange
             {
                 sType = 6,
@@ -4808,19 +4921,22 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Writes raw byte data to the buffer</summary>
         public void SetData(byte[] data, ulong dstOffset = 0)
         {
-            if (data == null || data.Length == 0) return;
+            if (data == null || data.Length == 0)
+                return;
             var dataPtr = Marshal.AllocHGlobal(data.Length);
             try
             {
                 Marshal.Copy(data, 0, dataPtr, data.Length);
                 if (_isMapped)
                 {
-                    unsafe { Buffer.MemoryCopy((void*)dataPtr, (void*)(_mappedData + (int)dstOffset), data.Length, data.Length); }
+                    unsafe
+                    { Buffer.MemoryCopy((void*)dataPtr, (void*)(_mappedData + (int)dstOffset), data.Length, data.Length); }
                 }
                 else
                 {
                     Map(dstOffset, (ulong)data.Length);
-                    unsafe { Buffer.MemoryCopy((void*)dataPtr, (void*)_mappedData, data.Length, data.Length); }
+                    unsafe
+                    { Buffer.MemoryCopy((void*)dataPtr, (void*)_mappedData, data.Length, data.Length); }
                     Flush(dstOffset, (ulong)data.Length);
                     Unmap();
                 }
@@ -4830,9 +4946,11 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
-            if (_isMapped) Unmap();
+            if (_isMapped)
+                Unmap();
             if (_buffer != IntPtr.Zero && _vkDestroyBuffer != null)
                 _vkDestroyBuffer(_device.LogicalDevice, _buffer, IntPtr.Zero);
             GC.SuppressFinalize(this);
@@ -4933,7 +5051,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Creates the image view for this texture</summary>
         public IntPtr GetImageView()
         {
-            if (_imageView != IntPtr.Zero) return _imageView;
+            if (_imageView != IntPtr.Zero)
+                return _imageView;
 
             var aspectFlags = ImageAspectFlag.Color;
             if (_description.Format == VulkanFormat.D16Unorm || _description.Format == VulkanFormat.D32Sfloat ||
@@ -4972,7 +5091,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Generates mipmaps for the texture using blit operations</summary>
         public void CreateMipmaps(IntPtr commandBuffer)
         {
-            if (_description.MipLevels <= 1) return;
+            if (_description.MipLevels <= 1)
+                return;
 
             int mipWidth = (int)_description.Width;
             int mipHeight = (int)_description.Height;
@@ -5134,7 +5254,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_imageView != IntPtr.Zero && _vkDestroyImageView != null)
                 _vkDestroyImageView(_device.LogicalDevice, _imageView, IntPtr.Zero);
@@ -5172,7 +5293,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_pipeline != IntPtr.Zero)
                 vkDestroyPipeline(_device.LogicalDevice, _pipeline, IntPtr.Zero);
@@ -5209,7 +5331,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_pipeline != IntPtr.Zero)
                 vkDestroyPipeline(_device.LogicalDevice, _pipeline, IntPtr.Zero);
@@ -5244,7 +5367,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_renderPass != IntPtr.Zero)
                 vkDestroyRenderPass(_device.LogicalDevice, _renderPass, IntPtr.Zero);
@@ -5281,7 +5405,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_framebuffer != IntPtr.Zero)
                 vkDestroyFramebuffer(_device.LogicalDevice, _framebuffer, IntPtr.Zero);
@@ -5315,7 +5440,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_sampler != IntPtr.Zero)
                 vkDestroySampler(_device.LogicalDevice, _sampler, IntPtr.Zero);
@@ -5350,7 +5476,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_layout != IntPtr.Zero)
                 vkDestroyDescriptorSetLayout(_device.LogicalDevice, _layout, IntPtr.Zero);
@@ -5384,7 +5511,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_pool != IntPtr.Zero)
                 vkDestroyDescriptorPool(_device.LogicalDevice, _pool, IntPtr.Zero);
@@ -5457,7 +5585,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Parses SPIR-V bytecode for reflection data</summary>
         private void ParseSpirvReflection()
         {
-            if (_spirvCode == null || _spirvCode.Length < 20) return;
+            if (_spirvCode == null || _spirvCode.Length < 20)
+                return;
 
             // SPIR-V header: magic number, version, generator, bound, reserved
             uint magic = BitConverter.ToUInt32(_spirvCode, 0);
@@ -5473,7 +5602,8 @@ namespace GDNN.RHI.Vulkan
                 uint opcode = word & 0xFFFF;
                 uint wordCount = word >> 16;
 
-                if (wordCount == 0) break;
+                if (wordCount == 0)
+                    break;
 
                 switch (opcode)
                 {
@@ -5526,7 +5656,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Gets the shader stage from the SPIR-V entry point</summary>
         public static ShaderStageFlag GetStageFromSpirv(byte[] spirvCode)
         {
-            if (spirvCode == null || spirvCode.Length < 20) return ShaderStageFlag.All;
+            if (spirvCode == null || spirvCode.Length < 20)
+                return ShaderStageFlag.All;
             uint wordCount = BitConverter.ToUInt32(spirvCode, 0);
             // Default to vertex if we can't determine
             return ShaderStageFlag.Vertex;
@@ -5534,7 +5665,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_module != IntPtr.Zero)
                 vkDestroyShaderModule(_device.LogicalDevice, _module, IntPtr.Zero);
@@ -5742,7 +5874,8 @@ namespace GDNN.RHI.Vulkan
 
             // Create a new block
             ulong blockSize = size > DEFAULT_BLOCK_SIZE ? size * 2 : DEFAULT_BLOCK_SIZE;
-            if (size < SMALL_BLOCK_SIZE) blockSize = SMALL_BLOCK_SIZE;
+            if (size < SMALL_BLOCK_SIZE)
+                blockSize = SMALL_BLOCK_SIZE;
 
             var newBlock = CreateMemoryBlock(memoryType, blockSize);
             blocks.Add(newBlock);
@@ -5828,7 +5961,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             lock (_lock)
@@ -5875,7 +6009,8 @@ namespace GDNN.RHI.Vulkan
         public MemoryAllocation? Allocate(ulong size, ulong alignment)
         {
             ulong offset = (_used + alignment - 1) & ~(alignment - 1);
-            if (offset + size > _size) return null;
+            if (offset + size > _size)
+                return null;
 
             var alloc = new MemoryAllocation
             {
@@ -6079,7 +6214,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Computes a hash for descriptor set layout bindings</summary>
         public long ComputeLayoutHash(DescriptorSetLayoutBinding[] bindings)
         {
-            if (bindings == null || bindings.Length == 0) return 0;
+            if (bindings == null || bindings.Length == 0)
+                return 0;
 
             long hash = 17;
             foreach (var binding in bindings)
@@ -6134,7 +6270,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Batch updates multiple descriptor sets</summary>
         public void BatchUpdateDescriptors(DescriptorWrite[] writes)
         {
-            if (writes == null || writes.Length == 0) return;
+            if (writes == null || writes.Length == 0)
+                return;
 
             lock (_lock)
             {
@@ -6197,7 +6334,8 @@ namespace GDNN.RHI.Vulkan
 
                 _vkUpdateDescriptorSets(_device.LogicalDevice, (uint)writes.Length, writesPtr, 0, IntPtr.Zero);
 
-                foreach (var ptr in tempAllocs) Marshal.FreeHGlobal(ptr);
+                foreach (var ptr in tempAllocs)
+                    Marshal.FreeHGlobal(ptr);
             }
         }
 
@@ -6210,12 +6348,15 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             foreach (var pool in _descriptorPools)
-                if (pool != IntPtr.Zero) _vkDestroyDescriptorPool?.Invoke(_device.LogicalDevice, pool, IntPtr.Zero);
+                if (pool != IntPtr.Zero)
+                    _vkDestroyDescriptorPool?.Invoke(_device.LogicalDevice, pool, IntPtr.Zero);
             foreach (var layout in _layoutCache.Values)
-                if (layout != IntPtr.Zero) _vkDestroyDescriptorSetLayout?.Invoke(_device.LogicalDevice, layout, IntPtr.Zero);
+                if (layout != IntPtr.Zero)
+                    _vkDestroyDescriptorSetLayout?.Invoke(_device.LogicalDevice, layout, IntPtr.Zero);
             _descriptorPools.Clear();
             _layoutCache.Clear();
             GC.SuppressFinalize(this);
@@ -6323,7 +6464,8 @@ namespace GDNN.RHI.Vulkan
                 _vkGetPipelineCacheData(_device.LogicalDevice, _cache, ref dataSize, IntPtr.Zero);
 
                 long size = (long)dataSize;
-                if (size == 0) return Array.Empty<byte>();
+                if (size == 0)
+                    return Array.Empty<byte>();
 
                 var data = new byte[size];
                 var dataPtr = Marshal.AllocHGlobal((int)size);
@@ -6340,7 +6482,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Deserializes pipeline cache data from disk</summary>
         public void DeserializeCache(byte[] cacheData)
         {
-            if (cacheData == null || cacheData.Length == 0) return;
+            if (cacheData == null || cacheData.Length == 0)
+                return;
 
             lock (_lock)
             {
@@ -6381,7 +6524,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Merges another pipeline cache into this one</summary>
         public void MergeCache(VulkanPipelineCache otherCache)
         {
-            if (otherCache == null) return;
+            if (otherCache == null)
+                return;
 
             lock (_lock)
             {
@@ -6398,7 +6542,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_cache != IntPtr.Zero)
                 _vkDestroyPipelineCache?.Invoke(_device.LogicalDevice, _cache, IntPtr.Zero);
@@ -6513,7 +6658,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Returns a fence to the pool for reuse</summary>
         public void RecycleFence(IntPtr fence)
         {
-            if (fence == IntPtr.Zero) return;
+            if (fence == IntPtr.Zero)
+                return;
 
             lock (_lock)
             {
@@ -6525,14 +6671,16 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Waits for a single fence with timeout</summary>
         public VulkanResult WaitForFence(IntPtr fence, ulong timeout = 0xFFFFFFFFFFFFFFFF)
         {
-            if (fence == IntPtr.Zero) return VulkanResult.ErrorUnknown;
+            if (fence == IntPtr.Zero)
+                return VulkanResult.ErrorUnknown;
             return _vkWaitForFences(_device.LogicalDevice, 1, ref fence, 1, timeout);
         }
 
         /// <summary>Waits for multiple fences</summary>
         public VulkanResult WaitForFences(IntPtr[] fences, bool waitAll = true, ulong timeout = 0xFFFFFFFFFFFFFFFF)
         {
-            if (fences == null || fences.Length == 0) return VulkanResult.Success;
+            if (fences == null || fences.Length == 0)
+                return VulkanResult.Success;
             uint count = (uint)fences.Length;
             var fenceArray = Marshal.AllocHGlobal(fences.Length * IntPtr.Size);
             try
@@ -6547,13 +6695,15 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Resets one or more fences</summary>
         public VulkanResult ResetFence(IntPtr fence)
         {
-            if (fence == IntPtr.Zero) return VulkanResult.ErrorUnknown;
+            if (fence == IntPtr.Zero)
+                return VulkanResult.ErrorUnknown;
             return _vkResetFences(_device.LogicalDevice, 1, ref fence);
         }
 
         public VulkanResult ResetFences(IntPtr[] fences)
         {
-            if (fences == null || fences.Length == 0) return VulkanResult.Success;
+            if (fences == null || fences.Length == 0)
+                return VulkanResult.Success;
             uint count = (uint)fences.Length;
             var fenceArray = Marshal.AllocHGlobal(fences.Length * IntPtr.Size);
             try
@@ -6593,7 +6743,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Returns a semaphore to the pool</summary>
         public void RecycleSemaphore(IntPtr semaphore)
         {
-            if (semaphore == IntPtr.Zero) return;
+            if (semaphore == IntPtr.Zero)
+                return;
             lock (_lock)
             {
                 Interlocked.Decrement(ref _activeSemaphoreCount);
@@ -6638,13 +6789,15 @@ namespace GDNN.RHI.Vulkan
         {
             lock (_lock)
             {
-                while (_fencePool.TryTake(out _)) { }
+                while (_fencePool.TryTake(out _))
+                { }
             }
         }
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             lock (_lock)
@@ -6697,7 +6850,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _syncManager?.RecycleFence(_fence);
             GC.SuppressFinalize(this);
@@ -6723,7 +6877,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _syncManager?.RecycleSemaphore(_semaphore);
             GC.SuppressFinalize(this);
@@ -6812,7 +6967,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Tracks a resource for lifetime management</summary>
         public void TrackResource(VulkanBuffer resource)
         {
-            if (resource == null) return;
+            if (resource == null)
+                return;
             _lock.EnterWriteLock();
             try
             {
@@ -6831,7 +6987,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Tracks a texture resource</summary>
         public void TrackResource(VulkanTexture resource)
         {
-            if (resource == null) return;
+            if (resource == null)
+                return;
             _lock.EnterWriteLock();
             try
             {
@@ -6850,7 +7007,8 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Tracks a render pass resource</summary>
         public void TrackResource(VulkanRenderPass resource)
         {
-            if (resource == null) return;
+            if (resource == null)
+                return;
             _lock.EnterWriteLock();
             try
             {
@@ -6874,7 +7032,8 @@ namespace GDNN.RHI.Vulkan
                 if (_trackedResources.TryGetValue(handle, out var resource))
                 {
                     _lock.EnterWriteLock();
-                    try { resource.ReferenceCount++; }
+                    try
+                    { resource.ReferenceCount++; }
                     finally { _lock.ExitWriteLock(); }
                 }
             }
@@ -6987,7 +7146,8 @@ namespace GDNN.RHI.Vulkan
         public void SetResourceState(IntPtr handle, ResourceState state)
         {
             _lock.EnterWriteLock();
-            try { _resourceStates[handle] = state; }
+            try
+            { _resourceStates[handle] = state; }
             finally { _lock.ExitWriteLock(); }
         }
 
@@ -7033,7 +7193,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             FlushAll();
             _lock.Dispose();
@@ -7229,15 +7390,24 @@ namespace GDNN.RHI.Vulkan
 
         private static uint GetCompressedBlockSize(VulkanFormat format)
         {
-            if (format >= VulkanFormat.BC1RgbUnormBlock && format <= VulkanFormat.BC1RgbaSrgbBlock) return 8;
-            if (format >= VulkanFormat.BC2UnormBlock && format <= VulkanFormat.BC3SrgbBlock) return 16;
-            if (format >= VulkanFormat.BC4UnormBlock && format <= VulkanFormat.BC4SnormBlock) return 8;
-            if (format >= VulkanFormat.BC5UnormBlock && format <= VulkanFormat.BC5SnormBlock) return 16;
-            if (format >= VulkanFormat.BC6HUfloatBlock && format <= VulkanFormat.BC6HSfloatBlock) return 16;
-            if (format >= VulkanFormat.BC7UnormBlock && format <= VulkanFormat.BC7SrgbBlock) return 16;
-            if (format >= VulkanFormat.Etc2R8G8B8UnormBlock && format <= VulkanFormat.Etc2R8G8B8A1SrgbBlock) return 8;
-            if (format >= VulkanFormat.EacR11UnormBlock && format <= VulkanFormat.EacR11G11SnormBlock) return 8;
-            if (format >= VulkanFormat.Astc4x4UnormBlock && format <= VulkanFormat.Astc4x4SrgbBlock) return 16;
+            if (format >= VulkanFormat.BC1RgbUnormBlock && format <= VulkanFormat.BC1RgbaSrgbBlock)
+                return 8;
+            if (format >= VulkanFormat.BC2UnormBlock && format <= VulkanFormat.BC3SrgbBlock)
+                return 16;
+            if (format >= VulkanFormat.BC4UnormBlock && format <= VulkanFormat.BC4SnormBlock)
+                return 8;
+            if (format >= VulkanFormat.BC5UnormBlock && format <= VulkanFormat.BC5SnormBlock)
+                return 16;
+            if (format >= VulkanFormat.BC6HUfloatBlock && format <= VulkanFormat.BC6HSfloatBlock)
+                return 16;
+            if (format >= VulkanFormat.BC7UnormBlock && format <= VulkanFormat.BC7SrgbBlock)
+                return 16;
+            if (format >= VulkanFormat.Etc2R8G8B8UnormBlock && format <= VulkanFormat.Etc2R8G8B8A1SrgbBlock)
+                return 8;
+            if (format >= VulkanFormat.EacR11UnormBlock && format <= VulkanFormat.EacR11G11SnormBlock)
+                return 8;
+            if (format >= VulkanFormat.Astc4x4UnormBlock && format <= VulkanFormat.Astc4x4SrgbBlock)
+                return 16;
             return 16;
         }
 
@@ -7314,23 +7484,38 @@ namespace GDNN.RHI.Vulkan
         /// <summary>Converts a PipelineStageFlag to a string representation</summary>
         public static string ToDisplayString(this PipelineStageFlag flag)
         {
-            if (flag == PipelineStageFlag.TopOfPipe) return "Top of Pipe";
-            if (flag == PipelineStageFlag.BottomOfPipe) return "Bottom of Pipe";
-            if (flag == PipelineStageFlag.AllCommands) return "All Commands";
-            if (flag == PipelineStageFlag.AllGraphics) return "All Graphics";
+            if (flag == PipelineStageFlag.TopOfPipe)
+                return "Top of Pipe";
+            if (flag == PipelineStageFlag.BottomOfPipe)
+                return "Bottom of Pipe";
+            if (flag == PipelineStageFlag.AllCommands)
+                return "All Commands";
+            if (flag == PipelineStageFlag.AllGraphics)
+                return "All Graphics";
 
             var parts = new List<string>();
-            if ((flag & PipelineStageFlag.VertexInput) != 0) parts.Add("Vertex Input");
-            if ((flag & PipelineStageFlag.VertexShader) != 0) parts.Add("Vertex Shader");
-            if ((flag & PipelineStageFlag.FragmentShader) != 0) parts.Add("Fragment Shader");
-            if ((flag & PipelineStageFlag.GeometryShader) != 0) parts.Add("Geometry Shader");
-            if ((flag & PipelineStageFlag.ComputeShader) != 0) parts.Add("Compute Shader");
-            if ((flag & PipelineStageFlag.Transfer) != 0) parts.Add("Transfer");
-            if ((flag & PipelineStageFlag.ColorAttachmentOutput) != 0) parts.Add("Color Attachment Output");
-            if ((flag & PipelineStageFlag.EarlyFragmentTests) != 0) parts.Add("Early Fragment Tests");
-            if ((flag & PipelineStageFlag.LateFragmentTests) != 0) parts.Add("Late Fragment Tests");
-            if ((flag & PipelineStageFlag.DrawIndirect) != 0) parts.Add("Draw Indirect");
-            if ((flag & PipelineStageFlag.Host) != 0) parts.Add("Host");
+            if ((flag & PipelineStageFlag.VertexInput) != 0)
+                parts.Add("Vertex Input");
+            if ((flag & PipelineStageFlag.VertexShader) != 0)
+                parts.Add("Vertex Shader");
+            if ((flag & PipelineStageFlag.FragmentShader) != 0)
+                parts.Add("Fragment Shader");
+            if ((flag & PipelineStageFlag.GeometryShader) != 0)
+                parts.Add("Geometry Shader");
+            if ((flag & PipelineStageFlag.ComputeShader) != 0)
+                parts.Add("Compute Shader");
+            if ((flag & PipelineStageFlag.Transfer) != 0)
+                parts.Add("Transfer");
+            if ((flag & PipelineStageFlag.ColorAttachmentOutput) != 0)
+                parts.Add("Color Attachment Output");
+            if ((flag & PipelineStageFlag.EarlyFragmentTests) != 0)
+                parts.Add("Early Fragment Tests");
+            if ((flag & PipelineStageFlag.LateFragmentTests) != 0)
+                parts.Add("Late Fragment Tests");
+            if ((flag & PipelineStageFlag.DrawIndirect) != 0)
+                parts.Add("Draw Indirect");
+            if ((flag & PipelineStageFlag.Host) != 0)
+                parts.Add("Host");
             return parts.Count > 0 ? string.Join(" | ", parts) : flag.ToString();
         }
 
@@ -7376,13 +7561,17 @@ namespace GDNN.RHI.Vulkan
         {
             float fx = centerX - eyeX, fy = centerY - eyeY, fz = centerZ - eyeZ;
             float len = (float)Math.Sqrt(fx * fx + fy * fy + fz * fz);
-            fx /= len; fy /= len; fz /= len;
+            fx /= len;
+            fy /= len;
+            fz /= len;
 
             float sx = fy * upZ - fz * upY;
             float sy = fz * upX - fx * upZ;
             float sz = fx * upY - fy * upX;
             len = (float)Math.Sqrt(sx * sx + sy * sy + sz * sz);
-            sx /= len; sy /= len; sz /= len;
+            sx /= len;
+            sy /= len;
+            sz /= len;
 
             float ux = sy * fz - sz * fy;
             float uy = sz * fx - sx * fz;
@@ -7923,7 +8112,8 @@ namespace GDNN.RHI.Vulkan
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_layout != IntPtr.Zero && _device?.LogicalDevice != IntPtr.Zero)
             {

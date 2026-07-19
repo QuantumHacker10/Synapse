@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -114,7 +114,8 @@ namespace GDNN.Llm
         /// <returns>Extracted JSON string, or null.</returns>
         public static string? ExtractJson(string text)
         {
-            if (string.IsNullOrEmpty(text)) return null;
+            if (string.IsNullOrEmpty(text))
+                return null;
 
             // Try code block first
             var blockMatch = JsonBlockPattern.Match(text);
@@ -136,7 +137,8 @@ namespace GDNN.Llm
         /// <returns>Repaired JSON string.</returns>
         public static string RepairJson(string json)
         {
-            if (string.IsNullOrEmpty(json)) return json;
+            if (string.IsNullOrEmpty(json))
+                return json;
 
             var result = json.Trim();
 
@@ -186,10 +188,12 @@ namespace GDNN.Llm
             var type = "organoid";
 
             var nameMatch = Regex.Match(text, @"name[:\s]+[""']?([^""'\n]+)", RegexOptions.IgnoreCase);
-            if (nameMatch.Success) name = nameMatch.Groups[1].Value.Trim();
+            if (nameMatch.Success)
+                name = nameMatch.Groups[1].Value.Trim();
 
             var typeMatch = Regex.Match(text, @"type[:\s]+[""']?(\w+)", RegexOptions.IgnoreCase);
-            if (typeMatch.Success) type = typeMatch.Groups[1].Value.Trim();
+            if (typeMatch.Success)
+                type = typeMatch.Groups[1].Value.Trim();
 
             var paramMatches = Regex.Matches(text, @"(\w+)\s*[=:]\s*([\d.]+)", RegexOptions.IgnoreCase);
             foreach (Match m in paramMatches)
@@ -271,10 +275,12 @@ namespace GDNN.Llm
             var material = new MaterialProperties { Name = "GeneratedMaterial" };
 
             var nameMatch = Regex.Match(text, @"(?:name|material)[:\s]+[""']?([^""'\n]+)", RegexOptions.IgnoreCase);
-            if (nameMatch.Success) material = material with { Name = nameMatch.Groups[1].Value.Trim() };
+            if (nameMatch.Success)
+                material = material with { Name = nameMatch.Groups[1].Value.Trim() };
 
             var colorMatch = Regex.Match(text, @"(?:color|colour)[:\s]+#?([0-9a-fA-F]{6})", RegexOptions.IgnoreCase);
-            if (colorMatch.Success) material = material with { BaseColor = "#" + colorMatch.Groups[1].Value };
+            if (colorMatch.Success)
+                material = material with { BaseColor = "#" + colorMatch.Groups[1].Value };
 
             var metallicMatch = Regex.Match(text, @"metallic[:\s]+([\d.]+)", RegexOptions.IgnoreCase);
             if (metallicMatch.Success && float.TryParse(metallicMatch.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var metallic))
@@ -546,8 +552,10 @@ namespace GDNN.Llm
                 if (!root.TryGetProperty(name, out var element))
                     continue;
 
-                if (element.ValueKind == JsonValueKind.True) return true;
-                if (element.ValueKind == JsonValueKind.False) return false;
+                if (element.ValueKind == JsonValueKind.True)
+                    return true;
+                if (element.ValueKind == JsonValueKind.False)
+                    return false;
 
                 if (element.ValueKind == JsonValueKind.String)
                     return ParseBoolToken(element.GetString());
@@ -570,7 +578,8 @@ namespace GDNN.Llm
         /// <returns>Extracted entities.</returns>
         public static IReadOnlyList<EntityExtractionResult> ExtractEntities(string text)
         {
-            if (string.IsNullOrEmpty(text)) return Array.Empty<EntityExtractionResult>();
+            if (string.IsNullOrEmpty(text))
+                return Array.Empty<EntityExtractionResult>();
 
             var entities = new List<EntityExtractionResult>();
 

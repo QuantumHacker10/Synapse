@@ -1,4 +1,11 @@
 using System;
+// ============================================================
+// FILE: GradientCalculator.cs
+// PATH: Evaluation/GradientCalculator.cs
+// ============================================================
+
+
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
@@ -7,7 +14,10 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Numerics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -15,18 +25,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-
-
-// ============================================================
-// FILE: GradientCalculator.cs
-// PATH: Evaluation/GradientCalculator.cs
-// ============================================================
-
-
-using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using GDNN.Core.NeuralNetwork;
 
 namespace GDNN.Evaluation
@@ -455,7 +453,8 @@ namespace GDNN.Evaluation
                     // Find neighbors within radius
                     for (int j = 0; j < count; j++)
                     {
-                        if (i == j) continue;
+                        if (i == j)
+                            continue;
 
                         float dist = Vector3.Distance(points[i], points[j]);
                         if (dist < _config.NormalSmoothRadius)
@@ -540,20 +539,20 @@ namespace GDNN.Evaluation
             Vector3 step = (max - min) / MathF.Max(1, resolution - 1);
 
             for (int z = 0; z < resolution; z++)
-            for (int y = 0; y < resolution; y++)
-            for (int x = 0; x < resolution; x++)
-            {
-                int idx = x + y * resolution + z * resolution * resolution;
-                Vector3 point = min + new Vector3(x * step.X, y * step.Y, z * step.Z);
+                for (int y = 0; y < resolution; y++)
+                    for (int x = 0; x < resolution; x++)
+                    {
+                        int idx = x + y * resolution + z * resolution * resolution;
+                        Vector3 point = min + new Vector3(x * step.X, y * step.Y, z * step.Z);
 
-                result.Points[idx] = point;
-                result.SdfValues[idx] = network.Evaluate(point);
-                result.Gradients[idx] = network.ComputeGradient(point);
-                result.Magnitudes[idx] = result.Gradients[idx].Length();
+                        result.Points[idx] = point;
+                        result.SdfValues[idx] = network.Evaluate(point);
+                        result.Gradients[idx] = network.ComputeGradient(point);
+                        result.Magnitudes[idx] = result.Gradients[idx].Length();
 
-                if (result.Magnitudes[idx] > 1e-8f)
-                    result.ValidSamples++;
-            }
+                        if (result.Magnitudes[idx] > 1e-8f)
+                            result.ValidSamples++;
+                    }
 
             return result;
         }
@@ -676,7 +675,8 @@ namespace GDNN.Evaluation
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             GC.SuppressFinalize(this);
         }
@@ -779,11 +779,13 @@ namespace GDNN.Evaluation
             get => _items.Length;
             set
             {
-                if (value < _count) throw new ArgumentOutOfRangeException(nameof(value));
+                if (value < _count)
+                    throw new ArgumentOutOfRangeException(nameof(value));
                 if (value != _items.Length)
                 {
                     var newItems = new T[value];
-                    if (_count > 0) Array.Copy(_items, newItems, _count);
+                    if (_count > 0)
+                        Array.Copy(_items, newItems, _count);
                     _items = newItems;
                 }
             }
@@ -820,8 +822,10 @@ namespace GDNN.Evaluation
             get => index >= 0 && index < _count ? _items[index] : throw new IndexOutOfRangeException();
             set
             {
-                if (index >= 0 && index < _count) _items[index] = value;
-                else throw new IndexOutOfRangeException();
+                if (index >= 0 && index < _count)
+                    _items[index] = value;
+                else
+                    throw new IndexOutOfRangeException();
             }
         }
 
@@ -829,14 +833,16 @@ namespace GDNN.Evaluation
         public T[] ToArray()
         {
             var result = new T[_count];
-            if (_count > 0) Array.Copy(_items, result, _count);
+            if (_count > 0)
+                Array.Copy(_items, result, _count);
             return result;
         }
 
         /// <summary>Removes item at specified index.</summary>
         public void RemoveAt(int index)
         {
-            if (index < 0 || index >= _count) throw new ArgumentOutOfRangeException(nameof(index));
+            if (index < 0 || index >= _count)
+                throw new ArgumentOutOfRangeException(nameof(index));
             _count--;
             if (index < _count)
                 Array.Copy(_items, index + 1, _items, index, _count - index);
@@ -846,7 +852,8 @@ namespace GDNN.Evaluation
         /// <summary>Sorts items using a comparison delegate.</summary>
         public void Sort(Comparison<T> comparison)
         {
-            if (_count < 2) return;
+            if (_count < 2)
+                return;
             var span = _items.AsSpan(0, _count);
             span.Sort(comparison);
         }

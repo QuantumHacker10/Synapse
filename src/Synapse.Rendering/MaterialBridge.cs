@@ -107,7 +107,8 @@ namespace GDNN.Rendering.Bridge
         public void UpdateMaterial(SubstrateMaterial material)
         {
             var key = material.Id;
-            if (!_materialBuffers.TryGetValue(key, out var buffer)) return;
+            if (!_materialBuffers.TryGetValue(key, out var buffer))
+                return;
 
             var ubo = ExtractProperties(material);
             var mapped = buffer.Map();
@@ -155,7 +156,8 @@ namespace GDNN.Rendering.Bridge
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             foreach (var buf in _materialBuffers.Values)
                 buf?.Dispose();

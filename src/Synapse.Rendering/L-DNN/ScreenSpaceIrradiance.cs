@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -54,7 +54,8 @@ namespace GDNN.Lighting.LDNN
         public void ComputeSSGI(GBuffer gbuffer, CameraState camera, List<LightConfig> lights,
             int numRays, RandomNumberGenerator rng)
         {
-            if (!_isInitialized) return;
+            if (!_isInitialized)
+                return;
 
             Parallel.For(0, _height, y =>
             {
@@ -162,7 +163,8 @@ namespace GDNN.Lighting.LDNN
             Vector3 rayDir = target - origin;
 
             float rayLength = rayDir.Length();
-            if (rayLength < 0.001f) return Vector3.Zero;
+            if (rayLength < 0.001f)
+                return Vector3.Zero;
             rayDir /= rayLength;
 
             int numSteps = Math.Min(MAX_MARCH_STEPS, (int)(rayLength * 10));
@@ -348,7 +350,8 @@ namespace GDNN.Lighting.LDNN
             var probes = probeCache.GetNearbyProbes(worldPos, normal, 5);
             foreach (var probe in probes)
             {
-                if (!probe.IsValid) continue;
+                if (!probe.IsValid)
+                    continue;
                 float dist = (probe.Position - worldPos).Length();
                 float weight = MathF.Exp(-dist * 0.1f) * probe.Importance;
                 if (weight > bestWeight)

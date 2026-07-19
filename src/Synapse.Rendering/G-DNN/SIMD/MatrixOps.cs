@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: MatrixOps.cs
 // PATH: SIMD/MatrixOps.cs
@@ -28,12 +10,28 @@ using System.Threading.Tasks;
 // High-performance SIMD-optimized matrix math for neural geometry processing.
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.SIMD;
 
@@ -377,12 +375,24 @@ public static unsafe class MatrixOps
     public static void Transpose4x4InPlace(ref Matrix4x4 m)
     {
         float t;
-        t = m.M12; m.M12 = m.M21; m.M21 = t;
-        t = m.M13; m.M13 = m.M31; m.M31 = t;
-        t = m.M14; m.M14 = m.M41; m.M41 = t;
-        t = m.M23; m.M23 = m.M32; m.M32 = t;
-        t = m.M24; m.M24 = m.M42; m.M42 = t;
-        t = m.M34; m.M34 = m.M43; m.M43 = t;
+        t = m.M12;
+        m.M12 = m.M21;
+        m.M21 = t;
+        t = m.M13;
+        m.M13 = m.M31;
+        m.M31 = t;
+        t = m.M14;
+        m.M14 = m.M41;
+        m.M41 = t;
+        t = m.M23;
+        m.M23 = m.M32;
+        m.M32 = t;
+        t = m.M24;
+        m.M24 = m.M42;
+        m.M42 = t;
+        t = m.M34;
+        m.M34 = m.M43;
+        m.M43 = t;
     }
 
     /// <summary>
@@ -419,12 +429,24 @@ public static unsafe class MatrixOps
 
         float t;
         // Swap off-diagonal elements
-        t = m[1]; m[1] = m[4]; m[4] = t;   // (0,1) <-> (1,0)
-        t = m[2]; m[2] = m[8]; m[8] = t;   // (0,2) <-> (2,0)
-        t = m[3]; m[3] = m[12]; m[12] = t; // (0,3) <-> (3,0)
-        t = m[6]; m[6] = m[9]; m[9] = t;   // (1,2) <-> (2,1)
-        t = m[7]; m[7] = m[13]; m[13] = t; // (1,3) <-> (3,1)
-        t = m[11]; m[11] = m[14]; m[14] = t; // (2,3) <-> (3,2)
+        t = m[1];
+        m[1] = m[4];
+        m[4] = t;   // (0,1) <-> (1,0)
+        t = m[2];
+        m[2] = m[8];
+        m[8] = t;   // (0,2) <-> (2,0)
+        t = m[3];
+        m[3] = m[12];
+        m[12] = t; // (0,3) <-> (3,0)
+        t = m[6];
+        m[6] = m[9];
+        m[9] = t;   // (1,2) <-> (2,1)
+        t = m[7];
+        m[7] = m[13];
+        m[13] = t; // (1,3) <-> (3,1)
+        t = m[11];
+        m[11] = m[14];
+        m[14] = t; // (2,3) <-> (3,2)
     }
 
     /// <summary>
@@ -540,7 +562,8 @@ public static unsafe class MatrixOps
         float g = m[6], h = m[7], i = m[8];
 
         float det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
-        if (MathF.Abs(det) < 1e-10f) return false;
+        if (MathF.Abs(det) < 1e-10f)
+            return false;
 
         float invDet = 1.0f / det;
 
@@ -584,7 +607,8 @@ public static unsafe class MatrixOps
     /// </summary>
     public static float Determinant3x3(ReadOnlySpan<float> m)
     {
-        if (m.Length < 9) throw new ArgumentException("Span must have at least 9 elements.");
+        if (m.Length < 9)
+            throw new ArgumentException("Span must have at least 9 elements.");
         return m[0] * (m[4] * m[8] - m[5] * m[7])
              - m[1] * (m[3] * m[8] - m[5] * m[6])
              + m[2] * (m[3] * m[7] - m[4] * m[6]);
@@ -636,9 +660,12 @@ public static unsafe class MatrixOps
 
         scale = new Vector3(sx, sy, sz);
 
-        if (sx > 1e-10f) row0 /= sx;
-        if (sy > 1e-10f) row1 /= sy;
-        if (sz > 1e-10f) row2 /= sz;
+        if (sx > 1e-10f)
+            row0 /= sx;
+        if (sy > 1e-10f)
+            row1 /= sy;
+        if (sz > 1e-10f)
+            row2 /= sz;
 
         var rotMatrix = new Matrix4x4(
             row0.X, row0.Y, row0.Z, 0,
@@ -883,7 +910,8 @@ public static unsafe class MatrixOps
         float* pb = (float*)&b;
         for (int i = 0; i < 16; i++)
         {
-            if (MathF.Abs(pa[i] - pb[i]) > tolerance) return false;
+            if (MathF.Abs(pa[i] - pb[i]) > tolerance)
+                return false;
         }
         return true;
     }
@@ -905,10 +933,22 @@ public static unsafe class MatrixOps
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void SpanToMatrix(Matrix4x4 m, Span<float> s)
     {
-        s[0] = m.M11; s[1] = m.M12; s[2] = m.M13; s[3] = m.M14;
-        s[4] = m.M21; s[5] = m.M22; s[6] = m.M23; s[7] = m.M24;
-        s[8] = m.M31; s[9] = m.M32; s[10] = m.M33; s[11] = m.M34;
-        s[12] = m.M41; s[13] = m.M42; s[14] = m.M43; s[15] = m.M44;
+        s[0] = m.M11;
+        s[1] = m.M12;
+        s[2] = m.M13;
+        s[3] = m.M14;
+        s[4] = m.M21;
+        s[5] = m.M22;
+        s[6] = m.M23;
+        s[7] = m.M24;
+        s[8] = m.M31;
+        s[9] = m.M32;
+        s[10] = m.M33;
+        s[11] = m.M34;
+        s[12] = m.M41;
+        s[13] = m.M42;
+        s[14] = m.M43;
+        s[15] = m.M44;
     }
 
     #endregion

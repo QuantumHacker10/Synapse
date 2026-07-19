@@ -484,7 +484,8 @@ public sealed class StochasticSphereTracer : IDisposable
         Vector3 gradient = ComputeGradientCentral(evaluate, point);
         float gradLen = gradient.Length();
 
-        if (gradLen < 1e-8f) return 0.0f;
+        if (gradLen < 1e-8f)
+            return 0.0f;
 
         Vector3 normal = gradient / gradLen;
 
@@ -513,7 +514,8 @@ public sealed class StochasticSphereTracer : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         GC.SuppressFinalize(this);
     }

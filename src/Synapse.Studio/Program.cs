@@ -4,7 +4,7 @@ using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
 using Synapse.Runtime;
 
-namespace GDNN.Studio
+namespace Synapse.Studio
 {
     internal static class Program
     {
@@ -30,7 +30,7 @@ namespace GDNN.Studio
         private static void RunEngineOnly(string[] args)
         {
             Console.WriteLine("=================================================");
-            Console.WriteLine("  SYNAPSE OMNIA — GDNN Synapse Engine 1.1");
+            Console.WriteLine("  SYNAPSE OMNIA — Moteur de simulation 3D · v1.1");
             Console.WriteLine("  Apprendre · Réécrire · Cultiver");
             Console.WriteLine("=================================================");
 

@@ -1,8 +1,8 @@
 using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using GDNN.RHI.Vulkan;
 using GDNN.Core.NeuralNetwork;
+using GDNN.RHI.Vulkan;
 
 namespace GDNN.GPU;
 
@@ -49,10 +49,12 @@ public sealed class VulkanNeuralSdfDispatcher : IDisposable
 
     private static void EnsureInit()
     {
-        if (_initAttempted) return;
+        if (_initAttempted)
+            return;
         lock (InitLock)
         {
-            if (_initAttempted) return;
+            if (_initAttempted)
+                return;
             _initAttempted = true;
             try
             {
@@ -93,7 +95,8 @@ public sealed class VulkanNeuralSdfDispatcher : IDisposable
     public float[] Evaluate(DeepMicroMLP network, ReadOnlySpan<Vector3> points)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (points.Length == 0) return Array.Empty<float>();
+        if (points.Length == 0)
+            return Array.Empty<float>();
 
         float[] packedPositions = DeepMicroMLPSpirvEmitter.PackPositions(points);
         float[] weights = DeepMicroMLPSpirvEmitter.FlattenWeights(network);
@@ -271,7 +274,8 @@ public sealed class VulkanNeuralSdfDispatcher : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         _device.Dispose();
     }

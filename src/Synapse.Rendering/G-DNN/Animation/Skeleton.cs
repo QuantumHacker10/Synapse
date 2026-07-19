@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: Skeleton.cs
 // PATH: Animation/Skeleton.cs
@@ -24,12 +6,28 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Animation
 {
@@ -751,7 +749,8 @@ namespace GDNN.Animation
         /// <returns>Index of the registered clip.</returns>
         public int RegisterClip(AnimationClip clip, float weight = 1.0f)
         {
-            if (clip == null) throw new ArgumentNullException(nameof(clip));
+            if (clip == null)
+                throw new ArgumentNullException(nameof(clip));
             if (_clipCount >= MaxClips)
                 throw new InvalidOperationException($"Maximum clip count ({MaxClips}) exceeded.");
 
@@ -1056,7 +1055,8 @@ namespace GDNN.Animation
         /// <param name="weight">Blend weight [0,1].</param>
         public void BlendPartialBody(Skeleton source, ReadOnlySpan<bool> jointMask, float weight)
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
             if (source._jointCount != _jointCount)
                 throw new ArgumentException("Source skeleton must have the same joint count.");
 
@@ -1154,11 +1154,16 @@ namespace GDNN.Animation
             for (int i = 0; i < (int)jointCount; i++)
             {
                 ref JointData j = ref skeleton._joints[i];
-                j.ParentIndex = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)); offset += 4;
-                j.ChildCount = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)); offset += 4;
-                j.FirstChildIndex = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)); offset += 4;
-                j.Depth = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)); offset += 4;
-                j.NameOffset = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset)); offset += 4;
+                j.ParentIndex = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset));
+                offset += 4;
+                j.ChildCount = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset));
+                offset += 4;
+                j.FirstChildIndex = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset));
+                offset += 4;
+                j.Depth = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset));
+                offset += 4;
+                j.NameOffset = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(offset));
+                offset += 4;
                 j.BindTranslation = ReadVector3(data, ref offset);
                 j.BindRotation = ReadQuaternion(data, ref offset);
                 j.BindScale = ReadVector3(data, ref offset);
@@ -1167,9 +1172,12 @@ namespace GDNN.Animation
                 j.LocalScale = ReadVector3(data, ref offset);
                 j.BindPoseMatrix = ReadMatrix4x4(data, ref offset);
                 j.InverseBindPoseMatrix = ReadMatrix4x4(data, ref offset);
-                j.IsDirty = data[offset]; offset += 1;
-                j.IsActive = data[offset]; offset += 1;
-                j.Padding = BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(offset)); offset += 2;
+                j.IsDirty = data[offset];
+                offset += 1;
+                j.IsActive = data[offset];
+                offset += 1;
+                j.Padding = BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(offset));
+                offset += 2;
                 j.WorldMatrix = Matrix4x4.Identity;
                 j.InverseWorldMatrix = Matrix4x4.Identity;
             }
@@ -1229,7 +1237,8 @@ namespace GDNN.Animation
         /// <param name="other">Source skeleton to copy from.</param>
         public void CopyLocalTransformsFrom(Skeleton other)
         {
-            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (other == null)
+                throw new ArgumentNullException(nameof(other));
             int count = Math.Min(_jointCount, other._jointCount);
 
             for (int i = 0; i < count; i++)
@@ -1324,7 +1333,8 @@ namespace GDNN.Animation
             bool first = true;
             foreach (int idx in path)
             {
-                if (!first) sb.Append('/');
+                if (!first)
+                    sb.Append('/');
                 sb.Append($"Joint_{idx}");
                 first = false;
             }

@@ -1,32 +1,30 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using GDNN.Rendering.Compat;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: DebugUtils.cs
 // PATH: Utilities/DebugUtils.cs
 // ============================================================
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using GDNN.Rendering.Compat;
 
 namespace GDNN.Utilities;
 
@@ -200,10 +198,12 @@ public static class DebugUtils
         Vector3 center, float halfSize, int depth, int maxDepth,
         HashSet<Vector3>? occupiedCells, List<Vector3> vertices)
     {
-        if (depth > maxDepth) return;
+        if (depth > maxDepth)
+            return;
 
         bool shouldSubdivide = occupiedCells == null || occupiedCells.Contains(center);
-        if (!shouldSubdivide) return;
+        if (!shouldSubdivide)
+            return;
 
         vertices.AddRange(GenerateOctreeCellLines(center, halfSize));
 
@@ -286,12 +286,15 @@ public static class DebugUtils
 
         for (int i = 0; i < scalarField.Length; i++)
         {
-            if (scalarField[i] < minVal) minVal = scalarField[i];
-            if (scalarField[i] > maxVal) maxVal = scalarField[i];
+            if (scalarField[i] < minVal)
+                minVal = scalarField[i];
+            if (scalarField[i] > maxVal)
+                maxVal = scalarField[i];
         }
 
         float range = maxVal - minVal;
-        if (range < 1e-10f) range = 1;
+        if (range < 1e-10f)
+            range = 1;
 
         for (int i = 0; i < positions.Length; i++)
         {
@@ -333,7 +336,8 @@ public static class DebugUtils
 
                     Vector3 grad = new Vector3(gx, gy, gz);
                     float magnitude = grad.Length();
-                    if (magnitude < 1e-6f) continue;
+                    if (magnitude < 1e-6f)
+                        continue;
 
                     Vector3 pos = origin + new Vector3(x, y, z) * cellSize;
                     Vector3 tip = pos + grad * arrowScale / magnitude;
@@ -371,12 +375,15 @@ public static class DebugUtils
         float minVal = float.MaxValue, maxVal = float.MinValue;
         for (int i = 0; i < evaluations.Length; i++)
         {
-            if (evaluations[i] < minVal) minVal = evaluations[i];
-            if (evaluations[i] > maxVal) maxVal = evaluations[i];
+            if (evaluations[i] < minVal)
+                minVal = evaluations[i];
+            if (evaluations[i] > maxVal)
+                maxVal = evaluations[i];
         }
 
         float range = maxVal - minVal;
-        if (range < 1e-10f) range = 1;
+        if (range < 1e-10f)
+            range = 1;
 
         Vector3 size = worldMax - worldMin;
         float cellW = size.X / gridWidth;
@@ -479,7 +486,8 @@ public static class DebugUtils
         var vertices = new List<Vector3>();
         Vector3 axis = end - start;
         float length = axis.Length();
-        if (length < 1e-6f) return GenerateBoundingSphereLines(start, radius, segments);
+        if (length < 1e-6f)
+            return GenerateBoundingSphereLines(start, radius, segments);
 
         Vector3 direction = axis / length;
         Vector3 up = MathHelpers.GetPerpendicular(direction);
@@ -575,7 +583,8 @@ public static class DebugUtils
     {
         Matrix4x4 invVP = Matrix4x4.Identity;
         bool inverted = Matrix4x4.Invert(viewProjection, out invVP);
-        if (!inverted) return Array.Empty<Vector3>();
+        if (!inverted)
+            return Array.Empty<Vector3>();
 
         ReadOnlySpan<Vector4> ndcCorners = stackalloc Vector4[]
         {
@@ -704,11 +713,14 @@ public static class DebugUtils
         float minVal = float.MaxValue, maxVal = float.MinValue;
         for (int i = 0; i < values.Length; i++)
         {
-            if (values[i] < minVal) minVal = values[i];
-            if (values[i] > maxVal) maxVal = values[i];
+            if (values[i] < minVal)
+                minVal = values[i];
+            if (values[i] > maxVal)
+                maxVal = values[i];
         }
         float range = maxVal - minVal;
-        if (range < 1e-10f) range = 1;
+        if (range < 1e-10f)
+            range = 1;
 
         var segments = new (Vector3, Vector3, Vector4, Vector4)[path.Length - 1];
         for (int i = 0; i < segments.Length; i++)
@@ -842,7 +854,8 @@ public static class DebugUtils
                     int idx = x + y * gridSize.X + z * gridSize.X * gridSize.Y;
                     Vector3 value = field[idx];
                     float magnitude = value.Length();
-                    if (magnitude < 1e-6f) continue;
+                    if (magnitude < 1e-6f)
+                        continue;
 
                     Vector3 pos = origin + new Vector3(x, y, z) * cellSize;
                     vertices.AddRange(GenerateRayLines(pos, value / magnitude, magnitude * scale, magnitude * scale * 0.2f));
@@ -918,7 +931,8 @@ public static class DebugUtils
     private static void GenerateBvhWireframeRecursive(
         ReadOnlySpan<BvhDebugNode> nodes, int index, List<Vector3> vertices)
     {
-        if (index < 0 || index >= nodes.Length) return;
+        if (index < 0 || index >= nodes.Length)
+            return;
 
         ref readonly BvhDebugNode node = ref nodes[index];
         vertices.AddRange(GenerateBoundingBoxLines(node.BoundsMin, node.BoundsMax));
@@ -980,7 +994,11 @@ public readonly struct DebugQuad
 
     public DebugQuad(Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3, Vector4 color)
     {
-        V0 = v0; V1 = v1; V2 = v2; V3 = v3; Color = color;
+        V0 = v0;
+        V1 = v1;
+        V2 = v2;
+        V3 = v3;
+        Color = color;
     }
 }
 

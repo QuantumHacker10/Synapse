@@ -19,23 +19,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$body = @{
-    required_status_checks = @{
-        strict   = $true
-        contexts = @("test-linux", "publish-windows", "analyze")
-    }
-    enforce_admins                = $true
-    required_pull_request_reviews = @{
-        required_approving_review_count = 1
-        dismiss_stale_reviews           = $true
-        require_code_owner_reviews      = $false
-    }
-    restrictions                  = $null
-    allow_force_pushes            = $false
-    allow_deletions               = $false
-    required_linear_history       = $false
-    required_conversation_resolution = $true
-} | ConvertTo-Json -Depth 5
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$configPath = Join-Path $scriptDir "branch-protection.json"
 
 Write-Host "Application de la protection sur ${Owner}/${Repo}:${Branch}..."
 
@@ -43,8 +28,7 @@ try {
     gh api `
         -X PUT `
         "repos/${Owner}/${Repo}/branches/${Branch}/protection" `
-        --input - `
-        <<< $body
+        --input $configPath
     Write-Host "Protection appliquee avec succes." -ForegroundColor Green
 }
 catch {

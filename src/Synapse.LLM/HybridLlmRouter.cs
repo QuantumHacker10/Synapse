@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -177,7 +177,8 @@ namespace GDNN.Llm
             ArgumentNullException.ThrowIfNull(provider);
 
             _providers[name] = provider;
-            if (config != null) _configs[name] = config;
+            if (config != null)
+                _configs[name] = config;
 
             _circuitBreakers.GetOrAdd(name, _ => CircuitBreakerState.Closed);
             _consecutiveFailures.GetOrAdd(name, _ => 0);
@@ -565,8 +566,10 @@ namespace GDNN.Llm
 
             foreach (var name in _fallbackChain)
             {
-                if (!_providers.TryGetValue(name, out var provider)) continue;
-                if (!IsProviderHealthy(name)) continue;
+                if (!_providers.TryGetValue(name, out var provider))
+                    continue;
+                if (!IsProviderHealthy(name))
+                    continue;
 
                 var model = provider.GetModelInfo(provider.AvailableModels.FirstOrDefault()?.ModelId ?? "");
                 if (model?.PreferredTasks != null && model.PreferredTasks.Contains(taskType))
@@ -591,7 +594,8 @@ namespace GDNN.Llm
 
             foreach (var (name, provider) in _providers)
             {
-                if (!IsProviderHealthy(name)) continue;
+                if (!IsProviderHealthy(name))
+                    continue;
 
                 var promptTokens = provider.EstimateTokens(prompt);
                 var model = provider.AvailableModels.FirstOrDefault();
@@ -846,7 +850,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public int EstimateTokens(string text)
         {
-            if (string.IsNullOrEmpty(text)) return 0;
+            if (string.IsNullOrEmpty(text))
+                return 0;
             foreach (var (_, provider) in _providers)
             {
                 return provider.EstimateTokens(text);
@@ -860,7 +865,8 @@ namespace GDNN.Llm
             foreach (var (_, provider) in _providers)
             {
                 var info = provider.GetModelInfo(modelId);
-                if (info != null) return info;
+                if (info != null)
+                    return info;
             }
             return null;
         }
@@ -868,7 +874,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
         {
-            if (_isPaused || _disposed) return false;
+            if (_isPaused || _disposed)
+                return false;
             foreach (var name in _fallbackChain)
             {
                 if (IsProviderHealthy(name) && _providers.TryGetValue(name, out var provider))
@@ -885,7 +892,8 @@ namespace GDNN.Llm
         {
             foreach (var (_, provider) in _providers)
             {
-                try { provider.CancelCurrentInference(); }
+                try
+                { provider.CancelCurrentInference(); }
                 catch { /* Best effort */ }
             }
         }
@@ -908,7 +916,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public async Task ShutdownAsync()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _isPaused = true;
 
             var tasks = _providers.Select(kv => kv.Value.ShutdownAsync());
@@ -922,8 +931,10 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public async Task<HealthCheckStatus> CheckHealthAsync(CancellationToken cancellationToken = default)
         {
-            if (_disposed) return HealthCheckStatus.Unhealthy;
-            if (_isPaused) return HealthCheckStatus.Degraded;
+            if (_disposed)
+                return HealthCheckStatus.Unhealthy;
+            if (_isPaused)
+                return HealthCheckStatus.Degraded;
 
             var results = await CheckAllHealthAsync(cancellationToken);
             if (results.Values.All(v => v == HealthCheckStatus.Healthy))
@@ -938,13 +949,15 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _isPaused = true;
 
             foreach (var (_, provider) in _providers)
             {
-                try { provider.Dispose(); }
+                try
+                { provider.Dispose(); }
                 catch { /* Best effort */ }
             }
 
@@ -967,7 +980,8 @@ namespace GDNN.Llm
                 {
                     var preferred = localProviders.FirstOrDefault(n =>
                         _providers[n].Mode == context.PreferredMode.Value);
-                    if (preferred != null) return preferred;
+                    if (preferred != null)
+                        return preferred;
                 }
 
                 return localProviders.FirstOrDefault();
@@ -978,7 +992,8 @@ namespace GDNN.Llm
                 var preferred = _fallbackChain.FirstOrDefault(n =>
                     _providers.ContainsKey(n) && IsProviderHealthy(n) &&
                     _providers[n].Mode == context.PreferredMode.Value);
-                if (preferred != null) return preferred;
+                if (preferred != null)
+                    return preferred;
             }
 
             return _loadBalancingStrategy switch
@@ -994,7 +1009,8 @@ namespace GDNN.Llm
         private string? SelectRoundRobin()
         {
             var healthy = _fallbackChain.Where(IsProviderHealthy).ToList();
-            if (healthy.Count == 0) return null;
+            if (healthy.Count == 0)
+                return null;
 
             var index = Interlocked.Increment(ref _roundRobinIndex) % healthy.Count;
             return healthy[index];
@@ -1007,8 +1023,10 @@ namespace GDNN.Llm
 
             foreach (var name in _fallbackChain)
             {
-                if (!IsProviderHealthy(name)) continue;
-                if (!_requestTimestamps.TryGetValue(name, out var timestamps)) continue;
+                if (!IsProviderHealthy(name))
+                    continue;
+                if (!_requestTimestamps.TryGetValue(name, out var timestamps))
+                    continue;
 
                 CleanupTimestamps(timestamps);
                 var activeCount = timestamps.Count;
@@ -1030,8 +1048,10 @@ namespace GDNN.Llm
 
             foreach (var name in _fallbackChain)
             {
-                if (!IsProviderHealthy(name)) continue;
-                if (!_healthCache.TryGetValue(name, out var health)) continue;
+                if (!IsProviderHealthy(name))
+                    continue;
+                if (!_healthCache.TryGetValue(name, out var health))
+                    continue;
 
                 if (health.AverageLatency < bestLatency && health.AverageLatency > TimeSpan.Zero)
                 {
@@ -1089,8 +1109,10 @@ namespace GDNN.Llm
 
         private bool IsProviderHealthy(string name)
         {
-            if (!_circuitBreakers.TryGetValue(name, out var state)) return false;
-            if (state == CircuitBreakerState.Closed) return true;
+            if (!_circuitBreakers.TryGetValue(name, out var state))
+                return false;
+            if (state == CircuitBreakerState.Closed)
+                return true;
             if (state == CircuitBreakerState.Open)
             {
                 if (_circuitOpenTimestamps.TryGetValue(name, out var openTime) &&

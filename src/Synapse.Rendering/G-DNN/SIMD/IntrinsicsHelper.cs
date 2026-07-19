@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: IntrinsicsHelper.cs
 // PATH: SIMD/IntrinsicsHelper.cs
@@ -28,14 +10,30 @@ using System.Threading.Tasks;
 // Runtime SIMD capability detection, platform dispatch, and benchmarking.
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.SIMD;
 
@@ -300,11 +298,16 @@ public static class IntrinsicsHelper
     /// <returns>The highest-tier SIMD platform detected.</returns>
     private static SimdPlatform DetectPlatform()
     {
-        if (Avx512F.IsSupported) return SimdPlatform.Simd512;
-        if (Avx2.IsSupported) return SimdPlatform.Simd256;
-        if (Sse2.IsSupported) return SimdPlatform.Simd128;
-        if (Sve.IsSupported || Sve2.IsSupported) return SimdPlatform.ArmSve;
-        if (AdvSimd.IsSupported) return SimdPlatform.Simd128;
+        if (Avx512F.IsSupported)
+            return SimdPlatform.Simd512;
+        if (Avx2.IsSupported)
+            return SimdPlatform.Simd256;
+        if (Sse2.IsSupported)
+            return SimdPlatform.Simd128;
+        if (Sve.IsSupported || Sve2.IsSupported)
+            return SimdPlatform.ArmSve;
+        if (AdvSimd.IsSupported)
+            return SimdPlatform.Simd128;
         return SimdPlatform.Scalar;
     }
 
@@ -313,9 +316,12 @@ public static class IntrinsicsHelper
     /// </summary>
     private static int DetectPreferredVectorSize()
     {
-        if (Avx512F.IsSupported) return 64;
-        if (Avx2.IsSupported) return 32;
-        if (AdvSimd.IsSupported || Sse2.IsSupported) return 16;
+        if (Avx512F.IsSupported)
+            return 64;
+        if (Avx2.IsSupported)
+            return 32;
+        if (AdvSimd.IsSupported || Sse2.IsSupported)
+            return 16;
         return sizeof(float);
     }
 
@@ -348,9 +354,12 @@ public static class IntrinsicsHelper
         T? avx2 = default,
         T? avx512 = default) where T : Delegate
     {
-        if (avx512 is not null && Avx512F.IsSupported) return avx512;
-        if (avx2 is not null && Avx2.IsSupported) return avx2;
-        if (sse2 is not null && (Sse2.IsSupported || AdvSimd.IsSupported)) return sse2;
+        if (avx512 is not null && Avx512F.IsSupported)
+            return avx512;
+        if (avx2 is not null && Avx2.IsSupported)
+            return avx2;
+        if (sse2 is not null && (Sse2.IsSupported || AdvSimd.IsSupported))
+            return sse2;
         return scalar;
     }
 
@@ -367,9 +376,12 @@ public static class IntrinsicsHelper
         Action? avx2 = null,
         Action? avx512 = null)
     {
-        if (avx512 is not null && Avx512F.IsSupported) { avx512(); return; }
-        if (avx2 is not null && Avx2.IsSupported) { avx2(); return; }
-        if (sse2 is not null && (Sse2.IsSupported || AdvSimd.IsSupported)) { sse2(); return; }
+        if (avx512 is not null && Avx512F.IsSupported)
+        { avx512(); return; }
+        if (avx2 is not null && Avx2.IsSupported)
+        { avx2(); return; }
+        if (sse2 is not null && (Sse2.IsSupported || AdvSimd.IsSupported))
+        { sse2(); return; }
         scalar();
     }
 
@@ -379,9 +391,12 @@ public static class IntrinsicsHelper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetOptimalAlignment()
     {
-        if (Avx512F.IsSupported) return 64;
-        if (Avx2.IsSupported) return 32;
-        if (Sse2.IsSupported || AdvSimd.IsSupported) return 16;
+        if (Avx512F.IsSupported)
+            return 64;
+        if (Avx2.IsSupported)
+            return 32;
+        if (Sse2.IsSupported || AdvSimd.IsSupported)
+            return 16;
         return sizeof(float);
     }
 
@@ -477,10 +492,14 @@ public static class IntrinsicsHelper
         int iterationCount = 1_000,
         int warmupIterations = 100)
     {
-        if (simdAction is null) throw new ArgumentNullException(nameof(simdAction));
-        if (scalarAction is null) throw new ArgumentNullException(nameof(scalarAction));
-        if (iterationCount <= 0) throw new ArgumentOutOfRangeException(nameof(iterationCount));
-        if (warmupIterations < 0) throw new ArgumentOutOfRangeException(nameof(warmupIterations));
+        if (simdAction is null)
+            throw new ArgumentNullException(nameof(simdAction));
+        if (scalarAction is null)
+            throw new ArgumentNullException(nameof(scalarAction));
+        if (iterationCount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(iterationCount));
+        if (warmupIterations < 0)
+            throw new ArgumentOutOfRangeException(nameof(warmupIterations));
 
         for (int i = 0; i < warmupIterations; i++)
         {
@@ -626,7 +645,8 @@ public static class IntrinsicsHelper
         int elementCount,
         int iterationCount = 10_000)
     {
-        for (int i = 0; i < 100; i++) action();
+        for (int i = 0; i < 100; i++)
+            action();
 
         var sw = Stopwatch.StartNew();
         for (int i = 0; i < iterationCount; i++)
@@ -648,7 +668,8 @@ public static class IntrinsicsHelper
     /// <returns>True if all elements match within tolerance.</returns>
     public static bool ValidateResults(ReadOnlySpan<float> simdValues, ReadOnlySpan<float> scalarValues, float tolerance = 1e-5f)
     {
-        if (simdValues.Length != scalarValues.Length) return false;
+        if (simdValues.Length != scalarValues.Length)
+            return false;
 
         int vectorSize = Vector<float>.Count;
         int simdEnd = simdValues.Length - (simdValues.Length % vectorSize);
@@ -660,13 +681,15 @@ public static class IntrinsicsHelper
             var diff = Vector.Abs(simdVec - scalarVec);
             for (int j = 0; j < vectorSize; j++)
             {
-                if (diff[j] > tolerance) return false;
+                if (diff[j] > tolerance)
+                    return false;
             }
         }
 
         for (int i = simdEnd; i < simdValues.Length; i++)
         {
-            if (MathF.Abs(simdValues[i] - scalarValues[i]) > tolerance) return false;
+            if (MathF.Abs(simdValues[i] - scalarValues[i]) > tolerance)
+                return false;
         }
 
         return true;
@@ -782,7 +805,7 @@ public static class IntrinsicsHelper
     /// </summary>
     /// <typeparam name="T">Element type of the span.</typeparam>
     /// <typeparam name="TResult">Return type.</typeparam>
-        /// <param name="span">The span to pin.</param>
+    /// <param name="span">The span to pin.</param>
     /// <param name="func">The function receiving the pinned pointer and length.</param>
     /// <returns>The result of the function.</returns>
     public static unsafe TResult WithPinnedSpan<T, TResult>(ReadOnlySpan<T> span, delegate*<T*, int, TResult> func) where T : unmanaged
@@ -839,8 +862,10 @@ public static class IntrinsicsHelper
         int vectorWidth = Vector<float>.Count;
 
         int batchSize = optimalTile - (optimalTile % vectorWidth);
-        if (batchSize > totalElements) batchSize = totalElements - (totalElements % vectorWidth);
-        if (batchSize == 0) batchSize = Math.Min(vectorWidth, totalElements);
+        if (batchSize > totalElements)
+            batchSize = totalElements - (totalElements % vectorWidth);
+        if (batchSize == 0)
+            batchSize = Math.Min(vectorWidth, totalElements);
 
         return batchSize;
     }
@@ -914,7 +939,8 @@ public static class IntrinsicsHelper
         {
             get
             {
-                if (Results.Length == 0) return 0;
+                if (Results.Length == 0)
+                    return 0;
                 double sum = 0;
                 for (int i = 0; i < Results.Length; i++)
                     sum += Results[i].SpeedupRatio;
@@ -927,10 +953,12 @@ public static class IntrinsicsHelper
         {
             get
             {
-                if (Results.Length == 0) return 0;
+                if (Results.Length == 0)
+                    return 0;
                 double min = double.MaxValue;
                 for (int i = 0; i < Results.Length; i++)
-                    if (Results[i].SpeedupRatio < min) min = Results[i].SpeedupRatio;
+                    if (Results[i].SpeedupRatio < min)
+                        min = Results[i].SpeedupRatio;
                 return min;
             }
         }
@@ -940,10 +968,12 @@ public static class IntrinsicsHelper
         {
             get
             {
-                if (Results.Length == 0) return 0;
+                if (Results.Length == 0)
+                    return 0;
                 double max = 0;
                 for (int i = 0; i < Results.Length; i++)
-                    if (Results[i].SpeedupRatio > max) max = Results[i].SpeedupRatio;
+                    if (Results[i].SpeedupRatio > max)
+                        max = Results[i].SpeedupRatio;
                 return max;
             }
         }

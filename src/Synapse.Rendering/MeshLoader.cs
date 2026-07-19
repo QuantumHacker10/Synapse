@@ -377,12 +377,15 @@ namespace GDNN.Rendering.MeshIO
 
         private GlTFRoot? ParseGLB(byte[] data)
         {
-            if (data.Length < 12) return null;
+            if (data.Length < 12)
+                return null;
             uint magic = BitConverter.ToUInt32(data, 0);
-            if (magic != 0x46546C67) return null;
+            if (magic != 0x46546C67)
+                return null;
 
             uint version = BitConverter.ToUInt32(data, 4);
-            if (version != 2) return null;
+            if (version != 2)
+                return null;
 
             uint totalLength = BitConverter.ToUInt32(data, 8);
             int offset = 12;
@@ -391,7 +394,8 @@ namespace GDNN.Rendering.MeshIO
 
             while (offset < totalLength)
             {
-                if (offset + 8 > data.Length) break;
+                if (offset + 8 > data.Length)
+                    break;
                 uint chunkLength = BitConverter.ToUInt32(data, offset);
                 uint chunkType = BitConverter.ToUInt32(data, offset + 4);
                 offset += 8;
@@ -409,7 +413,8 @@ namespace GDNN.Rendering.MeshIO
                 offset += (int)chunkLength;
             }
 
-            if (jsonChunk == null) return null;
+            if (jsonChunk == null)
+                return null;
             var root = JsonSerializer.Deserialize<GlTFRoot>(Encoding.UTF8.GetString(jsonChunk));
 
             if (root != null && binChunk != null && root.Buffers is { Length: > 0 })
@@ -422,10 +427,12 @@ namespace GDNN.Rendering.MeshIO
 
         private async Task<byte[]> LoadBufferData(string basePath, GlTFRoot root, CancellationToken ct)
         {
-            if (root.Buffers == null || root.Buffers.Length == 0) return Array.Empty<byte>();
+            if (root.Buffers == null || root.Buffers.Length == 0)
+                return Array.Empty<byte>();
 
             var buffer = root.Buffers[0];
-            if (buffer.BinaryData != null) return buffer.BinaryData;
+            if (buffer.BinaryData != null)
+                return buffer.BinaryData;
 
             if (!string.IsNullOrEmpty(buffer.Uri))
             {
@@ -458,7 +465,8 @@ namespace GDNN.Rendering.MeshIO
         private VertexAttribute ParseAttributes(GlTFMesh mesh)
         {
             var attrs = VertexAttribute.None;
-            if (mesh.Primitives == null || mesh.Primitives.Length == 0) return attrs;
+            if (mesh.Primitives == null || mesh.Primitives.Length == 0)
+                return attrs;
 
             var prim = mesh.Primitives[0];
             if (prim.Attributes != null)
@@ -488,7 +496,8 @@ namespace GDNN.Rendering.MeshIO
 
         private void ReadPrimitive(GlTFPrimitive prim, GlTFRoot root, byte[] bufferData, MeshPrimitive primitive, MeshLoadConfig config)
         {
-            if (prim.Attributes == null) return;
+            if (prim.Attributes == null)
+                return;
 
             List<Vector3> positions = new();
             List<Vector3> normals = new();
@@ -555,9 +564,11 @@ namespace GDNN.Rendering.MeshIO
 
         private void ReadAccessor<T>(GlTFRoot root, byte[] bufferData, int accessorIndex, List<T> output) where T : struct
         {
-            if (root.Accessors == null || accessorIndex >= root.Accessors.Length) return;
+            if (root.Accessors == null || accessorIndex >= root.Accessors.Length)
+                return;
             var accessor = root.Accessors[accessorIndex];
-            if (root.BufferViews == null || accessor.BufferView >= root.BufferViews.Length) return;
+            if (root.BufferViews == null || accessor.BufferView >= root.BufferViews.Length)
+                return;
 
             var bufferView = root.BufferViews[accessor.BufferView];
             int byteOffset = accessor.ByteOffset + (bufferView.ByteOffset ?? 0);
@@ -566,7 +577,8 @@ namespace GDNN.Rendering.MeshIO
             int count = accessor.Count;
             byte[] data = bufferView.Buffer == 0 ? bufferData : Array.Empty<byte>();
 
-            if (data.Length == 0) return;
+            if (data.Length == 0)
+                return;
 
             Type t = typeof(T);
             if (t == typeof(Vector3))
@@ -574,7 +586,8 @@ namespace GDNN.Rendering.MeshIO
                 for (int i = 0; i < count; i++)
                 {
                     int off = byteOffset + i * elementSize;
-                    if (off + 12 > data.Length) break;
+                    if (off + 12 > data.Length)
+                        break;
                     float x = BitConverter.ToSingle(data, off);
                     float y = BitConverter.ToSingle(data, off + 4);
                     float z = BitConverter.ToSingle(data, off + 8);
@@ -586,7 +599,8 @@ namespace GDNN.Rendering.MeshIO
                 for (int i = 0; i < count; i++)
                 {
                     int off = byteOffset + i * elementSize;
-                    if (off + 16 > data.Length) break;
+                    if (off + 16 > data.Length)
+                        break;
                     float x = BitConverter.ToSingle(data, off);
                     float y = BitConverter.ToSingle(data, off + 4);
                     float z = BitConverter.ToSingle(data, off + 8);
@@ -599,7 +613,8 @@ namespace GDNN.Rendering.MeshIO
                 for (int i = 0; i < count; i++)
                 {
                     int off = byteOffset + i * elementSize;
-                    if (off + 8 > data.Length) break;
+                    if (off + 8 > data.Length)
+                        break;
                     float x = BitConverter.ToSingle(data, off);
                     float y = BitConverter.ToSingle(data, off + 4);
                     output.Add((T)(object)new Vector2(x, y));
@@ -609,9 +624,11 @@ namespace GDNN.Rendering.MeshIO
 
         private void ReadAccessorIndices(GlTFRoot root, byte[] bufferData, int accessorIndex, List<uint> output)
         {
-            if (root.Accessors == null || accessorIndex >= root.Accessors.Length) return;
+            if (root.Accessors == null || accessorIndex >= root.Accessors.Length)
+                return;
             var accessor = root.Accessors[accessorIndex];
-            if (root.BufferViews == null || accessor.BufferView >= root.BufferViews.Length) return;
+            if (root.BufferViews == null || accessor.BufferView >= root.BufferViews.Length)
+                return;
 
             var bufferView = root.BufferViews[accessor.BufferView];
             int byteOffset = accessor.ByteOffset + (bufferView.ByteOffset ?? 0);
@@ -619,12 +636,14 @@ namespace GDNN.Rendering.MeshIO
             int count = accessor.Count;
             byte[] data = bufferView.Buffer == 0 ? bufferData : Array.Empty<byte>();
 
-            if (data.Length == 0) return;
+            if (data.Length == 0)
+                return;
 
             for (int i = 0; i < count; i++)
             {
                 int off = byteOffset + i * componentSize;
-                if (off + componentSize > data.Length) break;
+                if (off + componentSize > data.Length)
+                    break;
 
                 uint idx = accessor.ComponentType switch
                 {
@@ -641,13 +660,25 @@ namespace GDNN.Rendering.MeshIO
 
         private int GetComponentSize(int componentType) => componentType switch
         {
-            5120 => 1, 5121 => 1, 5122 => 2, 5123 => 2, 5125 => 4, 5126 => 4, _ => 4
+            5120 => 1,
+            5121 => 1,
+            5122 => 2,
+            5123 => 2,
+            5125 => 4,
+            5126 => 4,
+            _ => 4
         };
 
         private int GetDimension(string type) => type switch
         {
-            "SCALAR" => 1, "VEC2" => 2, "VEC3" => 3, "VEC4" => 4,
-            "MAT2" => 4, "MAT3" => 9, "MAT4" => 16, _ => 1
+            "SCALAR" => 1,
+            "VEC2" => 2,
+            "VEC3" => 3,
+            "VEC4" => 4,
+            "MAT2" => 4,
+            "MAT3" => 9,
+            "MAT4" => 16,
+            _ => 1
         };
 
         private void ComputeBounds(MeshPrimitive prim)
@@ -721,9 +752,11 @@ namespace GDNN.Rendering.MeshIO
 
                 foreach (var line in lines)
                 {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    if (string.IsNullOrWhiteSpace(line))
+                        continue;
                     var parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 0) continue;
+                    if (parts.Length == 0)
+                        continue;
 
                     switch (parts[0].ToLowerInvariant())
                     {
@@ -891,9 +924,11 @@ namespace GDNN.Rendering.MeshIO
 
             foreach (var line in lines)
             {
-                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
                 var parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length == 0) continue;
+                if (parts.Length == 0)
+                    continue;
 
                 switch (parts[0].ToLowerInvariant())
                 {
@@ -1291,12 +1326,14 @@ namespace GDNN.Rendering.MeshIO
 
         public void ClearCache()
         {
-            lock (_cacheLock) { _cache.Clear(); }
+            lock (_cacheLock)
+            { _cache.Clear(); }
         }
 
         public void RemoveFromCache(string path)
         {
-            lock (_cacheLock) { _cache.Remove(path); }
+            lock (_cacheLock)
+            { _cache.Remove(path); }
         }
 
         public bool CanLoad(string filePath)
@@ -1325,7 +1362,8 @@ namespace GDNN.Rendering.MeshIO
 
             if (result.Success && result.Asset != null)
             {
-                lock (_cacheLock) { _cache[filePath] = result.Asset; }
+                lock (_cacheLock)
+                { _cache[filePath] = result.Asset; }
             }
 
             return result;

@@ -19,12 +19,12 @@ public readonly record struct ClusterKey(int Level, int Index);
 /// </summary>
 public sealed class StreamedCluster
 {
-    public required Vector3[] Positions { get; init; }
-    public required Vector3[] Normals { get; init; }
-    public required byte[] LocalIndices { get; init; }
-    public required AABB Bounds { get; init; }
-    public required Vector3 ConeAxis { get; init; }
-    public required float ConeCutoff { get; init; }
+    public Vector3[] Positions { get; init; }
+    public Vector3[] Normals { get; init; }
+    public byte[] LocalIndices { get; init; }
+    public AABB Bounds { get; init; }
+    public Vector3 ConeAxis { get; init; }
+    public float ConeCutoff { get; init; }
 
     public int VertexCount => Positions.Length;
     public int TriangleCount => LocalIndices.Length / 3;
@@ -166,7 +166,9 @@ public static class MeshletCodec
 
     private static void WriteVector3(BinaryWriter w, Vector3 v)
     {
-        w.Write(v.X); w.Write(v.Y); w.Write(v.Z);
+        w.Write(v.X);
+        w.Write(v.Y);
+        w.Write(v.Z);
     }
 
     private static Vector3 ReadVector3(BinaryReader r)
@@ -177,11 +179,11 @@ public static class MeshletCodec
 /// prioriser et culler un cluster SANS le charger.</summary>
 public sealed class ClusterDirectoryEntry
 {
-    public required ClusterKey Key { get; init; }
-    public required AABB Bounds { get; init; }
-    public required float GeometricError { get; init; }
-    public required long Offset { get; init; }
-    public required int Length { get; init; }
+    public ClusterKey Key { get; init; }
+    public AABB Bounds { get; init; }
+    public float GeometricError { get; init; }
+    public long Offset { get; init; }
+    public int Length { get; init; }
 }
 
 /// <summary>
@@ -241,8 +243,12 @@ public sealed class MeshletPageFile : IDisposable
         {
             w.Write(key.Level);
             w.Write(key.Index);
-            w.Write(bounds.Min.X); w.Write(bounds.Min.Y); w.Write(bounds.Min.Z);
-            w.Write(bounds.Max.X); w.Write(bounds.Max.Y); w.Write(bounds.Max.Z);
+            w.Write(bounds.Min.X);
+            w.Write(bounds.Min.Y);
+            w.Write(bounds.Min.Z);
+            w.Write(bounds.Max.X);
+            w.Write(bounds.Max.Y);
+            w.Write(bounds.Max.Z);
             w.Write(error);
             w.Write(offset);
             w.Write(data.Length);
@@ -302,7 +308,8 @@ public sealed class MeshletPageFile : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         _stream.Dispose();
     }
@@ -458,7 +465,8 @@ public sealed class MeshletStreamer : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         lock (_lock)
         {

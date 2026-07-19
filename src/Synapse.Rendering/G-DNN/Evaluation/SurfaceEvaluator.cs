@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: SurfaceEvaluator.cs
 // PATH: Evaluation/SurfaceEvaluator.cs
@@ -24,13 +6,29 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Threading.Tasks;
 using GDNN.Core.NeuralNetwork;
 
@@ -42,10 +40,10 @@ namespace GDNN.Evaluation
     public sealed class LodLevel
     {
         /// <summary>The neural network for this LOD level.</summary>
-        public required ISdfNetwork Network { get; init; }
+        public ISdfNetwork Network { get; init; }
 
         /// <summary>Maximum world-space distance at which this LOD is used.</summary>
-        public required float MaxDistance { get; init; }
+        public float MaxDistance { get; init; }
 
         /// <summary>Scale factor applied to the SDF output at this LOD.</summary>
         public float Scale { get; init; } = 1.0f;
@@ -255,7 +253,8 @@ namespace GDNN.Evaluation
             for (int i = 0; i < cornerCount; i++)
             {
                 float sdf = network.Evaluate(corners[i]);
-                if (sdf < minSdf) minSdf = sdf;
+                if (sdf < minSdf)
+                    minSdf = sdf;
             }
 
             return minSdf;
@@ -294,7 +293,8 @@ namespace GDNN.Evaluation
             get
             {
                 _lodLock.EnterReadLock();
-                try { return _lodLevels.Count; }
+                try
+                { return _lodLevels.Count; }
                 finally { _lodLock.ExitReadLock(); }
             }
         }
@@ -322,7 +322,8 @@ namespace GDNN.Evaluation
             {
                 long ticks = Interlocked.CompareExchange(ref _totalEvalTicks, 0, 0);
                 int count = TotalEvaluations;
-                if (count == 0) return 0.0f;
+                if (count == 0)
+                    return 0.0f;
                 return (float)(ticks * 1_000_000.0 / (Stopwatch.Frequency * count));
             }
         }
@@ -334,7 +335,8 @@ namespace GDNN.Evaluation
             {
                 long ticks = Interlocked.CompareExchange(ref _totalMarchTicks, 0, 0);
                 int count = TotalEvaluations;
-                if (count == 0) return 0.0f;
+                if (count == 0)
+                    return 0.0f;
                 return (float)(ticks * 1_000_000.0 / (Stopwatch.Frequency * count));
             }
         }
@@ -361,7 +363,8 @@ namespace GDNN.Evaluation
         /// <param name="lod">The LOD level to add.</param>
         public void AddLodLevel(LodLevel lod)
         {
-            if (lod == null) throw new ArgumentNullException(nameof(lod));
+            if (lod == null)
+                throw new ArgumentNullException(nameof(lod));
             _lodLock.EnterWriteLock();
             try
             {
@@ -377,7 +380,8 @@ namespace GDNN.Evaluation
         public void ClearLodLevels()
         {
             _lodLock.EnterWriteLock();
-            try { _lodLevels.Clear(); }
+            try
+            { _lodLevels.Clear(); }
             finally { _lodLock.ExitWriteLock(); }
         }
 
@@ -394,7 +398,8 @@ namespace GDNN.Evaluation
             _lodLock.EnterReadLock();
             try
             {
-                if (_lodLevels.Count == 0) return -1;
+                if (_lodLevels.Count == 0)
+                    return -1;
 
                 float distance = Vector3.Distance(cameraPosition, surfaceCenter);
                 int selected = 0;
@@ -439,7 +444,8 @@ namespace GDNN.Evaluation
         public float Evaluate(Vector3 point, Vector3 cameraPosition)
         {
             int lod = SelectLod(cameraPosition, point);
-            if (lod < 0) return float.MaxValue;
+            if (lod < 0)
+                return float.MaxValue;
 
             _lodLock.EnterReadLock();
             try
@@ -696,7 +702,8 @@ namespace GDNN.Evaluation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float ComputeAdaptiveStepFactor(float currentSdf, float prevSdf, float distanceTraveled)
         {
-            if (MathF.Abs(prevSdf) < 1e-8f) return 1.0f;
+            if (MathF.Abs(prevSdf) < 1e-8f)
+                return 1.0f;
 
             // Estimate curvature from SDF change rate
             float ratio = MathF.Abs(currentSdf / prevSdf);
@@ -905,7 +912,8 @@ namespace GDNN.Evaluation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int SelectLodInternal(Vector3 cameraPosition, Vector3 surfaceCenter)
         {
-            if (_lodLevels.Count == 0) return -1;
+            if (_lodLevels.Count == 0)
+                return -1;
 
             float distance = Vector3.Distance(cameraPosition, surfaceCenter);
             int selected = 0;
@@ -957,8 +965,10 @@ namespace GDNN.Evaluation
                 times[i] = entries[i].TimeMicroseconds;
                 totalTime += times[i];
                 totalSteps += entries[i].Steps;
-                if (times[i] < minTime) minTime = times[i];
-                if (times[i] > maxTime) maxTime = times[i];
+                if (times[i] < minTime)
+                    minTime = times[i];
+                if (times[i] > maxTime)
+                    maxTime = times[i];
             }
 
             Array.Sort(times);
@@ -986,7 +996,8 @@ namespace GDNN.Evaluation
         {
             lock (_profileLock)
             {
-                while (_profileEntries.TryTake(out _)) { }
+                while (_profileEntries.TryTake(out _))
+                { }
             }
         }
 
@@ -995,7 +1006,8 @@ namespace GDNN.Evaluation
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _lodLock.Dispose();
             _scratchCorners.Dispose();
@@ -1102,7 +1114,8 @@ namespace GDNN.Evaluation
         {
             float dot = Vector3.Dot(direction, normal);
             float k = 1.0f - eta * eta * (1.0f - dot * dot);
-            if (k < 0) return Vector3.Reflect(-direction, normal) * -1.0f;
+            if (k < 0)
+                return Vector3.Reflect(-direction, normal) * -1.0f;
             return eta * direction - (eta * dot + MathF.Sqrt(k)) * normal;
         }
     }
@@ -1170,8 +1183,10 @@ namespace GDNN.Evaluation
         /// <param name="height">Buffer height in pixels.</param>
         public void AllocateBuffer(int width, int height)
         {
-            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            if (width <= 0)
+                throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= 0)
+                throw new ArgumentOutOfRangeException(nameof(height));
 
             _bufferWidth = width;
             _bufferHeight = height;
@@ -1232,7 +1247,8 @@ namespace GDNN.Evaluation
         /// </summary>
         public float GetDepth(int x, int y)
         {
-            if (_depthBuffer == null) throw new InvalidOperationException("Buffer not allocated.");
+            if (_depthBuffer == null)
+                throw new InvalidOperationException("Buffer not allocated.");
             if (x < 0 || x >= _bufferWidth || y < 0 || y >= _bufferHeight)
                 throw new ArgumentOutOfRangeException(nameof(x));
 
@@ -1244,7 +1260,8 @@ namespace GDNN.Evaluation
         /// </summary>
         public ReadOnlySpan<float> GetDepthBuffer()
         {
-            if (_depthBuffer == null) throw new InvalidOperationException("Buffer not allocated.");
+            if (_depthBuffer == null)
+                throw new InvalidOperationException("Buffer not allocated.");
             return _depthBuffer;
         }
 
@@ -1298,7 +1315,8 @@ namespace GDNN.Evaluation
             for (int i = 0; i < 8; i++)
             {
                 float sdf = network.Evaluate(corners[i]);
-                if (sdf > maxSdf) maxSdf = sdf;
+                if (sdf > maxSdf)
+                    maxSdf = sdf;
             }
 
             return maxSdf;
@@ -1336,12 +1354,15 @@ namespace GDNN.Evaluation
         /// <returns>Array of sub-boxes.</returns>
         public static IntervalBox[] Subdivide(IntervalBox box, int count)
         {
-            if (count <= 0) return Array.Empty<IntervalBox>();
+            if (count <= 0)
+                return Array.Empty<IntervalBox>();
 
             Vector3 size = box.Size;
             int axis = 0;
-            if (size.Y > size.X && size.Y > size.Z) axis = 1;
-            else if (size.Z > size.X && size.Z > size.Y) axis = 2;
+            if (size.Y > size.X && size.Y > size.Z)
+                axis = 1;
+            else if (size.Z > size.X && size.Z > size.Y)
+                axis = 2;
 
             var result = new IntervalBox[count];
             Vector3 step = Vector3.Zero;

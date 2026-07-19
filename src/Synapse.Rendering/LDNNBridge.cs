@@ -160,6 +160,25 @@ namespace GDNN.Rendering.Bridge
                 Array.Copy(emissiveData, _gbuffer.Emissive, emissiveData.Length);
         }
 
+        /// <summary>Copies all G-buffer channels including velocity, material, and specular.</summary>
+        public void FillGBufferComplete(
+            float[] depthData,
+            Vector3[] normalData,
+            Vector3[] albedoData,
+            Vector3[] emissiveData,
+            Vector2[] velocityData,
+            Vector4[] materialProps,
+            Vector3[] specularData)
+        {
+            FillGBuffer(depthData, normalData, albedoData, emissiveData);
+            if (velocityData != null && velocityData.Length == _gbuffer.Velocity.Length)
+                Array.Copy(velocityData, _gbuffer.Velocity, velocityData.Length);
+            if (materialProps != null && materialProps.Length == _gbuffer.MaterialProps.Length)
+                Array.Copy(materialProps, _gbuffer.MaterialProps, materialProps.Length);
+            if (specularData != null && specularData.Length == _gbuffer.Specular.Length)
+                Array.Copy(specularData, _gbuffer.Specular, specularData.Length);
+        }
+
         /// <summary>Fills the G-Buffer with uniform constants (used when GPU readback is not wired).</summary>
         public void FillGBufferFromConstants(
             float fillDepth, Vector3 fillNormal, Vector3 fillAlbedo)
@@ -195,7 +214,8 @@ namespace GDNN.Rendering.Bridge
         public void ApplyLlmLighting(LightingParams parameters)
         {
             ArgumentNullException.ThrowIfNull(parameters);
-            if (!_initialized || _ldnn == null || _config == null) return;
+            if (!_initialized || _ldnn == null || _config == null)
+                return;
 
             SetLights(LlmSceneApplicator.ApplyLighting(parameters));
             _config.VolumeFogConfig = LlmSceneApplicator.ApplyFog(parameters, _config.VolumeFogConfig);
@@ -261,7 +281,14 @@ namespace GDNN.Rendering.Bridge
             _ldnn.RenderFrame(_gbuffer, _cameraState, _lights, context);
 
             var irradiance = new Vector3[_width, _height];
-            if (_ldnn.Analytics != null)
+            var giField = _ldnn.GetLastIrradianceField(_width, _height);
+            if (giField != null && giField.GetLength(0) == _width && giField.GetLength(1) == _height)
+            {
+                for (int y = 0; y < _height; y++)
+                    for (int x = 0; x < _width; x++)
+                        irradiance[x, y] = giField[x, y];
+            }
+            else
             {
                 for (int y = 0; y < _height; y++)
                     for (int x = 0; x < _width; x++)
@@ -275,7 +302,8 @@ namespace GDNN.Rendering.Bridge
         /// <summary>Placeholder ambient-occlusion query (returns 1 = fully lit).</summary>
         public float ComputeAO(int px, int py)
         {
-            if (px < 0 || px >= _width || py < 0 || py >= _height) return 1.0f;
+            if (px < 0 || px >= _width || py < 0 || py >= _height)
+                return 1.0f;
             return 1.0f;
         }
 
@@ -364,7 +392,8 @@ namespace GDNN.Rendering.Bridge
         /// <summary>Shuts down the L-DNN renderer and releases GPU resources.</summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             if (_initialized)
             {

@@ -224,7 +224,8 @@ public sealed class QuantizedDeepMLP : ISdfNetwork
     {
         int length = values.Length;
         float mean = 0f;
-        for (int i = 0; i < length; i++) mean += values[i];
+        for (int i = 0; i < length; i++)
+            mean += values[i];
         mean /= length;
 
         float variance = 0f;

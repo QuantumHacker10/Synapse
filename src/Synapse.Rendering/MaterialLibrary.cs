@@ -382,7 +382,7 @@ namespace GDNN.Rendering.ArtPipeline
             return entry.Id;
         }
 
-        public string AddInstance(string presetId, string instanceName)
+        public string? AddInstance(string presetId, string instanceName)
         {
             if (!_assets.TryGetValue(presetId, out var source) || source.Preset == null)
                 return null;
@@ -403,7 +403,7 @@ namespace GDNN.Rendering.ArtPipeline
             return entry.Id;
         }
 
-        public MaterialVariant AddVariant(string presetId, string variantName, Dictionary<string, float> scalarOverrides = null, Dictionary<string, Color3> colorOverrides = null)
+        public MaterialVariant? AddVariant(string presetId, string variantName, Dictionary<string, float> scalarOverrides = null, Dictionary<string, Color3> colorOverrides = null)
         {
             if (!_assets.TryGetValue(presetId, out var source) || source.Preset == null)
                 return null;
@@ -435,7 +435,8 @@ namespace GDNN.Rendering.ArtPipeline
             if (_assets.TryGetValue(assetId, out var entry))
             {
                 entry.IsFavorite = !entry.IsFavorite;
-                if (entry.Preset != null) entry.Preset.IsFavorite = entry.IsFavorite;
+                if (entry.Preset != null)
+                    entry.Preset.IsFavorite = entry.IsFavorite;
                 return entry.IsFavorite;
             }
             return false;
@@ -447,7 +448,7 @@ namespace GDNN.Rendering.ArtPipeline
             return entry;
         }
 
-        public MaterialPreset GetPreset(string presetId)
+        public MaterialPreset? GetPreset(string presetId)
         {
             return _assets.TryGetValue(presetId, out var entry) ? entry.Preset : null;
         }
@@ -462,7 +463,8 @@ namespace GDNN.Rendering.ArtPipeline
 
         public IReadOnlyList<MaterialPreset> SearchPresets(string query, int maxResults = 50)
         {
-            if (string.IsNullOrWhiteSpace(query)) return _presets.Take(maxResults).ToList().AsReadOnly();
+            if (string.IsNullOrWhiteSpace(query))
+                return _presets.Take(maxResults).ToList().AsReadOnly();
 
             var lowerQuery = query.ToLowerInvariant();
             var results = _presets
@@ -523,23 +525,27 @@ namespace GDNN.Rendering.ArtPipeline
             if (_assets.TryGetValue(assetId, out var entry))
             {
                 entry.UsageCount++;
-                if (entry.Preset != null) entry.Preset.UsageCount = entry.UsageCount;
+                if (entry.Preset != null)
+                    entry.Preset.UsageCount = entry.UsageCount;
             }
         }
 
-        public SubstrateMaterial CreateMaterialFromPreset(string presetId, string materialName = null)
+        public SubstrateMaterial? CreateMaterialFromPreset(string presetId, string materialName = null)
         {
             var preset = GetPreset(presetId);
-            if (preset == null) return null;
+            if (preset == null)
+                return null;
             IncrementUsage(presetId);
             return preset.ToMaterial(materialName);
         }
 
-        public SubstrateMaterial CreateMaterialFromVariant(string presetId, string variantName, string materialName = null)
+        public SubstrateMaterial? CreateMaterialFromVariant(string presetId, string variantName, string materialName = null)
         {
-            if (!_assets.TryGetValue(presetId, out var entry) || entry.Preset == null) return null;
+            if (!_assets.TryGetValue(presetId, out var entry) || entry.Preset == null)
+                return null;
             var variant = entry.Variants.FirstOrDefault(v => v.Name == variantName);
-            if (variant == null) return null;
+            if (variant == null)
+                return null;
             var baseMat = entry.Preset.ToMaterial(materialName);
             return variant.ApplyTo(baseMat);
         }
@@ -586,11 +592,13 @@ namespace GDNN.Rendering.ArtPipeline
 
         public int ImportFromJson(string filePath)
         {
-            if (!File.Exists(filePath)) return 0;
+            if (!File.Exists(filePath))
+                return 0;
             var json = File.ReadAllText(filePath, Encoding.UTF8);
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var data = JsonSerializer.Deserialize<List<MaterialAssetEntry>>(json, options);
-            if (data == null) return 0;
+            if (data == null)
+                return 0;
 
             int count = 0;
             foreach (var entry in data)
@@ -598,7 +606,8 @@ namespace GDNN.Rendering.ArtPipeline
                 if (_assets.TryAdd(entry.Id, entry))
                 {
                     IndexAsset(entry);
-                    if (entry.Preset != null) _presets.Add(entry.Preset);
+                    if (entry.Preset != null)
+                        _presets.Add(entry.Preset);
                     count++;
                 }
             }
@@ -915,7 +924,8 @@ namespace GDNN.Rendering.ArtPipeline
             {
                 var json = File.ReadAllText(path, Encoding.UTF8);
                 var data = JsonSerializer.Deserialize<List<JsonElement>>(json);
-                if (data == null) return;
+                if (data == null)
+                    return;
                 foreach (var item in data)
                 {
                     if (item.TryGetProperty("Id", out var idProp) && item.TryGetProperty("UsageCount", out var usageProp))

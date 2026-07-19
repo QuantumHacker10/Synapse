@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: ConstantBufferLayout.cs
 // PATH: GPU/ConstantBufferLayout.cs
@@ -24,11 +6,27 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using GDNN.Core.NeuralNetwork;
 
 namespace GDNN.GPU;
@@ -60,10 +58,10 @@ public enum ConstantBufferAlignment
 public sealed class ConstantBufferField
 {
     /// <summary>Field name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>HLSL type name.</summary>
-    public required string TypeName { get; init; }
+    public string TypeName { get; init; }
 
     /// <summary>Offset in bytes from the start of the constant buffer.</summary>
     public int Offset { get; set; }
@@ -104,10 +102,10 @@ public sealed class ConstantBufferField
 public sealed class ConstantBufferLayout
 {
     /// <summary>Constant buffer name.</summary>
-    public required string Name { get; init; }
+    public string Name { get; init; }
 
     /// <summary>Register binding (e.g. "b0").</summary>
-    public required string Register { get; init; }
+    public string Register { get; init; }
 
     /// <summary>Fields in this constant buffer.</summary>
     public List<ConstantBufferField> Fields { get; init; } = new();
@@ -197,16 +195,21 @@ public sealed class ConstantBufferLayoutBuilder
     {
         _pendingFields.Clear();
         _currentOffset = 0;
-        if (name != null) _bufferName = name;
-        if (register != null) _register = register;
+        if (name != null)
+            _bufferName = name;
+        if (register != null)
+            _register = register;
     }
 
     /// <summary>Computes the required alignment for a given type size.</summary>
     public static ConstantBufferAlignment ComputeAlignment(int sizeBytes)
     {
-        if (sizeBytes >= 16) return ConstantBufferAlignment.Align16;
-        if (sizeBytes >= 8) return ConstantBufferAlignment.Align8;
-        if (sizeBytes >= 4) return ConstantBufferAlignment.Align4;
+        if (sizeBytes >= 16)
+            return ConstantBufferAlignment.Align16;
+        if (sizeBytes >= 8)
+            return ConstantBufferAlignment.Align8;
+        if (sizeBytes >= 4)
+            return ConstantBufferAlignment.Align4;
         return ConstantBufferAlignment.None;
     }
 
@@ -214,9 +217,11 @@ public sealed class ConstantBufferLayoutBuilder
     public static int ComputePadding(int currentOffset, ConstantBufferAlignment alignment)
     {
         int align = (int)alignment;
-        if (align <= 0) return 0;
+        if (align <= 0)
+            return 0;
         int remainder = currentOffset % align;
-        if (remainder == 0) return 0;
+        if (remainder == 0)
+            return 0;
         return align - remainder;
     }
 

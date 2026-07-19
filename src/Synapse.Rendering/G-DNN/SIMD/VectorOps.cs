@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: VectorOps.cs
 // PATH: SIMD/VectorOps.cs
@@ -28,12 +10,28 @@ using System.Threading.Tasks;
 // High-performance SIMD-optimized vector math for neural geometry processing.
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.SIMD;
 
@@ -297,7 +295,8 @@ public static unsafe class VectorOps
     public static Vector3 Normalize3(Vector3 v)
     {
         float lenSq = v.X * v.X + v.Y * v.Y + v.Z * v.Z;
-        if (lenSq < 1e-10f) return Vector3.Zero;
+        if (lenSq < 1e-10f)
+            return Vector3.Zero;
         float invLen = MathFunctions.ScalarFastRsqrt(lenSq);
         return new Vector3(v.X * invLen, v.Y * invLen, v.Z * invLen);
     }
@@ -311,7 +310,8 @@ public static unsafe class VectorOps
     public static Vector4 Normalize4(Vector4 v)
     {
         float lenSq = v.X * v.X + v.Y * v.Y + v.Z * v.Z + v.W * v.W;
-        if (lenSq < 1e-10f) return Vector4.Zero;
+        if (lenSq < 1e-10f)
+            return Vector4.Zero;
         float invLen = MathFunctions.ScalarFastRsqrt(lenSq);
         return new Vector4(v.X * invLen, v.Y * invLen, v.Z * invLen, v.W * invLen);
     }
@@ -332,7 +332,8 @@ public static unsafe class VectorOps
             int off = i * 3;
             float x = vectors[off], y = vectors[off + 1], z = vectors[off + 2];
             float lenSq = x * x + y * y + z * z;
-            if (lenSq < 1e-10f) continue;
+            if (lenSq < 1e-10f)
+                continue;
             float invLen = MathFunctions.ScalarFastRsqrt(lenSq);
             vectors[off] = x * invLen;
             vectors[off + 1] = y * invLen;
@@ -356,7 +357,8 @@ public static unsafe class VectorOps
             float x = vectors[off], y = vectors[off + 1];
             float z = vectors[off + 2], w = vectors[off + 3];
             float lenSq = x * x + y * y + z * z + w * w;
-            if (lenSq < 1e-10f) continue;
+            if (lenSq < 1e-10f)
+                continue;
             float invLen = MathFunctions.ScalarFastRsqrt(lenSq);
             vectors[off] = x * invLen;
             vectors[off + 1] = y * invLen;
@@ -1030,7 +1032,8 @@ public static unsafe class VectorOps
         float halfAngle = angle * 0.5f;
         float s = MathF.Sin(halfAngle);
         float len = axis.Length();
-        if (len < 1e-10f) return Quaternion.Identity;
+        if (len < 1e-10f)
+            return Quaternion.Identity;
         axis /= len;
         return new Quaternion(axis.X * s, axis.Y * s, axis.Z * s, MathF.Cos(halfAngle));
     }
@@ -1436,7 +1439,8 @@ public static unsafe class VectorOps
     {
         float dot = Dot3(vector, normal);
         float k = 1f - eta * eta * (1f - dot * dot);
-        if (k < 0f) return Vector3.Zero;
+        if (k < 0f)
+            return Vector3.Zero;
         return eta * vector - (eta * dot + MathF.Sqrt(k)) * normal;
     }
 
@@ -1454,7 +1458,8 @@ public static unsafe class VectorOps
     {
         float lenA = a.Length();
         float lenB = b.Length();
-        if (lenA < 1e-10f || lenB < 1e-10f) return 0f;
+        if (lenA < 1e-10f || lenB < 1e-10f)
+            return 0f;
         float dot = Dot3(a, b) / (lenA * lenB);
         dot = MathF.Max(-1f, MathF.Min(1f, dot));
         return MathF.Acos(dot);
@@ -1508,7 +1513,8 @@ public static unsafe class VectorOps
     /// <returns>The average vector.</returns>
     public static Vector3 BatchAverage3(ReadOnlySpan<float> vectors, int count)
     {
-        if (count == 0) return Vector3.Zero;
+        if (count == 0)
+            return Vector3.Zero;
         return BatchSum3(vectors, count) / count;
     }
 

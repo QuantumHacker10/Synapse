@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: QuaternionMath.cs
 // PATH: Core/Mathematics/QuaternionMath.cs
@@ -24,10 +6,26 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Core.Mathematics;
 
@@ -121,10 +119,12 @@ public static class QuaternionMath
     public static Quaternion ConstantVelocitySlerp(this Quaternion from, Quaternion to, float t, float angularVelocity)
     {
         float dot = Quaternion.Dot(from, to);
-        if (dot < 0) { to = -to; dot = -dot; }
+        if (dot < 0)
+        { to = -to; dot = -dot; }
 
         float angle = MathF.Acos(Math.Clamp(dot, -1f, 1f));
-        if (angle < Epsilon) return from;
+        if (angle < Epsilon)
+            return from;
 
         float totalAngle = angle;
         float adjustedT = MathF.Min(1f, angularVelocity * t / totalAngle);
@@ -225,8 +225,10 @@ public static class QuaternionMath
         projTarget = Vector3.Normalize(projTarget);
 
         float dot = Vector3.Dot(projSource, projTarget);
-        if (dot > 1f - Epsilon) return Quaternion.Identity;
-        if (dot < -1f + Epsilon) return Quaternion.CreateFromAxisAngle(axis, PI);
+        if (dot > 1f - Epsilon)
+            return Quaternion.Identity;
+        if (dot < -1f + Epsilon)
+            return Quaternion.CreateFromAxisAngle(axis, PI);
 
         Vector3 cross = Vector3.Cross(projSource, projTarget);
         float angle = MathF.Acos(Math.Clamp(dot, -1f, 1f));
@@ -353,7 +355,8 @@ public static class QuaternionMath
     public static Vector3 GetAxis(this Quaternion q)
     {
         float s = MathF.Sqrt(1f - q.W * q.W);
-        if (s < Epsilon) return Vector3.UnitX;
+        if (s < Epsilon)
+            return Vector3.UnitX;
         return new Vector3(q.X, q.Y, q.Z) / s;
     }
 
@@ -393,7 +396,8 @@ public static class QuaternionMath
     {
         Debug.Assert(quaternions.Length > 0);
 
-        if (quaternions.Length == 1) return quaternions[0];
+        if (quaternions.Length == 1)
+            return quaternions[0];
 
         Span<float> weights = stackalloc float[quaternions.Length];
         weights.Fill(1f / quaternions.Length);
@@ -494,7 +498,8 @@ public static class QuaternionMath
     public static Quaternion QuaternionExp(this Quaternion q)
     {
         float angle = new Vector3(q.X, q.Y, q.Z).Length();
-        if (angle < Epsilon) return Quaternion.Identity;
+        if (angle < Epsilon)
+            return Quaternion.Identity;
 
         float halfAngle = angle * 0.5f;
         float s = MathF.Sin(halfAngle) / angle;
@@ -510,7 +515,8 @@ public static class QuaternionMath
         float angle = 2f * MathF.Acos(Math.Clamp(MathF.Abs(q.W), 0f, 1f));
         float s = MathF.Sqrt(1f - q.W * q.W);
 
-        if (s < Epsilon) return Quaternion.Identity;
+        if (s < Epsilon)
+            return Quaternion.Identity;
 
         return new Quaternion(q.X / s * angle, q.Y / s * angle, q.Z / s * angle, 0);
     }
@@ -526,7 +532,8 @@ public static class QuaternionMath
         float newAngle = angle * exponent;
 
         float s = MathF.Sqrt(1f - q.W * q.W);
-        if (s < Epsilon) return Quaternion.Identity;
+        if (s < Epsilon)
+            return Quaternion.Identity;
 
         float newS = MathF.Sin(newAngle * 0.5f) / s;
         return new Quaternion(q.X * newS, q.Y * newS, q.Z * newS, MathF.Cos(newAngle * 0.5f));
@@ -542,7 +549,8 @@ public static class QuaternionMath
         float halfAngle = angle * 0.5f;
 
         float s = MathF.Sqrt(1f - q.W * q.W);
-        if (s < Epsilon) return Quaternion.Identity;
+        if (s < Epsilon)
+            return Quaternion.Identity;
 
         float newS = MathF.Sin(halfAngle) / s;
         return new Quaternion(q.X * newS, q.Y * newS, q.Z * newS, MathF.Cos(halfAngle));
@@ -590,7 +598,8 @@ public static class QuaternionMath
     {
         q = Quaternion.Normalize(q);
         float angle = q.GetAngle();
-        if (angle <= maxAngle) return q;
+        if (angle <= maxAngle)
+            return q;
 
         Vector3 axis = q.GetAxis();
         return Quaternion.CreateFromAxisAngle(axis, maxAngle);
@@ -612,7 +621,8 @@ public static class QuaternionMath
     public static Quaternion SafeNormalize(this Quaternion q)
     {
         float mag = MathF.Sqrt(q.X * q.X + q.Y * q.Y + q.Z * q.Z + q.W * q.W);
-        if (mag < Epsilon) return Quaternion.Identity;
+        if (mag < Epsilon)
+            return Quaternion.Identity;
         return new Quaternion(q.X / mag, q.Y / mag, q.Z / mag, q.W / mag);
     }
 
@@ -630,8 +640,10 @@ public static class QuaternionMath
     public static float UnwrapAngle(float angle)
     {
         angle = MathF.IEEERemainder(angle, TwoPI);
-        if (angle < -PI) angle += TwoPI;
-        if (angle > PI) angle -= TwoPI;
+        if (angle < -PI)
+            angle += TwoPI;
+        if (angle > PI)
+            angle -= TwoPI;
         return angle;
     }
 
@@ -648,7 +660,8 @@ public static class QuaternionMath
         float angle = 2f * MathF.Acos(Math.Clamp(MathF.Abs(diff.W), 0f, 1f));
         float s = MathF.Sqrt(1f - diff.W * diff.W);
 
-        if (s < Epsilon || dt < Epsilon) return Vector3.Zero;
+        if (s < Epsilon || dt < Epsilon)
+            return Vector3.Zero;
 
         Vector3 axis = new Vector3(diff.X, diff.Y, diff.Z) / s;
         return axis * (angle / dt);
@@ -828,7 +841,8 @@ public static class QuaternionMath
     {
         Debug.Assert(quaternions.Length > 0);
 
-        if (quaternions.Length == 1) return quaternions[0];
+        if (quaternions.Length == 1)
+            return quaternions[0];
 
         Quaternion sum = Quaternion.Zero;
         for (int i = 0; i < quaternions.Length; i++)
@@ -851,8 +865,10 @@ public static class QuaternionMath
         Debug.Assert(keyframes.Length >= 2);
         Debug.Assert(keyframes.Length == keyTimes.Length);
 
-        if (time <= keyTimes[0]) return keyframes[0];
-        if (time >= keyTimes[^1]) return keyframes[^1];
+        if (time <= keyTimes[0])
+            return keyframes[0];
+        if (time >= keyTimes[^1])
+            return keyframes[^1];
 
         int segment = 0;
         for (int i = 0; i < keyTimes.Length - 1; i++)

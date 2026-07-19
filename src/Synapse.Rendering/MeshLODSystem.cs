@@ -91,9 +91,12 @@ namespace GDNN.Rendering.LOD
 
         public LodLevel? SelectLevel(float screenCoverage, float distance)
         {
-            if (ForceHighestLOD) return Levels.Count > 0 ? Levels[0] : null;
-            if (ForceLowestLOD) return Levels.Count > 0 ? Levels[^1] : null;
-            if (Levels.Count == 0) return null;
+            if (ForceHighestLOD)
+                return Levels.Count > 0 ? Levels[0] : null;
+            if (ForceLowestLOD)
+                return Levels.Count > 0 ? Levels[^1] : null;
+            if (Levels.Count == 0)
+                return null;
 
             float factor = CalculationMode switch
             {
@@ -153,7 +156,8 @@ namespace GDNN.Rendering.LOD
         public float ComputeScreenCoverage(Vector3 objectCenter, float objectRadius, Vector3 cameraPosition, float fovRadians, float viewportHeight)
         {
             float distance = Vector3.Distance(cameraPosition, objectCenter);
-            if (distance < 0.001f) return 1.0f;
+            if (distance < 0.001f)
+                return 1.0f;
 
             float apparentSize = objectRadius / distance;
             float screenSize = apparentSize / MathF.Tan(fovRadians * 0.5f) * viewportHeight;
@@ -163,7 +167,8 @@ namespace GDNN.Rendering.LOD
         public float ComputeScreenCoverageFromBounds(BoundingBox3D bounds, Vector3 cameraPosition, float fovRadians, float viewportHeight)
         {
             float distance = Vector3.Distance(cameraPosition, bounds.Center);
-            if (distance < 0.001f) return 1.0f;
+            if (distance < 0.001f)
+                return 1.0f;
 
             float radius = bounds.Extents.Length();
             return ComputeScreenCoverage(bounds.Center, radius, cameraPosition, fovRadians, viewportHeight);
@@ -258,7 +263,8 @@ namespace GDNN.Rendering.LOD
 
         private void ComputeDistances(List<LodLevel> levels)
         {
-            if (levels.Count == 0) return;
+            if (levels.Count == 0)
+                return;
 
             for (int i = 0; i < levels.Count; i++)
             {
@@ -320,7 +326,8 @@ namespace GDNN.Rendering.LOD
 
         public LodGroup? GetGroup(int groupId)
         {
-            lock (_lock) { return _groups.TryGetValue(groupId, out var g) ? g : null; }
+            lock (_lock)
+            { return _groups.TryGetValue(groupId, out var g) ? g : null; }
         }
 
         public void UpdateAll(Vector3 cameraPosition, float fovRadians, float viewportHeight)

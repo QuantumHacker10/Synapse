@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: JobSystem.cs
 // PATH: Threading/JobSystem.cs
@@ -24,10 +6,26 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Threading
 {
@@ -330,7 +328,8 @@ namespace GDNN.Threading
         /// </summary>
         public void Start()
         {
-            if (_running) return;
+            if (_running)
+                return;
             _running = true;
 
             for (int i = 0; i < _threadCount; i++)
@@ -404,7 +403,8 @@ namespace GDNN.Threading
             ObjectDisposedException.ThrowIf(_disposed, this);
 
             int total = endExclusive - startInclusive;
-            if (total <= 0) throw new ArgumentOutOfRangeException(nameof(endExclusive));
+            if (total <= 0)
+                throw new ArgumentOutOfRangeException(nameof(endExclusive));
 
             if (chunkSize <= 0)
                 chunkSize = Math.Max(1, total / (_threadCount * 4));
@@ -548,7 +548,8 @@ namespace GDNN.Threading
                 {
                     job.Handle.Dependencies.Add(dep);
                     dep.Dependents.Add(job.Handle);
-                    if (!dep.IsCompleted) allComplete = false;
+                    if (!dep.IsCompleted)
+                        allComplete = false;
                 }
 
                 if (allComplete)
@@ -578,7 +579,8 @@ namespace GDNN.Threading
         /// <returns>True if the job completed, false on timeout.</returns>
         public bool WaitForCompletion(JobHandle handle, TimeSpan timeout = default)
         {
-            if (handle == null) throw new ArgumentNullException(nameof(handle));
+            if (handle == null)
+                throw new ArgumentNullException(nameof(handle));
 
             var sw = Stopwatch.StartNew();
             var spin = new SpinWait();
@@ -805,7 +807,8 @@ namespace GDNN.Threading
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             CancelAll();

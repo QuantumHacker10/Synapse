@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -142,7 +142,8 @@ namespace GDNN.Lighting.LDNN
                 case LightType.Point:
                     Vector3 toLight = light.Position - worldPos;
                     float dist = toLight.Length();
-                    if (dist > light.Range) return Vector3.Zero;
+                    if (dist > light.Range)
+                        return Vector3.Zero;
                     float atten = 1.0f / (dist * dist);
                     float rangeAtten = MathF.Max(0, 1.0f - MathF.Pow(dist / light.Range, 4));
                     return light.Color * light.Intensity * atten * rangeAtten;
@@ -150,7 +151,8 @@ namespace GDNN.Lighting.LDNN
                 case LightType.Spot:
                     Vector3 spotToLight = light.Position - worldPos;
                     float spotDist = spotToLight.Length();
-                    if (spotDist > light.Range) return Vector3.Zero;
+                    if (spotDist > light.Range)
+                        return Vector3.Zero;
                     Vector3 spotDir = spotToLight / spotDist;
                     float spotAtten = 1.0f / (spotDist * spotDist);
                     float spotRangeAtten = MathF.Max(0, 1.0f - MathF.Pow(spotDist / light.Range, 4));
@@ -245,7 +247,8 @@ namespace GDNN.Lighting.LDNN
         {
             float halfThickness = MathF.Max(1e-3f, _config.CloudThickness);
             float vertical = 1.0f - MathF.Abs(worldPos.Y - _config.CloudAltitude) / halfThickness;
-            if (vertical <= 0f) return 0f;
+            if (vertical <= 0f)
+                return 0f;
 
             // Soft vertical falloff inside the slab.
             vertical = vertical * vertical * (3f - 2f * vertical);

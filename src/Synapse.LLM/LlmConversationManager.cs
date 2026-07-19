@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -164,8 +164,10 @@ namespace GDNN.Llm
         /// <param name="turnCount">Number of turns to remove.</param>
         public void TruncateSession(string sessionId, int turnCount)
         {
-            if (!_sessions.TryGetValue(sessionId, out var session)) return;
-            if (turnCount <= 0 || turnCount >= session.Turns.Count) return;
+            if (!_sessions.TryGetValue(sessionId, out var session))
+                return;
+            if (turnCount <= 0 || turnCount >= session.Turns.Count)
+                return;
 
             session.Turns.RemoveRange(0, turnCount);
             session.IsTruncated = true;
@@ -231,7 +233,8 @@ namespace GDNN.Llm
         /// <param name="cancellationToken">Cancellation token.</param>
         public async Task SaveSessionAsync(string sessionId, CancellationToken cancellationToken = default)
         {
-            if (!_sessions.TryGetValue(sessionId, out var session)) return;
+            if (!_sessions.TryGetValue(sessionId, out var session))
+                return;
 
             var filePath = Path.Combine(_storagePath, $"{sessionId}.json");
             var json = ExportJson(sessionId);
@@ -247,7 +250,8 @@ namespace GDNN.Llm
         public async Task<bool> LoadSessionAsync(string sessionId, CancellationToken cancellationToken = default)
         {
             var filePath = Path.Combine(_storagePath, $"{sessionId}.json");
-            if (!File.Exists(filePath)) return false;
+            if (!File.Exists(filePath))
+                return false;
 
             var json = await File.ReadAllTextAsync(filePath, cancellationToken);
             using var doc = JsonDocument.Parse(json);
@@ -277,7 +281,8 @@ namespace GDNN.Llm
             if (_sessions.TryRemove(sessionId, out _))
             {
                 var filePath = Path.Combine(_storagePath, $"{sessionId}.json");
-                if (File.Exists(filePath)) File.Delete(filePath);
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
                 return true;
             }
             return false;

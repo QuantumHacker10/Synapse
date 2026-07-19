@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: MathFunctions.cs
 // PATH: SIMD/MathFunctions.cs
@@ -28,11 +10,27 @@ using System.Threading.Tasks;
 // Fast SIMD-approximated mathematical functions for neural network evaluation.
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.SIMD;
 
@@ -281,7 +279,8 @@ public static class MathFunctions
         const float InvPiSq = InvPi * InvPi;
 
         float sign = 1.0f;
-        if (x < 0) { x = -x; sign = -1.0f; }
+        if (x < 0)
+        { x = -x; sign = -1.0f; }
 
         float n = (x + MathF.PI) * InvPi;
         float k = MathF.Round(n);
@@ -291,8 +290,10 @@ public static class MathFunctions
         float result = r + r * r2 * (ScalarSinC1 + r2 * (ScalarSinC2 + r2 * ScalarSinC3));
 
         float signK = k % 2.0f;
-        if (signK < 0) signK += 2.0f;
-        if (signK >= 1.0f) result = -result;
+        if (signK < 0)
+            signK += 2.0f;
+        if (signK >= 1.0f)
+            result = -result;
 
         return result * sign;
     }
@@ -368,8 +369,10 @@ public static class MathFunctions
         float result = 1.0f + r2 * (ScalarCosC1 + r2 * (ScalarCosC2 + r2 * ScalarCosC3));
 
         float signK = k % 2.0f;
-        if (signK < 0) signK += 2.0f;
-        if (signK >= 1.0f) result = -result;
+        if (signK < 0)
+            signK += 2.0f;
+        if (signK >= 1.0f)
+            result = -result;
 
         return result;
     }
@@ -416,7 +419,8 @@ public static class MathFunctions
     {
         float sin = FastSin(x);
         float cos = FastCos(x);
-        if (MathF.Abs(cos) < 1e-10f) return sin > 0 ? float.PositiveInfinity : float.NegativeInfinity;
+        if (MathF.Abs(cos) < 1e-10f)
+            return sin > 0 ? float.PositiveInfinity : float.NegativeInfinity;
         return sin / cos;
     }
 
@@ -625,7 +629,8 @@ public static class MathFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float FastPow(float x, float y)
     {
-        if (x <= 0) return 0;
+        if (x <= 0)
+            return 0;
         return FastExp(y * FastLn(x));
     }
 
@@ -668,8 +673,10 @@ public static class MathFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float ScalarFastSigmoid(float x)
     {
-        if (x >= 4.0f) return 1.0f;
-        if (x <= -4.0f) return 0.0f;
+        if (x >= 4.0f)
+            return 1.0f;
+        if (x <= -4.0f)
+            return 0.0f;
 
         if (x >= -2.0f && x <= 2.0f)
         {
@@ -801,8 +808,10 @@ public static class MathFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float ScalarFastTanh(float x)
     {
-        if (x >= 4.0f) return 1.0f;
-        if (x <= -4.0f) return -1.0f;
+        if (x >= 4.0f)
+            return 1.0f;
+        if (x <= -4.0f)
+            return -1.0f;
 
         float x2 = x * x;
         float num = x * (135135.0f + x2 * (17325.0f + x2 * (378.0f + x2)));
@@ -903,8 +912,10 @@ public static class MathFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float FastSoftplus(float x)
     {
-        if (x > 20.0f) return x;
-        if (x < -20.0f) return 0.0f;
+        if (x > 20.0f)
+            return x;
+        if (x < -20.0f)
+            return 0.0f;
         return ScalarFastLn(1.0f + ScalarFastExp(x));
     }
 
@@ -994,7 +1005,8 @@ public static class MathFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float FastCelu(float x, float alpha = 1.0f)
     {
-        if (x > 0) return x;
+        if (x > 0)
+            return x;
         return alpha * (ScalarFastExp(x / alpha) - 1.0f);
     }
 
@@ -1006,7 +1018,8 @@ public static class MathFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float FastSqrt(float x)
     {
-        if (x <= 0) return 0;
+        if (x <= 0)
+            return 0;
         return x * ScalarFastRsqrt(x);
     }
 
@@ -1055,11 +1068,13 @@ public static class MathFunctions
     /// <param name="values">The input values. Overwritten with softmax output.</param>
     public static void FastSoftmaxInPlace(Span<float> values)
     {
-        if (values.Length == 0) return;
+        if (values.Length == 0)
+            return;
 
         float maxVal = values[0];
         for (int i = 1; i < values.Length; i++)
-            if (values[i] > maxVal) maxVal = values[i];
+            if (values[i] > maxVal)
+                maxVal = values[i];
 
         if (Vector.IsHardwareAccelerated && values.Length >= Vector<float>.Count)
         {
@@ -1078,7 +1093,8 @@ public static class MathFunctions
             }
 
             float sum = 0;
-            for (int i = 0; i < vecCount; i++) sum += sumVec[i];
+            for (int i = 0; i < vecCount; i++)
+                sum += sumVec[i];
 
             for (int i = simdEnd; i < values.Length; i++)
             {
@@ -1315,7 +1331,8 @@ public static class MathFunctions
     public static float FastL2NormalizeInPlace(Span<float> values)
     {
         float norm = FastL2Norm(values);
-        if (norm < 1e-10f) return 0;
+        if (norm < 1e-10f)
+            return 0;
 
         float invNorm = ScalarFastReciprocal(norm);
         int length = values.Length;

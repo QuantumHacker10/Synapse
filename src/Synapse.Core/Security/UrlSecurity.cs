@@ -73,7 +73,8 @@ namespace Synapse.Core.Security
 
         public static bool IsLoopback(Uri uri)
         {
-            if (uri.IsLoopback) return true;
+            if (uri.IsLoopback)
+                return true;
             if (IPAddress.TryParse(uri.Host, out var ip))
                 return IPAddress.IsLoopback(ip);
             return string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase);
@@ -83,15 +84,21 @@ namespace Synapse.Core.Security
         {
             if (IPAddress.TryParse(host, out var ip))
             {
-                if (IPAddress.IsLoopback(ip)) return false;
+                if (IPAddress.IsLoopback(ip))
+                    return false;
                 if (ip.AddressFamily == AddressFamily.InterNetwork)
                 {
                     var bytes = ip.GetAddressBytes();
-                    if (bytes[0] == 10) return true;
-                    if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
-                    if (bytes[0] == 192 && bytes[1] == 168) return true;
-                    if (bytes[0] == 169 && bytes[1] == 254) return true;
-                    if (bytes[0] == 0) return true;
+                    if (bytes[0] == 10)
+                        return true;
+                    if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
+                        return true;
+                    if (bytes[0] == 192 && bytes[1] == 168)
+                        return true;
+                    if (bytes[0] == 169 && bytes[1] == 254)
+                        return true;
+                    if (bytes[0] == 0)
+                        return true;
                 }
 
                 if (ip.AddressFamily == AddressFamily.InterNetworkV6 && !IPAddress.IsLoopback(ip))

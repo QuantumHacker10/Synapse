@@ -13,8 +13,8 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Synapse.Core;
 using GDNN.Rendering.Compat;
+using Synapse.Core;
 
 namespace GDNN.Scene
 {
@@ -154,7 +154,8 @@ namespace GDNN.Scene
         {
             get
             {
-                if (_isDirty) UpdateMatrices();
+                if (_isDirty)
+                    UpdateMatrices();
                 return _localToWorld;
             }
         }
@@ -163,7 +164,8 @@ namespace GDNN.Scene
         {
             get
             {
-                if (_isDirty) UpdateMatrices();
+                if (_isDirty)
+                    UpdateMatrices();
                 return _worldToLocal;
             }
         }
@@ -178,7 +180,8 @@ namespace GDNN.Scene
 
         public void LookAt(Vector3 target, Vector3 up = default)
         {
-            if (up == default) up = Vector3.UnitY;
+            if (up == default)
+                up = Vector3.UnitY;
             var direction = Vector3.Normalize(target - _position);
             if (direction.LengthSquared() > 0.0001f)
                 _rotation = Quaternion.CreateFromRotationMatrix(Matrix4x4.CreateLookAt(Vector3.Zero, direction, up));
@@ -340,10 +343,14 @@ namespace GDNN.Scene
             var compType = GetComponentType<T>();
             Components[compType] = comp;
 
-            if (comp is TransformComponent tc) tc.EntityId = Id;
-            else if (comp is MeshRendererComponent mr) mr.EntityId = Id;
-            else if (comp is LightComponent lc) lc.EntityId = Id;
-            else if (comp is CameraComponent cc) cc.EntityId = Id;
+            if (comp is TransformComponent tc)
+                tc.EntityId = Id;
+            else if (comp is MeshRendererComponent mr)
+                mr.EntityId = Id;
+            else if (comp is LightComponent lc)
+                lc.EntityId = Id;
+            else if (comp is CameraComponent cc)
+                cc.EntityId = Id;
 
             return comp;
         }
@@ -392,11 +399,13 @@ namespace GDNN.Scene
         public SceneNode? FindChildRecursive(string name)
         {
             var found = FindChild(name);
-            if (found != null) return found;
+            if (found != null)
+                return found;
             foreach (var child in Children)
             {
                 found = child.FindChildRecursive(name);
-                if (found != null) return found;
+                if (found != null)
+                    return found;
             }
             return null;
         }
@@ -418,10 +427,14 @@ namespace GDNN.Scene
 
         private static SceneComponentType GetComponentType<T>()
         {
-            if (typeof(T) == typeof(TransformComponent)) return SceneComponentType.Transform;
-            if (typeof(T) == typeof(MeshRendererComponent)) return SceneComponentType.MeshRenderer;
-            if (typeof(T) == typeof(LightComponent)) return SceneComponentType.Light;
-            if (typeof(T) == typeof(CameraComponent)) return SceneComponentType.Camera;
+            if (typeof(T) == typeof(TransformComponent))
+                return SceneComponentType.Transform;
+            if (typeof(T) == typeof(MeshRendererComponent))
+                return SceneComponentType.MeshRenderer;
+            if (typeof(T) == typeof(LightComponent))
+                return SceneComponentType.Light;
+            if (typeof(T) == typeof(CameraComponent))
+                return SceneComponentType.Camera;
             return SceneComponentType.Custom;
         }
     }
@@ -473,7 +486,8 @@ namespace GDNN.Scene
 
         public void RemoveNode(SceneNode node)
         {
-            if (node == _root) return;
+            if (node == _root)
+                return;
             node.Parent?.RemoveChild(node);
             lock (_lock)
             {
@@ -489,42 +503,50 @@ namespace GDNN.Scene
 
         public SceneNode? FindById(int id)
         {
-            lock (_lock) { return _nodesById.TryGetValue(id, out var node) ? node : null; }
+            lock (_lock)
+            { return _nodesById.TryGetValue(id, out var node) ? node : null; }
         }
 
         public List<SceneNode> FindByName(string name)
         {
-            lock (_lock) { return _nodesByName.TryGetValue(name, out var list) ? new List<SceneNode>(list) : new(); }
+            lock (_lock)
+            { return _nodesByName.TryGetValue(name, out var list) ? new List<SceneNode>(list) : new(); }
         }
 
         public SceneNode? FindByTag(string tag)
         {
-            lock (_lock) { return _nodesById.Values.FirstOrDefault(n => n.Tag == tag); }
+            lock (_lock)
+            { return _nodesById.Values.FirstOrDefault(n => n.Tag == tag); }
         }
 
         public List<SceneNode> GetAllNodes()
         {
-            lock (_lock) { return _nodesById.Values.ToList(); }
+            lock (_lock)
+            { return _nodesById.Values.ToList(); }
         }
 
         public List<SceneNode> GetNodesOfType(SceneNodeType type)
         {
-            lock (_lock) { return _nodesById.Values.Where(n => n.NodeType == type).ToList(); }
+            lock (_lock)
+            { return _nodesById.Values.Where(n => n.NodeType == type).ToList(); }
         }
 
         public List<SceneNode> GetNodesWithComponent<T>() where T : class
         {
-            lock (_lock) { return _nodesById.Values.Where(n => n.HasComponent<T>()).ToList(); }
+            lock (_lock)
+            { return _nodesById.Values.Where(n => n.HasComponent<T>()).ToList(); }
         }
 
         public List<SceneNode> GetVisibleNodes()
         {
-            lock (_lock) { return _nodesById.Values.Where(n => n.IsVisible).ToList(); }
+            lock (_lock)
+            { return _nodesById.Values.Where(n => n.IsVisible).ToList(); }
         }
 
         public List<SceneNode> GetActiveNodes()
         {
-            lock (_lock) { return _nodesById.Values.Where(n => n.IsActive).ToList(); }
+            lock (_lock)
+            { return _nodesById.Values.Where(n => n.IsActive).ToList(); }
         }
 
         public void CullByFrustum(Matrix4x4 viewProjection)
@@ -534,7 +556,8 @@ namespace GDNN.Scene
             {
                 foreach (var node in _nodesById.Values)
                 {
-                    if (!node.IsActive) continue;
+                    if (!node.IsActive)
+                        continue;
                     var bounds = GetWorldBounds(node);
                     node.State &= ~NodeState.Culled;
                     if (!frustum.Intersects(bounds))
@@ -635,7 +658,8 @@ namespace GDNN.Scene
                 var normal = new Vector3((float)plane.X, (float)plane.Y, (float)plane.Z);
                 float r = (float)(Math.Abs(normal.X * extents.X) + Math.Abs(normal.Y * extents.Y) + Math.Abs(normal.Z * extents.Z));
                 float d = (float)(normal.X * center.X + normal.Y * center.Y + normal.Z * center.Z) + plane.W;
-                if (d + r < 0) return false;
+                if (d + r < 0)
+                    return false;
             }
 
             return true;

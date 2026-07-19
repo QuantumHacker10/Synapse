@@ -58,7 +58,8 @@ namespace Synapse.Infrastructure.Logging
 
         public void Log(LogLevel level, string category, string message, Exception? exception = null)
         {
-            if (level < _minLevel || _disposed) return;
+            if (level < _minLevel || _disposed)
+                return;
 
             var safeMessage = SecretRedactor.Redact(message);
             var line = $"{DateTime.UtcNow:O} [{level.ToString().ToUpperInvariant()}] [{category}] {safeMessage}";
@@ -87,7 +88,8 @@ namespace Synapse.Infrastructure.Logging
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             lock (_lock)
             {

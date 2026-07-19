@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // Synapse Omnia — Compilateur de Lois Vivantes
 // LivingLawCompiler.cs
 //
@@ -11,8 +11,8 @@
 
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -49,8 +49,14 @@ namespace Synapse.Physics
         public Dimension(float mass, float length, float time, float temperature,
             float amount, float current, float luminous, float information)
         {
-            Mass = mass; Length = length; Time = time; Temperature = temperature;
-            Amount = amount; Current = current; Luminous = luminous; Information = information;
+            Mass = mass;
+            Length = length;
+            Time = time;
+            Temperature = temperature;
+            Amount = amount;
+            Current = current;
+            Luminous = luminous;
+            Information = information;
         }
 
         public static readonly Dimension Scalar = new(0, 0, 0, 0, 0, 0, 0, 0);
@@ -117,7 +123,9 @@ namespace Synapse.Physics
 
         public TypedVariable(string name, VariableType type, Dimension dim)
         {
-            Name = name; Type = type; Dim = dim;
+            Name = name;
+            Type = type;
+            Dim = dim;
         }
 
         public bool Equals(TypedVariable other) => Name == other.Name && Type == other.Type && Dim.Equals(other.Dim);
@@ -140,8 +148,13 @@ namespace Synapse.Physics
         public CompilationResult(bool success, string message, string[] errors, string[] warnings,
             LawBytecode? bytecode, int instructionCount, long compilationTimeMs)
         {
-            Success = success; Message = message; Errors = errors; Warnings = warnings;
-            Bytecode = bytecode; InstructionCount = instructionCount; CompilationTimeMs = compilationTimeMs;
+            Success = success;
+            Message = message;
+            Errors = errors;
+            Warnings = warnings;
+            Bytecode = bytecode;
+            InstructionCount = instructionCount;
+            CompilationTimeMs = compilationTimeMs;
         }
 
         public static CompilationResult Ok(string msg, LawBytecode bc, int ins, long ms) =>
@@ -163,8 +176,11 @@ namespace Synapse.Physics
         public ValidationResult(bool isValid, string[] errors, string[] warnings,
             Dimension[] termDimensions, bool dimensionallyConsistent, float stabilityCflRatio)
         {
-            IsValid = isValid; Errors = errors; Warnings = warnings;
-            TermDimensions = termDimensions; DimensionallyConsistent = dimensionallyConsistent;
+            IsValid = isValid;
+            Errors = errors;
+            Warnings = warnings;
+            TermDimensions = termDimensions;
+            DimensionallyConsistent = dimensionallyConsistent;
             StabilityCflRatio = stabilityCflRatio;
         }
 
@@ -187,9 +203,14 @@ namespace Synapse.Physics
         public ComparisonResult(float maxDiv, float meanDiv, float rmse, float ks, float ssim,
             int editDist, string[] diffs, bool physEq)
         {
-            MaxDivergence = maxDiv; MeanDivergence = meanDiv; RootMeanSquareError = rmse;
-            KolmogorovSmirnovStatistic = ks; StructuralSimilarity = ssim;
-            ExpressionEditDistance = editDist; Differences = diffs; PhysicallyEquivalent = physEq;
+            MaxDivergence = maxDiv;
+            MeanDivergence = meanDiv;
+            RootMeanSquareError = rmse;
+            KolmogorovSmirnovStatistic = ks;
+            StructuralSimilarity = ssim;
+            ExpressionEditDistance = editDist;
+            Differences = diffs;
+            PhysicallyEquivalent = physEq;
         }
     }
 
@@ -221,7 +242,8 @@ namespace Synapse.Physics
         public void Register(LawEntry entry)
         {
             _entries[entry.Id] = entry;
-            lock (_allEntries) { _allEntries.Add(entry); }
+            lock (_allEntries)
+            { _allEntries.Add(entry); }
         }
 
         public LawEntry? GetLaw(string id) =>
@@ -261,7 +283,9 @@ namespace Synapse.Physics
             var library = new LawLibrary();
             library.Register(new LawEntry
             {
-                Id = "navier_stokes_x", Name = "Navier-Stokes (X)", Category = "FluidDynamics",
+                Id = "navier_stokes_x",
+                Name = "Navier-Stokes (X)",
+                Category = "FluidDynamics",
                 Expression = "rho * (dv/dt + v·∇v) = -∇P + μ*∇²v + f",
                 Description = "Navier-Stokes momentum equation, X component",
                 Parameters = new() { { "v", "velocity" }, { "P", "pressure" }, { "rho", "density" }, { "mu", "viscosity" } },
@@ -270,7 +294,9 @@ namespace Synapse.Physics
             });
             library.Register(new LawEntry
             {
-                Id = "heat_equation", Name = "Heat Equation", Category = "ThermalDynamics",
+                Id = "heat_equation",
+                Name = "Heat Equation",
+                Category = "ThermalDynamics",
                 Expression = "∂T/∂t = α*∇²T",
                 Description = "Heat diffusion equation",
                 Parameters = new() { { "T", "temperature" }, { "alpha", "thermal_diffusivity" } },
@@ -279,7 +305,9 @@ namespace Synapse.Physics
             });
             library.Register(new LawEntry
             {
-                Id = "wave_equation", Name = "Wave Equation", Category = "WaveDynamics",
+                Id = "wave_equation",
+                Name = "Wave Equation",
+                Category = "WaveDynamics",
                 Expression = "∂²u/∂t² = c²*∇²u",
                 Description = "Wave propagation equation",
                 Parameters = new() { { "u", "displacement" }, { "c", "wave_speed" } },
@@ -288,7 +316,9 @@ namespace Synapse.Physics
             });
             library.Register(new LawEntry
             {
-                Id = "ideal_gas", Name = "Ideal Gas Law", Category = "Thermodynamics",
+                Id = "ideal_gas",
+                Name = "Ideal Gas Law",
+                Category = "Thermodynamics",
                 Expression = "P = ρ*R*T",
                 Description = "Ideal gas equation of state",
                 Parameters = new() { { "rho", "density" }, { "R", "specific_gas_constant" }, { "T", "temperature" } },
@@ -297,7 +327,9 @@ namespace Synapse.Physics
             });
             library.Register(new LawEntry
             {
-                Id = "fourier_law", Name = "Fourier's Law", Category = "ThermalDynamics",
+                Id = "fourier_law",
+                Name = "Fourier's Law",
+                Category = "ThermalDynamics",
                 Expression = "q = -k*∇T",
                 Description = "Heat conduction equation",
                 Parameters = new() { { "k", "thermal_conductivity" }, { "T", "temperature" } },
@@ -306,7 +338,9 @@ namespace Synapse.Physics
             });
             library.Register(new LawEntry
             {
-                Id = "coulomb_force", Name = "Coulomb Force", Category = "Electrodynamics",
+                Id = "coulomb_force",
+                Name = "Coulomb Force",
+                Category = "Electrodynamics",
                 Expression = "F = k_e * q1 * q2 / r²",
                 Description = "Electrostatic force between charges",
                 Parameters = new() { { "q1", "charge" }, { "q2", "charge" }, { "r", "distance" } },
@@ -315,7 +349,9 @@ namespace Synapse.Physics
             });
             library.Register(new LawEntry
             {
-                Id = "gravity_newton", Name = "Newtonian Gravity", Category = "Gravitation",
+                Id = "gravity_newton",
+                Name = "Newtonian Gravity",
+                Category = "Gravitation",
                 Expression = "F = G * m1 * m2 / r²",
                 Description = "Newton's law of universal gravitation",
                 Parameters = new() { { "m1", "mass" }, { "m2", "mass" }, { "r", "distance" } },
@@ -324,7 +360,9 @@ namespace Synapse.Physics
             });
             library.Register(new LawEntry
             {
-                Id = "hooke_law", Name = "Hooke's Law", Category = "Elasticity",
+                Id = "hooke_law",
+                Name = "Hooke's Law",
+                Category = "Elasticity",
                 Expression = "F = -k * Δx",
                 Description = "Linear elastic restoring force",
                 Parameters = new() { { "k", "spring_constant" }, { "x", "displacement" } },
@@ -333,7 +371,9 @@ namespace Synapse.Physics
             });
             library.Register(new LawEntry
             {
-                Id = "ohms_law", Name = "Ohm's Law", Category = "Electrodynamics",
+                Id = "ohms_law",
+                Name = "Ohm's Law",
+                Category = "Electrodynamics",
                 Expression = "V = I * R",
                 Description = "Voltage-current relationship",
                 Parameters = new() { { "I", "current" }, { "R", "resistance" } },
@@ -342,7 +382,9 @@ namespace Synapse.Physics
             });
             library.Register(new LawEntry
             {
-                Id = "stefan_boltzmann", Name = "Stefan-Boltzmann Law", Category = "ThermalDynamics",
+                Id = "stefan_boltzmann",
+                Name = "Stefan-Boltzmann Law",
+                Category = "ThermalDynamics",
                 Expression = "j = σ * T⁴",
                 Description = "Thermal radiation power",
                 Parameters = new() { { "T", "temperature" } },
@@ -368,7 +410,10 @@ namespace Synapse.Physics
 
         public FieldGrid(int sx, int sy, int sz, float cellSize = 1.0f)
         {
-            SizeX = sx; SizeY = sy; SizeZ = sz; CellSize = cellSize;
+            SizeX = sx;
+            SizeY = sy;
+            SizeZ = sz;
+            CellSize = cellSize;
             _data = new float[sx * sy * sz];
         }
 
@@ -386,7 +431,8 @@ namespace Synapse.Physics
 
         public void CopyFrom(FieldGrid other)
         {
-            if (other.TotalCells != TotalCells) throw new ArgumentException("Grid sizes mismatch");
+            if (other.TotalCells != TotalCells)
+                throw new ArgumentException("Grid sizes mismatch");
             Array.Copy(other._data, _data, _data.Length);
         }
 
@@ -395,15 +441,18 @@ namespace Synapse.Physics
 
         public float Average()
         {
-            if (_data.Length == 0) return 0f;
+            if (_data.Length == 0)
+                return 0f;
             double sum = 0;
-            for (int i = 0; i < _data.Length; i++) sum += _data[i];
+            for (int i = 0; i < _data.Length; i++)
+                sum += _data[i];
             return (float)(sum / _data.Length);
         }
 
         public float StandardDeviation()
         {
-            if (_data.Length == 0) return 0f;
+            if (_data.Length == 0)
+                return 0f;
             float avg = Average();
             double variance = 0;
             for (int i = 0; i < _data.Length; i++)
@@ -416,8 +465,10 @@ namespace Synapse.Physics
 
         public void AddScaled(FieldGrid other, float scale)
         {
-            if (other.TotalCells != TotalCells) throw new ArgumentException("Grid sizes mismatch");
-            for (int i = 0; i < _data.Length; i++) _data[i] += other._data[i] * scale;
+            if (other.TotalCells != TotalCells)
+                throw new ArgumentException("Grid sizes mismatch");
+            for (int i = 0; i < _data.Length; i++)
+                _data[i] += other._data[i] * scale;
         }
 
         public FieldGrid Clone()
@@ -444,7 +495,8 @@ namespace Synapse.Physics
 
         public PhysicsField(int gridSize, string name = "default")
         {
-            Name = name; GridSize = gridSize;
+            Name = name;
+            GridSize = gridSize;
             Temperature = new FieldGrid(gridSize, gridSize, gridSize);
             Pressure = new FieldGrid(gridSize, gridSize, gridSize);
             Density = new FieldGrid(gridSize, gridSize, gridSize);
@@ -474,7 +526,8 @@ namespace Synapse.Physics
             clone.VelocityY = VelocityY.Clone();
             clone.VelocityZ = VelocityZ.Clone();
             clone.Time = Time;
-            foreach (var kv in Components) clone.Components[kv.Key] = kv.Value.Clone();
+            foreach (var kv in Components)
+                clone.Components[kv.Key] = kv.Value.Clone();
             return clone;
         }
     }
@@ -514,7 +567,9 @@ namespace Synapse.Physics
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Instruction(OpCode op, int operand = 0, float floatOperand = 0f)
         {
-            Op = op; Operand = operand; FloatOperand = floatOperand;
+            Op = op;
+            Operand = operand;
+            FloatOperand = floatOperand;
         }
 
         public override string ToString() => Op switch
@@ -579,7 +634,8 @@ namespace Synapse.Physics
         {
             for (int i = 0; i < _constants.Length; i++)
             {
-                if (_constants[i] == value) return i;
+                if (_constants[i] == value)
+                    return i;
             }
             for (int i = 0; i < _constants.Length; i++)
             {
@@ -596,8 +652,10 @@ namespace Synapse.Physics
         {
             for (int i = 0; i < _variableNames.Length; i++)
             {
-                if (_variableNames[i] == name) return i;
-                if (_variableNames[i] == null) { _variableNames[i] = name; return i; }
+                if (_variableNames[i] == name)
+                    return i;
+                if (_variableNames[i] == null)
+                { _variableNames[i] = name; return i; }
             }
             return -1;
         }
@@ -606,8 +664,10 @@ namespace Synapse.Physics
         {
             for (int i = 0; i < _fieldNames.Length; i++)
             {
-                if (_fieldNames[i] == name) return i;
-                if (_fieldNames[i] == null) { _fieldNames[i] = name; return i; }
+                if (_fieldNames[i] == name)
+                    return i;
+                if (_fieldNames[i] == null)
+                { _fieldNames[i] = name; return i; }
             }
             return -1;
         }
@@ -616,8 +676,10 @@ namespace Synapse.Physics
         {
             for (int i = 0; i < _paramNames.Length; i++)
             {
-                if (_paramNames[i] == name) return i;
-                if (_paramNames[i] == null) { _paramNames[i] = name; return i; }
+                if (_paramNames[i] == name)
+                    return i;
+                if (_paramNames[i] == null)
+                { _paramNames[i] = name; return i; }
             }
             return -1;
         }
@@ -699,14 +761,16 @@ namespace Synapse.Physics
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Push(float value)
         {
-            if (_sp >= MaxStackSize) throw new InvalidOperationException("Stack overflow");
+            if (_sp >= MaxStackSize)
+                throw new InvalidOperationException("Stack overflow");
             _stack[_sp++] = value;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float Pop()
         {
-            if (_sp <= 0) throw new InvalidOperationException("Stack underflow");
+            if (_sp <= 0)
+                throw new InvalidOperationException("Stack underflow");
             return _stack[--_sp];
         }
 
@@ -714,7 +778,8 @@ namespace Synapse.Physics
         private float Peek(int offset = 0)
         {
             int idx = _sp - 1 - offset;
-            if (idx < 0 || idx >= _sp) throw new InvalidOperationException("Stack peek out of range");
+            if (idx < 0 || idx >= _sp)
+                throw new InvalidOperationException("Stack peek out of range");
             return _stack[idx];
         }
 
@@ -738,10 +803,17 @@ namespace Synapse.Physics
 
                 switch (instr.Op)
                 {
-                    case OpCode.Nop: break;
-                    case OpCode.PushConst: Push(constants[instr.Operand]); break;
-                    case OpCode.Pop: _sp--; break;
-                    case OpCode.Dup: Push(Peek()); break;
+                    case OpCode.Nop:
+                        break;
+                    case OpCode.PushConst:
+                        Push(constants[instr.Operand]);
+                        break;
+                    case OpCode.Pop:
+                        _sp--;
+                        break;
+                    case OpCode.Dup:
+                        Push(Peek());
+                        break;
                     case OpCode.Swap:
                         { float a = Pop(); float b = Pop(); Push(a); Push(b); }
                         break;
@@ -763,19 +835,25 @@ namespace Synapse.Physics
                     case OpCode.Pow:
                         { float b = Pop(); float a = Pop(); Push(MathF.Pow(a, b)); }
                         break;
-                    case OpCode.Neg: Push(-Pop()); break;
-                    case OpCode.Abs: Push(MathF.Abs(Pop())); break;
+                    case OpCode.Neg:
+                        Push(-Pop());
+                        break;
+                    case OpCode.Abs:
+                        Push(MathF.Abs(Pop()));
+                        break;
 
                     case OpCode.LoadVar:
                         if (variables != null && instr.Operand < variables.Length)
                             Push(variables[instr.Operand]);
-                        else Push(0f);
+                        else
+                            Push(0f);
                         break;
 
                     case OpCode.StoreVar:
                         if (variables != null && instr.Operand < variables.Length)
                             variables[instr.Operand] = Pop();
-                        else Pop();
+                        else
+                            Pop();
                         break;
 
                     case OpCode.LoadField:
@@ -787,9 +865,11 @@ namespace Synapse.Physics
                                 var component = field.GetComponent(fieldName);
                                 Push(component != null && component.TotalCells > 0 ? component.Average() : 0f);
                             }
-                            else Push(0f);
+                            else
+                                Push(0f);
                         }
-                        else Push(0f);
+                        else
+                            Push(0f);
                         break;
 
                     case OpCode.LoadParam:
@@ -797,7 +877,8 @@ namespace Synapse.Physics
                             string? paramName = bytecode.ParamNames[instr.Operand];
                             if (paramName != null && parameters != null && parameters.TryGetValue(paramName, out float val))
                                 Push(val);
-                            else Push(0f);
+                            else
+                                Push(0f);
                         }
                         break;
 
@@ -825,7 +906,9 @@ namespace Synapse.Physics
                     case OpCode.LogicalOr:
                         { float b = Pop(); float a = Pop(); Push((a != 0f || b != 0f) ? 1f : 0f); }
                         break;
-                    case OpCode.LogicalNot: Push(Pop() != 0f ? 0f : 1f); break;
+                    case OpCode.LogicalNot:
+                        Push(Pop() != 0f ? 0f : 1f);
+                        break;
 
                     case OpCode.TernaryJump:
                         { float cond = Pop(); if (cond == 0f) ip = instr.Operand; }
@@ -834,51 +917,107 @@ namespace Synapse.Physics
                     case OpCode.ConditionalJump:
                         { float cond = Pop(); if (cond != 0f) ip = instr.Operand; }
                         break;
-                    case OpCode.UnconditionalJump: ip = instr.Operand; break;
-                    case OpCode.Return: return _sp > 0 ? _stack[_sp - 1] : 0f;
-                    case OpCode.Halt: return _sp > 0 ? _stack[_sp - 1] : 0f;
+                    case OpCode.UnconditionalJump:
+                        ip = instr.Operand;
+                        break;
+                    case OpCode.Return:
+                        return _sp > 0 ? _stack[_sp - 1] : 0f;
+                    case OpCode.Halt:
+                        return _sp > 0 ? _stack[_sp - 1] : 0f;
 
                     case OpCode.GasConsume:
                         if (!_gas.Consume(instr.Operand))
                             throw new InvalidOperationException("Gas limit exceeded");
                         break;
-                    case OpCode.BoundsCheck: break;
+                    case OpCode.BoundsCheck:
+                        break;
 
-                    case OpCode.Sin: Push(MathF.Sin(Pop())); break;
-                    case OpCode.Cos: Push(MathF.Cos(Pop())); break;
-                    case OpCode.Tan: Push(MathF.Tan(Pop())); break;
-                    case OpCode.Asin: Push(MathF.Asin(MathF.Max(-1f, MathF.Min(1f, Pop())))); break;
-                    case OpCode.Acos: Push(MathF.Acos(MathF.Max(-1f, MathF.Min(1f, Pop())))); break;
-                    case OpCode.Atan: Push(MathF.Atan(Pop())); break;
-                    case OpCode.Atan2: { float b = Pop(); float a = Pop(); Push(MathF.Atan2(a, b)); } break;
-                    case OpCode.Sinh: Push(MathF.Sinh(Pop())); break;
-                    case OpCode.Cosh: Push(MathF.Cosh(Pop())); break;
-                    case OpCode.Tanh: Push(MathF.Tanh(Pop())); break;
-                    case OpCode.Exp: Push(MathF.Exp(Pop())); break;
-                    case OpCode.Log: { float v = Pop(); Push(v > 0f ? MathF.Log(v) : float.NegativeInfinity); } break;
-                    case OpCode.Log2: { float v = Pop(); Push(v > 0f ? MathF.Log2(v) : float.NegativeInfinity); } break;
-                    case OpCode.Log10: { float v = Pop(); Push(v > 0f ? MathF.Log10(v) : float.NegativeInfinity); } break;
-                    case OpCode.Sqrt: { float v = Pop(); Push(v >= 0f ? MathF.Sqrt(v) : 0f); } break;
-                    case OpCode.Cbrt: Push(MathF.Cbrt(Pop())); break;
-                    case OpCode.Ceil: Push(MathF.Ceiling(Pop())); break;
-                    case OpCode.Floor: Push(MathF.Floor(Pop())); break;
-                    case OpCode.Round: Push(MathF.Round(Pop())); break;
+                    case OpCode.Sin:
+                        Push(MathF.Sin(Pop()));
+                        break;
+                    case OpCode.Cos:
+                        Push(MathF.Cos(Pop()));
+                        break;
+                    case OpCode.Tan:
+                        Push(MathF.Tan(Pop()));
+                        break;
+                    case OpCode.Asin:
+                        Push(MathF.Asin(MathF.Max(-1f, MathF.Min(1f, Pop()))));
+                        break;
+                    case OpCode.Acos:
+                        Push(MathF.Acos(MathF.Max(-1f, MathF.Min(1f, Pop()))));
+                        break;
+                    case OpCode.Atan:
+                        Push(MathF.Atan(Pop()));
+                        break;
+                    case OpCode.Atan2:
+                        { float b = Pop(); float a = Pop(); Push(MathF.Atan2(a, b)); }
+                        break;
+                    case OpCode.Sinh:
+                        Push(MathF.Sinh(Pop()));
+                        break;
+                    case OpCode.Cosh:
+                        Push(MathF.Cosh(Pop()));
+                        break;
+                    case OpCode.Tanh:
+                        Push(MathF.Tanh(Pop()));
+                        break;
+                    case OpCode.Exp:
+                        Push(MathF.Exp(Pop()));
+                        break;
+                    case OpCode.Log:
+                        { float v = Pop(); Push(v > 0f ? MathF.Log(v) : float.NegativeInfinity); }
+                        break;
+                    case OpCode.Log2:
+                        { float v = Pop(); Push(v > 0f ? MathF.Log2(v) : float.NegativeInfinity); }
+                        break;
+                    case OpCode.Log10:
+                        { float v = Pop(); Push(v > 0f ? MathF.Log10(v) : float.NegativeInfinity); }
+                        break;
+                    case OpCode.Sqrt:
+                        { float v = Pop(); Push(v >= 0f ? MathF.Sqrt(v) : 0f); }
+                        break;
+                    case OpCode.Cbrt:
+                        Push(MathF.Cbrt(Pop()));
+                        break;
+                    case OpCode.Ceil:
+                        Push(MathF.Ceiling(Pop()));
+                        break;
+                    case OpCode.Floor:
+                        Push(MathF.Floor(Pop()));
+                        break;
+                    case OpCode.Round:
+                        Push(MathF.Round(Pop()));
+                        break;
                     case OpCode.Clamp:
                         { float max = Pop(); float min = Pop(); float v = Pop(); Push(MathF.Max(min, MathF.Min(max, v))); }
                         break;
                     case OpCode.Lerp:
                         { float t = Pop(); float b = Pop(); float a = Pop(); Push(a + t * (b - a)); }
                         break;
-                    case OpCode.Min: { float b = Pop(); float a = Pop(); Push(MathF.Min(a, b)); } break;
-                    case OpCode.Max: { float b = Pop(); float a = Pop(); Push(MathF.Max(a, b)); } break;
-                    case OpCode.Sign: Push(MathF.Sign(Pop())); break;
+                    case OpCode.Min:
+                        { float b = Pop(); float a = Pop(); Push(MathF.Min(a, b)); }
+                        break;
+                    case OpCode.Max:
+                        { float b = Pop(); float a = Pop(); Push(MathF.Max(a, b)); }
+                        break;
+                    case OpCode.Sign:
+                        Push(MathF.Sign(Pop()));
+                        break;
 
-                    case OpCode.GradientX: case OpCode.GradientY: case OpCode.GradientZ:
-                    case OpCode.Laplacian: case OpCode.Divergence:
-                    case OpCode.CurlX: case OpCode.CurlY: case OpCode.CurlZ:
-                        Push(0f); break;
+                    case OpCode.GradientX:
+                    case OpCode.GradientY:
+                    case OpCode.GradientZ:
+                    case OpCode.Laplacian:
+                    case OpCode.Divergence:
+                    case OpCode.CurlX:
+                    case OpCode.CurlY:
+                    case OpCode.CurlZ:
+                        Push(0f);
+                        break;
 
-                    case OpCode.Call: break;
+                    case OpCode.Call:
+                        break;
 
                     default:
                         throw new InvalidOperationException($"Unknown opcode: {instr.Op}");
@@ -906,13 +1045,16 @@ namespace Synapse.Physics
 
                         while (ip < instructions.Length)
                         {
-                            if (!_gas.Consume(1)) break;
+                            if (!_gas.Consume(1))
+                                break;
                             ref readonly Instruction instr = ref instructions[ip];
                             ip++;
 
                             switch (instr.Op)
                             {
-                                case OpCode.PushConst: Push(constants[instr.Operand]); break;
+                                case OpCode.PushConst:
+                                    Push(constants[instr.Operand]);
+                                    break;
                                 case OpCode.LoadField:
                                     {
                                         string? fn = bytecode.FieldNames[instr.Operand];
@@ -920,31 +1062,66 @@ namespace Synapse.Physics
                                         Push(comp != null ? comp[x, y, z] : 0f);
                                     }
                                     break;
-                                case OpCode.Add: { float b = Pop(); float a = Pop(); Push(a + b); } break;
-                                case OpCode.Sub: { float b = Pop(); float a = Pop(); Push(a - b); } break;
-                                case OpCode.Mul: { float b = Pop(); float a = Pop(); Push(a * b); } break;
-                                case OpCode.Div: { float b = Pop(); float a = Pop(); Push(MathF.Abs(b) < float.Epsilon ? 0f : a / b); } break;
-                                case OpCode.Pow: { float b = Pop(); float a = Pop(); Push(MathF.Pow(a, b)); } break;
-                                case OpCode.Neg: Push(-Pop()); break;
-                                case OpCode.Abs: Push(MathF.Abs(Pop())); break;
-                                case OpCode.Sin: Push(MathF.Sin(Pop())); break;
-                                case OpCode.Cos: Push(MathF.Cos(Pop())); break;
-                                case OpCode.Tan: Push(MathF.Tan(Pop())); break;
-                                case OpCode.Exp: Push(MathF.Exp(Pop())); break;
-                                case OpCode.Log: { float v = Pop(); Push(v > 0f ? MathF.Log(v) : 0f); } break;
-                                case OpCode.Sqrt: { float v = Pop(); Push(v >= 0f ? MathF.Sqrt(v) : 0f); } break;
-                                case OpCode.Min: { float b = Pop(); float a = Pop(); Push(MathF.Min(a, b)); } break;
-                                case OpCode.Max: { float b = Pop(); float a = Pop(); Push(MathF.Max(a, b)); } break;
+                                case OpCode.Add:
+                                    { float b = Pop(); float a = Pop(); Push(a + b); }
+                                    break;
+                                case OpCode.Sub:
+                                    { float b = Pop(); float a = Pop(); Push(a - b); }
+                                    break;
+                                case OpCode.Mul:
+                                    { float b = Pop(); float a = Pop(); Push(a * b); }
+                                    break;
+                                case OpCode.Div:
+                                    { float b = Pop(); float a = Pop(); Push(MathF.Abs(b) < float.Epsilon ? 0f : a / b); }
+                                    break;
+                                case OpCode.Pow:
+                                    { float b = Pop(); float a = Pop(); Push(MathF.Pow(a, b)); }
+                                    break;
+                                case OpCode.Neg:
+                                    Push(-Pop());
+                                    break;
+                                case OpCode.Abs:
+                                    Push(MathF.Abs(Pop()));
+                                    break;
+                                case OpCode.Sin:
+                                    Push(MathF.Sin(Pop()));
+                                    break;
+                                case OpCode.Cos:
+                                    Push(MathF.Cos(Pop()));
+                                    break;
+                                case OpCode.Tan:
+                                    Push(MathF.Tan(Pop()));
+                                    break;
+                                case OpCode.Exp:
+                                    Push(MathF.Exp(Pop()));
+                                    break;
+                                case OpCode.Log:
+                                    { float v = Pop(); Push(v > 0f ? MathF.Log(v) : 0f); }
+                                    break;
+                                case OpCode.Sqrt:
+                                    { float v = Pop(); Push(v >= 0f ? MathF.Sqrt(v) : 0f); }
+                                    break;
+                                case OpCode.Min:
+                                    { float b = Pop(); float a = Pop(); Push(MathF.Min(a, b)); }
+                                    break;
+                                case OpCode.Max:
+                                    { float b = Pop(); float a = Pop(); Push(MathF.Max(a, b)); }
+                                    break;
                                 case OpCode.LoadVar:
                                     if (parameters != null && instr.Operand < parameters.Length)
                                         Push(parameters[instr.Operand]);
-                                    else Push(0f);
+                                    else
+                                        Push(0f);
                                     break;
-                                case OpCode.Return: case OpCode.Halt: goto done;
-                                default: break;
+                                case OpCode.Return:
+                                case OpCode.Halt:
+                                    goto done;
+                                default:
+                                    break;
                             }
                         }
-                        done:;
+                    done:
+                        ;
                     }
                 }
             }
@@ -1051,7 +1228,9 @@ namespace Synapse.Physics
         public LawExpressionParser(string input)
         {
             _input = input ?? throw new ArgumentNullException(nameof(input));
-            _pos = 0; _line = 1; _col = 1;
+            _pos = 0;
+            _line = 1;
+            _col = 1;
             _current = NextToken();
         }
 
@@ -1064,7 +1243,10 @@ namespace Synapse.Physics
         private char Advance()
         {
             char c = _input[_pos++];
-            if (c == '\n') { _line++; _col = 1; } else _col++;
+            if (c == '\n')
+            { _line++; _col = 1; }
+            else
+                _col++;
             return c;
         }
 
@@ -1076,13 +1258,15 @@ namespace Synapse.Physics
 
         private void SkipWhitespace()
         {
-            while (_pos < _input.Length && char.IsWhiteSpace(_input[_pos])) Advance();
+            while (_pos < _input.Length && char.IsWhiteSpace(_input[_pos]))
+                Advance();
         }
 
         private Token NextToken()
         {
             SkipWhitespace();
-            if (_pos >= _input.Length) return new Token(TokenType.Eof, "", _line, _col);
+            if (_pos >= _input.Length)
+                return new Token(TokenType.Eof, "", _line, _col);
 
             int startLine = _line, startCol = _col;
             char c = PeekChar();
@@ -1093,7 +1277,8 @@ namespace Synapse.Physics
                 while (_pos < _input.Length && (char.IsDigit(PeekChar()) || PeekChar() == '.' ||
                     PeekChar() == 'e' || PeekChar() == 'E' || PeekChar() == '+' || PeekChar() == '-'))
                 {
-                    if ((PeekChar() == '+' || PeekChar() == '-') && sb.Length > 0 && sb[^1] != 'e' && sb[^1] != 'E') break;
+                    if ((PeekChar() == '+' || PeekChar() == '-') && sb.Length > 0 && sb[^1] != 'e' && sb[^1] != 'E')
+                        break;
                     sb.Append(Advance());
                 }
                 return new Token(TokenType.Number, sb.ToString(), startLine, startCol);
@@ -1147,8 +1332,10 @@ namespace Synapse.Physics
 
         private void Match(TokenType type)
         {
-            if (_current.Type == type) _current = NextToken();
-            else _errors.Add($"Expected {type} at line {_line}:{_col}, got {_current.Type}('{_current.Value}')");
+            if (_current.Type == type)
+                _current = NextToken();
+            else
+                _errors.Add($"Expected {type} at line {_line}:{_col}, got {_current.Type}('{_current.Value}')");
         }
 
         private bool Check(TokenType type) => _current.Type == type;
@@ -1159,7 +1346,8 @@ namespace Synapse.Physics
 
         private bool MatchOptional(TokenType type)
         {
-            if (_current.Type == type) { _current = NextToken(); return true; }
+            if (_current.Type == type)
+            { _current = NextToken(); return true; }
             return false;
         }
 
@@ -1312,8 +1500,12 @@ namespace Synapse.Physics
                     Match(TokenType.Dot);
                     string fieldName = _current.Value;
                     Match(TokenType.Identifier);
-                    return new AstNode { Type = NodeType.FieldAccess, Value = fieldName,
-                        Left = new AstNode { Type = NodeType.Identifier, Value = "field" } };
+                    return new AstNode
+                    {
+                        Type = NodeType.FieldAccess,
+                        Value = fieldName,
+                        Left = new AstNode { Type = NodeType.Identifier, Value = "field" }
+                    };
                 }
 
                 if (Check(TokenType.LeftParen))
@@ -1323,7 +1515,8 @@ namespace Synapse.Physics
                     while (!Check(TokenType.RightParen) && !Check(TokenType.Eof))
                     {
                         args.Add(ParseExpression());
-                        if (!MatchOptional(TokenType.Comma)) break;
+                        if (!MatchOptional(TokenType.Comma))
+                            break;
                     }
                     Match(TokenType.RightParen);
                     return new AstNode { Type = NodeType.FunctionCall, Value = name, Children = args };
@@ -1340,7 +1533,8 @@ namespace Synapse.Physics
 
         private void InferDimensions(AstNode node)
         {
-            if (node == null) return;
+            if (node == null)
+                return;
             switch (node.Type)
             {
                 case NodeType.NumberLiteral:
@@ -1349,7 +1543,8 @@ namespace Synapse.Physics
                 case NodeType.Identifier:
                     if (_knownVariables.TryGetValue(node.Value ?? "", out var tv))
                         node.InferredDimension = tv.Dim;
-                    else node.InferredDimension = Dimension.Scalar;
+                    else
+                        node.InferredDimension = Dimension.Scalar;
                     break;
                 case NodeType.FieldAccess:
                     node.InferredDimension = Dimension.Scalar;
@@ -1378,7 +1573,8 @@ namespace Synapse.Physics
                     break;
                 case NodeType.FunctionCall:
                     if (node.Children != null)
-                        foreach (var child in node.Children) InferDimensions(child);
+                        foreach (var child in node.Children)
+                            InferDimensions(child);
                     node.InferredDimension = node.Children?.Count > 0 ? node.Children[0].InferredDimension : Dimension.Scalar;
                     break;
                 default:
@@ -1456,19 +1652,29 @@ namespace Synapse.Physics
                     CompileNode(node.Right!, bytecode, varDict, fieldDict, paramMap);
                     bytecode.AddInstruction(node.Value switch
                     {
-                        "+" => OpCode.Add, "-" => OpCode.Sub, "*" => OpCode.Mul,
-                        "/" => OpCode.Div, "%" => OpCode.Mod, "^" => OpCode.Pow,
-                        "==" => OpCode.Equals, "!=" => OpCode.NotEquals,
-                        "<" => OpCode.LessThan, ">" => OpCode.GreaterThan,
-                        "<=" => OpCode.LessOrEqual, ">=" => OpCode.GreaterOrEqual,
-                        "&&" => OpCode.LogicalAnd, "||" => OpCode.LogicalOr,
+                        "+" => OpCode.Add,
+                        "-" => OpCode.Sub,
+                        "*" => OpCode.Mul,
+                        "/" => OpCode.Div,
+                        "%" => OpCode.Mod,
+                        "^" => OpCode.Pow,
+                        "==" => OpCode.Equals,
+                        "!=" => OpCode.NotEquals,
+                        "<" => OpCode.LessThan,
+                        ">" => OpCode.GreaterThan,
+                        "<=" => OpCode.LessOrEqual,
+                        ">=" => OpCode.GreaterOrEqual,
+                        "&&" => OpCode.LogicalAnd,
+                        "||" => OpCode.LogicalOr,
                         _ => OpCode.Nop
                     });
                     break;
                 case NodeType.UnaryExpression:
                     CompileNode(node.Left!, bytecode, varDict, fieldDict, paramMap);
-                    if (node.Value == "-") bytecode.AddInstruction(OpCode.Neg);
-                    else if (node.Value == "!") bytecode.AddInstruction(OpCode.LogicalNot);
+                    if (node.Value == "-")
+                        bytecode.AddInstruction(OpCode.Neg);
+                    else if (node.Value == "!")
+                        bytecode.AddInstruction(OpCode.LogicalNot);
                     break;
                 case NodeType.TernaryExpression:
                     {
@@ -1489,20 +1695,39 @@ namespace Synapse.Physics
                             CompileNode(arg, bytecode, varDict, fieldDict, paramMap);
                         bytecode.AddInstruction(funcName switch
                         {
-                            "sin" => OpCode.Sin, "cos" => OpCode.Cos, "tan" => OpCode.Tan,
-                            "asin" => OpCode.Asin, "acos" => OpCode.Acos, "atan" => OpCode.Atan,
-                            "atan2" => OpCode.Atan2, "sinh" => OpCode.Sinh, "cosh" => OpCode.Cosh,
-                            "tanh" => OpCode.Tanh, "exp" => OpCode.Exp, "log" => OpCode.Log,
-                            "log2" => OpCode.Log2, "log10" => OpCode.Log10,
-                            "sqrt" => OpCode.Sqrt, "cbrt" => OpCode.Cbrt,
-                            "ceil" => OpCode.Ceil, "floor" => OpCode.Floor, "round" => OpCode.Round,
-                            "abs" => OpCode.Abs, "sign" => OpCode.Sign,
-                            "min" => OpCode.Min, "max" => OpCode.Max,
-                            "clamp" => OpCode.Clamp, "lerp" => OpCode.Lerp,
-                            "grad_x" => OpCode.GradientX, "grad_y" => OpCode.GradientY,
-                            "grad_z" => OpCode.GradientZ, "laplacian" => OpCode.Laplacian,
+                            "sin" => OpCode.Sin,
+                            "cos" => OpCode.Cos,
+                            "tan" => OpCode.Tan,
+                            "asin" => OpCode.Asin,
+                            "acos" => OpCode.Acos,
+                            "atan" => OpCode.Atan,
+                            "atan2" => OpCode.Atan2,
+                            "sinh" => OpCode.Sinh,
+                            "cosh" => OpCode.Cosh,
+                            "tanh" => OpCode.Tanh,
+                            "exp" => OpCode.Exp,
+                            "log" => OpCode.Log,
+                            "log2" => OpCode.Log2,
+                            "log10" => OpCode.Log10,
+                            "sqrt" => OpCode.Sqrt,
+                            "cbrt" => OpCode.Cbrt,
+                            "ceil" => OpCode.Ceil,
+                            "floor" => OpCode.Floor,
+                            "round" => OpCode.Round,
+                            "abs" => OpCode.Abs,
+                            "sign" => OpCode.Sign,
+                            "min" => OpCode.Min,
+                            "max" => OpCode.Max,
+                            "clamp" => OpCode.Clamp,
+                            "lerp" => OpCode.Lerp,
+                            "grad_x" => OpCode.GradientX,
+                            "grad_y" => OpCode.GradientY,
+                            "grad_z" => OpCode.GradientZ,
+                            "laplacian" => OpCode.Laplacian,
                             "divergence" => OpCode.Divergence,
-                            "curl_x" => OpCode.CurlX, "curl_y" => OpCode.CurlY, "curl_z" => OpCode.CurlZ,
+                            "curl_x" => OpCode.CurlX,
+                            "curl_y" => OpCode.CurlY,
+                            "curl_z" => OpCode.CurlZ,
                             _ => OpCode.Nop
                         });
                     }
@@ -1512,7 +1737,8 @@ namespace Synapse.Physics
                         foreach (var child in node.Children)
                             CompileNode(child, bytecode, varDict, fieldDict, paramMap);
                     break;
-                default: break;
+                default:
+                    break;
             }
         }
     }
@@ -1550,8 +1776,11 @@ namespace Synapse.Physics
         {
             _root = new LawVersionNode
             {
-                VersionId = "v0", Expression = initialExpression,
-                Description = "Initial version", Timestamp = DateTime.UtcNow, IsActive = true
+                VersionId = "v0",
+                Expression = initialExpression,
+                Description = "Initial version",
+                Timestamp = DateTime.UtcNow,
+                IsActive = true
             };
             _nodes[_root.VersionId] = _root;
             _current = _root;
@@ -1563,8 +1792,11 @@ namespace Synapse.Physics
         {
             var node = new LawVersionNode
             {
-                VersionId = $"v{_versionCounter++}", Expression = expression,
-                Description = description, Timestamp = DateTime.UtcNow, Parent = _current
+                VersionId = $"v{_versionCounter++}",
+                Expression = expression,
+                Description = description,
+                Timestamp = DateTime.UtcNow,
+                Parent = _current
             };
             _current.Children.Add(node);
             _nodes[node.VersionId] = node;
@@ -1577,8 +1809,11 @@ namespace Synapse.Physics
         {
             var node = new LawVersionNode
             {
-                VersionId = $"v{_versionCounter++}_fork", Expression = expression,
-                Description = $"Fork: {branchName}", Timestamp = DateTime.UtcNow, Parent = _current
+                VersionId = $"v{_versionCounter++}_fork",
+                Expression = expression,
+                Description = $"Fork: {branchName}",
+                Timestamp = DateTime.UtcNow,
+                Parent = _current
             };
             _current.Children.Add(node);
             _nodes[node.VersionId] = node;
@@ -1595,8 +1830,11 @@ namespace Synapse.Physics
 
             var mergeNode = new LawVersionNode
             {
-                VersionId = $"v{_versionCounter++}_merge", Expression = mergedExpression,
-                Description = $"Merge {sourceId} into {targetId}", Timestamp = DateTime.UtcNow, Parent = target
+                VersionId = $"v{_versionCounter++}_merge",
+                Expression = mergedExpression,
+                Description = $"Merge {sourceId} into {targetId}",
+                Timestamp = DateTime.UtcNow,
+                Parent = target
             };
             target.Children.Add(mergeNode);
             _nodes[mergeNode.VersionId] = mergeNode;
@@ -1617,7 +1855,8 @@ namespace Synapse.Physics
         public LawVersionNode RollbackToIndex(int index)
         {
             var path = GetPath(_current);
-            if (index < 0 || index >= path.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            if (index < 0 || index >= path.Count)
+                throw new ArgumentOutOfRangeException(nameof(index));
             _current = path[index];
             return _current;
         }
@@ -1628,7 +1867,8 @@ namespace Synapse.Physics
             target ??= _current;
             var path = new List<LawVersionNode>();
             var node = target;
-            while (node != null) { path.Add(node); node = node.Parent; }
+            while (node != null)
+            { path.Add(node); node = node.Parent; }
             path.Reverse();
             return path;
         }
@@ -1643,7 +1883,8 @@ namespace Synapse.Physics
             {
                 var node = queue.Dequeue();
                 result.Add(node);
-                foreach (var child in node.Children) queue.Enqueue(child);
+                foreach (var child in node.Children)
+                    queue.Enqueue(child);
             }
             return result;
         }
@@ -1653,8 +1894,10 @@ namespace Synapse.Physics
         {
             int m = a.Length, n = b.Length;
             var dp = new int[m + 1, n + 1];
-            for (int i = 0; i <= m; i++) dp[i, 0] = i;
-            for (int j = 0; j <= n; j++) dp[0, j] = j;
+            for (int i = 0; i <= m; i++)
+                dp[i, 0] = i;
+            for (int j = 0; j <= n; j++)
+                dp[0, j] = j;
             for (int i = 1; i <= m; i++)
                 for (int j = 1; j <= n; j++)
                 {
@@ -1671,7 +1914,8 @@ namespace Synapse.Physics
             var tokensB = TokenizeExpression(b);
             var setA = new HashSet<string>(tokensA);
             var setB = new HashSet<string>(tokensB);
-            if (setA.Count == 0 && setB.Count == 0) return 1f;
+            if (setA.Count == 0 && setB.Count == 0)
+                return 1f;
             int intersection = setA.Intersect(setB).Count();
             int union = setA.Union(setB).Count();
             return union > 0 ? (float)intersection / union : 0f;
@@ -1683,10 +1927,13 @@ namespace Synapse.Physics
             var sb = new StringBuilder();
             foreach (char c in expr)
             {
-                if (char.IsLetterOrDigit(c) || c == '_' || c == '.') sb.Append(c);
-                else if (sb.Length > 0) { tokens.Add(sb.ToString()); sb.Clear(); }
+                if (char.IsLetterOrDigit(c) || c == '_' || c == '.')
+                    sb.Append(c);
+                else if (sb.Length > 0)
+                { tokens.Add(sb.ToString()); sb.Clear(); }
             }
-            if (sb.Length > 0) tokens.Add(sb.ToString());
+            if (sb.Length > 0)
+                tokens.Add(sb.ToString());
             return tokens;
         }
 
@@ -1710,15 +1957,19 @@ namespace Synapse.Physics
         /// <summary>Find the most recent common ancestor of two versions.</summary>
         public LawVersionNode? FindCommonAncestor(string versionIdA, string versionIdB)
         {
-            if (!_nodes.TryGetValue(versionIdA, out var a)) return null;
-            if (!_nodes.TryGetValue(versionIdB, out var b)) return null;
+            if (!_nodes.TryGetValue(versionIdA, out var a))
+                return null;
+            if (!_nodes.TryGetValue(versionIdB, out var b))
+                return null;
             var ancestorsA = new HashSet<string>();
             var node = a;
-            while (node != null) { ancestorsA.Add(node.VersionId); node = node.Parent; }
+            while (node != null)
+            { ancestorsA.Add(node.VersionId); node = node.Parent; }
             node = b;
             while (node != null)
             {
-                if (ancestorsA.Contains(node.VersionId)) return node;
+                if (ancestorsA.Contains(node.VersionId))
+                    return node;
                 node = node.Parent;
             }
             return null;
@@ -1762,7 +2013,8 @@ namespace Synapse.Physics
 
         protected LawApplicator(string name, string targetField, long gasLimit = 10_000_000)
         {
-            Name = name; TargetField = targetField;
+            Name = name;
+            TargetField = targetField;
             _gas = new GasMeter(gasLimit);
             _interpreter = new BytecodeInterpreter(_gas);
         }
@@ -1775,7 +2027,8 @@ namespace Synapse.Physics
         {
             int size = field.GridSize;
             var component = field.GetComponent(TargetField);
-            if (component == null) return;
+            if (component == null)
+                return;
 
             switch (config.BoundaryCondition)
             {
@@ -1949,7 +2202,8 @@ namespace Synapse.Physics
         public override void Apply(LawBytecode bytecode, PhysicsField field, float dt, LawCompilerConfig config)
         {
             var velocity = field.VelocityX;
-            if (_previousState == null) { _previousState = velocity.Clone(); return; }
+            if (_previousState == null)
+            { _previousState = velocity.Clone(); return; }
 
             float c = config.Constants.TryGetValue("c", out float cv) ? cv : 340f;
             float dx = config.CellSize;
@@ -1984,7 +2238,9 @@ namespace Synapse.Physics
             float mass = config.Constants.TryGetValue("m", out float mv) ? mv : 1f;
             float dx = config.CellSize;
             int sx = field.GridSize, sy = field.GridSize, sz = field.GridSize;
-            var vx = field.VelocityX; var vy = field.VelocityY; var vz = field.VelocityZ;
+            var vx = field.VelocityX;
+            var vy = field.VelocityY;
+            var vz = field.VelocityZ;
 
             for (int z = 1; z < sz - 1; z++)
                 for (int y = 1; y < sy - 1; y++)
@@ -2068,8 +2324,12 @@ namespace Synapse.Physics
             float nu = viscosity / density;
             int sx = field.GridSize, sy = field.GridSize, sz = field.GridSize;
 
-            var vx = field.VelocityX; var vy = field.VelocityY; var vz = field.VelocityZ;
-            var vxNew = vx.Clone(); var vyNew = vy.Clone(); var vzNew = vz.Clone();
+            var vx = field.VelocityX;
+            var vy = field.VelocityY;
+            var vz = field.VelocityZ;
+            var vxNew = vx.Clone();
+            var vyNew = vy.Clone();
+            var vzNew = vz.Clone();
 
             for (int z = 1; z < sz - 1; z++)
                 for (int y = 1; y < sy - 1; y++)
@@ -2087,7 +2347,9 @@ namespace Synapse.Physics
                         vzNew[x, y, z] = vz[x, y, z] + dt * (nu * lapVz - vz[x, y, z] * dVzDz);
                     }
 
-            vx.CopyFrom(vxNew); vy.CopyFrom(vyNew); vz.CopyFrom(vzNew);
+            vx.CopyFrom(vxNew);
+            vy.CopyFrom(vyNew);
+            vz.CopyFrom(vzNew);
             ApplyBoundaryConditions(field, config);
         }
     }
@@ -2163,7 +2425,8 @@ namespace Synapse.Physics
         public override void Apply(LawBytecode bytecode, PhysicsField field, float dt, LawCompilerConfig config)
         {
             var component = field.GetComponent(TargetField);
-            if (component == null) return;
+            if (component == null)
+                return;
             int sx = field.GridSize, sy = field.GridSize, sz = field.GridSize;
             float dx = config.CellSize;
             float[] constants = bytecode.Constants.ToArray();
@@ -2180,48 +2443,120 @@ namespace Synapse.Physics
                         int ip = 0;
                         while (ip < instructions.Length)
                         {
-                            if (!_gas.Consume(1)) break;
-                            ref readonly Instruction instr = ref instructions[ip]; ip++;
+                            if (!_gas.Consume(1))
+                                break;
+                            ref readonly Instruction instr = ref instructions[ip];
+                            ip++;
                             switch (instr.Op)
                             {
-                                case OpCode.PushConst: localStack[sp++] = constants[instr.Operand]; break;
+                                case OpCode.PushConst:
+                                    localStack[sp++] = constants[instr.Operand];
+                                    break;
                                 case OpCode.LoadField:
                                     { string? fn = bytecode.FieldNames[instr.Operand]; var comp = fn != null ? field.GetComponent(fn) : null; localStack[sp++] = comp != null ? comp[x, y, z] : 0f; }
                                     break;
-                                case OpCode.Add: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a + b; } break;
-                                case OpCode.Sub: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a - b; } break;
-                                case OpCode.Mul: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a * b; } break;
-                                case OpCode.Div: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Abs(b) < float.Epsilon ? 0f : a / b; } break;
-                                case OpCode.Mod: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Abs(b) < float.Epsilon ? 0f : a % b; } break;
-                                case OpCode.Pow: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Pow(a, b); } break;
-                                case OpCode.Neg: { float a = localStack[--sp]; localStack[sp++] = -a; } break;
-                                case OpCode.Abs: { float a = localStack[--sp]; localStack[sp++] = MathF.Abs(a); } break;
-                                case OpCode.Sin: { float a = localStack[--sp]; localStack[sp++] = MathF.Sin(a); } break;
-                                case OpCode.Cos: { float a = localStack[--sp]; localStack[sp++] = MathF.Cos(a); } break;
-                                case OpCode.Tan: { float a = localStack[--sp]; localStack[sp++] = MathF.Tan(a); } break;
-                                case OpCode.Asin: { float a = localStack[--sp]; localStack[sp++] = MathF.Asin(MathF.Max(-1f, MathF.Min(1f, a))); } break;
-                                case OpCode.Acos: { float a = localStack[--sp]; localStack[sp++] = MathF.Acos(MathF.Max(-1f, MathF.Min(1f, a))); } break;
-                                case OpCode.Atan: { float a = localStack[--sp]; localStack[sp++] = MathF.Atan(a); } break;
-                                case OpCode.Atan2: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Atan2(a, b); } break;
-                                case OpCode.Sinh: { float a = localStack[--sp]; localStack[sp++] = MathF.Sinh(a); } break;
-                                case OpCode.Cosh: { float a = localStack[--sp]; localStack[sp++] = MathF.Cosh(a); } break;
-                                case OpCode.Tanh: { float a = localStack[--sp]; localStack[sp++] = MathF.Tanh(a); } break;
-                                case OpCode.Exp: { float a = localStack[--sp]; localStack[sp++] = MathF.Exp(a); } break;
-                                case OpCode.Log: { float a = localStack[--sp]; localStack[sp++] = a > 0f ? MathF.Log(a) : 0f; } break;
-                                case OpCode.Log2: { float a = localStack[--sp]; localStack[sp++] = a > 0f ? MathF.Log2(a) : 0f; } break;
-                                case OpCode.Log10: { float a = localStack[--sp]; localStack[sp++] = a > 0f ? MathF.Log10(a) : 0f; } break;
-                                case OpCode.Sqrt: { float a = localStack[--sp]; localStack[sp++] = a >= 0f ? MathF.Sqrt(a) : 0f; } break;
-                                case OpCode.Cbrt: { float a = localStack[--sp]; localStack[sp++] = MathF.Cbrt(a); } break;
-                                case OpCode.Ceil: { float a = localStack[--sp]; localStack[sp++] = MathF.Ceiling(a); } break;
-                                case OpCode.Floor: { float a = localStack[--sp]; localStack[sp++] = MathF.Floor(a); } break;
-                                case OpCode.Round: { float a = localStack[--sp]; localStack[sp++] = MathF.Round(a); } break;
-                                case OpCode.Min: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Min(a, b); } break;
-                                case OpCode.Max: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Max(a, b); } break;
-                                case OpCode.Sign: { float a = localStack[--sp]; localStack[sp++] = MathF.Sign(a); } break;
-                                case OpCode.GradientX: localStack[sp++] = ComputeGradientX(component, x, y, z, dx); break;
-                                case OpCode.GradientY: localStack[sp++] = ComputeGradientY(component, x, y, z, dx); break;
-                                case OpCode.GradientZ: localStack[sp++] = ComputeGradientZ(component, x, y, z, dx); break;
-                                case OpCode.Laplacian: localStack[sp++] = ComputeLaplacian(component, x, y, z, dx); break;
+                                case OpCode.Add:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a + b; }
+                                    break;
+                                case OpCode.Sub:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a - b; }
+                                    break;
+                                case OpCode.Mul:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a * b; }
+                                    break;
+                                case OpCode.Div:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Abs(b) < float.Epsilon ? 0f : a / b; }
+                                    break;
+                                case OpCode.Mod:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Abs(b) < float.Epsilon ? 0f : a % b; }
+                                    break;
+                                case OpCode.Pow:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Pow(a, b); }
+                                    break;
+                                case OpCode.Neg:
+                                    { float a = localStack[--sp]; localStack[sp++] = -a; }
+                                    break;
+                                case OpCode.Abs:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Abs(a); }
+                                    break;
+                                case OpCode.Sin:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Sin(a); }
+                                    break;
+                                case OpCode.Cos:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Cos(a); }
+                                    break;
+                                case OpCode.Tan:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Tan(a); }
+                                    break;
+                                case OpCode.Asin:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Asin(MathF.Max(-1f, MathF.Min(1f, a))); }
+                                    break;
+                                case OpCode.Acos:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Acos(MathF.Max(-1f, MathF.Min(1f, a))); }
+                                    break;
+                                case OpCode.Atan:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Atan(a); }
+                                    break;
+                                case OpCode.Atan2:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Atan2(a, b); }
+                                    break;
+                                case OpCode.Sinh:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Sinh(a); }
+                                    break;
+                                case OpCode.Cosh:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Cosh(a); }
+                                    break;
+                                case OpCode.Tanh:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Tanh(a); }
+                                    break;
+                                case OpCode.Exp:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Exp(a); }
+                                    break;
+                                case OpCode.Log:
+                                    { float a = localStack[--sp]; localStack[sp++] = a > 0f ? MathF.Log(a) : 0f; }
+                                    break;
+                                case OpCode.Log2:
+                                    { float a = localStack[--sp]; localStack[sp++] = a > 0f ? MathF.Log2(a) : 0f; }
+                                    break;
+                                case OpCode.Log10:
+                                    { float a = localStack[--sp]; localStack[sp++] = a > 0f ? MathF.Log10(a) : 0f; }
+                                    break;
+                                case OpCode.Sqrt:
+                                    { float a = localStack[--sp]; localStack[sp++] = a >= 0f ? MathF.Sqrt(a) : 0f; }
+                                    break;
+                                case OpCode.Cbrt:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Cbrt(a); }
+                                    break;
+                                case OpCode.Ceil:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Ceiling(a); }
+                                    break;
+                                case OpCode.Floor:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Floor(a); }
+                                    break;
+                                case OpCode.Round:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Round(a); }
+                                    break;
+                                case OpCode.Min:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Min(a, b); }
+                                    break;
+                                case OpCode.Max:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Max(a, b); }
+                                    break;
+                                case OpCode.Sign:
+                                    { float a = localStack[--sp]; localStack[sp++] = MathF.Sign(a); }
+                                    break;
+                                case OpCode.GradientX:
+                                    localStack[sp++] = ComputeGradientX(component, x, y, z, dx);
+                                    break;
+                                case OpCode.GradientY:
+                                    localStack[sp++] = ComputeGradientY(component, x, y, z, dx);
+                                    break;
+                                case OpCode.GradientZ:
+                                    localStack[sp++] = ComputeGradientZ(component, x, y, z, dx);
+                                    break;
+                                case OpCode.Laplacian:
+                                    localStack[sp++] = ComputeLaplacian(component, x, y, z, dx);
+                                    break;
                                 case OpCode.Divergence:
                                     { float gz = localStack[--sp]; float gy = localStack[--sp]; float gx = localStack[--sp]; localStack[sp++] = gx + gy + gz; }
                                     break;
@@ -2234,26 +2569,55 @@ namespace Synapse.Physics
                                 case OpCode.CurlZ:
                                     { float gz = localStack[--sp]; float gy = localStack[--sp]; float gx = localStack[--sp]; localStack[sp++] = gy - gx; }
                                     break;
-                                case OpCode.Equals: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Abs(a - b) < 1e-6f ? 1f : 0f; } break;
-                                case OpCode.NotEquals: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Abs(a - b) >= 1e-6f ? 1f : 0f; } break;
-                                case OpCode.LessThan: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a < b ? 1f : 0f; } break;
-                                case OpCode.GreaterThan: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a > b ? 1f : 0f; } break;
-                                case OpCode.LessOrEqual: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a <= b ? 1f : 0f; } break;
-                                case OpCode.GreaterOrEqual: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a >= b ? 1f : 0f; } break;
-                                case OpCode.LogicalAnd: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = (a != 0f && b != 0f) ? 1f : 0f; } break;
-                                case OpCode.LogicalOr: { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = (a != 0f || b != 0f) ? 1f : 0f; } break;
-                                case OpCode.LogicalNot: { float a = localStack[--sp]; localStack[sp++] = a != 0f ? 0f : 1f; } break;
+                                case OpCode.Equals:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Abs(a - b) < 1e-6f ? 1f : 0f; }
+                                    break;
+                                case OpCode.NotEquals:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = MathF.Abs(a - b) >= 1e-6f ? 1f : 0f; }
+                                    break;
+                                case OpCode.LessThan:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a < b ? 1f : 0f; }
+                                    break;
+                                case OpCode.GreaterThan:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a > b ? 1f : 0f; }
+                                    break;
+                                case OpCode.LessOrEqual:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a <= b ? 1f : 0f; }
+                                    break;
+                                case OpCode.GreaterOrEqual:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a >= b ? 1f : 0f; }
+                                    break;
+                                case OpCode.LogicalAnd:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = (a != 0f && b != 0f) ? 1f : 0f; }
+                                    break;
+                                case OpCode.LogicalOr:
+                                    { float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = (a != 0f || b != 0f) ? 1f : 0f; }
+                                    break;
+                                case OpCode.LogicalNot:
+                                    { float a = localStack[--sp]; localStack[sp++] = a != 0f ? 0f : 1f; }
+                                    break;
                                 case OpCode.TernaryJump:
                                     { float cond = localStack[--sp]; if (cond == 0f) ip = instr.Operand; }
                                     break;
                                 case OpCode.ConditionalJump:
                                     { float cond = localStack[--sp]; if (cond != 0f) ip = instr.Operand; }
                                     break;
-                                case OpCode.UnconditionalJump: ip = instr.Operand; break;
-                                case OpCode.LoadVar: localStack[sp++] = 0f; break;
-                                case OpCode.LoadParam: localStack[sp++] = 0f; break;
-                                case OpCode.Pop: sp--; break;
-                                case OpCode.Dup: localStack[sp] = localStack[sp - 1]; sp++; break;
+                                case OpCode.UnconditionalJump:
+                                    ip = instr.Operand;
+                                    break;
+                                case OpCode.LoadVar:
+                                    localStack[sp++] = 0f;
+                                    break;
+                                case OpCode.LoadParam:
+                                    localStack[sp++] = 0f;
+                                    break;
+                                case OpCode.Pop:
+                                    sp--;
+                                    break;
+                                case OpCode.Dup:
+                                    localStack[sp] = localStack[sp - 1];
+                                    sp++;
+                                    break;
                                 case OpCode.Swap:
                                     { float a = localStack[sp - 1]; localStack[sp - 1] = localStack[sp - 2]; localStack[sp - 2] = a; }
                                     break;
@@ -2263,11 +2627,15 @@ namespace Synapse.Physics
                                 case OpCode.Lerp:
                                     { float t = localStack[--sp]; float b = localStack[--sp]; float a = localStack[--sp]; localStack[sp++] = a + t * (b - a); }
                                     break;
-                                case OpCode.Return: case OpCode.Halt: goto done;
-                                default: break;
+                                case OpCode.Return:
+                                case OpCode.Halt:
+                                    goto done;
+                                default:
+                                    break;
                             }
                         }
-                        done:;
+                    done:
+                        ;
                         if (sp > 0)
                             component[x, y, z] = localStack[--sp];
                     }
@@ -2325,7 +2693,8 @@ namespace Synapse.Physics
 
         private static void CollectTermDimensions(AstNode node, List<Dimension> dims)
         {
-            if (node == null) return;
+            if (node == null)
+                return;
             switch (node.Type)
             {
                 case NodeType.BinaryExpression:
@@ -2334,19 +2703,29 @@ namespace Synapse.Physics
                         CollectTermDimensions(node.Left!, dims);
                         CollectTermDimensions(node.Right!, dims);
                     }
-                    else dims.Add(node.InferredDimension);
+                    else
+                        dims.Add(node.InferredDimension);
                     break;
-                case NodeType.NumberLiteral: dims.Add(Dimension.Scalar); break;
-                case NodeType.Identifier: dims.Add(node.InferredDimension); break;
-                case NodeType.FunctionCall: dims.Add(node.InferredDimension); break;
-                default: dims.Add(node.InferredDimension); break;
+                case NodeType.NumberLiteral:
+                    dims.Add(Dimension.Scalar);
+                    break;
+                case NodeType.Identifier:
+                    dims.Add(node.InferredDimension);
+                    break;
+                case NodeType.FunctionCall:
+                    dims.Add(node.InferredDimension);
+                    break;
+                default:
+                    dims.Add(node.InferredDimension);
+                    break;
             }
         }
 
         /// <summary>Check CFL stability condition for explicit time-stepping schemes.</summary>
         public static float ComputeCflRatio(PhysicsField field, float dt, float dx, float maxWaveSpeed)
         {
-            if (dx <= 0f || maxWaveSpeed <= 0f) return 0f;
+            if (dx <= 0f || maxWaveSpeed <= 0f)
+                return 0f;
             return maxWaveSpeed * dt / dx;
         }
 
@@ -2382,9 +2761,14 @@ namespace Synapse.Physics
                 ["rho"] = limitCase == "incompressible" ? 1000f : 1.225f,
                 ["v"] = limitCase == "low_speed" ? 0.1f : 100f,
                 ["T"] = limitCase == "low_temp" ? 273.15f : 300f,
-                ["P"] = 101325f, ["mu"] = 0.001f, ["c"] = 340f,
-                ["alpha"] = 1.43e-4f, ["k"] = 205f, ["G"] = 6.674e-11f,
-                ["sigma"] = 5.670374419e-8f, ["R"] = 287.058f
+                ["P"] = 101325f,
+                ["mu"] = 0.001f,
+                ["c"] = 340f,
+                ["alpha"] = 1.43e-4f,
+                ["k"] = 205f,
+                ["G"] = 6.674e-11f,
+                ["sigma"] = 5.670374419e-8f,
+                ["R"] = 287.058f
             });
             return MathF.Abs(result - expectedValue) < tolerance;
         }
@@ -2515,7 +2899,8 @@ namespace Synapse.Physics
 
         private static void CollectIdentifiers(AstNode node, HashSet<string> known, List<string> errors, List<string> warnings)
         {
-            if (node == null) return;
+            if (node == null)
+                return;
             switch (node.Type)
             {
                 case NodeType.Identifier:
@@ -2525,9 +2910,12 @@ namespace Synapse.Physics
                 case NodeType.FieldAccess:
                     break;
                 default:
-                    if (node.Left != null) CollectIdentifiers(node.Left, known, errors, warnings);
-                    if (node.Right != null) CollectIdentifiers(node.Right, known, errors, warnings);
-                    if (node.Middle != null) CollectIdentifiers(node.Middle, known, errors, warnings);
+                    if (node.Left != null)
+                        CollectIdentifiers(node.Left, known, errors, warnings);
+                    if (node.Right != null)
+                        CollectIdentifiers(node.Right, known, errors, warnings);
+                    if (node.Middle != null)
+                        CollectIdentifiers(node.Middle, known, errors, warnings);
                     if (node.Children != null)
                         foreach (var child in node.Children)
                             CollectIdentifiers(child, known, errors, warnings);
@@ -2590,7 +2978,8 @@ namespace Synapse.Physics
 
         private string ReplaceConstantInAst(AstNode node, string name, float newValue)
         {
-            if (node == null) return "";
+            if (node == null)
+                return "";
             return node.Type switch
             {
                 NodeType.NumberLiteral => node.Value ?? "0",
@@ -2714,7 +3103,8 @@ namespace Synapse.Physics
         public string ApplyModifications(string expression, IReadOnlyList<LawModification> modifications)
         {
             string result = expression;
-            foreach (var mod in modifications) result = ApplyModification(result, mod);
+            foreach (var mod in modifications)
+                result = ApplyModification(result, mod);
             return result;
         }
 
@@ -2803,18 +3193,22 @@ namespace Synapse.Physics
             }
 
             var invMatch = System.Text.RegularExpressions.Regex.Match(lower, @"invert\s+sign\s+of\s+(\w+)");
-            if (invMatch.Success) return InvertSign(expression, invMatch.Groups[1].Value);
+            if (invMatch.Success)
+                return InvertSign(expression, invMatch.Groups[1].Value);
 
-            if (lower.Contains("simplify")) return SimplifyExpression(expression);
+            if (lower.Contains("simplify"))
+                return SimplifyExpression(expression);
             if (lower.Contains("double"))
             {
                 var doubleVarMatch = System.Text.RegularExpressions.Regex.Match(lower, @"double\s+(\w+)");
-                if (doubleVarMatch.Success) return ScaleVariable(expression, doubleVarMatch.Groups[1].Value, 2f);
+                if (doubleVarMatch.Success)
+                    return ScaleVariable(expression, doubleVarMatch.Groups[1].Value, 2f);
             }
             if (lower.Contains("half"))
             {
                 var halfVarMatch = System.Text.RegularExpressions.Regex.Match(lower, @"half\s+(\w+)");
-                if (halfVarMatch.Success) return ScaleVariable(expression, halfVarMatch.Groups[1].Value, 0.5f);
+                if (halfVarMatch.Success)
+                    return ScaleVariable(expression, halfVarMatch.Groups[1].Value, 0.5f);
             }
 
             return expression;
@@ -2829,7 +3223,8 @@ namespace Synapse.Physics
         /// <summary>Undo the last modification.</summary>
         public string? UndoLastModification()
         {
-            if (_history.Count == 0) return null;
+            if (_history.Count == 0)
+                return null;
             var last = _history[^1];
             _history.RemoveAt(_history.Count - 1);
             return last.OriginalExpression;
@@ -2867,12 +3262,23 @@ namespace Synapse.Physics
         /// <summary>Physical constants used in the simulation.</summary>
         public Dictionary<string, float> Constants { get; set; } = new()
         {
-            ["alpha"] = 1.43e-4f, ["c"] = 340f, ["k"] = 100f, ["m"] = 1f,
-            ["G"] = 6.674e-11f, ["R"] = 287.058f, ["sigma"] = 5.670374419e-8f,
-            ["mu"] = 1.002e-3f, ["rho"] = 1.225f, ["D"] = 1e-5f,
-            ["eps"] = 8.854e-12f, ["mu0"] = 1.25663706212e-6f,
-            ["vx"] = 1.0f, ["vy"] = 0f, ["vz"] = 0f,
-            ["ke"] = 8.9875517923e9f, ["h"] = 0.01f,
+            ["alpha"] = 1.43e-4f,
+            ["c"] = 340f,
+            ["k"] = 100f,
+            ["m"] = 1f,
+            ["G"] = 6.674e-11f,
+            ["R"] = 287.058f,
+            ["sigma"] = 5.670374419e-8f,
+            ["mu"] = 1.002e-3f,
+            ["rho"] = 1.225f,
+            ["D"] = 1e-5f,
+            ["eps"] = 8.854e-12f,
+            ["mu0"] = 1.25663706212e-6f,
+            ["vx"] = 1.0f,
+            ["vy"] = 0f,
+            ["vz"] = 0f,
+            ["ke"] = 8.9875517923e9f,
+            ["h"] = 0.01f,
         };
         /// <summary>Coupling parameters between fields.</summary>
         public Dictionary<string, float> CouplingParameters { get; set; } = new();
@@ -2898,12 +3304,21 @@ namespace Synapse.Physics
         {
             return new LawCompilerConfig
             {
-                Tolerance = Tolerance, MaxIterations = MaxIterations, TimeStep = TimeStep,
-                CellSize = CellSize, BoundaryCondition = BoundaryCondition,
-                BoundaryValue = BoundaryValue, GasLimit = GasLimit, CflLimit = CflLimit,
-                Solver = Solver, GridSize = GridSize, EnableHotReload = EnableHotReload,
-                EnableValidation = EnableValidation, MaxBytecodeInstructions = MaxBytecodeInstructions,
-                EnableJitSpecialization = EnableJitSpecialization, Parallelism = Parallelism,
+                Tolerance = Tolerance,
+                MaxIterations = MaxIterations,
+                TimeStep = TimeStep,
+                CellSize = CellSize,
+                BoundaryCondition = BoundaryCondition,
+                BoundaryValue = BoundaryValue,
+                GasLimit = GasLimit,
+                CflLimit = CflLimit,
+                Solver = Solver,
+                GridSize = GridSize,
+                EnableHotReload = EnableHotReload,
+                EnableValidation = EnableValidation,
+                MaxBytecodeInstructions = MaxBytecodeInstructions,
+                EnableJitSpecialization = EnableJitSpecialization,
+                Parallelism = Parallelism,
                 OutputDirectory = OutputDirectory,
                 Constants = new Dictionary<string, float>(Constants),
                 CouplingParameters = new Dictionary<string, float>(CouplingParameters)
@@ -2915,41 +3330,55 @@ namespace Synapse.Physics
         {
             "heat" or "thermal" => new LawCompilerConfig
             {
-                TimeStep = 0.001f, CellSize = 1f, GridSize = 64,
+                TimeStep = 0.001f,
+                CellSize = 1f,
+                GridSize = 64,
                 BoundaryCondition = BoundaryCondition.Dirichlet,
-                BoundaryValue = 300f, CflLimit = 0.5f,
+                BoundaryValue = 300f,
+                CflLimit = 0.5f,
                 Constants = new() { ["alpha"] = 1.43e-4f, ["k"] = 205f }
             },
             "wave" or "acoustic" => new LawCompilerConfig
             {
-                TimeStep = 0.0001f, CellSize = 0.1f, GridSize = 128,
+                TimeStep = 0.0001f,
+                CellSize = 0.1f,
+                GridSize = 128,
                 BoundaryCondition = BoundaryCondition.Periodic,
                 CflLimit = 0.9f,
                 Constants = new() { ["c"] = 340f }
             },
             "fluid" or "navier_stokes" => new LawCompilerConfig
             {
-                TimeStep = 0.0001f, CellSize = 0.01f, GridSize = 64,
+                TimeStep = 0.0001f,
+                CellSize = 0.01f,
+                GridSize = 64,
                 BoundaryCondition = BoundaryCondition.Periodic,
-                CflLimit = 0.5f, Solver = SolverMethod.RungeKutta4,
+                CflLimit = 0.5f,
+                Solver = SolverMethod.RungeKutta4,
                 Constants = new() { ["mu"] = 1.002e-3f, ["rho"] = 1000f }
             },
             "elasticity" or "solid" => new LawCompilerConfig
             {
-                TimeStep = 0.001f, CellSize = 1f, GridSize = 32,
+                TimeStep = 0.001f,
+                CellSize = 1f,
+                GridSize = 32,
                 BoundaryCondition = BoundaryCondition.Neumann,
                 Constants = new() { ["k"] = 100f, ["m"] = 1f }
             },
             "electromagnetic" or "em" => new LawCompilerConfig
             {
-                TimeStep = 1e-10f, CellSize = 1e-3f, GridSize = 64,
+                TimeStep = 1e-10f,
+                CellSize = 1e-3f,
+                GridSize = 64,
                 BoundaryCondition = BoundaryCondition.Periodic,
                 CflLimit = 0.95f,
                 Constants = new() { ["eps"] = 8.854e-12f, ["mu0"] = 1.25663706212e-6f }
             },
             "gravity" or "gravitation" => new LawCompilerConfig
             {
-                TimeStep = 0.01f, CellSize = 1e6f, GridSize = 32,
+                TimeStep = 0.01f,
+                CellSize = 1e6f,
+                GridSize = 32,
                 BoundaryCondition = BoundaryCondition.Periodic,
                 Constants = new() { ["G"] = 6.674e-11f }
             },
@@ -2976,7 +3405,8 @@ namespace Synapse.Physics
             for (int i = 0; i < n; i++)
             {
                 float diff = MathF.Abs(fieldA.Data[i] - fieldB.Data[i]);
-                if (diff > maxDiv) maxDiv = diff;
+                if (diff > maxDiv)
+                    maxDiv = diff;
                 sumDiv += diff;
                 sumSqDiff += (double)diff * diff;
             }
@@ -2997,10 +3427,12 @@ namespace Synapse.Physics
             {
                 float cdfA = (float)(i + 1) / n;
                 int bIdx = Array.BinarySearch(valuesB, valuesA[i]);
-                if (bIdx < 0) bIdx = ~bIdx;
+                if (bIdx < 0)
+                    bIdx = ~bIdx;
                 float cdfB = (float)(bIdx + 1) / n;
                 float ksDiff = MathF.Abs(cdfA - cdfB);
-                if (ksDiff > ksMax) ksMax = ksDiff;
+                if (ksDiff > ksMax)
+                    ksMax = ksDiff;
             }
 
             // SSIM approximation based on statistics
@@ -3015,12 +3447,18 @@ namespace Synapse.Physics
             float ssim = ((2f * muA * muB + c1) * (2f * sigAB + c2)) /
                          ((muA * muA + muB * muB + c1) * (sigA * sigA + sigB * sigB + c2));
 
-            if (maxDiv > 0.01f) diffs.Add($"Max divergence: {maxDiv:F6}");
-            if (meanDiv > 0.001f) diffs.Add($"Mean divergence: {meanDiv:F6}");
-            if (rmse > 0.01f) diffs.Add($"RMSE: {rmse:F6}");
-            if (ksMax > 0.1f) diffs.Add($"KS statistic: {ksMax:F4} (distributions differ significantly)");
-            if (MathF.Abs(muA - muB) > 0.01f) diffs.Add($"Mean difference: {muA:F4} vs {muB:F4}");
-            if (MathF.Abs(sigA - sigB) > 0.01f) diffs.Add($"Std dev difference: {sigA:F4} vs {sigB:F4}");
+            if (maxDiv > 0.01f)
+                diffs.Add($"Max divergence: {maxDiv:F6}");
+            if (meanDiv > 0.001f)
+                diffs.Add($"Mean divergence: {meanDiv:F6}");
+            if (rmse > 0.01f)
+                diffs.Add($"RMSE: {rmse:F6}");
+            if (ksMax > 0.1f)
+                diffs.Add($"KS statistic: {ksMax:F4} (distributions differ significantly)");
+            if (MathF.Abs(muA - muB) > 0.01f)
+                diffs.Add($"Mean difference: {muA:F4} vs {muB:F4}");
+            if (MathF.Abs(sigA - sigB) > 0.01f)
+                diffs.Add($"Std dev difference: {sigA:F4} vs {sigB:F4}");
 
             bool physEq = maxDiv < 0.01f && rmse < 0.01f && ksMax < 0.05f;
             return new ComparisonResult(maxDiv, meanDiv, rmse, ksMax, ssim, expressionEditDistance, diffs.ToArray(), physEq);
@@ -3077,7 +3515,8 @@ namespace Synapse.Physics
         /// <summary>Compute L2 norm of the difference between two fields.</summary>
         public static float ComputeL2Norm(FieldGrid a, FieldGrid b)
         {
-            if (a.TotalCells != b.TotalCells) throw new ArgumentException("Field sizes must match");
+            if (a.TotalCells != b.TotalCells)
+                throw new ArgumentException("Field sizes must match");
             double sum = 0;
             for (int i = 0; i < a.TotalCells; i++)
             {
@@ -3090,12 +3529,14 @@ namespace Synapse.Physics
         /// <summary>Compute L-infinity norm (max absolute difference).</summary>
         public static float ComputeLInfNorm(FieldGrid a, FieldGrid b)
         {
-            if (a.TotalCells != b.TotalCells) throw new ArgumentException("Field sizes must match");
+            if (a.TotalCells != b.TotalCells)
+                throw new ArgumentException("Field sizes must match");
             float maxDiff = 0f;
             for (int i = 0; i < a.TotalCells; i++)
             {
                 float diff = MathF.Abs(a.Data[i] - b.Data[i]);
-                if (diff > maxDiff) maxDiff = diff;
+                if (diff > maxDiff)
+                    maxDiff = diff;
             }
             return maxDiff;
         }
@@ -3103,7 +3544,8 @@ namespace Synapse.Physics
         /// <summary>Compute correlation coefficient between two fields.</summary>
         public static float ComputeCorrelation(FieldGrid a, FieldGrid b)
         {
-            if (a.TotalCells != b.TotalCells) throw new ArgumentException("Field sizes must match");
+            if (a.TotalCells != b.TotalCells)
+                throw new ArgumentException("Field sizes must match");
             int n = a.TotalCells;
             float muA = a.Average(), muB = b.Average();
             float num = 0f, denA = 0f, denB = 0f;
@@ -3122,7 +3564,8 @@ namespace Synapse.Physics
         /// <summary>Compute energy norm of the difference.</summary>
         public static float ComputeEnergyNorm(FieldGrid a, FieldGrid b, float dx)
         {
-            if (a.TotalCells != b.TotalCells) throw new ArgumentException("Field sizes must match");
+            if (a.TotalCells != b.TotalCells)
+                throw new ArgumentException("Field sizes must match");
             double sum = 0;
             float invDx2 = 1f / (dx * dx);
             for (int z = 1; z < a.SizeZ - 1; z++)
@@ -3139,7 +3582,8 @@ namespace Synapse.Physics
         /// <summary>Compute spectral analysis difference.</summary>
         public static float ComputeSpectralDifference(FieldGrid a, FieldGrid b)
         {
-            if (a.TotalCells != b.TotalCells) throw new ArgumentException("Field sizes must match");
+            if (a.TotalCells != b.TotalCells)
+                throw new ArgumentException("Field sizes must match");
             float muA = a.Average(), muB = b.Average();
             float varA = 0f, varB = 0f, covAB = 0f;
             for (int i = 0; i < a.TotalCells; i++)
@@ -3151,7 +3595,9 @@ namespace Synapse.Physics
                 covAB += dA * dB;
             }
             float n = a.TotalCells;
-            varA /= n; varB /= n; covAB /= n;
+            varA /= n;
+            varB /= n;
+            covAB /= n;
             return MathF.Sqrt(MathF.Max(0f, varA + varB - 2f * covAB));
         }
     }    // =========================================================================
@@ -3190,42 +3636,48 @@ namespace Synapse.Physics
         {
             _templates.Add(new LawTemplate
             {
-                Name = "Conservation Law", Category = "Conservation",
+                Name = "Conservation Law",
+                Category = "Conservation",
                 ExpressionTemplate = "∂({var})/∂t + ∇·({var}*v) = {source}",
                 VariableDescriptions = new() { ["var"] = "conserved quantity", ["v"] = "velocity", ["source"] = "source term" },
                 ExpectedDimension = new Dimension(0, -3, -1, 0, 0, 0, 0, 0)
             });
             _templates.Add(new LawTemplate
             {
-                Name = "Diffusion-Reaction", Category = "ReactionDiffusion",
+                Name = "Diffusion-Reaction",
+                Category = "ReactionDiffusion",
                 ExpressionTemplate = "∂u/∂t = D*∇²u + f(u)",
                 VariableDescriptions = new() { ["u"] = "concentration", ["D"] = "diffusivity", ["f"] = "reaction rate" },
                 ExpectedDimension = new Dimension(0, -3, -1, 0, 0, 0, 0, 0)
             });
             _templates.Add(new LawTemplate
             {
-                Name = "Dispersion Relation", Category = "WaveDynamics",
+                Name = "Dispersion Relation",
+                Category = "WaveDynamics",
                 ExpressionTemplate = "ω² = {coeff}*k^n",
                 VariableDescriptions = new() { ["ω"] = "angular frequency", ["k"] = "wavenumber", ["n"] = "power" },
                 ExpectedDimension = new Dimension(0, 0, -2, 0, 0, 0, 0, 0)
             });
             _templates.Add(new LawTemplate
             {
-                Name = "Power Law", Category = "Empirical",
+                Name = "Power Law",
+                Category = "Empirical",
                 ExpressionTemplate = "{output} = {coeff}*{input}^{exponent}",
                 VariableDescriptions = new() { ["output"] = "output", ["input"] = "input", ["coeff"] = "coefficient", ["exponent"] = "exponent" },
                 ExpectedDimension = Dimension.Scalar
             });
             _templates.Add(new LawTemplate
             {
-                Name = "Exponential Decay", Category = "Kinetics",
+                Name = "Exponential Decay",
+                Category = "Kinetics",
                 ExpressionTemplate = "{var} = {initial}*exp(-{rate}*t)",
                 VariableDescriptions = new() { ["var"] = "variable", ["initial"] = "initial value", ["rate"] = "decay rate" },
                 ExpectedDimension = Dimension.Scalar
             });
             _templates.Add(new LawTemplate
             {
-                Name = "Coupled Oscillators", Category = "Dynamics",
+                Name = "Coupled Oscillators",
+                Category = "Dynamics",
                 ExpressionTemplate = "m*ẍ + c*ẋ + k*x = F_ext + {coupling}*y",
                 VariableDescriptions = new() { ["m"] = "mass", ["c"] = "damping", ["k"] = "stiffness", ["F_ext"] = "external force", ["coupling"] = "coupling constant", ["y"] = "coupled variable" },
                 ExpectedDimension = Dimension.Force
@@ -3266,7 +3718,8 @@ namespace Synapse.Physics
         {
             var results = new List<LawEntry>();
             var template = _templates.FirstOrDefault(t => t.Name == templateName);
-            if (template == null) return results;
+            if (template == null)
+                return results;
 
             var paramNames = parameterRanges.Keys.ToList();
             var ranges = paramNames.Select(n => parameterRanges[n]).ToList();
@@ -3556,7 +4009,8 @@ namespace Synapse.Physics
             for (int i = 0; i < count; i++)
             {
                 var comp = LawComparison.ComparePhysicsFields(a.Snapshots[i], b.Snapshots[i]);
-                if (comp.MaxDivergence > maxDiv) maxDiv = comp.MaxDivergence;
+                if (comp.MaxDivergence > maxDiv)
+                    maxDiv = comp.MaxDivergence;
                 sumDiv += comp.MeanDivergence;
             }
 
@@ -3735,7 +4189,8 @@ namespace Synapse.Physics
         public CompilationResult HotReload(string lawId, string newExpression)
         {
             var law = _library.GetLaw(lawId);
-            if (law != null) law.Expression = newExpression;
+            if (law != null)
+                law.Expression = newExpression;
 
             if (_versionTrees.TryGetValue(lawId, out var tree))
                 tree.Commit(newExpression, $"Hot-reload at {DateTime.UtcNow:HH:mm:ss}");
@@ -3747,13 +4202,15 @@ namespace Synapse.Physics
         /// <summary>Create a version tree for a law expression.</summary>
         public LawVersionTree CreateVersionTree(string lawId, string? initialExpression = null)
         {
-            if (_versionTrees.TryGetValue(lawId, out var existing)) return existing;
+            if (_versionTrees.TryGetValue(lawId, out var existing))
+                return existing;
 
             string expr = initialExpression ?? "";
             if (string.IsNullOrEmpty(expr))
             {
                 var law = _library.GetLaw(lawId);
-                if (law != null) expr = law.Expression;
+                if (law != null)
+                    expr = law.Expression;
             }
 
             var tree = new LawVersionTree(expr);
@@ -3798,7 +4255,8 @@ namespace Synapse.Physics
         private string DetermineApplicatorKey(string lawId)
         {
             var law = _library.GetLaw(lawId);
-            if (law == null) return "generic";
+            if (law == null)
+                return "generic";
             return law.Category.ToLowerInvariant() switch
             {
                 "thermaldynamics" or "thermal" => "heat",
@@ -3853,8 +4311,10 @@ namespace Synapse.Physics
             var resultA = Compile(expressionA);
             var resultB = Compile(expressionB);
 
-            if (resultA.Success && resultA.Bytecode != null) ApplyBytecode(resultA.Bytecode, field);
-            if (resultB.Success && resultB.Bytecode != null) ApplyBytecode(resultB.Bytecode, fieldB);
+            if (resultA.Success && resultA.Bytecode != null)
+                ApplyBytecode(resultA.Bytecode, field);
+            if (resultB.Success && resultB.Bytecode != null)
+                ApplyBytecode(resultB.Bytecode, fieldB);
 
             int editDist = LawVersionTree.ComputeEditDistance(expressionA, expressionB);
             return LawComparison.CompareFields(field.Temperature, fieldB.Temperature, editDist);
@@ -3928,7 +4388,9 @@ namespace Synapse.Physics
         {
             var law = _library.GetLaw(lawId) ?? throw new ArgumentException($"Law '{lawId}' not found");
             var allParams = new Dictionary<string, float>(law.Constants);
-            if (parameters != null) foreach (var kv in parameters) allParams[kv.Key] = kv.Value;
+            if (parameters != null)
+                foreach (var kv in parameters)
+                    allParams[kv.Key] = kv.Value;
             return Evaluate(law.Expression, field, allParams);
         }
 
@@ -3961,10 +4423,18 @@ namespace Synapse.Physics
             {
                 Config = new
                 {
-                    _config.Tolerance, _config.MaxIterations, _config.TimeStep, _config.CellSize,
-                    BoundaryCondition = _config.BoundaryCondition.ToString(), _config.BoundaryValue,
-                    _config.GasLimit, _config.CflLimit, _config.GridSize, _config.EnableHotReload,
-                    _config.EnableValidation, Solver = _config.Solver.ToString()
+                    _config.Tolerance,
+                    _config.MaxIterations,
+                    _config.TimeStep,
+                    _config.CellSize,
+                    BoundaryCondition = _config.BoundaryCondition.ToString(),
+                    _config.BoundaryValue,
+                    _config.GasLimit,
+                    _config.CflLimit,
+                    _config.GridSize,
+                    _config.EnableHotReload,
+                    _config.EnableValidation,
+                    Solver = _config.Solver.ToString()
                 },
                 Statistics = GetStatistics(),
                 CachedLaws = _compiledCache.Keys.ToArray(),
@@ -4008,8 +4478,11 @@ namespace Synapse.Physics
         {
             var entry = new LawEntry
             {
-                Id = id, Name = name, Category = category,
-                Expression = expression, Description = description
+                Id = id,
+                Name = name,
+                Category = category,
+                Expression = expression,
+                Description = description
             };
             _library.Register(entry);
             return entry;
@@ -4084,7 +4557,8 @@ namespace Synapse.Physics
         {
             var library = new LawLibrary();
             var entries = DeserializeLawEntries(File.ReadAllText(filePath));
-            foreach (var entry in entries) library.Register(entry);
+            foreach (var entry in entries)
+                library.Register(entry);
             return library;
         }
 
@@ -4094,7 +4568,10 @@ namespace Synapse.Physics
             var history = tree.ExportHistory();
             var records = history.Select(h => new
             {
-                h.Id, h.Expression, h.Timestamp, h.Description
+                h.Id,
+                h.Expression,
+                h.Timestamp,
+                h.Description
             });
             return JsonSerializer.Serialize(records, _options);
         }
@@ -4103,8 +4580,12 @@ namespace Synapse.Physics
         public static string SerializeCompilationResult(CompilationResult result) =>
             JsonSerializer.Serialize(new
             {
-                result.Success, result.Message, result.Errors, result.Warnings,
-                result.InstructionCount, result.CompilationTimeMs,
+                result.Success,
+                result.Message,
+                result.Errors,
+                result.Warnings,
+                result.InstructionCount,
+                result.CompilationTimeMs,
                 ResultDimension = result.Bytecode?.ResultDimension.ToString() ?? "N/A"
             }, _options);
 
@@ -4112,16 +4593,24 @@ namespace Synapse.Physics
         public static string SerializeComparisonResult(ComparisonResult result) =>
             JsonSerializer.Serialize(new
             {
-                result.MaxDivergence, result.MeanDivergence, result.RootMeanSquareError,
-                result.KolmogorovSmirnovStatistic, result.StructuralSimilarity,
-                result.ExpressionEditDistance, result.Differences, result.PhysicallyEquivalent
+                result.MaxDivergence,
+                result.MeanDivergence,
+                result.RootMeanSquareError,
+                result.KolmogorovSmirnovStatistic,
+                result.StructuralSimilarity,
+                result.ExpressionEditDistance,
+                result.Differences,
+                result.PhysicallyEquivalent
             }, _options);
 
         /// <summary>Serialize simulation results.</summary>
         public static string SerializeSimulationResult(SimulationResult result) =>
             JsonSerializer.Serialize(new
             {
-                result.TotalTime, result.Converged, result.Iterations, result.ErrorMessage,
+                result.TotalTime,
+                result.Converged,
+                result.Iterations,
+                result.ErrorMessage,
                 SnapshotCount = result.Snapshots.Count,
                 result.TimeSteps,
                 result.EnergyHistory,
@@ -4138,19 +4627,31 @@ namespace Synapse.Physics
         public static LawEntry? ImportCompact(string compact)
         {
             var parts = compact.Split('|');
-            if (parts.Length < 4) return null;
+            if (parts.Length < 4)
+                return null;
             var entry = new LawEntry();
             foreach (var part in parts)
             {
                 var kv = part.Split(':', 2);
-                if (kv.Length != 2) continue;
+                if (kv.Length != 2)
+                    continue;
                 switch (kv[0])
                 {
-                    case "ID": entry.Id = kv[1]; break;
-                    case "CAT": entry.Category = kv[1]; break;
-                    case "NAME": entry.Name = kv[1]; break;
-                    case "EXPR": entry.Expression = kv[1]; break;
-                    case "DESC": entry.Description = kv[1]; break;
+                    case "ID":
+                        entry.Id = kv[1];
+                        break;
+                    case "CAT":
+                        entry.Category = kv[1];
+                        break;
+                    case "NAME":
+                        entry.Name = kv[1];
+                        break;
+                    case "EXPR":
+                        entry.Expression = kv[1];
+                        break;
+                    case "DESC":
+                        entry.Description = kv[1];
+                        break;
                 }
             }
             return entry;
@@ -4161,7 +4662,9 @@ namespace Synapse.Physics
         {
             return JsonSerializer.Serialize(new
             {
-                field.Name, field.GridSize, field.Time,
+                field.Name,
+                field.GridSize,
+                field.Time,
                 Temperature = field.Temperature.Data,
                 Pressure = field.Pressure.Data,
                 Density = field.Density.Data,
@@ -4204,7 +4707,8 @@ namespace Synapse.Physics
             int total = Math.Min(array.GetArrayLength(), grid.TotalCells);
             foreach (var item in array.EnumerateArray())
             {
-                if (idx >= total) break;
+                if (idx >= total)
+                    break;
                 int z = idx / (grid.SizeX * grid.SizeY);
                 int rem = idx % (grid.SizeX * grid.SizeY);
                 int y = rem / grid.SizeX;
@@ -4466,8 +4970,11 @@ namespace Synapse.Physics
         {
             var args = new LawEventArgs
             {
-                EventType = eventType, LawId = lawId, Expression = expression,
-                Message = message, Metadata = metadata
+                EventType = eventType,
+                LawId = lawId,
+                Expression = expression,
+                Message = message,
+                Metadata = metadata
             };
 
             lock (_logLock)
@@ -4481,7 +4988,8 @@ namespace Synapse.Physics
             {
                 foreach (var handler in list)
                 {
-                    try { handler(this, args); }
+                    try
+                    { handler(this, args); }
                     catch { /* swallow handler errors */ }
                 }
             }
@@ -4510,7 +5018,8 @@ namespace Synapse.Physics
         /// <summary>Clear the event log.</summary>
         public void ClearLog()
         {
-            lock (_logLock) { _eventLog.Clear(); }
+            lock (_logLock)
+            { _eventLog.Clear(); }
         }
 
         /// <summary>Get event statistics.</summary>
@@ -4595,9 +5104,11 @@ namespace Synapse.Physics
                 {
                     if (!visited.Contains(dep.TargetLawId))
                     {
-                        if (HasCycleDFS(dep.TargetLawId, visited, inStack)) return true;
+                        if (HasCycleDFS(dep.TargetLawId, visited, inStack))
+                            return true;
                     }
-                    else if (inStack.Contains(dep.TargetLawId)) return true;
+                    else if (inStack.Contains(dep.TargetLawId))
+                        return true;
                 }
             }
 
@@ -4645,7 +5156,8 @@ namespace Synapse.Physics
             while (queue.Count > 0)
             {
                 var current = queue.Dequeue();
-                if (!component.Add(current)) continue;
+                if (!component.Add(current))
+                    continue;
 
                 if (_adjacency.TryGetValue(current, out var deps))
                     foreach (var dep in deps)
@@ -4670,7 +5182,8 @@ namespace Synapse.Physics
 
         private int GetLongestChainDFS(string node, HashSet<string> visited)
         {
-            if (!visited.Add(node)) return 0;
+            if (!visited.Add(node))
+                return 0;
             int maxDepth = 0;
 
             if (_adjacency.TryGetValue(node, out var deps))
@@ -4678,7 +5191,8 @@ namespace Synapse.Physics
                 foreach (var dep in deps)
                 {
                     int depth = GetLongestChainDFS(dep.TargetLawId, visited);
-                    if (depth > maxDepth) maxDepth = depth;
+                    if (depth > maxDepth)
+                        maxDepth = depth;
                 }
             }
 
@@ -4792,9 +5306,16 @@ namespace Synapse.Physics
             {
                 interpreter.Execute(compResult.Bytecode, null, null, new Dictionary<string, float>
                 {
-                    ["x"] = 1f, ["y"] = 2f, ["z"] = 3f, ["t"] = 0.5f,
-                    ["T"] = 300f, ["P"] = 101325f, ["rho"] = 1.225f,
-                    ["v"] = 10f, ["c"] = 340f, ["k"] = 100f
+                    ["x"] = 1f,
+                    ["y"] = 2f,
+                    ["z"] = 3f,
+                    ["t"] = 0.5f,
+                    ["T"] = 300f,
+                    ["P"] = 101325f,
+                    ["rho"] = 1.225f,
+                    ["v"] = 10f,
+                    ["c"] = 340f,
+                    ["k"] = 100f
                 });
             }
             sw.Stop();
@@ -4898,8 +5419,10 @@ namespace Synapse.Physics
                 sb.AppendLine($"  Total time: {r.ElapsedMilliseconds:F2} ms");
                 sb.AppendLine($"  Per iteration: {r.ElapsedMilliseconds / r.Iterations:F4} ms");
                 sb.AppendLine($"  Ops/sec: {r.OpsPerSecond:F0}");
-                if (r.MemoryBytes != 0) sb.AppendLine($"  Memory delta: {r.MemoryBytes:N0} bytes");
-                if (r.AdditionalInfo != null) sb.AppendLine($"  Info: {r.AdditionalInfo}");
+                if (r.MemoryBytes != 0)
+                    sb.AppendLine($"  Memory delta: {r.MemoryBytes:N0} bytes");
+                if (r.AdditionalInfo != null)
+                    sb.AppendLine($"  Info: {r.AdditionalInfo}");
                 sb.AppendLine();
             }
             return sb.ToString();
@@ -4980,7 +5503,8 @@ namespace Synapse.Physics
         {
             var a = GetUnit(unitA);
             var b = GetUnit(unitB);
-            if (a == null || b == null) return false;
+            if (a == null || b == null)
+                return false;
             return a.BaseDimension.IsCompatible(b.BaseDimension);
         }
 
@@ -4989,7 +5513,8 @@ namespace Synapse.Physics
         {
             var a = GetUnit(unitA);
             var b = GetUnit(unitB);
-            if (a == null || b == null) return Dimension.Scalar;
+            if (a == null || b == null)
+                return Dimension.Scalar;
             return a.BaseDimension.Multiply(b.BaseDimension);
         }
 
@@ -4998,7 +5523,8 @@ namespace Synapse.Physics
         {
             var a = GetUnit(unitA);
             var b = GetUnit(unitB);
-            if (a == null || b == null) return Dimension.Scalar;
+            if (a == null || b == null)
+                return Dimension.Scalar;
             return a.BaseDimension.Divide(b.BaseDimension);
         }
     }
@@ -5057,7 +5583,8 @@ namespace Synapse.Physics
 
         private Dimension AnalyzeNode(AstNode node, Dictionary<AstNode, Dimension> result)
         {
-            if (node == null) return Dimension.Scalar;
+            if (node == null)
+                return Dimension.Scalar;
 
             Dimension dim = node.Type switch
             {
@@ -5147,7 +5674,8 @@ namespace Synapse.Physics
             var ast = parser.Parse();
             var exprDim = GetExpressionDimension(ast);
             var unit = _unitRegistry.GetUnit(expectedUnit);
-            if (unit == null) return false;
+            if (unit == null)
+                return false;
             return exprDim.IsCompatible(unit.BaseDimension);
         }
 
@@ -5400,14 +5928,16 @@ namespace Synapse.Physics
         /// <summary>Start timing an operation.</summary>
         public Stopwatch StartProfile(string operationName)
         {
-            if (!_enabled) return Stopwatch.StartNew();
+            if (!_enabled)
+                return Stopwatch.StartNew();
             return Stopwatch.StartNew();
         }
 
         /// <summary>Stop timing and record the result.</summary>
         public void StopProfile(string operationName, Stopwatch sw, long allocatedBytes = 0)
         {
-            if (!_enabled) return;
+            if (!_enabled)
+                return;
             sw.Stop();
             double ms = sw.Elapsed.TotalMilliseconds;
 
@@ -5418,8 +5948,10 @@ namespace Synapse.Physics
                 profile.TotalMilliseconds += ms;
                 profile.LastMilliseconds = ms;
                 profile.TotalBytes += allocatedBytes;
-                if (ms < profile.MinMilliseconds) profile.MinMilliseconds = ms;
-                if (ms > profile.MaxMilliseconds) profile.MaxMilliseconds = ms;
+                if (ms < profile.MinMilliseconds)
+                    profile.MinMilliseconds = ms;
+                if (ms > profile.MaxMilliseconds)
+                    profile.MaxMilliseconds = ms;
             }
         }
 
@@ -5505,7 +6037,8 @@ namespace Synapse.Physics
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float InverseLerp(float a, float b, float value)
         {
-            if (MathF.Abs(b - a) < float.Epsilon) return 0f;
+            if (MathF.Abs(b - a) < float.Epsilon)
+                return 0f;
             return (value - a) / (b - a);
         }
 
@@ -5555,7 +6088,8 @@ namespace Synapse.Physics
         public static (float X, float Y, float Z) Normalize3D(float x, float y, float z)
         {
             float len = MathF.Sqrt(x * x + y * y + z * z);
-            if (len < float.Epsilon) return (0f, 0f, 0f);
+            if (len < float.Epsilon)
+                return (0f, 0f, 0f);
             return (x / len, y / len, z / len);
         }
 
@@ -5668,7 +6202,8 @@ namespace Synapse.Physics
             for (int i = 0; i < field.TotalCells; i++)
             {
                 float abs = MathF.Abs(field.Data[i]);
-                if (abs > max) max = abs;
+                if (abs > max)
+                    max = abs;
             }
             return max;
         }
@@ -5710,7 +6245,8 @@ namespace Synapse.Physics
                         float gy = GradientY(field, x, y, z, dx);
                         float gz = GradientZ(field, x, y, z, dx);
                         float mag = MathF.Sqrt(gx * gx + gy * gy + gz * gz);
-                        if (mag > maxGrad) maxGrad = mag;
+                        if (mag > maxGrad)
+                            maxGrad = mag;
                     }
             return maxGrad;
         }
@@ -5858,7 +6394,8 @@ namespace Synapse.Physics
             const float kB = 1.380649e-23f;
             float numerator = 2f * h * c * c / MathF.Pow(wavelength, 5);
             float exponent = h * c / (wavelength * kB * temperature);
-            if (exponent > 100f) return 0f;
+            if (exponent > 100f)
+                return 0f;
             return numerator / (MathF.Exp(exponent) - 1f);
         }
 
@@ -5951,8 +6488,13 @@ namespace Synapse.Physics
             {
                 _messages.Add(new DiagnosticMessage
                 {
-                    Severity = severity, Code = code, Message = message,
-                    Line = line, Column = column, Expression = expression, Suggestion = suggestion
+                    Severity = severity,
+                    Code = code,
+                    Message = message,
+                    Line = line,
+                    Column = column,
+                    Expression = expression,
+                    Suggestion = suggestion
                 });
             }
         }
@@ -5973,12 +6515,14 @@ namespace Synapse.Physics
 
         public IReadOnlyList<DiagnosticMessage> GetBySeverity(DiagnosticSeverity severity)
         {
-            lock (_lock) return _messages.Where(m => m.Severity == severity).ToList();
+            lock (_lock)
+                return _messages.Where(m => m.Severity == severity).ToList();
         }
 
         public IReadOnlyList<DiagnosticMessage> GetByCode(string code)
         {
-            lock (_lock) return _messages.Where(m => m.Code == code).ToList();
+            lock (_lock)
+                return _messages.Where(m => m.Code == code).ToList();
         }
 
         public string FormatReport()

@@ -1,5 +1,12 @@
 using System;
+// ============================================================
+// FILE: HashUtils.cs
+// PATH: Utilities/HashUtils.cs
+// ============================================================
+
+using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,26 +15,17 @@ using System.IO;
 using System.IO.Compression;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-
-
-// ============================================================
-// FILE: HashUtils.cs
-// PATH: Utilities/HashUtils.cs
-// ============================================================
-
-using System;
-using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace GDNN.Utilities;
 
@@ -326,8 +324,12 @@ public static class HashUtils
         int remaining = length - index;
         switch (remaining)
         {
-            case 3: k1Remaining |= (uint)data[index + 2] << 16; goto case 2;
-            case 2: k1Remaining |= (uint)data[index + 1] << 8; goto case 1;
+            case 3:
+                k1Remaining |= (uint)data[index + 2] << 16;
+                goto case 2;
+            case 2:
+                k1Remaining |= (uint)data[index + 1] << 8;
+                goto case 1;
             case 1:
                 k1Remaining |= data[index];
                 k1Remaining *= C1;
@@ -374,11 +376,21 @@ public static class HashUtils
             ulong blockK1 = BinaryPrimitives.ReadUInt64LittleEndian(data.Slice(index));
             ulong blockK2 = BinaryPrimitives.ReadUInt64LittleEndian(data.Slice(index + 8));
 
-            blockK1 *= C1; blockK1 = BitOperations.RotateLeft(blockK1, 31); blockK1 *= C2; h1 ^= blockK1;
-            h1 = BitOperations.RotateLeft(h1, 27); h1 += h2; h1 = h1 * 5 + 0x52dce729;
+            blockK1 *= C1;
+            blockK1 = BitOperations.RotateLeft(blockK1, 31);
+            blockK1 *= C2;
+            h1 ^= blockK1;
+            h1 = BitOperations.RotateLeft(h1, 27);
+            h1 += h2;
+            h1 = h1 * 5 + 0x52dce729;
 
-            blockK2 *= C2; blockK2 = BitOperations.RotateLeft(blockK2, 33); blockK2 *= C1; h2 ^= blockK2;
-            h2 = BitOperations.RotateLeft(h2, 31); h2 += h1; h2 = h2 * 5 + 0x38495ab5;
+            blockK2 *= C2;
+            blockK2 = BitOperations.RotateLeft(blockK2, 33);
+            blockK2 *= C1;
+            h2 ^= blockK2;
+            h2 = BitOperations.RotateLeft(h2, 31);
+            h2 += h1;
+            h2 = h2 * 5 + 0x38495ab5;
         }
 
         ulong k1 = 0, k2 = 0;
@@ -387,7 +399,10 @@ public static class HashUtils
         if (remaining >= 8)
         {
             k1 = BinaryPrimitives.ReadUInt64LittleEndian(data.Slice(index));
-            k1 *= C1; k1 = BitOperations.RotateLeft(k1, 31); k1 *= C2; h1 ^= k1;
+            k1 *= C1;
+            k1 = BitOperations.RotateLeft(k1, 31);
+            k1 *= C2;
+            h1 ^= k1;
             index += 8;
             remaining -= 8;
         }
@@ -395,23 +410,42 @@ public static class HashUtils
         if (remaining >= 4)
         {
             k2 = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(index));
-            k2 *= C2; k2 = BitOperations.RotateLeft(k2, 33); k2 *= C1; h2 ^= k2;
+            k2 *= C2;
+            k2 = BitOperations.RotateLeft(k2, 33);
+            k2 *= C1;
+            h2 ^= k2;
             index += 4;
             remaining -= 4;
         }
 
-        k1 = 0; k2 = 0;
+        k1 = 0;
+        k2 = 0;
         switch (remaining)
         {
-            case 7: k1 |= (ulong)data[index + 6] << 48; goto case 6;
-            case 6: k1 |= (ulong)data[index + 5] << 40; goto case 5;
-            case 5: k1 |= (ulong)data[index + 4] << 32; goto case 4;
-            case 4: k1 |= (ulong)data[index + 3] << 24; goto case 3;
-            case 3: k1 |= (ulong)data[index + 2] << 16; goto case 2;
-            case 2: k1 |= (ulong)data[index + 1] << 8; goto case 1;
+            case 7:
+                k1 |= (ulong)data[index + 6] << 48;
+                goto case 6;
+            case 6:
+                k1 |= (ulong)data[index + 5] << 40;
+                goto case 5;
+            case 5:
+                k1 |= (ulong)data[index + 4] << 32;
+                goto case 4;
+            case 4:
+                k1 |= (ulong)data[index + 3] << 24;
+                goto case 3;
+            case 3:
+                k1 |= (ulong)data[index + 2] << 16;
+                goto case 2;
+            case 2:
+                k1 |= (ulong)data[index + 1] << 8;
+                goto case 1;
             case 1:
                 k1 |= data[index];
-                k1 *= C1; k1 = BitOperations.RotateLeft(k1, 31); k1 *= C2; h1 ^= k1;
+                k1 *= C1;
+                k1 = BitOperations.RotateLeft(k1, 31);
+                k1 *= C2;
+                h1 ^= k1;
                 break;
         }
 
@@ -753,7 +787,8 @@ public static class HashUtils
     public static uint HashFloat(float value)
     {
         uint bits = BitConverter.SingleToUInt32Bits(value);
-        if (bits == 0x80000000) bits = 0;
+        if (bits == 0x80000000)
+            bits = 0;
         return MurmurMix32(bits);
     }
 

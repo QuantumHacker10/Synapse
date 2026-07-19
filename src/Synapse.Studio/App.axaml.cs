@@ -2,13 +2,13 @@ using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using GDNN.Studio.ViewModels;
-using GDNN.Studio.Views;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
 using Synapse.Runtime;
+using Synapse.Studio.ViewModels;
+using Synapse.Studio.Views;
 
-namespace GDNN.Studio
+namespace Synapse.Studio
 {
     public partial class App : Application
     {

@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: RayMarcher.cs
 // PATH: Evaluation/RayMarcher.cs
@@ -24,10 +6,26 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using GDNN.Core.NeuralNetwork;
 
 namespace GDNN.Evaluation
@@ -281,7 +279,8 @@ namespace GDNN.Evaluation
                 return false;
 
             Vector3 velocity = VelocityBuffer[screenX, screenY];
-            if (velocity.LengthSquared() < 1e-10f) return false;
+            if (velocity.LengthSquared() < 1e-10f)
+                return false;
 
             var key = (screenX, screenY);
             if (!PreviousHits.TryGetValue(key, out Vector3 prevHit))
@@ -374,32 +373,33 @@ namespace GDNN.Evaluation
 
                 // Fill the SDF grid with minimum values per cell
                 for (int z = 0; z < res; z++)
-                for (int y = 0; y < res; y++)
-                for (int x = 0; x < res; x++)
-                {
-                    Vector3 cellCenter = worldBounds.Min + new Vector3(
-                        (x + 0.5f) * cellSize,
-                        (y + 0.5f) * cellSize,
-                        (z + 0.5f) * cellSize);
+                    for (int y = 0; y < res; y++)
+                        for (int x = 0; x < res; x++)
+                        {
+                            Vector3 cellCenter = worldBounds.Min + new Vector3(
+                                (x + 0.5f) * cellSize,
+                                (y + 0.5f) * cellSize,
+                                (z + 0.5f) * cellSize);
 
-                    float minSdf = float.MaxValue;
+                            float minSdf = float.MaxValue;
 
-                    // Sample corners of the cell
-                    for (int dz = 0; dz <= 1; dz++)
-                    for (int dy = 0; dy <= 1; dy++)
-                    for (int dx = 0; dx <= 1; dx++)
-                    {
-                        Vector3 corner = worldBounds.Min + new Vector3(
-                            (x + dx) * cellSize,
-                            (y + dy) * cellSize,
-                            (z + dz) * cellSize);
+                            // Sample corners of the cell
+                            for (int dz = 0; dz <= 1; dz++)
+                                for (int dy = 0; dy <= 1; dy++)
+                                    for (int dx = 0; dx <= 1; dx++)
+                                    {
+                                        Vector3 corner = worldBounds.Min + new Vector3(
+                                            (x + dx) * cellSize,
+                                            (y + dy) * cellSize,
+                                            (z + dz) * cellSize);
 
-                        float sdf = network.Evaluate(corner);
-                        if (sdf < minSdf) minSdf = sdf;
-                    }
+                                        float sdf = network.Evaluate(corner);
+                                        if (sdf < minSdf)
+                                            minSdf = sdf;
+                                    }
 
-                    hierarchyLevel.SdfValues[x + y * res + z * res * res] = minSdf;
-                }
+                            hierarchyLevel.SdfValues[x + y * res + z * res * res] = minSdf;
+                        }
 
                 _hierarchyLevels.Add(hierarchyLevel);
             }
@@ -555,7 +555,8 @@ namespace GDNN.Evaluation
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private float ComputeAdaptiveScale(float currentSdf, float prevSdf, float distance)
         {
-            if (MathF.Abs(prevSdf) < 1e-8f) return 1.0f;
+            if (MathF.Abs(prevSdf) < 1e-8f)
+                return 1.0f;
 
             float ratio = MathF.Abs(currentSdf / prevSdf);
             float scale = 1.0f;
@@ -742,7 +743,8 @@ namespace GDNN.Evaluation
         {
             float eta = 1.0f / _config.RefractionIndex;
             float dot = Vector3.Dot(incidentDirection, normal);
-            if (dot > 0) eta = _config.RefractionIndex;
+            if (dot > 0)
+                eta = _config.RefractionIndex;
 
             return TraceRefraction(network, hitPoint, normal, incidentDirection, eta);
         }
@@ -851,7 +853,8 @@ namespace GDNN.Evaluation
             Vector3 gradient = network.ComputeGradient(point);
             float gradLen = gradient.Length();
 
-            if (gradLen < 1e-8f) return 0.0f;
+            if (gradLen < 1e-8f)
+                return 0.0f;
 
             Vector3 normal = gradient / gradLen;
 
@@ -916,7 +919,8 @@ namespace GDNN.Evaluation
             Quaternion currentCameraRot, out Vector3 reprojectedOrigin)
         {
             reprojectedOrigin = Vector3.Zero;
-            if (!_config.EnableReprojection) return false;
+            if (!_config.EnableReprojection)
+                return false;
             return _temporalData.TryReproject(screenX, screenY, currentCameraPos, currentCameraRot,
                 out reprojectedOrigin);
         }
@@ -929,7 +933,8 @@ namespace GDNN.Evaluation
         /// <param name="hitPoint">World-space hit point.</param>
         public void UpdateTemporalData(int screenX, int screenY, Vector3 hitPoint)
         {
-            if (!_config.EnableReprojection) return;
+            if (!_config.EnableReprojection)
+                return;
 
             _temporalData.PreviousHits[(screenX, screenY)] = hitPoint;
 
@@ -1028,7 +1033,8 @@ namespace GDNN.Evaluation
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _hierarchyLevels.Clear();
             GC.SuppressFinalize(this);
@@ -1058,7 +1064,8 @@ namespace GDNN.Evaluation
             float cosI = -Vector3.Dot(incident, normal);
             float sinT2 = etaRatio * etaRatio * (1.0f - cosI * cosI);
 
-            if (sinT2 > 1.0f) return Vector3.Zero; // Total internal reflection
+            if (sinT2 > 1.0f)
+                return Vector3.Zero; // Total internal reflection
 
             float cosT = MathF.Sqrt(1.0f - sinT2);
             return etaRatio * incident + (etaRatio * cosI - cosT) * normal;

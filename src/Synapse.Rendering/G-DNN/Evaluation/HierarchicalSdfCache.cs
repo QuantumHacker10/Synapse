@@ -372,19 +372,19 @@ public sealed class HierarchicalSdfCache : IDisposable
         float stepSize = _cellSize * (1 << lodLevel);
 
         for (float z = center.Z - radius; z <= center.Z + radius; z += stepSize)
-        for (float y = center.Y - radius; y <= center.Y + radius; y += stepSize)
-        for (float x = center.X - radius; x <= center.X + radius; x += stepSize)
-        {
-            Vector3 point = new Vector3(x, y, z);
-            if (Vector3.Distance(point, center) <= radius)
-            {
-                EvaluateCached(network, point, lodLevel);
-                prefetchCount++;
+            for (float y = center.Y - radius; y <= center.Y + radius; y += stepSize)
+                for (float x = center.X - radius; x <= center.X + radius; x += stepSize)
+                {
+                    Vector3 point = new Vector3(x, y, z);
+                    if (Vector3.Distance(point, center) <= radius)
+                    {
+                        EvaluateCached(network, point, lodLevel);
+                        prefetchCount++;
 
-                if (prefetchCount >= _config.CacheSizePerLevel / 4)
-                    return; // Limit prefetch work
-            }
-        }
+                        if (prefetchCount >= _config.CacheSizePerLevel / 4)
+                            return; // Limit prefetch work
+                    }
+                }
     }
 
     /// <summary>
@@ -490,7 +490,8 @@ public sealed class HierarchicalSdfCache : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         _cacheLock.Dispose();
         _cacheLevels.Clear();
@@ -525,7 +526,8 @@ public sealed class HierarchicalSdfCache : IDisposable
 
     private void EvictOldest(int level)
     {
-        if (_cacheLevels[level].Count == 0) return;
+        if (_cacheLevels[level].Count == 0)
+            return;
 
         Vector3Int oldestKey = default;
         int oldestFrame = int.MaxValue;

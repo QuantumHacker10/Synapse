@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // EntityBehaviorSystem.cs
 // GDNN.Sentience - Complete Entity Behavior System for G-DNN Engine
 // =============================================================================
@@ -160,7 +160,8 @@ namespace GDNN.Sentience
 
         public void UpdateDominantEmotion()
         {
-            if (EmotionIntensities.Count == 0) { DominantEmotion = BaselineEmotion; return; }
+            if (EmotionIntensities.Count == 0)
+            { DominantEmotion = BaselineEmotion; return; }
             DominantEmotion = EmotionIntensities.OrderByDescending(kv => kv.Value).First().Key;
         }
 
@@ -169,17 +170,28 @@ namespace GDNN.Sentience
         public float GetValence()
         {
             float v = 0;
-            foreach (var (e, i) in EmotionIntensities) v += GetValence(e) * i;
+            foreach (var (e, i) in EmotionIntensities)
+                v += GetValence(e) * i;
             return Math.Clamp(v, -1, 1);
         }
 
         private static float GetValence(EmotionalState e) => e switch
         {
-            EmotionalState.Happy => 1f, EmotionalState.Sad => -1f, EmotionalState.Angry => -0.8f,
-            EmotionalState.Fearful => -0.9f, EmotionalState.Surprised => 0.3f, EmotionalState.Disgusted => -0.7f,
-            EmotionalState.Trusting => 0.6f, EmotionalState.Anticipating => 0.4f, EmotionalState.Calm => 0.7f,
-            EmotionalState.Excited => 0.8f, EmotionalState.Bored => -0.3f, EmotionalState.Curious => 0.5f,
-            EmotionalState.Confused => -0.2f, EmotionalState.Determined => 0.6f, EmotionalState.Anxious => -0.6f,
+            EmotionalState.Happy => 1f,
+            EmotionalState.Sad => -1f,
+            EmotionalState.Angry => -0.8f,
+            EmotionalState.Fearful => -0.9f,
+            EmotionalState.Surprised => 0.3f,
+            EmotionalState.Disgusted => -0.7f,
+            EmotionalState.Trusting => 0.6f,
+            EmotionalState.Anticipating => 0.4f,
+            EmotionalState.Calm => 0.7f,
+            EmotionalState.Excited => 0.8f,
+            EmotionalState.Bored => -0.3f,
+            EmotionalState.Curious => 0.5f,
+            EmotionalState.Confused => -0.2f,
+            EmotionalState.Determined => 0.6f,
+            EmotionalState.Anxious => -0.6f,
             _ => 0f
         };
     }
@@ -248,9 +260,11 @@ namespace GDNN.Sentience
                 if (_entityCells.TryGetValue(entityId, out var oldCell) && _cells.TryGetValue(oldCell, out var oldSet))
                 {
                     oldSet.Remove(entityId);
-                    if (oldSet.Count == 0) _cells.Remove(oldCell);
+                    if (oldSet.Count == 0)
+                        _cells.Remove(oldCell);
                 }
-                if (!_cells.TryGetValue(cell, out var cellSet)) { cellSet = new HashSet<Guid>(); _cells[cell] = cellSet; }
+                if (!_cells.TryGetValue(cell, out var cellSet))
+                { cellSet = new HashSet<Guid>(); _cells[cell] = cellSet; }
                 cellSet.Add(entityId);
                 _entityCells[entityId] = cell;
             }
@@ -263,7 +277,8 @@ namespace GDNN.Sentience
                 if (_entityCells.TryGetValue(entityId, out var cell) && _cells.TryGetValue(cell, out var cellSet))
                 {
                     cellSet.Remove(entityId);
-                    if (cellSet.Count == 0) _cells.Remove(cell);
+                    if (cellSet.Count == 0)
+                        _cells.Remove(cell);
                 }
                 _entityCells.Remove(entityId);
             }
@@ -279,7 +294,8 @@ namespace GDNN.Sentience
                 for (int x = minCell.Item1; x <= maxCell.Item1; x++)
                     for (int y = minCell.Item2; y <= maxCell.Item2; y++)
                         for (int z = minCell.Item3; z <= maxCell.Item3; z++)
-                            if (_cells.TryGetValue((x, y, z), out var s)) results.AddRange(s);
+                            if (_cells.TryGetValue((x, y, z), out var s))
+                                results.AddRange(s);
             }
             return results;
         }
@@ -294,7 +310,8 @@ namespace GDNN.Sentience
                 for (int x = minCell.Item1; x <= maxCell.Item1; x++)
                     for (int y = minCell.Item2; y <= maxCell.Item2; y++)
                         for (int z = minCell.Item3; z <= maxCell.Item3; z++)
-                            if (_cells.TryGetValue((x, y, z), out var s)) results.AddRange(s);
+                            if (_cells.TryGetValue((x, y, z), out var s))
+                                results.AddRange(s);
             }
             return results;
         }
@@ -309,7 +326,8 @@ namespace GDNN.Sentience
                 if (positions.TryGetValue(id, out var pos))
                 {
                     float d = Vector3.DistanceSquared(point, pos);
-                    if (d < bestDistSq) { bestDistSq = d; nearest = id; }
+                    if (d < bestDistSq)
+                    { bestDistSq = d; nearest = id; }
                 }
             }
             return nearest;
@@ -341,9 +359,11 @@ namespace GDNN.Sentience
             _lock.EnterUpgradeableReadLock();
             try
             {
-                if (_data.TryGetValue(key, out var v) && v is T t) return t;
+                if (_data.TryGetValue(key, out var v) && v is T t)
+                    return t;
                 _lock.EnterWriteLock();
-                try { var nv = factory(); _data[key] = nv; _lastModified[key] = DateTime.UtcNow; return nv; }
+                try
+                { var nv = factory(); _data[key] = nv; _lastModified[key] = DateTime.UtcNow; return nv; }
                 finally { _lock.ExitWriteLock(); }
             }
             finally { _lock.ExitUpgradeableReadLock(); }
@@ -378,7 +398,8 @@ namespace GDNN.Sentience
 
         public virtual bool Validate(List<string> errors)
         {
-            if (string.IsNullOrWhiteSpace(Name)) { errors.Add($"Node {Id} has no name."); return false; }
+            if (string.IsNullOrWhiteSpace(Name))
+            { errors.Add($"Node {Id} has no name."); return false; }
             return true;
         }
 
@@ -397,12 +418,15 @@ namespace GDNN.Sentience
 
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
-            if (_children.Count == 0) { CurrentStatus = TaskStatus.Success; return CurrentStatus; }
+            if (_children.Count == 0)
+            { CurrentStatus = TaskStatus.Success; return CurrentStatus; }
             for (int i = _currentChildIndex; i < _children.Count; i++)
             {
                 var status = _children[i].Tick(entity, context, deltaTime);
-                if (status == TaskStatus.Running || status == TaskStatus.Pending) { _currentChildIndex = i; CurrentStatus = TaskStatus.Running; return CurrentStatus; }
-                if (status == TaskStatus.Failure) { _currentChildIndex = 0; CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
+                if (status == TaskStatus.Running || status == TaskStatus.Pending)
+                { _currentChildIndex = i; CurrentStatus = TaskStatus.Running; return CurrentStatus; }
+                if (status == TaskStatus.Failure)
+                { _currentChildIndex = 0; CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
             }
             _currentChildIndex = 0;
             CurrentStatus = TaskStatus.Success;
@@ -415,10 +439,14 @@ namespace GDNN.Sentience
 
         public override bool Validate(List<string> errors)
         {
-            if (!base.Validate(errors)) return false;
-            if (_children.Count == 0) { errors.Add($"Sequence '{Name}' has no children."); return false; }
+            if (!base.Validate(errors))
+                return false;
+            if (_children.Count == 0)
+            { errors.Add($"Sequence '{Name}' has no children."); return false; }
             bool valid = true;
-            foreach (var c in _children) if (!c.Validate(errors)) valid = false;
+            foreach (var c in _children)
+                if (!c.Validate(errors))
+                    valid = false;
             return valid;
         }
     }
@@ -435,12 +463,15 @@ namespace GDNN.Sentience
 
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
-            if (_children.Count == 0) { CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
+            if (_children.Count == 0)
+            { CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
             for (int i = _currentChildIndex; i < _children.Count; i++)
             {
                 var status = _children[i].Tick(entity, context, deltaTime);
-                if (status == TaskStatus.Running || status == TaskStatus.Pending) { _currentChildIndex = i; CurrentStatus = TaskStatus.Running; return CurrentStatus; }
-                if (status == TaskStatus.Success) { _currentChildIndex = 0; CurrentStatus = TaskStatus.Success; return CurrentStatus; }
+                if (status == TaskStatus.Running || status == TaskStatus.Pending)
+                { _currentChildIndex = i; CurrentStatus = TaskStatus.Running; return CurrentStatus; }
+                if (status == TaskStatus.Success)
+                { _currentChildIndex = 0; CurrentStatus = TaskStatus.Success; return CurrentStatus; }
             }
             _currentChildIndex = 0;
             CurrentStatus = TaskStatus.Failure;
@@ -453,10 +484,14 @@ namespace GDNN.Sentience
 
         public override bool Validate(List<string> errors)
         {
-            if (!base.Validate(errors)) return false;
-            if (_children.Count == 0) { errors.Add($"Selector '{Name}' has no children."); return false; }
+            if (!base.Validate(errors))
+                return false;
+            if (_children.Count == 0)
+            { errors.Add($"Selector '{Name}' has no children."); return false; }
             bool valid = true;
-            foreach (var c in _children) if (!c.Validate(errors)) valid = false;
+            foreach (var c in _children)
+                if (!c.Validate(errors))
+                    valid = false;
             return valid;
         }
     }
@@ -475,7 +510,8 @@ namespace GDNN.Sentience
 
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
-            if (_children.Count == 0) { CurrentStatus = TaskStatus.Success; return CurrentStatus; }
+            if (_children.Count == 0)
+            { CurrentStatus = TaskStatus.Success; return CurrentStatus; }
             int sc = 0, fc = 0;
             foreach (var child in _children)
             {
@@ -483,11 +519,15 @@ namespace GDNN.Sentience
                 { if (es == TaskStatus.Success) sc++; else if (es == TaskStatus.Failure) fc++; continue; }
                 var s = child.Tick(entity, context, deltaTime);
                 _childStatuses[child.Id] = s;
-                if (s == TaskStatus.Success) sc++;
-                else if (s == TaskStatus.Failure) fc++;
+                if (s == TaskStatus.Success)
+                    sc++;
+                else if (s == TaskStatus.Failure)
+                    fc++;
             }
-            if (fc >= _failureThreshold) { CurrentStatus = TaskStatus.Failure; _childStatuses.Clear(); return CurrentStatus; }
-            if (sc >= _successThreshold) { CurrentStatus = TaskStatus.Success; _childStatuses.Clear(); return CurrentStatus; }
+            if (fc >= _failureThreshold)
+            { CurrentStatus = TaskStatus.Failure; _childStatuses.Clear(); return CurrentStatus; }
+            if (sc >= _successThreshold)
+            { CurrentStatus = TaskStatus.Success; _childStatuses.Clear(); return CurrentStatus; }
             CurrentStatus = TaskStatus.Running;
             return CurrentStatus;
         }
@@ -505,7 +545,8 @@ namespace GDNN.Sentience
 
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
-            try { CurrentStatus = _condition(entity, context) ? TaskStatus.Success : TaskStatus.Failure; }
+            try
+            { CurrentStatus = _condition(entity, context) ? TaskStatus.Success : TaskStatus.Failure; }
             catch { CurrentStatus = TaskStatus.Failure; }
             return CurrentStatus;
         }
@@ -528,7 +569,8 @@ namespace GDNN.Sentience
         {
             try
             {
-                if (_duration > 0) { _elapsed += deltaTime; if (_elapsed < _duration) { CurrentStatus = TaskStatus.Running; return CurrentStatus; } _elapsed = 0; }
+                if (_duration > 0)
+                { _elapsed += deltaTime; if (_elapsed < _duration) { CurrentStatus = TaskStatus.Running; return CurrentStatus; } _elapsed = 0; }
                 CurrentStatus = _action(entity, context, deltaTime);
             }
             catch { CurrentStatus = TaskStatus.Failure; }
@@ -573,9 +615,12 @@ namespace GDNN.Sentience
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
             var s = Child.Tick(entity, context, deltaTime);
-            if (s == TaskStatus.Running || s == TaskStatus.Pending) { CurrentStatus = TaskStatus.Running; return CurrentStatus; }
-            _count++; Child.Reset();
-            if (_repetitions > 0 && _count >= _repetitions) { _count = 0; CurrentStatus = TaskStatus.Success; return CurrentStatus; }
+            if (s == TaskStatus.Running || s == TaskStatus.Pending)
+            { CurrentStatus = TaskStatus.Running; return CurrentStatus; }
+            _count++;
+            Child.Reset();
+            if (_repetitions > 0 && _count >= _repetitions)
+            { _count = 0; CurrentStatus = TaskStatus.Success; return CurrentStatus; }
             CurrentStatus = TaskStatus.Running;
             return CurrentStatus;
         }
@@ -593,9 +638,11 @@ namespace GDNN.Sentience
 
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
-            if (_remaining > 0) { _remaining -= deltaTime; CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
+            if (_remaining > 0)
+            { _remaining -= deltaTime; CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
             var s = Child.Tick(entity, context, deltaTime);
-            if (s != TaskStatus.Running) _remaining = _duration;
+            if (s != TaskStatus.Running)
+                _remaining = _duration;
             CurrentStatus = s;
             return CurrentStatus;
         }
@@ -617,17 +664,20 @@ namespace GDNN.Sentience
 
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
-            if (_children.Count == 0) { CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
+            if (_children.Count == 0)
+            { CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
             if (_selected == null)
             {
                 float total = _children.Sum(c => c.Weight);
                 float r = (float)(_rng.NextDouble() * total);
                 float cum = 0;
-                foreach (var (n, w) in _children) { cum += w; if (r <= cum) { _selected = n; break; } }
+                foreach (var (n, w) in _children)
+                { cum += w; if (r <= cum) { _selected = n; break; } }
                 _selected ??= _children[^1].Node;
             }
             var s = _selected.Tick(entity, context, deltaTime);
-            if (s != TaskStatus.Running) _selected = null;
+            if (s != TaskStatus.Running)
+                _selected = null;
             CurrentStatus = s;
             return CurrentStatus;
         }
@@ -652,18 +702,21 @@ namespace GDNN.Sentience
 
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
-            if (_children.Count == 0 || _selCount >= _maxSel) { CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
+            if (_children.Count == 0 || _selCount >= _maxSel)
+            { CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
             if (_selected == null)
             {
                 float total = _children.Sum(c => c.Weight);
                 float r = (float)(_rng.NextDouble() * total);
                 float cum = 0;
-                foreach (var (n, w) in _children) { cum += w; if (r <= cum) { _selected = n; break; } }
+                foreach (var (n, w) in _children)
+                { cum += w; if (r <= cum) { _selected = n; break; } }
                 _selected ??= _children[^1].Node;
                 _selCount++;
             }
             var s = _selected.Tick(entity, context, deltaTime);
-            if (s != TaskStatus.Running) _selected = null;
+            if (s != TaskStatus.Running)
+                _selected = null;
             CurrentStatus = s;
             return CurrentStatus;
         }
@@ -685,9 +738,12 @@ namespace GDNN.Sentience
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
             var s = _child.Tick(entity, context, deltaTime);
-            if (s == TaskStatus.Running) { CurrentStatus = TaskStatus.Running; return CurrentStatus; }
-            _iter++; _child.Reset();
-            if (_iterations > 0 && _iter >= _iterations) { _iter = 0; CurrentStatus = TaskStatus.Success; return CurrentStatus; }
+            if (s == TaskStatus.Running)
+            { CurrentStatus = TaskStatus.Running; return CurrentStatus; }
+            _iter++;
+            _child.Reset();
+            if (_iterations > 0 && _iter >= _iterations)
+            { _iter = 0; CurrentStatus = TaskStatus.Success; return CurrentStatus; }
             CurrentStatus = TaskStatus.Running;
             return CurrentStatus;
         }
@@ -709,7 +765,8 @@ namespace GDNN.Sentience
 
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
-            try { if (!_condition(entity, context)) { CurrentStatus = TaskStatus.Failure; return CurrentStatus; } }
+            try
+            { if (!_condition(entity, context)) { CurrentStatus = TaskStatus.Failure; return CurrentStatus; } }
             catch { CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
             CurrentStatus = _child.Tick(entity, context, deltaTime);
             return CurrentStatus;
@@ -746,7 +803,8 @@ namespace GDNN.Sentience
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
             _elapsed += deltaTime;
-            if (_elapsed >= _duration) { _elapsed = 0; CurrentStatus = TaskStatus.Success; return CurrentStatus; }
+            if (_elapsed >= _duration)
+            { _elapsed = 0; CurrentStatus = TaskStatus.Success; return CurrentStatus; }
             CurrentStatus = TaskStatus.Running;
             return CurrentStatus;
         }
@@ -770,12 +828,15 @@ namespace GDNN.Sentience
 
         public override TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
-            if (!_sent) { _sent = true; _ = QueryAsync(entity, context); CurrentStatus = TaskStatus.Running; return CurrentStatus; }
+            if (!_sent)
+            { _sent = true; _ = QueryAsync(entity, context); CurrentStatus = TaskStatus.Running; return CurrentStatus; }
             if (!string.IsNullOrEmpty(_response))
             {
-                try { CurrentStatus = _handler(entity, context, _response); }
+                try
+                { CurrentStatus = _handler(entity, context, _response); }
                 catch { CurrentStatus = TaskStatus.Failure; }
-                _sent = false; _response = string.Empty;
+                _sent = false;
+                _response = string.Empty;
                 return CurrentStatus;
             }
             CurrentStatus = TaskStatus.Running;
@@ -787,8 +848,13 @@ namespace GDNN.Sentience
             try
             {
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_timeout));
-                await Task.Delay(50, cts.Token);
-                _response = $"Entity {entity.EntityId} context: {_prompt}";
+                if (BehaviorLlmContext.QueryAsync != null)
+                    _response = await BehaviorLlmContext.QueryAsync(_prompt, entity, context, cts.Token).ConfigureAwait(false);
+                else
+                {
+                    await Task.Delay(50, cts.Token).ConfigureAwait(false);
+                    _response = $"Entity {entity.EntityId} context: {_prompt}";
+                }
             }
             catch { _response = "TIMEOUT"; }
         }
@@ -822,7 +888,8 @@ namespace GDNN.Sentience
 
         public TaskStatus Tick(SentientEntity entity, EntityContext context, float deltaTime)
         {
-            if (_root == null || !_isValid) return TaskStatus.Failure;
+            if (_root == null || !_isValid)
+                return TaskStatus.Failure;
             _tickTimer.Restart();
             var status = _root.Tick(entity, context, deltaTime);
             _tickTimer.Stop();
@@ -834,7 +901,8 @@ namespace GDNN.Sentience
         public bool Validate()
         {
             _validationErrors.Clear();
-            if (_root == null) { _validationErrors.Add("No root node."); _isValid = false; return false; }
+            if (_root == null)
+            { _validationErrors.Add("No root node."); _isValid = false; return false; }
             _isValid = _root.Validate(_validationErrors);
             return _isValid;
         }
@@ -846,7 +914,8 @@ namespace GDNN.Sentience
 
         public string Serialize()
         {
-            if (_root == null) return "{}";
+            if (_root == null)
+                return "{}";
             var bp = ToBlueprint(_root);
             return JsonSerializer.Serialize(bp, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         }
@@ -856,7 +925,8 @@ namespace GDNN.Sentience
             try
             {
                 var bp = JsonSerializer.Deserialize<BehaviorTreeBlueprint>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (bp == null) return null;
+                if (bp == null)
+                    return null;
                 return new BehaviorTree("Deserialized") { Root = FromBlueprint(bp) };
             }
             catch { return null; }
@@ -867,18 +937,24 @@ namespace GDNN.Sentience
             var tree = new BehaviorTree(name);
             var root = new SequenceNode("Root");
             var words = prompt.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (words.Contains("patrol") || words.Contains("wander")) root = CreatePatrol(root);
-            if (words.Contains("attack") || words.Contains("fight")) root = CreateCombat(root);
-            if (words.Contains("flee") || words.Contains("escape")) root = CreateFlee(root);
-            if (words.Contains("guard") || words.Contains("protect")) root = CreateGuard(root);
-            if (words.Contains("follow") || words.Contains("chase")) root = CreateFollow(root);
+            if (words.Contains("patrol") || words.Contains("wander"))
+                root = CreatePatrol(root);
+            if (words.Contains("attack") || words.Contains("fight"))
+                root = CreateCombat(root);
+            if (words.Contains("flee") || words.Contains("escape"))
+                root = CreateFlee(root);
+            if (words.Contains("guard") || words.Contains("protect"))
+                root = CreateGuard(root);
+            if (words.Contains("follow") || words.Contains("chase"))
+                root = CreateFollow(root);
             tree.Root = root;
             return tree;
         }
 
         public void Optimize()
         {
-            if (_root == null) return;
+            if (_root == null)
+                return;
             _root = OptimizeNode(_root);
             RebuildIndex();
             Validate();
@@ -886,14 +962,16 @@ namespace GDNN.Sentience
 
         private IBehaviorNode OptimizeNode(IBehaviorNode node)
         {
-            if ((node is SucceederNode or FailerNode) && node.GetChildren().Count == 1) return node.GetChildren()[0];
+            if ((node is SucceederNode or FailerNode) && node.GetChildren().Count == 1)
+                return node.GetChildren()[0];
             return node;
         }
 
         private void RebuildIndex()
         {
             _nodeIndex.Clear();
-            if (_root != null) IndexNode(_root);
+            if (_root != null)
+                IndexNode(_root);
         }
 
         private void IndexNode(IBehaviorNode node) { _nodeIndex[node.Id] = node; foreach (var c in node.GetChildren()) IndexNode(c); }
@@ -901,7 +979,8 @@ namespace GDNN.Sentience
         private static BehaviorTreeBlueprint ToBlueprint(IBehaviorNode node)
         {
             var bp = new BehaviorTreeBlueprint { NodeType = node.NodeType, NodeId = node.Id, Name = node.Name };
-            foreach (var c in node.GetChildren()) bp.Children.Add(ToBlueprint(c));
+            foreach (var c in node.GetChildren())
+                bp.Children.Add(ToBlueprint(c));
             return bp;
         }
 
@@ -924,7 +1003,7 @@ namespace GDNN.Sentience
                 BehaviorNodeType.Succeeder => new SucceederNode(bp.Name, bp.Children.Count > 0 ? FromBlueprint(bp.Children[0]) : new WaitNode("E", 0)),
                 BehaviorNodeType.Failer => new FailerNode(bp.Name, bp.Children.Count > 0 ? FromBlueprint(bp.Children[0]) : new WaitNode("E", 0)),
                 BehaviorNodeType.Wait => new WaitNode(bp.Name, bp.CooldownDuration),
-                BehaviorNodeType.LLMQuery => new LLMQueryNode(bp.Name, bp.LLMPrompt, (_, _, _) => TaskStatus.Success),
+                BehaviorNodeType.LLMQuery => new LLMQueryNode(bp.Name, bp.LLMPrompt, BehaviorLlmContext.DefaultHandle),
                 _ => new WaitNode(bp.Name, 0)
             };
         }
@@ -1022,15 +1101,18 @@ namespace GDNN.Sentience
 
         public virtual void Update(EntityContext context, float deltaTime)
         {
-            if (CurrentState == BehaviorState.Terminated) return;
+            if (CurrentState == BehaviorState.Terminated)
+                return;
             EmotionalModel?.Update(this, context.PerceptionEvents, deltaTime);
-            if (EmotionalModel != null) CurrentEmotion = EmotionalModel.GetCurrentState(this);
+            if (EmotionalModel != null)
+                CurrentEmotion = EmotionalModel.GetCurrentState(this);
             if (BehaviorTree != null && BehaviorTree.IsValid)
             {
                 var s = BehaviorTree.Tick(this, context, deltaTime);
                 CurrentState = s switch { TaskStatus.Running => BehaviorState.Active, _ => BehaviorState.Idle };
             }
-            if (CanMove) Position += Velocity * deltaTime;
+            if (CanMove)
+                Position += Velocity * deltaTime;
             DecayNeeds(deltaTime);
         }
 
@@ -1042,7 +1124,8 @@ namespace GDNN.Sentience
 
         public void TransitionState(BehaviorState newState, string reason = "")
         {
-            if (CurrentState == BehaviorState.Terminated) return;
+            if (CurrentState == BehaviorState.Terminated)
+                return;
             var prev = CurrentState;
             CurrentState = BehaviorState.Transitioning;
             OnStateTransition(prev, newState, reason);
@@ -1056,39 +1139,47 @@ namespace GDNN.Sentience
             Health = Math.Max(0, Health - amount);
             MemorySystem?.Store(this, new MemoryEntry { Content = $"Took {amount} damage from {source}", Timestamp = Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond, EmotionalIntensity = Math.Min(1f, amount / MaxHealth), Importance = 0.9f, Type = MemoryType.Episodic, AssociatedEntities = new List<Guid> { source } });
             EmotionalModel?.ReactToEvent(this, new PerceptionEvent(PerceptionType.Tactile, source, Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond, Math.Min(1f, amount / MaxHealth), Position, Vector3.Zero, $"Took {amount} damage", 1f));
-            if (Health <= 0) TransitionState(BehaviorState.Terminated, "Health depleted");
+            if (Health <= 0)
+                TransitionState(BehaviorState.Terminated, "Health depleted");
         }
 
         public void Heal(float amount) { Health = Math.Min(MaxHealth, Health + amount); }
 
         public bool MoveToward(Vector3 target, float speed, float deltaTime)
         {
-            if (!CanMove) return false;
+            if (!CanMove)
+                return false;
             var dir = Vector3.Normalize(target - Position);
             var dist = Vector3.Distance(Position, target);
             var step = speed * deltaTime;
-            if (step >= dist) { Position = target; Velocity = Vector3.Zero; return true; }
+            if (step >= dist)
+            { Position = target; Velocity = Vector3.Zero; return true; }
             Position += dir * step;
             Velocity = dir * speed;
-            if (dir.LengthSquared() > 0.001f) Orientation = SentienceQuaternion.LookRotation(dir, Vector3.UnitY);
+            if (dir.LengthSquared() > 0.001f)
+                Orientation = SentienceQuaternion.LookRotation(dir, Vector3.UnitY);
             return false;
         }
 
         public void MoveAwayFrom(Vector3 threat, float speed, float deltaTime)
         {
-            if (!CanMove) return;
+            if (!CanMove)
+                return;
             var dir = Vector3.Normalize(Position - threat);
             Position += dir * speed * deltaTime;
             Velocity = dir * speed;
-            if (dir.LengthSquared() > 0.001f) Orientation = SentienceQuaternion.LookRotation(dir, Vector3.UnitY);
+            if (dir.LengthSquared() > 0.001f)
+                Orientation = SentienceQuaternion.LookRotation(dir, Vector3.UnitY);
         }
 
         public float DistanceTo(SentientEntity other) => Vector3.Distance(Position, other.Position);
 
         public bool CanSee(SentientEntity other, float maxDist = -1)
         {
-            if (maxDist < 0) maxDist = PerceptionRadius;
-            if (DistanceTo(other) > maxDist) return false;
+            if (maxDist < 0)
+                maxDist = PerceptionRadius;
+            if (DistanceTo(other) > maxDist)
+                return false;
             var toOther = Vector3.Normalize(other.Position - Position);
             var angle = Math.Acos(Math.Clamp(Vector3.Dot(Forward, toOther), -1, 1));
             return angle <= FieldOfView / 2f * (Math.PI / 180);
@@ -1132,44 +1223,54 @@ namespace GDNN.Sentience
 
             foreach (var eid in nearbyIds)
             {
-                if (eid == entity.EntityId || !worldState.Entities.TryGetValue(eid, out var other)) continue;
+                if (eid == entity.EntityId || !worldState.Entities.TryGetValue(eid, out var other))
+                    continue;
                 float dist = entity.DistanceTo(other);
 
                 if (entity.PerceptionCapabilities.Contains(PerceptionType.Visual) && dist <= VisualRange)
                 {
                     var p = ProcessVisual(entity, other, dist, worldState);
-                    if (p != null) perceptions.Add(p);
+                    if (p != null)
+                        perceptions.Add(p);
                 }
                 if (entity.PerceptionCapabilities.Contains(PerceptionType.Auditory) && dist <= AuditoryRange)
                 {
                     var p = ProcessAuditory(entity, other, dist, worldState);
-                    if (p != null) perceptions.Add(p);
+                    if (p != null)
+                        perceptions.Add(p);
                 }
                 if (entity.PerceptionCapabilities.Contains(PerceptionType.Proximity) && dist <= ProximityRange)
                 {
                     var p = ProcessProximity(entity, other, dist);
-                    if (p != null) perceptions.Add(p);
+                    if (p != null)
+                        perceptions.Add(p);
                 }
                 if (entity.PerceptionCapabilities.Contains(PerceptionType.Semantic))
                 {
                     var p = ProcessSemantic(entity, other, dist);
-                    if (p != null) perceptions.Add(p);
+                    if (p != null)
+                        perceptions.Add(p);
                 }
                 if (entity.PerceptionCapabilities.Contains(PerceptionType.Emotional))
                 {
                     var p = ProcessEmotional(entity, other, dist);
-                    if (p != null) perceptions.Add(p);
+                    if (p != null)
+                        perceptions.Add(p);
                 }
             }
 
-            if (UseAttentionFiltering) perceptions = ApplyAttention(entity, perceptions);
-            lock (_lock) { _entityPerceptions[entity.EntityId] = perceptions; }
-            foreach (var p in perceptions) entity.AddPerception(p);
+            if (UseAttentionFiltering)
+                perceptions = ApplyAttention(entity, perceptions);
+            lock (_lock)
+            { _entityPerceptions[entity.EntityId] = perceptions; }
+            foreach (var p in perceptions)
+                entity.AddPerception(p);
         }
 
         public IReadOnlyList<PerceptionEvent> GetPerceptions(SentientEntity entity)
         {
-            lock (_lock) return _entityPerceptions.TryGetValue(entity.EntityId, out var p) ? p.AsReadOnly() : Array.Empty<PerceptionEvent>();
+            lock (_lock)
+                return _entityPerceptions.TryGetValue(entity.EntityId, out var p) ? p.AsReadOnly() : Array.Empty<PerceptionEvent>();
         }
 
         public IReadOnlyList<PerceptionEvent> FilterPerceptions(SentientEntity entity, PerceptionFilter filters)
@@ -1179,12 +1280,15 @@ namespace GDNN.Sentience
 
         private PerceptionEvent? ProcessVisual(SentientEntity obs, SentientEntity tgt, float dist, WorldStateData ws)
         {
-            if (!obs.CanSee(tgt)) return null;
+            if (!obs.CanSee(tgt))
+                return null;
             float visFactor = ws.Weather?.Visibility ?? 1f;
             float distFactor = Math.Max(0, 1f - dist / VisualRange);
             float conf = distFactor * visFactor;
-            if (dist > VisualRange * 0.8f) conf *= 0.5f;
-            if (conf < PerceptionThreshold) return null;
+            if (dist > VisualRange * 0.8f)
+                conf *= 0.5f;
+            if (conf < PerceptionThreshold)
+                return null;
             var dir = Vector3.Normalize(tgt.Position - obs.Position);
             return new PerceptionEvent(PerceptionType.Visual, tgt.EntityId, ws.Time, conf * visFactor, tgt.Position, dir, $"Visual contact with {tgt.EntityType}", conf);
         }
@@ -1192,14 +1296,16 @@ namespace GDNN.Sentience
         private PerceptionEvent? ProcessAuditory(SentientEntity obs, SentientEntity tgt, float dist, WorldStateData ws)
         {
             float intensity = 1f / (1f + dist * dist / (AuditoryRange * AuditoryRange));
-            if (SimulateOcclusion) intensity *= 0.8f;
+            if (SimulateOcclusion)
+                intensity *= 0.8f;
             if (ws.Weather?.WindSpeed > 0)
             {
                 var wd = new Vector3((float)Math.Cos(ws.Weather.WindDirection), 0, (float)Math.Sin(ws.Weather.WindDirection));
                 float we = Vector3.Dot(wd, Vector3.Normalize(tgt.Position - obs.Position));
                 intensity *= 1f + we * 0.2f;
             }
-            if (intensity < PerceptionThreshold) return null;
+            if (intensity < PerceptionThreshold)
+                return null;
             var dir = Vector3.Normalize(tgt.Position - obs.Position);
             return new PerceptionEvent(PerceptionType.Auditory, tgt.EntityId, ws.Time, intensity, tgt.Position, dir, $"Auditory from {tgt.EntityType}", intensity * 0.8f);
         }
@@ -1207,7 +1313,8 @@ namespace GDNN.Sentience
         private PerceptionEvent? ProcessProximity(SentientEntity obs, SentientEntity tgt, float dist)
         {
             float intensity = Math.Max(0, 1f - dist / ProximityRange);
-            if (intensity < PerceptionThreshold) return null;
+            if (intensity < PerceptionThreshold)
+                return null;
             var dir = Vector3.Normalize(tgt.Position - obs.Position);
             return new PerceptionEvent(PerceptionType.Proximity, tgt.EntityId, Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond, intensity, tgt.Position, dir, $"Proximity: {dist:F1} units", 1f);
         }
@@ -1215,7 +1322,8 @@ namespace GDNN.Sentience
         private PerceptionEvent? ProcessSemantic(SentientEntity obs, SentientEntity tgt, float dist)
         {
             float conf = 0.5f;
-            if (obs.Relationships.TryGetValue(tgt.EntityId, out var rel)) conf = Math.Min(1f, conf + 0.3f);
+            if (obs.Relationships.TryGetValue(tgt.EntityId, out var rel))
+                conf = Math.Min(1f, conf + 0.3f);
             var dir = Vector3.Normalize(tgt.Position - obs.Position);
             return new PerceptionEvent(PerceptionType.Semantic, tgt.EntityId, Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond, conf, tgt.Position, dir, $"Semantic: {tgt.EntityType} ({rel?.Type.ToString() ?? "Unknown"})", conf);
         }
@@ -1223,14 +1331,16 @@ namespace GDNN.Sentience
         private PerceptionEvent? ProcessEmotional(SentientEntity obs, SentientEntity tgt, float dist)
         {
             float distFactor = Math.Max(0, 1f - dist / (obs.PerceptionRadius * 0.5f));
-            if (distFactor < PerceptionThreshold) return null;
+            if (distFactor < PerceptionThreshold)
+                return null;
             var dir = Vector3.Normalize(tgt.Position - obs.Position);
             return new PerceptionEvent(PerceptionType.Emotional, tgt.EntityId, Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond, distFactor * 0.6f, tgt.Position, dir, $"Emotional: {tgt.CurrentEmotion}", distFactor * 0.5f);
         }
 
         private List<PerceptionEvent> ApplyAttention(SentientEntity entity, List<PerceptionEvent> perceptions)
         {
-            if (!_attentionModels.TryGetValue(entity.EntityId, out var am)) { am = new AttentionModel(); _attentionModels[entity.EntityId] = am; }
+            if (!_attentionModels.TryGetValue(entity.EntityId, out var am))
+            { am = new AttentionModel(); _attentionModels[entity.EntityId] = am; }
             return am.FilterPerceptions(perceptions);
         }
 
@@ -1267,10 +1377,14 @@ namespace GDNN.Sentience
             foreach (var p in perceptions)
             {
                 float score = p.Intensity * p.Confidence;
-                if (_arousal > 0.7f) score *= 1f + (_arousal - 0.7f) * 2f;
-                if (_weights.TryGetValue(p.Type, out var w)) score *= w;
-                if (_focus.TryGetValue(p.Source, out var f)) score *= 1f + f;
-                if (score >= 0.3f) filtered.Add(p);
+                if (_arousal > 0.7f)
+                    score *= 1f + (_arousal - 0.7f) * 2f;
+                if (_weights.TryGetValue(p.Type, out var w))
+                    score *= w;
+                if (_focus.TryGetValue(p.Source, out var f))
+                    score *= 1f + f;
+                if (score >= 0.3f)
+                    filtered.Add(p);
             }
             filtered.Sort((a, b) => (b.Intensity * b.Confidence).CompareTo(a.Intensity * a.Confidence));
             return filtered;
@@ -1282,7 +1396,8 @@ namespace GDNN.Sentience
         public void Update(float deltaTime)
         {
             _arousal = Math.Max(0, _arousal - deltaTime * 0.1f);
-            foreach (var k in _focus.Keys.ToList()) { _focus[k] -= deltaTime * 0.05f; if (_focus[k] <= 0) _focus.Remove(k); }
+            foreach (var k in _focus.Keys.ToList())
+            { _focus[k] -= deltaTime * 0.05f; if (_focus[k] <= 0) _focus.Remove(k); }
         }
     }
 
@@ -1310,7 +1425,8 @@ namespace GDNN.Sentience
         public void Update(SentientEntity entity, IReadOnlyList<PerceptionEvent> events, float deltaTime)
         {
             var sd = GetOrCreate(entity.EntityId);
-            foreach (var e in events) { var r = ReactToEvent(entity, e); ApplyResponse(sd, r, entity.EmotionalInertia); }
+            foreach (var e in events)
+            { var r = ReactToEvent(entity, e); ApplyResponse(sd, r, entity.EmotionalInertia); }
             _empathy.Update(entity, sd, deltaTime);
             ApplyDecay(sd, deltaTime, entity.EmotionalDecayRate);
             sd.Inertia = entity.EmotionalInertia;
@@ -1337,7 +1453,8 @@ namespace GDNN.Sentience
 
         private EmotionalStateData GetOrCreate(Guid eid)
         {
-            if (!_entityEmotions.TryGetValue(eid, out var sd)) { sd = new EmotionalStateData(); _entityEmotions[eid] = sd; }
+            if (!_entityEmotions.TryGetValue(eid, out var sd))
+            { sd = new EmotionalStateData(); _entityEmotions[eid] = sd; }
             return sd;
         }
 
@@ -1378,7 +1495,8 @@ namespace GDNN.Sentience
             float eff = r.Intensity * (1f - inertia);
             if (sd.EmotionIntensities.TryGetValue(r.Emotion, out var ci))
                 sd.EmotionIntensities[r.Emotion] = Math.Min(1f, ci + eff * (1f - ci));
-            else sd.EmotionIntensities[r.Emotion] = eff;
+            else
+                sd.EmotionIntensities[r.Emotion] = eff;
 
             if (Opposites.TryGetValue(r.Emotion, out var opp) && sd.EmotionIntensities.TryGetValue(opp, out var oi))
                 sd.EmotionIntensities[opp] = Math.Max(0, oi - eff * 0.3f);
@@ -1389,7 +1507,8 @@ namespace GDNN.Sentience
             foreach (var k in sd.EmotionIntensities.Keys.ToList())
             {
                 sd.EmotionIntensities[k] = Math.Max(0, sd.EmotionIntensities[k] - rate * dt);
-                if (sd.EmotionIntensities[k] <= 0.001f) sd.EmotionIntensities.Remove(k);
+                if (sd.EmotionIntensities[k] <= 0.001f)
+                    sd.EmotionIntensities.Remove(k);
             }
         }
 
@@ -1408,14 +1527,16 @@ namespace GDNN.Sentience
 
         public float CalculateDistance(EmotionalState a, EmotionalState b)
         {
-            if (!_angles.TryGetValue(a, out float aa) || !_angles.TryGetValue(b, out float ab)) return 180;
+            if (!_angles.TryGetValue(a, out float aa) || !_angles.TryGetValue(b, out float ab))
+                return 180;
             float d = Math.Abs(aa - ab);
             return Math.Min(d, 360 - d);
         }
 
         public EmotionalState? Blend(EmotionalState a, EmotionalState b, float factor)
         {
-            if (a == b) return a;
+            if (a == b)
+                return a;
             float dist = CalculateDistance(a, b);
             if (dist <= 90)
             {
@@ -1432,7 +1553,8 @@ namespace GDNN.Sentience
             foreach (var (e, a) in _angles)
             {
                 float d = Math.Min(Math.Abs(angle - a), 360 - Math.Abs(angle - a));
-                if (d < minD) { minD = d; best = e; }
+                if (d < minD)
+                { minD = d; best = e; }
             }
             return best;
         }
@@ -1457,7 +1579,8 @@ namespace GDNN.Sentience
         {
             float df = Math.Max(0, 1f - distance / EmpathyRange);
             float rf = 0.1f;
-            if (source.Relationships.TryGetValue(target.EntityId, out var r)) rf = r.Strength;
+            if (source.Relationships.TryGetValue(target.EntityId, out var r))
+                rf = r.Strength;
             return df * rf * EmpathyStrength;
         }
     }
@@ -1476,7 +1599,8 @@ namespace GDNN.Sentience
 
         private EntityMemoryBank GetOrCreate(Guid eid)
         {
-            if (!_entityMemories.TryGetValue(eid, out var b)) { b = new EntityMemoryBank(); _entityMemories[eid] = b; }
+            if (!_entityMemories.TryGetValue(eid, out var b))
+            { b = new EntityMemoryBank(); _entityMemories[eid] = b; }
             return b;
         }
 
@@ -1487,12 +1611,16 @@ namespace GDNN.Sentience
             if (bank.ShortTerm.Count > ShortTermCapacity)
             {
                 var oldest = bank.ShortTerm.OrderBy(m => m.Timestamp).First();
-                if (oldest.Importance >= ConsolidationThreshold) ConsolidateMemory(bank, oldest);
-                else bank.ShortTerm.Remove(oldest);
+                if (oldest.Importance >= ConsolidationThreshold)
+                    ConsolidateMemory(bank, oldest);
+                else
+                    bank.ShortTerm.Remove(oldest);
             }
             bank.Episodic.Add(memory);
-            if (memory.Type == MemoryType.Semantic) UpdateSemantic(bank, memory);
-            if (memory.Type == MemoryType.Procedural) UpdateProcedural(bank, memory);
+            if (memory.Type == MemoryType.Semantic)
+                UpdateSemantic(bank, memory);
+            if (memory.Type == MemoryType.Procedural)
+                UpdateProcedural(bank, memory);
         }
 
         public IReadOnlyList<MemoryEntry> Retrieve(SentientEntity entity, MemoryQuery query)
@@ -1505,11 +1633,16 @@ namespace GDNN.Sentience
             results.AddRange(Search(bank.Semantic, query));
             results.AddRange(Search(bank.Procedural, query));
             results = results.DistinctBy(m => m.Id).ToList();
-            if (query.SortByEmotionalIntensity) results = results.OrderByDescending(m => m.EmotionalIntensity).ToList();
-            else if (query.SortByImportance) results = results.OrderByDescending(m => m.Importance).ToList();
-            else if (query.SortByRecency) results = results.OrderByDescending(m => m.Timestamp).ToList();
-            if (results.Count > query.MaxResults) results = results.Take(query.MaxResults).ToList();
-            foreach (var m in results) { m.RetrievalCount++; m.LastRetrieved = Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond; }
+            if (query.SortByEmotionalIntensity)
+                results = results.OrderByDescending(m => m.EmotionalIntensity).ToList();
+            else if (query.SortByImportance)
+                results = results.OrderByDescending(m => m.Importance).ToList();
+            else if (query.SortByRecency)
+                results = results.OrderByDescending(m => m.Timestamp).ToList();
+            if (results.Count > query.MaxResults)
+                results = results.Take(query.MaxResults).ToList();
+            foreach (var m in results)
+            { m.RetrievalCount++; m.LastRetrieved = Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond; }
             return results.AsReadOnly();
         }
 
@@ -1529,12 +1662,14 @@ namespace GDNN.Sentience
         {
             var bank = GetOrCreate(entity.EntityId);
             var toCon = bank.ShortTerm.Where(m => m.Importance >= ConsolidationThreshold || m.EmotionalIntensity > 0.7f || m.RetrievalCount > 3).ToList();
-            foreach (var m in toCon) ConsolidateMemory(bank, m);
+            foreach (var m in toCon)
+                ConsolidateMemory(bank, m);
             var rehearsed = bank.Episodic.Where(m => m.RetrievalCount > 2 && !m.IsConsolidated).ToList();
             foreach (var m in rehearsed)
             {
                 m.ConsolidationStrength += 0.1f * m.RetrievalCount;
-                if (m.ConsolidationStrength >= 1f) { m.IsConsolidated = true; bank.LongTerm.Add(m); }
+                if (m.ConsolidationStrength >= 1f)
+                { m.IsConsolidated = true; bank.LongTerm.Add(m); }
             }
             ApplyDecay(bank);
         }
@@ -1552,7 +1687,8 @@ namespace GDNN.Sentience
 
         private void ConsolidateMemory(EntityMemoryBank bank, MemoryEntry m)
         {
-            if (!m.IsConsolidated) { m.IsConsolidated = true; m.ConsolidationStrength += 0.2f; bank.LongTerm.Add(m); }
+            if (!m.IsConsolidated)
+            { m.IsConsolidated = true; m.ConsolidationStrength += 0.2f; bank.LongTerm.Add(m); }
             bank.ShortTerm.Remove(m);
         }
 
@@ -1573,15 +1709,19 @@ namespace GDNN.Sentience
         private void UpdateSemantic(EntityMemoryBank bank, MemoryEntry m)
         {
             var existing = bank.Semantic.FirstOrDefault(s => s.Content == m.Content);
-            if (existing != null) { existing.RetrievalCount++; existing.Importance = Math.Min(1f, existing.Importance + 0.1f); }
-            else bank.Semantic.Add(m);
+            if (existing != null)
+            { existing.RetrievalCount++; existing.Importance = Math.Min(1f, existing.Importance + 0.1f); }
+            else
+                bank.Semantic.Add(m);
         }
 
         private void UpdateProcedural(EntityMemoryBank bank, MemoryEntry m)
         {
             var existing = bank.Procedural.FirstOrDefault(p => p.Content == m.Content);
-            if (existing != null) { existing.RetrievalCount++; existing.ConsolidationStrength = Math.Min(1f, existing.ConsolidationStrength + 0.1f); }
-            else bank.Procedural.Add(m);
+            if (existing != null)
+            { existing.RetrievalCount++; existing.ConsolidationStrength = Math.Min(1f, existing.ConsolidationStrength + 0.1f); }
+            else
+                bank.Procedural.Add(m);
         }
 
         private void ApplyDecay(EntityMemoryBank bank)
@@ -1593,7 +1733,8 @@ namespace GDNN.Sentience
                 {
                     float age = (float)(now - m.Timestamp);
                     m.DecayFactor = Math.Max(0, m.DecayFactor - age * 0.0001f * m.DecayFactor);
-                    if (m.DecayFactor <= 0.01f && m.Type != MemoryType.Procedural) list.Remove(m);
+                    if (m.DecayFactor <= 0.01f && m.Type != MemoryType.Procedural)
+                        list.Remove(m);
                 }
             }
         }
@@ -1628,22 +1769,26 @@ namespace GDNN.Sentience
 
         public void RemoveRelationship(Guid entityA, Guid entityB)
         {
-            lock (_lock) { _relationships.Remove(GetKey(entityA, entityB)); }
+            lock (_lock)
+            { _relationships.Remove(GetKey(entityA, entityB)); }
         }
 
         public Relationship? GetRelationship(Guid entityA, Guid entityB)
         {
-            lock (_lock) { return _relationships.TryGetValue(GetKey(entityA, entityB), out var r) ? r : null; }
+            lock (_lock)
+            { return _relationships.TryGetValue(GetKey(entityA, entityB), out var r) ? r : null; }
         }
 
         public List<Relationship> GetRelationshipsFor(Guid entityId)
         {
-            lock (_lock) { return _relationships.Values.Where(r => r.EntityA == entityId || r.EntityB == entityId).ToList(); }
+            lock (_lock)
+            { return _relationships.Values.Where(r => r.EntityA == entityId || r.EntityB == entityId).ToList(); }
         }
 
         public List<Relationship> GetRelationshipsOfType(RelationshipType type)
         {
-            lock (_lock) { return _relationships.Values.Where(r => r.Type == type).ToList(); }
+            lock (_lock)
+            { return _relationships.Values.Where(r => r.Type == type).ToList(); }
         }
 
         public void UpdateRelationshipStrength(Guid entityA, Guid entityB, float newStrength, string reason = "")
@@ -1655,7 +1800,8 @@ namespace GDNN.Sentience
                     var prev = r.Type;
                     r.History.Add(new RelationshipEvent(prev, r.Type, r.Strength, newStrength, Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond, reason));
                     r.Strength = Math.Clamp(newStrength, 0, 1);
-                    if (r.Strength <= 0.01f) r.Type = RelationshipType.Neutral;
+                    if (r.Strength <= 0.01f)
+                        r.Type = RelationshipType.Neutral;
                 }
             }
         }
@@ -1683,8 +1829,10 @@ namespace GDNN.Sentience
 
         private float PropagateHelper(Guid current, Guid target, int depth, HashSet<Guid> visited)
         {
-            if (depth <= 0 || !visited.Add(current)) return 0;
-            if (current == target) return 1f;
+            if (depth <= 0 || !visited.Add(current))
+                return 0;
+            if (current == target)
+                return 1f;
 
             float maxInfluence = 0;
             foreach (var r in _relationships.Values.Where(r => r.EntityA == current || r.EntityB == current))
@@ -1700,29 +1848,34 @@ namespace GDNN.Sentience
         {
             lock (_lock)
             {
-                if (!_groups.TryGetValue(groupName, out var members)) { members = new HashSet<Guid>(); _groups[groupName] = members; }
+                if (!_groups.TryGetValue(groupName, out var members))
+                { members = new HashSet<Guid>(); _groups[groupName] = members; }
                 members.Add(entityId);
             }
         }
 
         public void RemoveFromGroup(Guid entityId, string groupName)
         {
-            lock (_lock) { if (_groups.TryGetValue(groupName, out var m)) m.Remove(entityId); }
+            lock (_lock)
+            { if (_groups.TryGetValue(groupName, out var m)) m.Remove(entityId); }
         }
 
         public List<Guid> GetGroupMembers(string groupName)
         {
-            lock (_lock) { return _groups.TryGetValue(groupName, out var m) ? m.ToList() : new List<Guid>(); }
+            lock (_lock)
+            { return _groups.TryGetValue(groupName, out var m) ? m.ToList() : new List<Guid>(); }
         }
 
         public List<string> GetGroupsFor(Guid entityId)
         {
-            lock (_lock) { return _groups.Where(kv => kv.Value.Contains(entityId)).Select(kv => kv.Key).ToList(); }
+            lock (_lock)
+            { return _groups.Where(kv => kv.Value.Contains(entityId)).Select(kv => kv.Key).ToList(); }
         }
 
         public bool AreInSameGroup(Guid entityA, Guid entityB)
         {
-            lock (_lock) { return _groups.Values.Any(g => g.Contains(entityA) && g.Contains(entityB)); }
+            lock (_lock)
+            { return _groups.Values.Any(g => g.Contains(entityA) && g.Contains(entityB)); }
         }
 
         public Dictionary<string, float> AnalyzeSocialNetwork(Guid entityId)
@@ -1746,7 +1899,8 @@ namespace GDNN.Sentience
         private float CalculateCentrality(Guid entityId)
         {
             int totalPairs = _relationships.Count;
-            if (totalPairs == 0) return 0;
+            if (totalPairs == 0)
+                return 0;
             int involvingEntity = _relationships.Values.Count(r => r.EntityA == entityId || r.EntityB == entityId);
             return (float)involvingEntity / totalPairs;
         }
@@ -1759,7 +1913,8 @@ namespace GDNN.Sentience
                 {
                     float change = (Random.Shared.NextSingle() - 0.5f) * evolutionRate * deltaTime;
                     r.Strength = Math.Clamp(r.Strength + change, 0, 1);
-                    if (r.Strength <= 0.01f) r.Type = RelationshipType.Neutral;
+                    if (r.Strength <= 0.01f)
+                        r.Type = RelationshipType.Neutral;
                 }
             }
         }
@@ -1810,7 +1965,8 @@ namespace GDNN.Sentience
             for (int i = 0; i <= steps; i++)
             {
                 var point = from + norm * (i * 0.5f);
-                if (obstacles.Any(o => Vector3.Distance(point, o) < 0.5f)) return false;
+                if (obstacles.Any(o => Vector3.Distance(point, o) < 0.5f))
+                    return false;
             }
             return true;
         }
@@ -1842,8 +1998,10 @@ namespace GDNN.Sentience
 
                 foreach (var neighbor in GetNeighbors(current.Pos))
                 {
-                    if (closedSet.Contains(neighbor)) continue;
-                    if (obstacles.Any(o => Vector3.Distance(neighbor, o) < 1f)) continue;
+                    if (closedSet.Contains(neighbor))
+                        continue;
+                    if (obstacles.Any(o => Vector3.Distance(neighbor, o) < 1f))
+                        continue;
 
                     float tentativeG = currentG + Vector3.Distance(current.Pos, neighbor);
                     if (tentativeG < gScore.GetValueOrDefault(neighbor, float.MaxValue))
@@ -1881,23 +2039,23 @@ namespace GDNN.Sentience
                 case FormationType.Line:
                     return leaderPos + new Vector3(index * spacing, 0, 0);
                 case FormationType.Circle:
-                {
-                    float angle = (2 * MathF.PI * index) / Math.Max(1, total);
-                    return leaderPos + new Vector3(MathF.Cos(angle) * spacing, 0, MathF.Sin(angle) * spacing);
-                }
+                    {
+                        float angle = (2 * MathF.PI * index) / Math.Max(1, total);
+                        return leaderPos + new Vector3(MathF.Cos(angle) * spacing, 0, MathF.Sin(angle) * spacing);
+                    }
                 case FormationType.VShape:
-                {
-                    int side = index % 2 == 0 ? 1 : -1;
-                    int row = (index / 2) + 1;
-                    return leaderPos + new Vector3(side * row * spacing * 0.5f, 0, -row * spacing);
-                }
+                    {
+                        int side = index % 2 == 0 ? 1 : -1;
+                        int row = (index / 2) + 1;
+                        return leaderPos + new Vector3(side * row * spacing * 0.5f, 0, -row * spacing);
+                    }
                 case FormationType.Grid:
-                {
-                    int cols = (int)Math.Ceiling(Math.Sqrt(total));
-                    int row = index / cols;
-                    int col = index % cols;
-                    return leaderPos + new Vector3((col - cols / 2f) * spacing, 0, row * spacing);
-                }
+                    {
+                        int cols = (int)Math.Ceiling(Math.Sqrt(total));
+                        int row = index / cols;
+                        int col = index % cols;
+                        return leaderPos + new Vector3((col - cols / 2f) * spacing, 0, row * spacing);
+                    }
                 default:
                     return leaderPos;
             }
@@ -1912,7 +2070,8 @@ namespace GDNN.Sentience
         {
             foreach (var t in _territories.Values)
             {
-                if (Vector3.Distance(position, t.Center) <= t.Radius) { ownerId = t.OwnerId; return true; }
+                if (Vector3.Distance(position, t.Center) <= t.Radius)
+                { ownerId = t.OwnerId; return true; }
             }
             ownerId = null;
             return false;
@@ -1939,7 +2098,8 @@ namespace GDNN.Sentience
             var toTarget = target.Position - pursuer.Position;
             float dist = toTarget.Length();
             float targetSpeed = target.Velocity.Length();
-            if (targetSpeed < 0.01f) return target.Position;
+            if (targetSpeed < 0.01f)
+                return target.Position;
             float t = dist / Math.Max(0.01f, pursuerSpeed + targetSpeed);
             return target.Position + target.Velocity * t;
         }
@@ -1964,7 +2124,8 @@ namespace GDNN.Sentience
         private List<Vector3> ReconstructPath(Dictionary<Vector3, Vector3> cameFrom, Vector3 current)
         {
             var path = new List<Vector3> { current };
-            while (cameFrom.TryGetValue(current, out var prev)) { current = prev; path.Insert(0, current); }
+            while (cameFrom.TryGetValue(current, out var prev))
+            { current = prev; path.Insert(0, current); }
             return path;
         }
     }
@@ -1996,7 +2157,8 @@ namespace GDNN.Sentience
         public void RegisterEntity(Guid entityId, string groupName)
         {
             _entityGroups[entityId] = groupName;
-            if (!_groups.TryGetValue(groupName, out var g)) { g = new GroupData { Name = groupName }; _groups[groupName] = g; }
+            if (!_groups.TryGetValue(groupName, out var g))
+            { g = new GroupData { Name = groupName }; _groups[groupName] = g; }
             g.Members.Add(entityId);
         }
 
@@ -2025,7 +2187,8 @@ namespace GDNN.Sentience
             int count = 0;
             foreach (var mid in group.Members)
             {
-                if (mid == entity.EntityId || !allEntities.TryGetValue(mid, out var other)) continue;
+                if (mid == entity.EntityId || !allEntities.TryGetValue(mid, out var other))
+                    continue;
                 float dist = entity.DistanceTo(other);
                 if (dist < SeparationRadius && dist > 0.01f)
                 {
@@ -2042,8 +2205,10 @@ namespace GDNN.Sentience
             int count = 0;
             foreach (var mid in group.Members)
             {
-                if (mid == entity.EntityId || !allEntities.TryGetValue(mid, out var other)) continue;
-                if (entity.DistanceTo(other) < AlignmentRadius) { avgVel += other.Velocity; count++; }
+                if (mid == entity.EntityId || !allEntities.TryGetValue(mid, out var other))
+                    continue;
+                if (entity.DistanceTo(other) < AlignmentRadius)
+                { avgVel += other.Velocity; count++; }
             }
             return count > 0 ? Vector3.Normalize(avgVel / count - entity.Velocity) : Vector3.Zero;
         }
@@ -2054,23 +2219,28 @@ namespace GDNN.Sentience
             int count = 0;
             foreach (var mid in group.Members)
             {
-                if (mid == entity.EntityId || !allEntities.TryGetValue(mid, out var other)) continue;
-                if (entity.DistanceTo(other) < CohesionRadius) { center += other.Position; count++; }
+                if (mid == entity.EntityId || !allEntities.TryGetValue(mid, out var other))
+                    continue;
+                if (entity.DistanceTo(other) < CohesionRadius)
+                { center += other.Position; count++; }
             }
-            if (count == 0) return Vector3.Zero;
+            if (count == 0)
+                return Vector3.Zero;
             center /= count;
             return Vector3.Normalize(center - entity.Position);
         }
 
         public Guid? FindLeader(string groupName)
         {
-            if (!_groups.TryGetValue(groupName, out var g)) return null;
+            if (!_groups.TryGetValue(groupName, out var g))
+                return null;
             return g.LeaderId;
         }
 
         public void SetLeader(string groupName, Guid entityId)
         {
-            if (_groups.TryGetValue(groupName, out var g)) g.LeaderId = entityId;
+            if (_groups.TryGetValue(groupName, out var g))
+                g.LeaderId = entityId;
         }
 
         public Vector3 CalculateFollowFormation(SentientEntity follower, SentientEntity leader, int index, int total)
@@ -2084,13 +2254,15 @@ namespace GDNN.Sentience
         public Dictionary<Guid, float> CalculateSwarmInfluence(string groupName, Vector3 target, Dictionary<Guid, SentientEntity> allEntities)
         {
             var influences = new Dictionary<Guid, float>();
-            if (!_groups.TryGetValue(groupName, out var group)) return influences;
+            if (!_groups.TryGetValue(groupName, out var group))
+                return influences;
 
             float totalDist = 0;
             var distances = new Dictionary<Guid, float>();
             foreach (var mid in group.Members)
             {
-                if (!allEntities.TryGetValue(mid, out var e)) continue;
+                if (!allEntities.TryGetValue(mid, out var e))
+                    continue;
                 float d = Vector3.Distance(e.Position, target);
                 distances[mid] = d;
                 totalDist += d;
@@ -2107,7 +2279,8 @@ namespace GDNN.Sentience
         public Dictionary<string, object> MakeGroupDecision(string groupName, List<(string Option, float Score)> options)
         {
             var results = new Dictionary<string, object>();
-            if (!_groups.TryGetValue(groupName, out var group)) return results;
+            if (!_groups.TryGetValue(groupName, out var group))
+                return results;
 
             int totalVotes = group.Members.Count;
             var votes = new Dictionary<string, int>();
@@ -2116,7 +2289,8 @@ namespace GDNN.Sentience
             {
                 var personality = 0.5f;
                 var scored = options.OrderByDescending(o => o.Score * personality).First();
-                if (!votes.ContainsKey(scored.Option)) votes[scored.Option] = 0;
+                if (!votes.ContainsKey(scored.Option))
+                    votes[scored.Option] = 0;
                 votes[scored.Option]++;
             }
 
@@ -2130,10 +2304,12 @@ namespace GDNN.Sentience
 
         public void CommunicateWithinGroup(string groupName, Guid senderId, string message, Dictionary<Guid, SentientEntity> allEntities)
         {
-            if (!_groups.TryGetValue(groupName, out var group)) return;
+            if (!_groups.TryGetValue(groupName, out var group))
+                return;
             foreach (var mid in group.Members)
             {
-                if (mid == senderId || !allEntities.TryGetValue(mid, out var receiver)) continue;
+                if (mid == senderId || !allEntities.TryGetValue(mid, out var receiver))
+                    continue;
                 receiver.SetProperty($"GroupMsg_{senderId}", message);
             }
         }
@@ -2160,7 +2336,8 @@ namespace GDNN.Sentience
 
         public void TaskAllocation(string groupName, List<string> tasks, Dictionary<Guid, SentientEntity> allEntities)
         {
-            if (!_groups.TryGetValue(groupName, out var group)) return;
+            if (!_groups.TryGetValue(groupName, out var group))
+                return;
             var members = group.Members.Where(id => allEntities.ContainsKey(id)).Select(id => allEntities[id]).ToList();
             members = members.OrderBy(e => e.Needs.GetValueOrDefault("TaskLoad", 0)).ToList();
 
@@ -2215,7 +2392,8 @@ namespace GDNN.Sentience
                 };
                 _logEntries.Add(entry);
 
-                if (_logEntries.Count > 10000) _logEntries.RemoveRange(0, 1000);
+                if (_logEntries.Count > 10000)
+                    _logEntries.RemoveRange(0, 1000);
 
                 if (_breakpoints.Contains(node.Id))
                 {
@@ -2226,7 +2404,8 @@ namespace GDNN.Sentience
                 if (_isStepping)
                 {
                     _stepCount--;
-                    if (_stepCount <= 0) { _isStepping = false; _isPaused = true; }
+                    if (_stepCount <= 0)
+                    { _isStepping = false; _isPaused = true; }
                 }
             }
         }
@@ -2258,35 +2437,41 @@ namespace GDNN.Sentience
                     })
                 };
                 _replayFrames.Add(frame);
-                if (_replayFrames.Count > 5000) _replayFrames.RemoveRange(0, 500);
+                if (_replayFrames.Count > 5000)
+                    _replayFrames.RemoveRange(0, 500);
             }
         }
 
         public DebugReplayFrame? GetReplayFrame(int index)
         {
-            lock (_lock) { return index >= 0 && index < _replayFrames.Count ? _replayFrames[index] : null; }
+            lock (_lock)
+            { return index >= 0 && index < _replayFrames.Count ? _replayFrames[index] : null; }
         }
 
         public int ReplayFrameCount { get { lock (_lock) return _replayFrames.Count; } }
 
         public List<DebugLogEntry> GetLogEntries(int count = 100)
         {
-            lock (_lock) { return _logEntries.TakeLast(count).ToList(); }
+            lock (_lock)
+            { return _logEntries.TakeLast(count).ToList(); }
         }
 
         public List<DebugLogEntry> GetLogEntriesForNode(string nodeId, int count = 50)
         {
-            lock (_lock) { return _logEntries.Where(e => e.NodeId == nodeId).TakeLast(count).ToList(); }
+            lock (_lock)
+            { return _logEntries.Where(e => e.NodeId == nodeId).TakeLast(count).ToList(); }
         }
 
         public List<DebugLogEntry> GetLogEntriesForEntity(Guid entityId, int count = 100)
         {
-            lock (_lock) { return _logEntries.Where(e => e.EntityId == entityId).TakeLast(count).ToList(); }
+            lock (_lock)
+            { return _logEntries.Where(e => e.EntityId == entityId).TakeLast(count).ToList(); }
         }
 
         public Dictionary<string, TaskStatus> GetBehaviorTreeState()
         {
-            lock (_lock) { return new Dictionary<string, TaskStatus>(_nodeStates); }
+            lock (_lock)
+            { return new Dictionary<string, TaskStatus>(_nodeStates); }
         }
 
         public string VisualizeBehaviorTree(IBehaviorNode root, string indent = "", bool isLast = true)
@@ -2380,10 +2565,12 @@ namespace GDNN.Sentience
             foreach (var line in lines)
             {
                 var trimmed = line.Trim();
-                if (trimmed.StartsWith("#")) continue;
+                if (trimmed.StartsWith("#"))
+                    continue;
 
                 var node = ParseLLMLine(trimmed);
-                if (node != null) rootNode.GetChildren().ToList().Add(node);
+                if (node != null)
+                    rootNode.GetChildren().ToList().Add(node);
             }
 
             if (rootNode.GetChildren().Count == 0)
@@ -2443,7 +2630,8 @@ namespace GDNN.Sentience
             foreach (var kw in keywords)
             {
                 int idx = line.IndexOf(kw, StringComparison.Ordinal);
-                if (idx >= 0) return line[(idx + kw.Length)..].Trim();
+                if (idx >= 0)
+                    return line[(idx + kw.Length)..].Trim();
             }
             return line;
         }
@@ -2454,7 +2642,8 @@ namespace GDNN.Sentience
             foreach (var kw in keywords)
             {
                 int idx = line.IndexOf(kw, StringComparison.Ordinal);
-                if (idx >= 0) return line[(idx + kw.Length)..].Trim();
+                if (idx >= 0)
+                    return line[(idx + kw.Length)..].Trim();
             }
             return line;
         }
@@ -2465,7 +2654,8 @@ namespace GDNN.Sentience
             foreach (var w in words)
             {
                 string cleaned = new(w.Where(c => char.IsDigit(c) || c == '.' || c == '-').ToArray());
-                if (float.TryParse(cleaned, out float val)) return val;
+                if (float.TryParse(cleaned, out float val))
+                    return val;
             }
             return defaultVal;
         }
@@ -2476,7 +2666,8 @@ namespace GDNN.Sentience
             foreach (var w in words)
             {
                 string cleaned = new(w.Where(char.IsDigit).ToArray());
-                if (int.TryParse(cleaned, out int val)) return val;
+                if (int.TryParse(cleaned, out int val))
+                    return val;
             }
             return defaultVal;
         }
@@ -2484,24 +2675,36 @@ namespace GDNN.Sentience
         private bool EvaluateCondition(string condition, SentientEntity entity, EntityContext context)
         {
             var lower = condition.ToLower();
-            if (lower.Contains("health")) return entity.Health > entity.MaxHealth * 0.5f;
-            if (lower.Contains("enemy") || lower.Contains("hostile")) return context.Relationships.Values.Any(t => t == RelationshipType.Hostile);
-            if (lower.Contains("friend") || lower.Contains("ally")) return context.Relationships.Values.Any(t => t == RelationshipType.Friendly);
-            if (lower.Contains("fear")) return entity.CurrentEmotion == EmotionalState.Fearful;
-            if (lower.Contains("angry")) return entity.CurrentEmotion == EmotionalState.Angry;
-            if (lower.Contains("alive")) return entity.IsAlive;
-            if (lower.Contains("move")) return entity.CanMove;
+            if (lower.Contains("health"))
+                return entity.Health > entity.MaxHealth * 0.5f;
+            if (lower.Contains("enemy") || lower.Contains("hostile"))
+                return context.Relationships.Values.Any(t => t == RelationshipType.Hostile);
+            if (lower.Contains("friend") || lower.Contains("ally"))
+                return context.Relationships.Values.Any(t => t == RelationshipType.Friendly);
+            if (lower.Contains("fear"))
+                return entity.CurrentEmotion == EmotionalState.Fearful;
+            if (lower.Contains("angry"))
+                return entity.CurrentEmotion == EmotionalState.Angry;
+            if (lower.Contains("alive"))
+                return entity.IsAlive;
+            if (lower.Contains("move"))
+                return entity.CanMove;
             return true;
         }
 
         private TaskStatus ExecuteAction(string action, SentientEntity entity, EntityContext context)
         {
             var lower = action.ToLower();
-            if (lower.Contains("attack") || lower.Contains("fight")) return TaskStatus.Success;
-            if (lower.Contains("flee") || lower.Contains("escape")) return TaskStatus.Success;
-            if (lower.Contains("patrol") || lower.Contains("wander")) return TaskStatus.Success;
-            if (lower.Contains("heal") || lower.Contains("rest")) return TaskStatus.Success;
-            if (lower.Contains("follow") || lower.Contains("chase")) return TaskStatus.Success;
+            if (lower.Contains("attack") || lower.Contains("fight"))
+                return TaskStatus.Success;
+            if (lower.Contains("flee") || lower.Contains("escape"))
+                return TaskStatus.Success;
+            if (lower.Contains("patrol") || lower.Contains("wander"))
+                return TaskStatus.Success;
+            if (lower.Contains("heal") || lower.Contains("rest"))
+                return TaskStatus.Success;
+            if (lower.Contains("follow") || lower.Contains("chase"))
+                return TaskStatus.Success;
             return TaskStatus.Success;
         }
 
@@ -2530,7 +2733,7 @@ namespace GDNN.Sentience
                 BehaviorNodeType.Succeeder => new SucceederNode(bp.Name, bp.Children.Count > 0 ? CompileNode(bp.Children[0]) : new WaitNode("Empty", 0)),
                 BehaviorNodeType.Failer => new FailerNode(bp.Name, bp.Children.Count > 0 ? CompileNode(bp.Children[0]) : new WaitNode("Empty", 0)),
                 BehaviorNodeType.Wait => new WaitNode(bp.Name, bp.CooldownDuration > 0 ? bp.CooldownDuration : 1f),
-                BehaviorNodeType.LLMQuery => new LLMQueryNode(bp.Name, bp.LLMPrompt, (_, _, _) => TaskStatus.Success),
+                BehaviorNodeType.LLMQuery => new LLMQueryNode(bp.Name, bp.LLMPrompt, BehaviorLlmContext.DefaultHandle),
                 _ => new WaitNode(bp.Name, 0)
             };
         }
@@ -2592,7 +2795,8 @@ namespace GDNN.Sentience
             lock (_lock)
             {
                 _spatialIndex.Clear();
-                foreach (var e in _entities.Values) _spatialIndex.Insert(e.EntityId, e.Position);
+                foreach (var e in _entities.Values)
+                    _spatialIndex.Insert(e.EntityId, e.Position);
             }
         }
 
@@ -2623,7 +2827,8 @@ namespace GDNN.Sentience
         {
             _currentTime += deltaTime;
             UpdateSpatialIndex();
-            foreach (var e in _entities.Values) e.Update(CreateContext(e), deltaTime);
+            foreach (var e in _entities.Values)
+                e.Update(CreateContext(e), deltaTime);
         }
 
         private EntityContext CreateContext(SentientEntity entity)
@@ -2657,8 +2862,10 @@ namespace GDNN.Sentience
             var nearby = _spatialIndex.QueryRadius(evt.Location, evt.Radius);
             foreach (var eid in nearby)
             {
-                if (!_entities.TryGetValue(eid, out var entity)) continue;
-                if (eid == evt.SourceEntity) continue;
+                if (!_entities.TryGetValue(eid, out var entity))
+                    continue;
+                if (eid == evt.SourceEntity)
+                    continue;
                 var perception = new PerceptionEvent(
                     evt.Intensity > 0.5f ? PerceptionType.Auditory : PerceptionType.Visual,
                     evt.SourceEntity, evt.Timestamp, evt.Intensity, evt.Location,
@@ -2714,18 +2921,21 @@ namespace GDNN.Sentience
                 if (!_responseTimes.TryGetValue(behaviorType, out var times))
                 { times = new List<double>(); _responseTimes[behaviorType] = times; }
                 times.Add(executionTime);
-                if (times.Count > 1000) times.RemoveRange(0, 200);
+                if (times.Count > 1000)
+                    times.RemoveRange(0, 200);
 
                 if (!_nodeTickTimes.TryGetValue(nodeId, out var nodeTimes))
                 { nodeTimes = new List<float>(); _nodeTickTimes[nodeId] = nodeTimes; }
                 nodeTimes.Add(executionTime);
-                if (nodeTimes.Count > 500) nodeTimes.RemoveRange(0, 100);
+                if (nodeTimes.Count > 500)
+                    nodeTimes.RemoveRange(0, 100);
             }
         }
 
         public void RecordPattern(string patternName)
         {
-            lock (_lock) { _patternCounts.TryGetValue(patternName, out var c); _patternCounts[patternName] = c + 1; }
+            lock (_lock)
+            { _patternCounts.TryGetValue(patternName, out var c); _patternCounts[patternName] = c + 1; }
         }
 
         public void StartSession(Guid entityId, string sessionType)
@@ -2746,13 +2956,15 @@ namespace GDNN.Sentience
             lock (_lock)
             {
                 var session = _sessions.LastOrDefault(s => s.EntityId == entityId && s.EndTime == 0);
-                if (session != null) session.EndTime = Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond;
+                if (session != null)
+                    session.EndTime = Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond;
             }
         }
 
         public Dictionary<string, float> GetBehaviorFrequencies()
         {
-            lock (_lock) { return _frequencies.ToDictionary(kv => kv.Key, kv => (float)kv.Value.Count); }
+            lock (_lock)
+            { return _frequencies.ToDictionary(kv => kv.Key, kv => (float)kv.Value.Count); }
         }
 
         public float GetAverageResponseTime(string behaviorType)
@@ -2768,7 +2980,8 @@ namespace GDNN.Sentience
         {
             lock (_lock)
             {
-                if (!_responseTimes.TryGetValue(behaviorType, out var times) || times.Count == 0) return 0;
+                if (!_responseTimes.TryGetValue(behaviorType, out var times) || times.Count == 0)
+                    return 0;
                 var sorted = times.OrderBy(t => t).ToList();
                 return (float)sorted[(int)(sorted.Count * 0.95)];
             }
@@ -2776,7 +2989,8 @@ namespace GDNN.Sentience
 
         public Dictionary<string, int> GetDominantPatterns(int topN = 5)
         {
-            lock (_lock) { return _patternCounts.OrderByDescending(kv => kv.Value).Take(topN).ToDictionary(kv => kv.Key, kv => kv.Value); }
+            lock (_lock)
+            { return _patternCounts.OrderByDescending(kv => kv.Value).Take(topN).ToDictionary(kv => kv.Key, kv => kv.Value); }
         }
 
         public float GetNodeAverageTickTime(string nodeId)
@@ -2792,7 +3006,8 @@ namespace GDNN.Sentience
         {
             lock (_lock)
             {
-                if (!_nodeTickTimes.TryGetValue(nodeId, out var times) || times.Count == 0) return 0;
+                if (!_nodeTickTimes.TryGetValue(nodeId, out var times) || times.Count == 0)
+                    return 0;
                 var sorted = times.OrderBy(t => t).ToList();
                 return sorted[(int)(sorted.Count * 0.99)];
             }
@@ -2841,7 +3056,8 @@ namespace GDNN.Sentience
                 var anomalies = new Dictionary<string, float>();
                 foreach (var (behaviorType, times) in _responseTimes)
                 {
-                    if (times.Count < 10) continue;
+                    if (times.Count < 10)
+                        continue;
                     var avg = times.Average();
                     var stdDev = Math.Sqrt(times.Average(t => (t - avg) * (t - avg)));
                     var latest = times.Last();
@@ -2934,7 +3150,8 @@ namespace GDNN.Sentience
                 var entityStart = Stopwatch.GetTimestamp();
                 await Task.Run(() => TickEntity(entity, deltaTime), token);
                 var entityTime = (Stopwatch.GetTimestamp() - entityStart) / (double)TimeSpan.TicksPerMillisecond;
-                lock (_lock) { _stats.EntityTickTimes[entity.EntityId] = entityTime; }
+                lock (_lock)
+                { _stats.EntityTickTimes[entity.EntityId] = entityTime; }
             });
 
             foreach (var entity in dormant)
@@ -2959,7 +3176,8 @@ namespace GDNN.Sentience
 
             foreach (var entity in _entities.Values)
             {
-                if (entity.CurrentState == BehaviorState.Terminated) continue;
+                if (entity.CurrentState == BehaviorState.Terminated)
+                    continue;
                 if (entity.CurrentState == BehaviorState.Active || entity.CurrentState == BehaviorState.Transitioning)
                 { active.Add(entity); continue; }
                 if (entity.CurrentState == BehaviorState.Dormant)
@@ -2969,8 +3187,10 @@ namespace GDNN.Sentience
                     entity.Needs.Values.Any(v => v > 0.8f) ||
                     entity.Relationships.Values.Any(r => r.Type == RelationshipType.Hostile && r.Strength > 0.5f);
 
-                if (isRelevant) active.Add(entity);
-                else dormant.Add(entity);
+                if (isRelevant)
+                    active.Add(entity);
+                else
+                    dormant.Add(entity);
             }
             return (active, dormant);
         }
@@ -3065,7 +3285,8 @@ namespace GDNN.Sentience
             var targetMood = CalculateMoodFromEmotions(stateData);
 
             float blendSpeed = BlendingRate * (1f - MoodStabilityBase);
-            if (dynamics.PersonalityStability > 0.7f) blendSpeed *= 0.5f;
+            if (dynamics.PersonalityStability > 0.7f)
+                blendSpeed *= 0.5f;
 
             dynamics.CurrentMood = LerpEmotionalState(currentMood, targetMood, blendSpeed * deltaTime);
             dynamics.MoodIntensity = Math.Clamp(
@@ -3096,7 +3317,8 @@ namespace GDNN.Sentience
                 int changes = 0;
                 for (int i = 1; i < recent.Count; i++)
                 {
-                    if (recent[i] != recent[i - 1]) changes++;
+                    if (recent[i] != recent[i - 1])
+                        changes++;
                 }
                 if (changes >= 3)
                 {
@@ -3198,15 +3420,19 @@ namespace GDNN.Sentience
 
         private static EmotionalState CalculateMoodFromEmotions(EmotionalStateData stateData)
         {
-            if (stateData.EmotionIntensities.Count == 0) return EmotionalState.Neutral;
+            if (stateData.EmotionIntensities.Count == 0)
+                return EmotionalState.Neutral;
             return stateData.EmotionIntensities.OrderByDescending(kv => kv.Value).First().Key;
         }
 
         private static EmotionalState LerpEmotionalState(EmotionalState from, EmotionalState to, float t)
         {
-            if (from == to) return from;
-            if (t >= 1f) return to;
-            if (t <= 0f) return from;
+            if (from == to)
+                return from;
+            if (t >= 1f)
+                return to;
+            if (t <= 0f)
+                return from;
             return Random.Shared.NextSingle() < t ? to : from;
         }
 
@@ -3370,7 +3596,8 @@ namespace GDNN.Sentience
                     if (similarity > 0.8f && p.Intensity < state.GetLastPerception(p.Source, p.Type).Intensity * 1.2f)
                         continue;
                 }
-                if (p.Intensity < NoiseFilterStrength * 0.5f) continue;
+                if (p.Intensity < NoiseFilterStrength * 0.5f)
+                    continue;
                 filtered.Add(p);
             }
             return filtered;
@@ -3385,7 +3612,8 @@ namespace GDNN.Sentience
                 {
                     var buffer = state.GetSmoothingBuffer(p.Source, p.Type);
                     buffer.Add(p);
-                    if (buffer.Count > 5) buffer.RemoveAt(0);
+                    if (buffer.Count > 5)
+                        buffer.RemoveAt(0);
 
                     float avgIntensity = buffer.Average(b => b.Intensity);
                     float avgConfidence = buffer.Average(b => b.Confidence);
@@ -3423,9 +3651,12 @@ namespace GDNN.Sentience
                 relevance *= rel.Strength;
             }
 
-            if (perception.Type == PerceptionType.Tactile) relevance += 0.4f;
-            if (perception.Type == PerceptionType.Visual && perception.Intensity > 0.7f) relevance += 0.3f;
-            if (entity.Needs.Values.Any(v => v > 0.8f)) relevance += 0.2f;
+            if (perception.Type == PerceptionType.Tactile)
+                relevance += 0.4f;
+            if (perception.Type == PerceptionType.Visual && perception.Intensity > 0.7f)
+                relevance += 0.3f;
+            if (entity.Needs.Values.Any(v => v > 0.8f))
+                relevance += 0.2f;
 
             float distFactor = 1f - (Vector3.Distance(entity.Position, perception.Location) / entity.PerceptionRadius);
             relevance *= (0.5f + distFactor * 0.5f);
@@ -3435,7 +3666,8 @@ namespace GDNN.Sentience
 
         private static float CalculateSimilarity(PerceptionEvent a, PerceptionEvent b)
         {
-            if (a.Type != b.Type || a.Source != b.Source) return 0;
+            if (a.Type != b.Type || a.Source != b.Source)
+                return 0;
             float posSim = 1f - Math.Min(1f, Vector3.Distance(a.Location, b.Location) / 10f);
             float intSim = 1f - Math.Abs(a.Intensity - b.Intensity);
             return (posSim + intSim) / 2f;
@@ -3466,11 +3698,12 @@ namespace GDNN.Sentience
         public bool PerceivedRecently(Guid source, PerceptionType type, float threshold = 0.5f)
         {
             var key = (source, type);
-            if (!_lastPerceivedTime.TryGetValue(key, out var time)) return false;
+            if (!_lastPerceivedTime.TryGetValue(key, out var time))
+                return false;
             return (Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond - time) < threshold;
         }
 
-        public PerceptionEvent GetLastPerception(Guid source, PerceptionType type)
+        public PerceptionEvent? GetLastPerception(Guid source, PerceptionType type)
         {
             return _lastPerceptions.TryGetValue((source, type), out var p) ? p : default;
         }
@@ -3478,7 +3711,8 @@ namespace GDNN.Sentience
         public List<PerceptionEvent> GetSmoothingBuffer(Guid source, PerceptionType type)
         {
             var key = (source, type);
-            if (!_smoothingBuffers.TryGetValue(key, out var buf)) { buf = new List<PerceptionEvent>(); _smoothingBuffers[key] = buf; }
+            if (!_smoothingBuffers.TryGetValue(key, out var buf))
+            { buf = new List<PerceptionEvent>(); _smoothingBuffers[key] = buf; }
             return buf;
         }
 
@@ -3564,7 +3798,8 @@ namespace GDNN.Sentience
                 .Where(p => p.Source == entityId && (p.Type == PerceptionType.Tactile || p.SemanticContent.Contains("threat")))
                 .ToList();
 
-            if (threatPerceptions.Count == 0) return 0;
+            if (threatPerceptions.Count == 0)
+                return 0;
 
             float avgIntensity = threatPerceptions.Average(p => p.Intensity);
             float frequency = threatPerceptions.Count / Math.Max(1f, timeHorizon);
@@ -3576,13 +3811,17 @@ namespace GDNN.Sentience
 
         public void UpdateHistory(Guid entityId, Vector3 position, Vector3 velocity)
         {
-            if (!_positionHistory.TryGetValue(entityId, out var positions)) { positions = new List<Vector3>(); _positionHistory[entityId] = positions; }
+            if (!_positionHistory.TryGetValue(entityId, out var positions))
+            { positions = new List<Vector3>(); _positionHistory[entityId] = positions; }
             positions.Add(position);
-            if (positions.Count > 20) positions.RemoveAt(0);
+            if (positions.Count > 20)
+                positions.RemoveAt(0);
 
-            if (!_velocityHistory.TryGetValue(entityId, out var velocities)) { velocities = new List<Vector3>(); _velocityHistory[entityId] = velocities; }
+            if (!_velocityHistory.TryGetValue(entityId, out var velocities))
+            { velocities = new List<Vector3>(); _velocityHistory[entityId] = velocities; }
             velocities.Add(velocity);
-            if (velocities.Count > 20) velocities.RemoveAt(0);
+            if (velocities.Count > 20)
+                velocities.RemoveAt(0);
         }
     }
 
@@ -3641,7 +3880,8 @@ namespace GDNN.Sentience
 
         private MemoryConsolidationState GetOrCreate(Guid eid)
         {
-            if (!_consolidationStates.TryGetValue(eid, out var s)) { s = new MemoryConsolidationState(); _consolidationStates[eid] = s; }
+            if (!_consolidationStates.TryGetValue(eid, out var s))
+            { s = new MemoryConsolidationState(); _consolidationStates[eid] = s; }
             return s;
         }
     }
@@ -3673,12 +3913,16 @@ namespace GDNN.Sentience
 
         public void AddConcept(string concept, List<string> related)
         {
-            if (!_graph.TryGetValue(concept, out var e)) { e = new List<string>(); _graph[concept] = e; }
+            if (!_graph.TryGetValue(concept, out var e))
+            { e = new List<string>(); _graph[concept] = e; }
             foreach (var r in related)
             {
-                if (!e.Contains(r)) e.Add(r);
-                if (!_graph.TryGetValue(r, out var rev)) { rev = new List<string>(); _graph[r] = rev; }
-                if (!rev.Contains(concept)) rev.Add(concept);
+                if (!e.Contains(r))
+                    e.Add(r);
+                if (!_graph.TryGetValue(r, out var rev))
+                { rev = new List<string>(); _graph[r] = rev; }
+                if (!rev.Contains(concept))
+                    rev.Add(concept);
             }
         }
 
@@ -3690,10 +3934,12 @@ namespace GDNN.Sentience
             while (queue.Count > 0)
             {
                 var (cur, d) = queue.Dequeue();
-                if (d >= depth) continue;
+                if (d >= depth)
+                    continue;
                 if (_graph.TryGetValue(cur, out var neighbors))
                     foreach (var n in neighbors)
-                        if (result.Add(n) && n != concept) queue.Enqueue((n, d + 1));
+                        if (result.Add(n) && n != concept)
+                            queue.Enqueue((n, d + 1));
             }
             return result.ToList();
         }
@@ -3701,7 +3947,8 @@ namespace GDNN.Sentience
         public float CalculateDistance(string a, string b)
         {
             var relatedA = FindRelated(a, 3);
-            if (relatedA.Contains(b)) return 0.5f;
+            if (relatedA.Contains(b))
+                return 0.5f;
             var relatedB = FindRelated(b, 3);
             int shared = relatedA.Intersect(relatedB).Count();
             int total = relatedA.Union(relatedB).Count();
@@ -3829,7 +4076,8 @@ namespace GDNN.Sentience
         public void AddGroupMember(string groupName, Guid entityId)
         {
             _groupBehavior.RegisterEntity(entityId, groupName);
-            if (_entities.TryGetValue(entityId, out var e)) e.EntityGroup = groupName;
+            if (_entities.TryGetValue(entityId, out var e))
+                e.EntityGroup = groupName;
         }
 
         public async Task RunAsync(float deltaTime, CancellationToken ct)
@@ -3859,7 +4107,8 @@ namespace GDNN.Sentience
 
             foreach (var entity in _entities.Values)
             {
-                if (entity.CurrentState == BehaviorState.Terminated) continue;
+                if (entity.CurrentState == BehaviorState.Terminated)
+                    continue;
                 _predictionEngine.UpdateHistory(entity.EntityId, entity.Position, entity.Velocity);
                 _emotionalDynamics.UpdateDynamics(entity.EntityId, _emotionalModel.GetStateData(entity.EntityId) ?? new EmotionalStateData(), deltaTime);
                 _memoryConsolidation.ProcessConsolidation(entity, _memorySystem, deltaTime);
@@ -3898,7 +4147,8 @@ namespace GDNN.Sentience
         public static Vector3 Slerp(Vector3 a, Vector3 b, float t)
         {
             float angle = AngleBetween(a, b);
-            if (angle < 0.001f) return Vector3.Lerp(a, b, t);
+            if (angle < 0.001f)
+                return Vector3.Lerp(a, b, t);
             float sinAngle = (float)Math.Sin(angle);
             float factorA = (float)Math.Sin((1 - t) * angle) / sinAngle;
             float factorB = (float)Math.Sin(t * angle) / sinAngle;
@@ -3963,7 +4213,8 @@ namespace GDNN.Sentience
             for (int i = 0; i < items.Count; i++)
             {
                 cum += weights[i];
-                if (r <= cum) return items[i];
+                if (r <= cum)
+                    return items[i];
             }
             return items[^1];
         }
@@ -3987,7 +4238,8 @@ namespace GDNN.Sentience
         {
             lock (_lock)
             {
-                if (!_handlers.TryGetValue(eventName, out var list)) { list = new List<Delegate>(); _handlers[eventName] = list; }
+                if (!_handlers.TryGetValue(eventName, out var list))
+                { list = new List<Delegate>(); _handlers[eventName] = list; }
                 list.Add(handler);
             }
         }
@@ -4092,7 +4344,8 @@ namespace GDNN.Sentience
             var state = GetOrCreate(entityId);
             state.CurrentWaypointIndex = 0;
             state.Mode = NavigationMode.Patrol;
-            if (waypoints.Count > 0) state.Destination = waypoints[0];
+            if (waypoints.Count > 0)
+                state.Destination = waypoints[0];
             state.PathDirty = true;
         }
 
@@ -4174,11 +4427,13 @@ namespace GDNN.Sentience
 
         private void RecalculatePath(SentientEntity entity, NavigationState state)
         {
-            if (!state.Destination.HasValue) return;
+            if (!state.Destination.HasValue)
+                return;
             if (state.CurrentPath != null && state.CurrentWaypointIndex < state.CurrentPath.Count)
             {
                 float distFromPath = Vector3.Distance(entity.Position, state.CurrentPath[state.CurrentWaypointIndex]);
-                if (distFromPath < PathRecalculationThreshold && !state.PathDirty) return;
+                if (distFromPath < PathRecalculationThreshold && !state.PathDirty)
+                    return;
             }
             var start = entity.Position;
             var goal = state.Destination.Value;
@@ -4218,7 +4473,8 @@ namespace GDNN.Sentience
 
         private NavigationState GetOrCreate(Guid entityId)
         {
-            if (!_agentStates.TryGetValue(entityId, out var state)) { state = new NavigationState(); _agentStates[entityId] = state; }
+            if (!_agentStates.TryGetValue(entityId, out var state))
+            { state = new NavigationState(); _agentStates[entityId] = state; }
             return state;
         }
     }
@@ -4255,8 +4511,10 @@ namespace GDNN.Sentience
 
         public string? MakeDecision(SentientEntity entity, EntityContext context)
         {
-            if (!_utilityAIs.TryGetValue(entity.EntityId, out var ai)) return null;
-            if (!_goalStacks.TryGetValue(entity.EntityId, out var goals)) return null;
+            if (!_utilityAIs.TryGetValue(entity.EntityId, out var ai))
+                return null;
+            if (!_goalStacks.TryGetValue(entity.EntityId, out var goals))
+                return null;
 
             var considerations = GenerateConsiderations(entity, context);
             var scored = new List<(string Action, float Score)>();
@@ -4505,7 +4763,8 @@ namespace GDNN.Sentience
             foreach (var patternName in patternNames)
             {
                 var node = _patternLibrary.CreatePattern(patternName, entity, context);
-                if (node != null) rootNode = new SelectorNode("Root", rootNode, node);
+                if (node != null)
+                    rootNode = new SelectorNode("Root", rootNode, node);
             }
 
             tree.Root = rootNode;
@@ -4604,7 +4863,8 @@ namespace GDNN.Sentience
             float dangerLevel = 0;
             foreach (var rel in entity.Relationships.Values)
             {
-                if (rel.Type == RelationshipType.Hostile) dangerLevel += rel.Strength * 0.3f;
+                if (rel.Type == RelationshipType.Hostile)
+                    dangerLevel += rel.Strength * 0.3f;
             }
             var nearbyHostiles = worldState.Entities.Values
                 .Where(e => e.EntityId != entity.EntityId && entity.Relationships.TryGetValue(e.EntityId, out var r) && r.Type == RelationshipType.Hostile)
@@ -4633,7 +4893,8 @@ namespace GDNN.Sentience
 
         private EnvironmentalState GetOrCreate(Guid entityId)
         {
-            if (!_entityEnvStates.TryGetValue(entityId, out var s)) { s = new EnvironmentalState(); _entityEnvStates[entityId] = s; }
+            if (!_entityEnvStates.TryGetValue(entityId, out var s))
+            { s = new EnvironmentalState(); _entityEnvStates[entityId] = s; }
             return s;
         }
     }
@@ -4661,7 +4922,8 @@ namespace GDNN.Sentience
         {
             lock (_lock)
             {
-                if (!_inbox.TryGetValue(to, out var box)) { box = new List<Message>(); _inbox[to] = box; }
+                if (!_inbox.TryGetValue(to, out var box))
+                { box = new List<Message>(); _inbox[to] = box; }
                 box.Add(new Message
                 {
                     SenderId = from,
@@ -4670,7 +4932,8 @@ namespace GDNN.Sentience
                     Urgency = urgency,
                     Timestamp = Stopwatch.GetTimestamp() / (double)TimeSpan.TicksPerSecond
                 });
-                if (box.Count > 50) box.RemoveAt(0);
+                if (box.Count > 50)
+                    box.RemoveAt(0);
             }
         }
 
@@ -4678,10 +4941,12 @@ namespace GDNN.Sentience
         {
             lock (_lock)
             {
-                if (!_channels.TryGetValue(channel, out var subscribers)) return;
+                if (!_channels.TryGetValue(channel, out var subscribers))
+                    return;
                 foreach (var subId in subscribers)
                 {
-                    if (subId == from) continue;
+                    if (subId == from)
+                        continue;
                     SendMessage(from, subId, content, MessageType.Broadcast, urgency);
                 }
             }
@@ -4691,7 +4956,8 @@ namespace GDNN.Sentience
         {
             lock (_lock)
             {
-                if (!_inbox.TryGetValue(entityId, out var box)) return new List<Message>();
+                if (!_inbox.TryGetValue(entityId, out var box))
+                    return new List<Message>();
                 var messages = box.OrderByDescending(m => m.Urgency).ThenByDescending(m => m.Timestamp).ToList();
                 box.Clear();
                 return messages;
@@ -4702,14 +4968,17 @@ namespace GDNN.Sentience
         {
             lock (_lock)
             {
-                if (!_channels.TryGetValue(channel, out var subs)) { subs = new List<Guid>(); _channels[channel] = subs; }
-                if (!subs.Contains(entityId)) subs.Add(entityId);
+                if (!_channels.TryGetValue(channel, out var subs))
+                { subs = new List<Guid>(); _channels[channel] = subs; }
+                if (!subs.Contains(entityId))
+                    subs.Add(entityId);
             }
         }
 
         public void Unsubscribe(Guid entityId, string channel)
         {
-            lock (_lock) { if (_channels.TryGetValue(channel, out var subs)) subs.Remove(entityId); }
+            lock (_lock)
+            { if (_channels.TryGetValue(channel, out var subs)) subs.Remove(entityId); }
         }
 
         public int GetInboxCount(Guid entityId) { lock (_lock) { return _inbox.TryGetValue(entityId, out var box) ? box.Count : 0; } }
@@ -4770,7 +5039,8 @@ namespace GDNN.Sentience
                 if (_taskQueues.TryGetValue(entityId, out var queue))
                 {
                     var task = queue.PendingTasks.FirstOrDefault(t => t.Id == taskId);
-                    if (task != null) { task.Status = TaskStatus.Failure; queue.PendingTasks.Remove(task); }
+                    if (task != null)
+                    { task.Status = TaskStatus.Failure; queue.PendingTasks.Remove(task); }
                 }
                 if (_activeTasks.TryGetValue(entityId, out var active) && active.Task.Id == taskId)
                 { active.Task.Status = TaskStatus.Failure; _activeTasks.Remove(entityId); }
@@ -4779,19 +5049,22 @@ namespace GDNN.Sentience
 
         public ActiveTask? GetActiveTask(Guid entityId)
         {
-            lock (_lock) { return _activeTasks.TryGetValue(entityId, out var t) ? t : null; }
+            lock (_lock)
+            { return _activeTasks.TryGetValue(entityId, out var t) ? t : null; }
         }
 
         public List<EntityTask> GetPendingTasks(Guid entityId)
         {
-            lock (_lock) { return _taskQueues.TryGetValue(entityId, out var q) ? q.PendingTasks.ToList() : new List<EntityTask>(); }
+            lock (_lock)
+            { return _taskQueues.TryGetValue(entityId, out var q) ? q.PendingTasks.ToList() : new List<EntityTask>(); }
         }
 
         public EntityTask? GetNextTask(Guid entityId)
         {
             lock (_lock)
             {
-                if (_activeTasks.ContainsKey(entityId)) return null;
+                if (_activeTasks.ContainsKey(entityId))
+                    return null;
                 if (_taskQueues.TryGetValue(entityId, out var q) && q.PendingTasks.Count > 0)
                     return q.PendingTasks[0];
                 return null;
@@ -4915,7 +5188,8 @@ namespace GDNN.Sentience
 
         public float GetTrait(Guid entityId, string trait)
         {
-            if (_profiles.TryGetValue(entityId, out var p) && p.Traits.TryGetValue(trait, out var v)) return v;
+            if (_profiles.TryGetValue(entityId, out var p) && p.Traits.TryGetValue(trait, out var v))
+                return v;
             return 0.5f;
         }
 
@@ -4940,7 +5214,8 @@ namespace GDNN.Sentience
 
         public float CalculateBehaviorWeight(Guid entityId, string behavior)
         {
-            if (!_profiles.TryGetValue(entityId, out var profile)) return 0.5f;
+            if (!_profiles.TryGetValue(entityId, out var profile))
+                return 0.5f;
             return behavior.ToLower() switch
             {
                 "attack" or "combat" or "fight" => (profile.Traits.GetValueOrDefault("Aggression", 0.5f) + profile.Traits.GetValueOrDefault("Courage", 0.5f)) / 2f,
@@ -4956,14 +5231,19 @@ namespace GDNN.Sentience
 
         public EmotionalState GetEmotionalTendency(Guid entityId)
         {
-            if (!_profiles.TryGetValue(entityId, out var profile)) return EmotionalState.Neutral;
+            if (!_profiles.TryGetValue(entityId, out var profile))
+                return EmotionalState.Neutral;
             float neuroticism = profile.Traits.GetValueOrDefault("Neuroticism", 0.5f);
             float extraversion = profile.Traits.GetValueOrDefault("Extraversion", 0.5f);
 
-            if (neuroticism > 0.7f) return EmotionalState.Anxious;
-            if (extraversion > 0.7f) return EmotionalState.Excited;
-            if (neuroticism < 0.3f && extraversion < 0.3f) return EmotionalState.Calm;
-            if (extraversion > 0.5f) return EmotionalState.Happy;
+            if (neuroticism > 0.7f)
+                return EmotionalState.Anxious;
+            if (extraversion > 0.7f)
+                return EmotionalState.Excited;
+            if (neuroticism < 0.3f && extraversion < 0.3f)
+                return EmotionalState.Calm;
+            if (extraversion > 0.5f)
+                return EmotionalState.Happy;
             return EmotionalState.Neutral;
         }
 
@@ -4971,7 +5251,8 @@ namespace GDNN.Sentience
         {
             var profileA = _profiles.TryGetValue(entityA, out var pa) ? pa : null;
             var profileB = _profiles.TryGetValue(entityB, out var pb) ? pb : null;
-            if (profileA == null || profileB == null) return new Dictionary<string, float> { { "Overall", 0.5f } };
+            if (profileA == null || profileB == null)
+                return new Dictionary<string, float> { { "Overall", 0.5f } };
 
             var compatibility = new Dictionary<string, float>();
             float totalCompat = 0;
@@ -5002,10 +5283,14 @@ namespace GDNN.Sentience
             float neuroticism = profile.Traits.GetValueOrDefault("Neuroticism", 0.5f);
             float agreeableness = profile.Traits.GetValueOrDefault("Agreeableness", 0.5f);
 
-            if (aggression > 0.7f && extraversion > 0.6f) return "Choleric";
-            if (extraversion > 0.7f && agreeableness > 0.6f) return "Sanguine";
-            if (neuroticism > 0.6f && extraversion < 0.4f) return "Melancholic";
-            if (agreeableness > 0.7f && extraversion < 0.4f) return "Phlegmatic";
+            if (aggression > 0.7f && extraversion > 0.6f)
+                return "Choleric";
+            if (extraversion > 0.7f && agreeableness > 0.6f)
+                return "Sanguine";
+            if (neuroticism > 0.6f && extraversion < 0.4f)
+                return "Melancholic";
+            if (agreeableness > 0.7f && extraversion < 0.4f)
+                return "Phlegmatic";
             return "Mixed";
         }
     }
@@ -5034,12 +5319,14 @@ namespace GDNN.Sentience
             _generator = generator;
             _reset = reset ?? (_ => { });
             _objects = new ConcurrentBag<T>();
-            for (int i = 0; i < initialSize; i++) { _objects.Add(generator()); _totalCreated++; }
+            for (int i = 0; i < initialSize; i++)
+            { _objects.Add(generator()); _totalCreated++; }
         }
 
         public T Get()
         {
-            if (_objects.TryTake(out var item)) return item;
+            if (_objects.TryTake(out var item))
+                return item;
             _totalCreated++;
             return _generator();
         }
@@ -5059,7 +5346,8 @@ namespace GDNN.Sentience
 
         public void Set(TKey key, TValue value, TimeSpan? ttl = null)
         {
-            lock (_lock) _cache[key] = (value, DateTime.UtcNow + (ttl ?? _defaultTtl));
+            lock (_lock)
+                _cache[key] = (value, DateTime.UtcNow + (ttl ?? _defaultTtl));
         }
 
         public bool TryGet(TKey key, out TValue? value)
@@ -5083,7 +5371,8 @@ namespace GDNN.Sentience
             lock (_lock)
             {
                 var expired = _cache.Where(kv => kv.Value.Expiry <= DateTime.UtcNow).Select(kv => kv.Key).ToList();
-                foreach (var key in expired) _cache.Remove(key);
+                foreach (var key in expired)
+                    _cache.Remove(key);
             }
         }
     }
@@ -5108,7 +5397,8 @@ namespace GDNN.Sentience
         {
             _frameTimer.Stop();
             _frameTimes.Add(_frameTimer.Elapsed.TotalMilliseconds);
-            if (_frameTimes.Count > _maxSamples) _frameTimes.RemoveAt(0);
+            if (_frameTimes.Count > _maxSamples)
+                _frameTimes.RemoveAt(0);
         }
 
         public double GetAverageFrameTime() => _frameTimes.Count > 0 ? _frameTimes.Average() : 0;
@@ -5116,7 +5406,8 @@ namespace GDNN.Sentience
         public double GetMinFrameTime() => _frameTimes.Count > 0 ? _frameTimes.Min() : 0;
         public double GetPercentileFrameTime(float percentile)
         {
-            if (_frameTimes.Count == 0) return 0;
+            if (_frameTimes.Count == 0)
+                return 0;
             var sorted = _frameTimes.OrderBy(t => t).ToList();
             return sorted[Math.Clamp((int)(sorted.Count * percentile), 0, sorted.Count - 1)];
         }
@@ -5191,8 +5482,10 @@ namespace GDNN.Sentience
             float threat = 0;
             foreach (var e in wsm.GetAllEntities().Values)
             {
-                if (e.EntityId == entity.EntityId) continue;
-                if (!entity.Relationships.TryGetValue(e.EntityId, out var r) || r.Type != RelationshipType.Hostile) continue;
+                if (e.EntityId == entity.EntityId)
+                    continue;
+                if (!entity.Relationships.TryGetValue(e.EntityId, out var r) || r.Type != RelationshipType.Hostile)
+                    continue;
                 float dist = entity.DistanceTo(e);
                 float distFactor = Math.Max(0, 1f - dist / 50f);
                 threat += distFactor * r.Strength * (e.Health / e.MaxHealth);
@@ -5244,7 +5537,8 @@ namespace GDNN.Sentience
             float score = 0;
             foreach (var other in allEntities.Values)
             {
-                if (other.EntityId == e.EntityId || !e.IsHostileTo(other.EntityId)) continue;
+                if (other.EntityId == e.EntityId || !e.IsHostileTo(other.EntityId))
+                    continue;
                 float dist = e.DistanceTo(other);
                 float distFactor = Math.Max(0, 1f - dist / 50f);
                 score += distFactor * (other.Health / other.MaxHealth);
@@ -5254,7 +5548,8 @@ namespace GDNN.Sentience
         public static Vector3 GetFleeDirection(this SentientEntity e, Dictionary<Guid, SentientEntity> allEntities)
         {
             var enemies = allEntities.Values.Where(o => o.EntityId != e.EntityId && e.IsHostileTo(o.EntityId)).ToList();
-            if (enemies.Count == 0) return e.Forward;
+            if (enemies.Count == 0)
+                return e.Forward;
             var avgEnemyPos = enemies.Aggregate(Vector3.Zero, (sum, en) => sum + en.Position) / enemies.Count;
             return Vector3.Normalize(e.Position - avgEnemyPos);
         }
@@ -5267,20 +5562,23 @@ namespace GDNN.Sentience
         public static void LookAtEntity(this SentientEntity e, SentientEntity target) => e.LookAt(target.Position);
         public static float GetAlignmentScore(this SentientEntity e, List<SentientEntity> group)
         {
-            if (group.Count < 2) return 1f;
+            if (group.Count < 2)
+                return 1f;
             var avgForward = group.Where(o => o.EntityId != e.EntityId).Aggregate(Vector3.Zero, (sum, o) => sum + o.Forward) / Math.Max(1, group.Count - 1);
             return Math.Clamp(Vector3.Dot(e.Forward, Vector3.Normalize(avgForward)), 0, 1);
         }
         public static float GetCohesionScore(this SentientEntity e, List<SentientEntity> group)
         {
-            if (group.Count < 2) return 1f;
+            if (group.Count < 2)
+                return 1f;
             var center = group.Where(o => o.EntityId != e.EntityId).Aggregate(Vector3.Zero, (sum, o) => sum + o.Position) / Math.Max(1, group.Count - 1);
             float dist = Vector3.Distance(e.Position, center);
             return Math.Clamp(1f - dist / 10f, 0, 1);
         }
         public static float GetSeparationScore(this SentientEntity e, List<SentientEntity> group, float desiredSeparation = 2f)
         {
-            if (group.Count < 2) return 1f;
+            if (group.Count < 2)
+                return 1f;
             float minDist = group.Where(o => o.EntityId != e.EntityId).Min(o => e.DistanceTo(o));
             return Math.Clamp(minDist / desiredSeparation, 0, 1);
         }
@@ -5292,12 +5590,16 @@ namespace GDNN.Sentience
             int count = 0;
             foreach (var other in group)
             {
-                if (other.EntityId == e.EntityId) continue;
+                if (other.EntityId == e.EntityId)
+                    continue;
                 float dist = e.DistanceTo(other);
-                if (dist < 2f && dist > 0.01f) separation += Vector3.Normalize(e.Position - other.Position) / dist;
-                if (dist < 5f) { alignment += other.Velocity; cohesion += other.Position; count++; }
+                if (dist < 2f && dist > 0.01f)
+                    separation += Vector3.Normalize(e.Position - other.Position) / dist;
+                if (dist < 5f)
+                { alignment += other.Velocity; cohesion += other.Position; count++; }
             }
-            if (count > 0) { alignment = Vector3.Normalize(alignment / count - e.Velocity); cohesion = Vector3.Normalize(cohesion / count - e.Position); }
+            if (count > 0)
+            { alignment = Vector3.Normalize(alignment / count - e.Velocity); cohesion = Vector3.Normalize(cohesion / count - e.Position); }
             return separation * separationWeight + alignment * alignmentWeight + cohesion * cohesionWeight;
         }
     }
@@ -5315,19 +5617,39 @@ namespace GDNN.Sentience
     {
         public static float GetValence(this EmotionalState s) => s switch
         {
-            EmotionalState.Happy => 1f, EmotionalState.Excited => 0.8f, EmotionalState.Calm => 0.7f,
-            EmotionalState.Trusting => 0.6f, EmotionalState.Determined => 0.6f, EmotionalState.Curious => 0.5f,
-            EmotionalState.Surprised => 0.3f, EmotionalState.Bored => -0.3f, EmotionalState.Confused => -0.2f,
-            EmotionalState.Anxious => -0.6f, EmotionalState.Disgusted => -0.7f, EmotionalState.Angry => -0.8f,
-            EmotionalState.Fearful => -0.9f, EmotionalState.Sad => -1f, _ => 0f
+            EmotionalState.Happy => 1f,
+            EmotionalState.Excited => 0.8f,
+            EmotionalState.Calm => 0.7f,
+            EmotionalState.Trusting => 0.6f,
+            EmotionalState.Determined => 0.6f,
+            EmotionalState.Curious => 0.5f,
+            EmotionalState.Surprised => 0.3f,
+            EmotionalState.Bored => -0.3f,
+            EmotionalState.Confused => -0.2f,
+            EmotionalState.Anxious => -0.6f,
+            EmotionalState.Disgusted => -0.7f,
+            EmotionalState.Angry => -0.8f,
+            EmotionalState.Fearful => -0.9f,
+            EmotionalState.Sad => -1f,
+            _ => 0f
         };
         public static float GetArousal(this EmotionalState s) => s switch
         {
-            EmotionalState.Excited => 0.9f, EmotionalState.Angry => 0.85f, EmotionalState.Fearful => 0.8f,
-            EmotionalState.Surprised => 0.75f, EmotionalState.Anxious => 0.7f, EmotionalState.Curious => 0.6f,
-            EmotionalState.Happy => 0.5f, EmotionalState.Determined => 0.5f, EmotionalState.Disgusted => 0.4f,
-            EmotionalState.Bored => 0.1f, EmotionalState.Calm => 0.15f, EmotionalState.Sad => 0.2f,
-            EmotionalState.Trusting => 0.25f, EmotionalState.Confused => 0.35f, _ => 0.3f
+            EmotionalState.Excited => 0.9f,
+            EmotionalState.Angry => 0.85f,
+            EmotionalState.Fearful => 0.8f,
+            EmotionalState.Surprised => 0.75f,
+            EmotionalState.Anxious => 0.7f,
+            EmotionalState.Curious => 0.6f,
+            EmotionalState.Happy => 0.5f,
+            EmotionalState.Determined => 0.5f,
+            EmotionalState.Disgusted => 0.4f,
+            EmotionalState.Bored => 0.1f,
+            EmotionalState.Calm => 0.15f,
+            EmotionalState.Sad => 0.2f,
+            EmotionalState.Trusting => 0.25f,
+            EmotionalState.Confused => 0.35f,
+            _ => 0.3f
         };
         public static bool IsPositive(this EmotionalState s) => s.GetValence() > 0.1f;
         public static bool IsNegative(this EmotionalState s) => s.GetValence() < -0.1f;
@@ -5335,22 +5657,40 @@ namespace GDNN.Sentience
         public static bool IsLowArousal(this EmotionalState s) => s.GetArousal() < 0.3f;
         public static EmotionalState GetOpposite(this EmotionalState s) => s switch
         {
-            EmotionalState.Happy => EmotionalState.Sad, EmotionalState.Sad => EmotionalState.Happy,
-            EmotionalState.Angry => EmotionalState.Calm, EmotionalState.Calm => EmotionalState.Angry,
-            EmotionalState.Fearful => EmotionalState.Determined, EmotionalState.Determined => EmotionalState.Fearful,
-            EmotionalState.Surprised => EmotionalState.Anticipating, EmotionalState.Anticipating => EmotionalState.Surprised,
-            EmotionalState.Disgusted => EmotionalState.Trusting, EmotionalState.Trusting => EmotionalState.Disgusted,
-            EmotionalState.Excited => EmotionalState.Bored, EmotionalState.Bored => EmotionalState.Excited,
-            EmotionalState.Curious => EmotionalState.Confused, EmotionalState.Confused => EmotionalState.Curious,
-            EmotionalState.Anxious => EmotionalState.Calm, _ => EmotionalState.Neutral
+            EmotionalState.Happy => EmotionalState.Sad,
+            EmotionalState.Sad => EmotionalState.Happy,
+            EmotionalState.Angry => EmotionalState.Calm,
+            EmotionalState.Calm => EmotionalState.Angry,
+            EmotionalState.Fearful => EmotionalState.Determined,
+            EmotionalState.Determined => EmotionalState.Fearful,
+            EmotionalState.Surprised => EmotionalState.Anticipating,
+            EmotionalState.Anticipating => EmotionalState.Surprised,
+            EmotionalState.Disgusted => EmotionalState.Trusting,
+            EmotionalState.Trusting => EmotionalState.Disgusted,
+            EmotionalState.Excited => EmotionalState.Bored,
+            EmotionalState.Bored => EmotionalState.Excited,
+            EmotionalState.Curious => EmotionalState.Confused,
+            EmotionalState.Confused => EmotionalState.Curious,
+            EmotionalState.Anxious => EmotionalState.Calm,
+            _ => EmotionalState.Neutral
         };
         public static string ToEmoji(this EmotionalState s) => s switch
         {
-            EmotionalState.Happy => "[HAPPY]", EmotionalState.Sad => "[SAD]", EmotionalState.Angry => "[ANGRY]",
-            EmotionalState.Fearful => "[FEAR]", EmotionalState.Surprised => "[SURPRISE]", EmotionalState.Disgusted => "[DISGUST]",
-            EmotionalState.Trusting => "[TRUST]", EmotionalState.Anticipating => "[ANTICIPATE]", EmotionalState.Calm => "[CALM]",
-            EmotionalState.Excited => "[EXCITED]", EmotionalState.Bored => "[BORED]", EmotionalState.Curious => "[CURIOUS]",
-            EmotionalState.Confused => "[CONFUSED]", EmotionalState.Determined => "[DETERMINED]", EmotionalState.Anxious => "[ANXIOUS]",
+            EmotionalState.Happy => "[HAPPY]",
+            EmotionalState.Sad => "[SAD]",
+            EmotionalState.Angry => "[ANGRY]",
+            EmotionalState.Fearful => "[FEAR]",
+            EmotionalState.Surprised => "[SURPRISE]",
+            EmotionalState.Disgusted => "[DISGUST]",
+            EmotionalState.Trusting => "[TRUST]",
+            EmotionalState.Anticipating => "[ANTICIPATE]",
+            EmotionalState.Calm => "[CALM]",
+            EmotionalState.Excited => "[EXCITED]",
+            EmotionalState.Bored => "[BORED]",
+            EmotionalState.Curious => "[CURIOUS]",
+            EmotionalState.Confused => "[CONFUSED]",
+            EmotionalState.Determined => "[DETERMINED]",
+            EmotionalState.Anxious => "[ANXIOUS]",
             _ => "[NEUTRAL]"
         };
     }

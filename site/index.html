@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Synapse — Le moteur qui apprend ses formes</title>
-  <meta name="description" content="Synapse OMNIA 1.1 — Synapse Studio : SDF neuronaux, illumination L-DNN, lois vivantes, NEAT-G, console LLM→scène, Vulkan. Les moteurs classiques assemblent ; Synapse apprend, réécrit et cultive." />
+  <title>Synapse — Moteur de simulation 3D</title>
+  <meta name="description" content="Synapse OMNIA 1.1 — un moteur de simulation 3D où formes, lois physiques et habitants évoluent ensemble. Synapse Studio est l'atelier pour observer, modifier et cultiver ce monde simulé." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -39,11 +39,12 @@
       <canvas id="bio-canvas" aria-hidden="true"></canvas>
       <div class="hero-inner">
         <p class="eyebrow reveal">SYNAPSE OMNIA 1.1 — Synapse Studio</p>
-        <h1 class="reveal delay-1">Et si la 3D n'était plus <em>dessinée</em>,<br />mais <em>apprise</em>&nbsp;?</h1>
+        <h1 class="reveal delay-1">Et si la 3D n'était plus <em>dessinée</em>,<br />mais <em>simulée</em>&nbsp;?</h1>
         <p class="hero-sub reveal delay-2">
-          Les moteurs classiques assemblent et simulent. Synapse apprend, réécrit et cultive&nbsp;:
-          formes apprises par de minuscules réseaux, lois physiques modifiables en pleine course,
-          géométrie qui évolue comme une espèce vivante.
+          Synapse OMNIA est un moteur de simulation 3D&nbsp;: un monde numérique que l'on observe,
+          modifie et fait évoluer. Formes qui s'apprennent, lois physiques réécrivables en direct,
+          populations qui mutent, habitants qui perçoivent — le tout dans un seul atelier,
+          Synapse Studio.
         </p>
         <div class="hero-actions reveal delay-3">
           <a class="btn btn-primary" href="https://github.com/QuantumHacker10/Synapse/releases" rel="noopener">Télécharger v1.1</a>
@@ -59,14 +60,12 @@
     <section class="section" id="apropos">
       <div class="container narrow">
         <p class="kicker reveal">Le projet, en une idée</p>
-        <h2 class="reveal delay-1">Un organisme logiciel, plutôt qu'une chaîne de montage.</h2>
+        <h2 class="reveal delay-1">Un monde simulé, plutôt qu'une chaîne de montage.</h2>
         <p class="lead reveal delay-2">
-          Unity, Unreal, Godot assemblent des millions de triangles et obéissent à des lois
-          physiques gravées dans le marbre. Synapse prend le contre-pied&nbsp;: chaque forme y est
-          <strong>apprise</strong> par un petit réseau de neurones, chaque loi physique y est un
-          <strong>texte vivant</strong> que l'on peut réécrire sans arrêter la simulation, et les
-          formes elles-mêmes peuvent <strong>évoluer</strong> par mutation et sélection, génération
-          après génération — le tout dans un seul runtime .NET, pas comme des outils séparés.
+          Unity, Unreal, Godot excellent à <em>monter</em> des scènes pour le jeu ou le cinéma.
+          Synapse prend une autre route&nbsp;: simuler un monde qui change — où chaque forme peut
+          s'apprendre, chaque loi physique se réécrire sans arrêter la course, et les formes
+          elles-mêmes évoluer génération après génération, comme une espèce vivante.
         </p>
         <dl class="stat-row reveal delay-3">
           <div class="stat">
@@ -89,7 +88,7 @@
     <section class="section section-deep" id="forces">
       <div class="container">
         <p class="kicker reveal">Les grandes forces</p>
-        <h2 class="reveal delay-1">Six idées peu communes,<br />réunies dans un seul moteur.</h2>
+        <h2 class="reveal delay-1">Six idées peu communes,<br />réunies dans une seule simulation.</h2>
 
         <div class="card-grid">
           <!-- Carte 1 : formes apprises -->
@@ -107,13 +106,10 @@
             </div>
             <h3>Des formes qui s'apprennent</h3>
             <p>
-              Ici, un objet 3D n'est pas un maillage de triangles&nbsp;: c'est un réseau de neurones
-              minuscule — 216 nombres pour une forme simple — qui a <em>appris</em> la surface. Pour
-              dessiner, le moteur lui pose des millions de fois la même question&nbsp;: «&nbsp;à quelle
-              distance suis-je de la surface&nbsp;?&nbsp;» La forme devient continue, organique, sans
-              facettes, et zoomable à l'infini.
+              Ici, un objet 3D n'est pas une sculpture figée&nbsp;: c'est une surface
+              <em>apprise</em>, continue et organique. On peut s'en approcher sans fin, comme
+              on zoomerait dans une matière vivante — sans facettes ni limite de détail.
             </p>
-            <p class="card-detail">Broad-phase BVH · polygonisation LOD + cache disque · pipeline mesh→SDF (glTF) · export glTF/GLB · évaluation SIMD &amp; Vulkan</p>
           </article>
 
           <!-- Carte 2 : physique vivante -->
@@ -129,11 +125,10 @@
             <h3>Une physique dont on réécrit les lois</h3>
             <p>
               La gravité, la chaleur, les ondes&nbsp;: dans Synapse, chaque loi est une équation en
-              toutes lettres, compilée à la volée. On peut la modifier <em>pendant que la simulation
-              tourne</em>, comme on corrige une phrase — le monde change de règles sans redémarrer.
-              Un garde-fou limite chaque loi pour qu'aucune ne puisse emballer la machine.
+              toutes lettres. On peut la modifier <em>pendant que la simulation tourne</em>, comme
+              on corrige une phrase — le monde change de règles sans redémarrer. Des garde-fous
+              empêchent qu'une loi dérégle toute la simulation.
             </p>
-            <p class="card-detail">100 lois sur 18 domaines · solveurs Maxwell, fluides SPH &amp; Lattice-Boltzmann, N-corps, Schrödinger · historique avec versions et retours en arrière</p>
           </article>
 
           <!-- Carte 3 : évolution -->
@@ -150,12 +145,11 @@
             </div>
             <h3>Une géométrie qui évolue</h3>
             <p>
-              Les formes apprises possèdent un génome — la recette de leur réseau de neurones. Le
-              moteur NEAT-G en fait vivre des populations entières&nbsp;: mutations, croisements,
-              espèces qui divergent, sélection des plus aptes. On ne modélise plus une forme, on la
-              <em>cultive</em>, en jugeant chaque génération sur sa beauté, sa légèreté et sa vitesse.
+              Les formes possèdent une recette héréditaire. Synapse en fait vivre des populations
+              entières&nbsp;: mutations, croisements, espèces qui divergent, sélection des plus
+              aptes. On ne modélise plus une forme, on la <em>cultive</em>, génération après
+              génération.
             </p>
-            <p class="card-detail">18 opérateurs de mutation · fitness SDF + irradiance L-DNN · spéciation Gromov-Hausdorff · sélection multi-objectifs NSGA-II</p>
           </article>
 
           <!-- Carte 4 : routeur LLM -->
@@ -169,15 +163,13 @@
                 <path class="draw-loop" d="M16 30c10-6 18-12 26-15M16 32h32M16 34c10 6 18 12 26 15" stroke="currentColor" stroke-width="1" opacity=".55"/>
               </svg>
             </div>
-            <h3>Un aiguilleur d'intelligences</h3>
+            <h3>Un assistant créatif discret</h3>
             <p>
-              Pour assister la création — décrire une scène, suggérer un matériau, ébaucher un
-              génome — Synapse s'adresse à des IA de langage. Un aiguilleur choisit à chaque requête
-              la meilleure destination&nbsp;: une IA locale sur votre machine ou un service cloud. Si
-              l'une tombe, une autre prend le relais&nbsp;; les données sensibles, elles, ne quittent
-              jamais l'ordinateur.
+              Pour décrire une scène, suggérer une ambiance ou esquisser une forme, Synapse
+              s'adresse à des intelligences de langage — sur votre machine ou à distance, selon
+              ce que vous préférez. Si l'une est indisponible, une autre prend le relais&nbsp;;
+              vos données sensibles peuvent rester chez vous.
             </p>
-            <p class="card-detail">Local (ONNX, Ollama) et cloud (OpenAI, Anthropic, Gemini, Azure) · parse lighting/SDF → scène · repli automatique · budget de coûts</p>
           </article>
 
           <!-- Carte 5 : moteur Vulkan -->
@@ -189,14 +181,12 @@
                 <circle class="pulse-slow d2" cx="32" cy="38" r="3" fill="currentColor"/>
               </svg>
             </div>
-            <h3>Un moteur de rendu complet</h3>
+            <h3>Voir le monde simulé</h3>
             <p>
-              Sous les idées neuves, une salle des machines sérieuse&nbsp;: un moteur Vulkan écrit à la
-              main, avec éclairage différé, ombres haute définition, ray tracing matériel et une
-              illumination globale assistée par réseau de neurones — la lumière qui rebondit dans la
-              scène est en partie <em>prédite</em> plutôt que calculée à la force brute.
+              Sous les idées neuves, un rendu temps réel sérieux&nbsp;: lumière, ombres, reflets,
+              brouillard et nuages donnent corps au monde simulé. L'image suit la simulation —
+              pas l'inverse.
             </p>
-            <p class="card-detail">G-Buffer étendu · GI hybride L-DNN (teacher PT, ombres &amp; spéculaire neuronaux, fog/nuages) · RT hybride · styles Cartoon/Noir · qualité adaptative</p>
           </article>
 
           <!-- Carte 6 : entités sentientes -->
@@ -213,11 +203,10 @@
             <h3>Des habitants qui perçoivent</h3>
             <p>
               Le monde simulé peut être peuplé d'entités qui voient, entendent, mémorisent et
-              ressentent. Chacune suit un arbre de décision, entretient des relations, et un chef
-              d'orchestre répartit le temps de calcul&nbsp;: les personnages proches vivent à pleine
-              cadence, les lointains somnolent — le tout dans le budget d'une image par seconde de jeu.
+              ressentent. Chacune suit ses propres décisions et entretient des relations. Les
+              proches vivent à pleine cadence&nbsp;; les lointains somnolent — le tout dans le
+              rythme de la simulation.
             </p>
-            <p class="card-detail">Arbres de comportement · perception visuelle, auditive et émotionnelle · ordonnanceur actif/dormant sous budget de 16,67&nbsp;ms</p>
           </article>
         </div>
       </div>
@@ -227,21 +216,21 @@
     <section class="section" id="assemblage">
       <div class="container narrow">
         <p class="kicker reveal">Comment ça s'assemble</p>
-        <h2 class="reveal delay-1">L'histoire d'une image,<br />racontée de l'intérieur.</h2>
+        <h2 class="reveal delay-1">L'histoire d'une simulation,<br />racontée de l'intérieur.</h2>
         <p class="lead reveal delay-2">
-          Plutôt qu'un diagramme d'architecture, suivez le chemin qu'emprunte le monde simulé,
-          de la première règle jusqu'au pixel.
+          Plutôt qu'un schéma technique, suivez le chemin qu'emprunte le monde simulé,
+          de la première règle jusqu'à l'image à l'écran.
         </p>
 
         <ol class="flow">
           <li class="flow-step reveal">
             <span class="flow-marker" aria-hidden="true">1</span>
             <div>
-              <h3>Le cœur pose le vocabulaire</h3>
+              <h3>Le monde prend forme</h3>
               <p>
-                <span class="mono">Synapse.Core</span> définit la matière première&nbsp;: l'état physique
-                de chaque parcelle du monde tient dans 256 octets — densité, température, vitesse,
-                champs électriques… — avec les constantes fondamentales de la physique en référence.
+                Chaque parcelle du monde possède un état&nbsp;: densité, température, vitesse,
+                champs… Les constantes de la physique servent de référence commune à toute
+                la simulation.
               </p>
             </div>
           </li>
@@ -250,9 +239,9 @@
             <div>
               <h3>Les lois s'écrivent, puis s'appliquent</h3>
               <p>
-                <span class="mono">Synapse.Physics</span> lit des équations en toutes lettres, les compile
-                en instructions rapides et les applique au monde. Envie de changer la diffusion de la
-                chaleur&nbsp;? On réécrit la ligne, on recharge, la simulation continue.
+                Des équations en toutes lettres décrivent comment le monde évolue. Envie de changer
+                la diffusion de la chaleur&nbsp;? On réécrit la ligne, on recharge, la simulation
+                continue.
               </p>
             </div>
           </li>
@@ -261,10 +250,8 @@
             <div>
               <h3>Les formes s'apprennent et se cultivent</h3>
               <p>
-                <span class="mono">Synapse.Rendering (G-DNN)</span> mémorise chaque forme dans un petit
-                réseau de neurones, pendant que <span class="mono">Synapse.AI</span> et
-                <span class="mono">Synapse.Genomics</span> en font évoluer des populations entières par
-                mutation et sélection.
+                Les objets du monde peuvent être appris plutôt que sculptés, puis faire l'objet
+                de populations qui mutent et se sélectionnent au fil des générations.
               </p>
             </div>
           </li>
@@ -273,21 +260,20 @@
             <div>
               <h3>Le monde s'anime et se raconte</h3>
               <p>
-                <span class="mono">Synapse.Simulation</span> fait vivre des entités qui perçoivent et
-                décident, et <span class="mono">Synapse.LLM</span> aiguille les demandes créatives vers
-                la bonne IA de langage, locale ou distante.
+                Des habitants perçoivent et décident. Une assistance créative aide à décrire
+                la scène, ajuster l'ambiance ou esquisser de nouvelles formes — localement ou
+                à distance.
               </p>
             </div>
           </li>
           <li class="flow-step reveal">
             <span class="flow-marker" aria-hidden="true">5</span>
             <div>
-              <h3>Vulkan met tout en lumière</h3>
+              <h3>La simulation devient visible</h3>
               <p>
-                Le moteur compose l'image&nbsp;: SDF neuronaux accélérés par BVH, G-Buffer étendu,
-                GI L-DNN (avec teacher path tracing et ombres neuronales), fog et nuages volumétriques,
-                styles artistiques. <span class="mono">Synapse Studio</span> orchestre scène, lois,
-                évolution, agents, console LLM→éclairage et viewport Vulkan.
+                Lumière, ombres, reflets et atmosphère traduisent l'état du monde simulé en
+                image. <strong>Synapse Studio</strong> réunit scène, lois, évolution, habitants
+                et vue 3D dans un seul atelier.
               </p>
             </div>
           </li>
@@ -299,43 +285,44 @@
     <section class="section section-deep" id="difference">
       <div class="container narrow">
         <p class="kicker reveal">Pourquoi c'est différent</p>
-        <h2 class="reveal delay-1">Ce que Synapse ose,<br />que les moteurs classiques ne font pas.</h2>
+        <h2 class="reveal delay-1">Ce que Synapse ose,<br />que les outils 3D classiques ne font pas.</h2>
         <p class="lead reveal delay-1">
-          En une phrase&nbsp;: les moteurs classiques <em>assemblent et simulent</em>&nbsp;;
-          Synapse <em>apprend, réécrit et cultive</em> le monde simulé.
+          En une phrase&nbsp;: ailleurs on <em>assemble</em> des scènes&nbsp;;
+          ici on <em>simule</em> un monde qui apprend, se réécrit et évolue.
         </p>
 
         <ul class="contrast-list">
           <li class="contrast reveal">
-            <p class="contrast-before">Ailleurs (Unity, Unreal, Godot…), une forme est un maillage figé de triangles.</p>
-            <p class="contrast-after">Ici, c'est une fonction apprise&nbsp;: continue, compacte, sans résolution fixe.</p>
+            <p class="contrast-before">Ailleurs (Unity, Unreal, Godot…), une forme est une sculpture figée.</p>
+            <p class="contrast-after">Ici, c'est une surface apprise — continue, compacte, sans limite de zoom.</p>
           </li>
           <li class="contrast reveal delay-1">
-            <p class="contrast-before">Ailleurs, la physique est câblée une fois pour toutes dans le moteur.</p>
-            <p class="contrast-after">Ici, chaque loi est un texte que l'on peut réécrire, versionner et recharger à chaud.</p>
+            <p class="contrast-before">Ailleurs, la physique est gravée une fois pour toutes.</p>
+            <p class="contrast-after">Ici, chaque loi est un texte que l'on peut réécrire pendant la simulation.</p>
           </li>
           <li class="contrast reveal delay-2">
-            <p class="contrast-before">Ailleurs, un artiste modélise chaque objet à la main.</p>
-            <p class="contrast-after">Ici, on peut faire évoluer des populations de formes (NEAT-G) et sélectionner les meilleures.</p>
+            <p class="contrast-before">Ailleurs, chaque objet est modélisé à la main.</p>
+            <p class="contrast-after">Ici, on peut faire évoluer des populations de formes et garder les meilleures.</p>
           </li>
           <li class="contrast reveal delay-3">
-            <p class="contrast-before">Ailleurs, l'IA générative est souvent un service cloud unique, imposé.</p>
-            <p class="contrast-after">Ici, un aiguilleur arbitre entre IA locales et distantes, selon la confidentialité et le coût.</p>
+            <p class="contrast-before">Ailleurs, l'assistance créative passe souvent par un cloud imposé.</p>
+            <p class="contrast-after">Ici, vous choisissez entre aide locale et distante, selon vos contraintes.</p>
           </li>
           <li class="contrast reveal">
-            <p class="contrast-before">Ailleurs, ces idées vivent dans des plugins, labs ou outils séparés.</p>
-            <p class="contrast-after">Ici, formes neuronales, living laws, évolution, agents et Vulkan cohabitent dans un seul runtime .NET.</p>
+            <p class="contrast-before">Ailleurs, simulation, évolution et rendu vivent dans des outils séparés.</p>
+            <p class="contrast-after">Ici, tout cohabite dans un seul moteur de simulation 3D.</p>
           </li>
         </ul>
 
         <aside class="honesty reveal" aria-label="Où en est le projet">
           <h3>Produit 1.1</h3>
           <p>
-            SYNAPSE OMNIA&nbsp;1.1 livre <strong>Synapse Studio</strong> (Avalonia), un runtime unifié
-            (physique, simulation, évolution NEAT-G, LLM→éclairage/SDF, rendu Vulkan G-DNN + L-DNN),
-            des projets <span class="mono">.synapse</span>, Vulkan multiplateforme via GLFW
-            (HWND embarqué sous Windows), tests automatisés et une CI qui compile, teste,
-            publie Windows&nbsp;x64 et déploie ce site. Licence propriétaire — tous droits réservés (pas de fork ni de copie sans autorisation).
+            SYNAPSE OMNIA&nbsp;1.1 livre <strong>Synapse Studio</strong>, l'atelier pour explorer
+            le monde simulé&nbsp;: édition de scènes, viewport Vulkan avec gizmos, lois physiques
+            modifiables en direct, évolution de formes, habitants, assistance créative et vue 3D
+            temps réel. Projets
+            <span class="mono">.synapse</span>, build Windows&nbsp;x64, tests automatisés et
+            déploiement de ce site. Licence propriétaire — tous droits réservés.
           </p>
         </aside>
       </div>
@@ -347,9 +334,8 @@
         <p class="kicker reveal">Télécharger</p>
         <h2 class="reveal delay-1">Synapse Studio pour Windows.<br />Ou compilez depuis les sources.</h2>
         <p class="lead reveal delay-2">
-          Récupérez le zip win-x64 sur GitHub Releases, ou clonez le dépôt pour explorer
-          <span class="mono">LivingLawCompiler</span>, <span class="mono">NeatGEvolutionEngine</span>,
-          <span class="mono">EngineHost</span> et le rendu Vulkan G-DNN.
+          Récupérez le zip win-x64 sur GitHub Releases, ou clonez le dépôt pour lancer
+          votre propre monde simulé.
         </p>
         <div class="hero-actions reveal delay-2" style="justify-content:center;margin-bottom:2rem">
           <a class="btn btn-primary" href="https://github.com/QuantumHacker10/Synapse/releases" rel="noopener">Télécharger sur GitHub Releases</a>
@@ -372,8 +358,8 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <p><span class="brand-dot small" aria-hidden="true"></span> Synapse — Synapse Engine 1.1</p>
-      <p class="footer-meta">Apprendre · Réécrire · Cultiver · C#&nbsp;14 / .NET&nbsp;10 · Vulkan · Site sans cookies ni traceurs</p>
+      <p><span class="brand-dot small" aria-hidden="true"></span> Synapse — Moteur de simulation 3D · v1.1</p>
+      <p class="footer-meta">Apprendre · Réécrire · Cultiver · Site sans cookies ni traceurs</p>
     </div>
   </footer>
 

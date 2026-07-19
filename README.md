@@ -1,16 +1,20 @@
-# SYNAPSE OMNIA — Synapse Engine 1.1
+# SYNAPSE OMNIA — Moteur de simulation 3D · v1.1
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
 
-Moteur de simulation et éditeur **Synapse Studio** en **C# 14 / .NET 10**.
-Les moteurs 3D classiques *assemblent et simulent* ; Synapse *apprend, réécrit et cultive*
-le monde simulé — formes neuronales (SDF), lois physiques vivantes, géométrie évolutive
-(NEAT-G), agents sentients, routeur LLM multi-fournisseurs, rendu **Vulkan**.
+**Synapse OMNIA** est un moteur de **simulation 3D** : un monde numérique que l'on observe,
+modifie et fait évoluer — pas une boîte à monter des niveaux de jeu.
+**Synapse Studio** en est l'atelier pour éditer une scène, lancer la simulation et voir
+comment formes, lois et habitants changent ensemble.
 
-> **Produit v1.1** — Synapse Studio (Avalonia) + runtime unifié (physique, simulation, AI, LLM, rendu).
-> Surfaces Vulkan : **Windows** (HWND + GLFW), **Linux** / **macOS** (GLFW + MoltenVK).
+Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
+Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
+
+> **Produit v1.1** — Synapse Studio + un runtime unifié (physique, simulation, évolution,
+> assistance créative, rendu temps réel). Build officiel **Windows x64** ; Linux et macOS
+> en compilation locale.
 
 **Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v1.1](https://github.com/QuantumHacker10/Synapse/releases)
 
@@ -32,14 +36,14 @@ le monde simulé — formes neuronales (SDF), lois physiques vivantes, géométr
 
 | Ailleurs (Unity, Unreal, Godot…) | Ici |
 |---|---|
-| Forme = maillage figé de triangles | Forme = fonction apprise (SDF neuronal), continue et sans résolution fixe |
-| Physique câblée une fois pour toutes | 100 lois en texte sur 18 domaines, compilées, versionnées, rechargées à chaud |
-| L'artiste modélise chaque objet à la main | Populations de formes évoluées (NEAT-G) puis sélectionnées |
-| IA générative souvent = un service cloud unique | Aiguilleur LLM local (Ollama / ONNX) + cloud, selon coût et confidentialité |
-| Rendu et IA dans des outils séparés | Vulkan différé + ray tracing + illumination neuronale L-DNN dans le même runtime |
-| PNJ scriptés | Agents sentients : perception, behavior trees, ordonnanceur actif/dormant sous budget frame |
+| Des scènes assemblées à la main | Un monde simulé qui évolue |
+| Formes figées, découpées en triangles | Formes apprises, continues, zoomables sans limite |
+| Physique gravée une fois pour toutes | Lois réécrivables pendant que la simulation tourne |
+| Chaque objet modélisé individuellement | Populations de formes qui mutent et se sélectionnent |
+| IA souvent imposée depuis le cloud | Assistance locale ou distante, selon vos contraintes |
+| Entités scriptées | Habitants qui perçoivent, décident et s'adaptent |
 
-Six idées rares réunies dans **un seul runtime** .NET, pas comme des outils séparés.
+Six idées rares réunies dans **un seul moteur de simulation**, pas comme des plugins séparés.
 
 ## Prérequis
 
@@ -127,15 +131,15 @@ flowchart LR
 
 ## Synapse Studio
 
-Interface Avalonia unifiée pour éditer, simuler et piloter le moteur :
+Atelier pour explorer et piloter la simulation :
 
-- **Viewport Vulkan** — HWND embarqué (Windows) ou fenêtre GLFW (`--engine`)
-- **Projets `.synapse`** — New / Open / Save, scene explorer et inspector
-- **Living laws** — éditeur avec hot-reload des 100 lois physiques
-- **Évolution NEAT-G** — populations de formes, spawn d'agents, play/pause simulation
-- **Console LLM** — prompts naturels → paramètres d'éclairage et hints SDF appliqués à la scène
-- **Outils créatifs** — blueprint editor, sculpt strokes, import Megascans
-- **HUD performances** — FPS, budgets physique/sim, qualité adaptative
+- **Vue 3D temps réel** — viewport Vulkan embarqué (Windows HWND) avec grille, gizmos et outils d'édition (sélection, déplacement, rotation)
+- **Projets `.synapse`** — ouvrir, sauver et organiser vos scènes
+- **Lois physiques** — réécrire les règles du monde sans arrêter la simulation
+- **Évolution** — faire muter des populations de formes, lancer des agents, play/pause (Espace)
+- **Console créative** — décrire une scène en langage naturel et voir le monde réagir
+- **Outils d'édition** — blueprints graphiques, sculpt, import d'assets Megascans
+- **Tableau de bord** — cadence (IPS), charge physique/sim, qualité adaptative et GI L-DNN
 
 ## Publish (Windows x64)
 
@@ -179,7 +183,8 @@ Les issues et discussions GitHub sont ouvertes pour bugs, idées et questions d'
 
 ## Site
 
-Page vitrine dans [`site/`](site/) — présentation produit, différenciation et lien de téléchargement Releases.
+Page vitrine dans [`site/`](site/) — présentation du moteur de simulation 3D, en langage clair,
+avec lien de téléchargement Releases.
 Déployée automatiquement sur [GitHub Pages](https://quantumhacker10.github.io/Synapse/) à chaque push touchant `site/**`.
 
 ## Licence

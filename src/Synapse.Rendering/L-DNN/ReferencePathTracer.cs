@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -186,11 +186,13 @@ namespace GDNN.Lighting.LDNN
                 {
                     int idx = gbuffer.GetIndex(x, y);
                     float depth = gbuffer.Depth[idx];
-                    if (depth <= 0 || depth >= minDist) continue;
+                    if (depth <= 0 || depth >= minDist)
+                        continue;
 
                     Vector3 hitPos = origin + direction * depth;
                     float cosAngle = Vector3.Dot(direction, gbuffer.Normals[idx]);
-                    if (cosAngle >= 0) continue;
+                    if (cosAngle >= 0)
+                        continue;
 
                     minDist = depth;
                     Vector3 normal = gbuffer.Normals[idx];
@@ -241,7 +243,8 @@ namespace GDNN.Lighting.LDNN
             Vector3 n = hit.Normal;
             float NdotL = MathF.Max(0, Vector3.Dot(n, wi));
             float NdotV = MathF.Max(0, Vector3.Dot(n, wo));
-            if (NdotL < EPSILON || NdotV < EPSILON) return Vector3.Zero;
+            if (NdotL < EPSILON || NdotV < EPSILON)
+                return Vector3.Zero;
 
             Vector3 diffuse = mat.BaseColor * INV_PI;
             Vector3 halfVec = Vector3.Normalize(wi + wo);
@@ -331,7 +334,8 @@ namespace GDNN.Lighting.LDNN
 
             foreach (var light in lights)
             {
-                if (light.Intensity < EPSILON) continue;
+                if (light.Intensity < EPSILON)
+                    continue;
 
                 Vector3 lightDir;
                 float lightDistance;
@@ -400,7 +404,8 @@ namespace GDNN.Lighting.LDNN
                 }
 
                 float NdotL = MathF.Max(0, Vector3.Dot(hit.Normal, lightDir));
-                if (NdotL < EPSILON) continue;
+                if (NdotL < EPSILON)
+                    continue;
 
                 if (light.ShadowMethod == ShadowMethod.RayTraced)
                 {
@@ -462,7 +467,8 @@ namespace GDNN.Lighting.LDNN
             float sin2Theta = 1.0f - cosTheta * cosTheta;
             float eta2 = eta * eta;
             float discriminant = 1.0f - sin2Theta / eta2;
-            if (discriminant < 0) return 1.0f;
+            if (discriminant < 0)
+                return 1.0f;
             float cosT = MathF.Sqrt(discriminant);
             float rs = (eta * cosTheta - cosT) / (eta * cosTheta + cosT);
             float rp = (cosTheta - eta * cosT) / (cosTheta + eta * cosT);
@@ -515,7 +521,8 @@ namespace GDNN.Lighting.LDNN
                 }
             }
             mse /= (width * height * 3);
-            if (mse < 1e-10) return 100.0f;
+            if (mse < 1e-10)
+                return 100.0f;
             return (float)(10.0 * Math.Log10(1.0 / mse));
         }
 
@@ -537,8 +544,10 @@ namespace GDNN.Lighting.LDNN
                     {
                         float rx = reference[x, y][c];
                         float ry = denoised[x, y][c];
-                        sumX += rx; sumY += ry;
-                        sumXX += rx * rx; sumYY += ry * ry;
+                        sumX += rx;
+                        sumY += ry;
+                        sumXX += rx * rx;
+                        sumYY += ry * ry;
                         sumXY += rx * ry;
                     }
                 }

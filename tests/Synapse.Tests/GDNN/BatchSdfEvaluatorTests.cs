@@ -1,7 +1,7 @@
+using System.Numerics;
 using FluentAssertions;
 using GDNN.Core.NeuralNetwork;
 using GDNN.SIMD;
-using System.Numerics;
 using Xunit;
 
 namespace Synapse.Tests.GDNN;

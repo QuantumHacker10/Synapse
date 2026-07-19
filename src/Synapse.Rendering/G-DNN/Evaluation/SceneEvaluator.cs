@@ -1,11 +1,22 @@
 using System;
+// ============================================================
+// FILE: SceneEvaluator.cs
+// PATH: Evaluation/SceneEvaluator.cs
+// ============================================================
+
+
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -14,21 +25,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
-using System.Threading.Tasks;
-
-
-// ============================================================
-// FILE: SceneEvaluator.cs
-// PATH: Evaluation/SceneEvaluator.cs
-// ============================================================
-
-
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Numerics;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Threading.Tasks;
 using GDNN.Core.DataStructures;
 using GDNN.Core.NeuralNetwork;
@@ -48,7 +46,7 @@ namespace GDNN.Evaluation
         public string Name { get; set; } = string.Empty;
 
         /// <summary>The neural network defining this asset's surface.</summary>
-        public required ISdfNetwork Network { get; init; }
+        public ISdfNetwork Network { get; init; }
 
         /// <summary>World-space transform of the asset.</summary>
         public Matrix4x4 Transform { get; set; } = Matrix4x4.Identity;
@@ -283,7 +281,7 @@ namespace GDNN.Evaluation
     public sealed class AssetEvalResult
     {
         /// <summary>Asset that was evaluated.</summary>
-        public required SceneNeuralAsset Asset { get; init; }
+        public SceneNeuralAsset Asset { get; init; }
 
         /// <summary>Evaluation results (one per query).</summary>
         public SurfaceHit[] Hits { get; set; } = Array.Empty<SurfaceHit>();
@@ -385,7 +383,8 @@ namespace GDNN.Evaluation
             get
             {
                 _assetLock.EnterReadLock();
-                try { return _assets.Count; }
+                try
+                { return _assets.Count; }
                 finally { _assetLock.ExitReadLock(); }
             }
         }
@@ -427,7 +426,8 @@ namespace GDNN.Evaluation
         /// <returns>Index of the added asset.</returns>
         public int AddAsset(SceneNeuralAsset asset)
         {
-            if (asset == null) throw new ArgumentNullException(nameof(asset));
+            if (asset == null)
+                throw new ArgumentNullException(nameof(asset));
             _assetLock.EnterWriteLock();
             try
             {
@@ -464,7 +464,8 @@ namespace GDNN.Evaluation
         public SceneNeuralAsset GetAsset(int index)
         {
             _assetLock.EnterReadLock();
-            try { return _assets[index]; }
+            try
+            { return _assets[index]; }
             finally { _assetLock.ExitReadLock(); }
         }
 
@@ -514,7 +515,8 @@ namespace GDNN.Evaluation
                     }
 
                     asset.IsVisible = visible;
-                    if (visible) visibleCount++;
+                    if (visible)
+                        visibleCount++;
                 }
             }
             finally { _assetLock.ExitReadLock(); }
@@ -577,7 +579,8 @@ namespace GDNN.Evaluation
                     {
                         // Primary sort by screen coverage, secondary by priority
                         int coverageComp = b.ScreenCoverage.CompareTo(a.ScreenCoverage);
-                        if (coverageComp != 0) return coverageComp;
+                        if (coverageComp != 0)
+                            return coverageComp;
                         return b.Priority.CompareTo(a.Priority);
                     });
                 }
@@ -622,7 +625,8 @@ namespace GDNN.Evaluation
                 for (int i = 0; i < _assets.Count; i++)
                 {
                     var asset = _assets[i];
-                    if (!asset.IsVisible) continue;
+                    if (!asset.IsVisible)
+                        continue;
 
                     if (broadPhase && bestHit.DidHit &&
                         DistanceToAssetBounds(point, asset) > bestHit.SdfValue)
@@ -728,7 +732,8 @@ namespace GDNN.Evaluation
                 try
                 {
                     for (int i = 0; i < _assets.Count; i++)
-                        if (_assets[i].IsVisible) visibleTotal++;
+                        if (_assets[i].IsVisible)
+                            visibleTotal++;
                 }
                 finally { _assetLock.ExitReadLock(); }
 
@@ -771,7 +776,8 @@ namespace GDNN.Evaluation
         /// </summary>
         private void EnsureBroadPhaseLocked()
         {
-            if (!_broadPhaseDirty) return;
+            if (!_broadPhaseDirty)
+                return;
 
             _assetLock.EnterReadLock();
             try
@@ -931,7 +937,8 @@ namespace GDNN.Evaluation
         public string GetAggregateStats()
         {
             var stats = GetRecentStats(1000);
-            if (stats.Length == 0) return "No frame data available.";
+            if (stats.Length == 0)
+                return "No frame data available.";
 
             float totalTime = 0;
             float minTime = float.MaxValue;
@@ -947,7 +954,8 @@ namespace GDNN.Evaluation
                 maxTime = MathF.Max(maxTime, stats[i].TotalEvalTimeMs);
                 totalEvals += stats[i].TotalEvaluations;
                 totalHits += stats[i].TotalHits;
-                if (stats[i].WithinBudget) withinBudget++;
+                if (stats[i].WithinBudget)
+                    withinBudget++;
             }
 
             return $"Frames={stats.Length} AvgMs={totalTime / stats.Length:F2} " +
@@ -1024,7 +1032,8 @@ namespace GDNN.Evaluation
                     for (int a = 0; a < _assets.Count; a++)
                     {
                         var asset = _assets[a];
-                        if (!asset.IsVisible) continue;
+                        if (!asset.IsVisible)
+                            continue;
 
                         if (broadPhase)
                         {
@@ -1045,7 +1054,8 @@ namespace GDNN.Evaluation
                         float scale = ExtractUniformScale(asset.Transform);
                         float worldSdf = sdf * scale;
 
-                        if (worldSdf < minSdf) minSdf = worldSdf;
+                        if (worldSdf < minSdf)
+                            minSdf = worldSdf;
                     }
 
                     results[p] = minSdf;
@@ -1070,7 +1080,8 @@ namespace GDNN.Evaluation
                 for (int i = 0; i < _assets.Count; i++)
                 {
                     var asset = _assets[i];
-                    if (!asset.IsVisible) continue;
+                    if (!asset.IsVisible)
+                        continue;
 
                     float dist = Vector3.Distance(point, asset.BoundingCenter);
                     if (dist < asset.BoundingRadius && dist < closestDist)
@@ -1155,7 +1166,8 @@ namespace GDNN.Evaluation
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _assetLock.Dispose();
             _surfaceEvaluator.Dispose();

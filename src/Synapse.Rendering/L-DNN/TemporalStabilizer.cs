@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -53,7 +53,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public Vector3 Reproject(int x, int y, Vector2 velocity, GBuffer gbuffer)
         {
-            if (_historyBuffer == null) return Vector3.Zero;
+            if (_historyBuffer == null)
+                return Vector3.Zero;
 
             float prevX = x + velocity.X;
             float prevY = y + velocity.Y;
@@ -150,7 +151,8 @@ namespace GDNN.Lighting.LDNN
         public bool DetectDisocclusion(GBuffer currentGBuffer, GBuffer previousGBuffer,
             int x, int y, Vector2 velocity, float threshold)
         {
-            if (previousGBuffer == null) return true;
+            if (previousGBuffer == null)
+                return true;
 
             float prevX = Math.Clamp(x + velocity.X, 0, _width - 1);
             float prevY = Math.Clamp(y + velocity.Y, 0, _height - 1);
@@ -175,7 +177,8 @@ namespace GDNN.Lighting.LDNN
         /// </summary>
         public Vector3 ColorBoxFilterHistory(int x, int y, int radius)
         {
-            if (_historyBuffer == null) return Vector3.Zero;
+            if (_historyBuffer == null)
+                return Vector3.Zero;
 
             Vector3 sum = Vector3.Zero;
             int count = 0;
@@ -254,7 +257,8 @@ namespace GDNN.Lighting.LDNN
         public Vector3 ApplyTemporalFilter(int x, int y, Vector3 current, Vector2 velocity,
             GBuffer gbuffer, GBuffer previousGBuffer)
         {
-            if (!_isInitialized || _historyBuffer == null) return current;
+            if (!_isInitialized || _historyBuffer == null)
+                return current;
 
             int idx = gbuffer.GetIndex(x, y);
 

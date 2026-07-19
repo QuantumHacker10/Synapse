@@ -1,4 +1,4 @@
-﻿// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
+// Multi-provider LLM pipeline for Synapse (split from HybridLlmRouter.cs).
 
 using System;
 using System.Buffers;
@@ -383,7 +383,8 @@ namespace GDNN.Llm
         {
             ThrowIfDisposed();
             ArgumentNullException.ThrowIfNull(prompts);
-            if (prompts.Count == 0) return Array.Empty<string>();
+            if (prompts.Count == 0)
+                return Array.Empty<string>();
 
             var results = new string[prompts.Count];
             var tasks = prompts.Select((prompt, index) =>
@@ -414,15 +415,20 @@ namespace GDNN.Llm
             IReadOnlyList<int> generatedTokenIds,
             float penalty)
         {
-            if (logits == null || logits.Length == 0) return;
-            if (generatedTokenIds == null || generatedTokenIds.Count == 0) return;
-            if (penalty <= 1.0f) return;
+            if (logits == null || logits.Length == 0)
+                return;
+            if (generatedTokenIds == null || generatedTokenIds.Count == 0)
+                return;
+            if (penalty <= 1.0f)
+                return;
 
             var processedTokens = new HashSet<int>();
             foreach (var tokenId in generatedTokenIds)
             {
-                if (tokenId < 0 || tokenId >= logits.Length) continue;
-                if (!processedTokens.Add(tokenId)) continue;
+                if (tokenId < 0 || tokenId >= logits.Length)
+                    continue;
+                if (!processedTokens.Add(tokenId))
+                    continue;
 
                 if (logits[tokenId] > 0)
                     logits[tokenId] /= penalty;
@@ -438,13 +444,15 @@ namespace GDNN.Llm
         /// <param name="temperature">Temperature value (0 = greedy, higher = more random).</param>
         public static void ApplyTemperature(float[] logits, float temperature)
         {
-            if (logits == null || logits.Length == 0) return;
+            if (logits == null || logits.Length == 0)
+                return;
             if (temperature <= 0f)
             {
                 // Greedy: find the max and set all others to -inf
                 int maxIdx = 0;
                 for (int i = 1; i < logits.Length; i++)
-                    if (logits[i] > logits[maxIdx]) maxIdx = i;
+                    if (logits[i] > logits[maxIdx])
+                        maxIdx = i;
                 for (int i = 0; i < logits.Length; i++)
                     logits[i] = i == maxIdx ? 1.0f : float.NegativeInfinity;
                 return;
@@ -462,11 +470,13 @@ namespace GDNN.Llm
         /// <returns>Probability distribution.</returns>
         public static float[] Softmax(float[] logits)
         {
-            if (logits == null || logits.Length == 0) return Array.Empty<float>();
+            if (logits == null || logits.Length == 0)
+                return Array.Empty<float>();
 
             float maxLogit = float.MinValue;
             for (int i = 0; i < logits.Length; i++)
-                if (logits[i] > maxLogit) maxLogit = logits[i];
+                if (logits[i] > maxLogit)
+                    maxLogit = logits[i];
 
             var probs = new float[logits.Length];
             float sum = 0f;
@@ -492,8 +502,10 @@ namespace GDNN.Llm
         /// <returns>Sampled token index.</returns>
         public static int TopKSample(float[] probabilities, int k, Random rng)
         {
-            if (probabilities == null || probabilities.Length == 0) return 0;
-            if (k <= 0) k = probabilities.Length;
+            if (probabilities == null || probabilities.Length == 0)
+                return 0;
+            if (k <= 0)
+                k = probabilities.Length;
             k = Math.Min(k, probabilities.Length);
 
             var topK = new (int index, float prob)[k];
@@ -516,16 +528,19 @@ namespace GDNN.Llm
             }
 
             float totalProb = 0f;
-            foreach (var (_, prob) in topK) totalProb += prob;
+            foreach (var (_, prob) in topK)
+                totalProb += prob;
 
-            if (totalProb <= 0f) return topK[0].index;
+            if (totalProb <= 0f)
+                return topK[0].index;
 
             float random = (float)(rng.NextDouble() * totalProb);
             float cumulative = 0f;
             foreach (var (index, prob) in topK)
             {
                 cumulative += prob;
-                if (random <= cumulative) return index;
+                if (random <= cumulative)
+                    return index;
             }
 
             return topK[k - 1].index;
@@ -540,7 +555,8 @@ namespace GDNN.Llm
         /// <returns>Sampled token index.</returns>
         public static int NucleusSample(float[] probabilities, float p, Random rng)
         {
-            if (probabilities == null || probabilities.Length == 0) return 0;
+            if (probabilities == null || probabilities.Length == 0)
+                return 0;
             p = Math.Clamp(p, 0.01f, 1.0f);
 
             var sorted = probabilities
@@ -565,14 +581,16 @@ namespace GDNN.Llm
             for (int i = 0; i < cutoffIndex; i++)
                 nucleusSum += sorted[i].prob;
 
-            if (nucleusSum <= 0f) return sorted[0].index;
+            if (nucleusSum <= 0f)
+                return sorted[0].index;
 
             float r = (float)(rng.NextDouble() * nucleusSum);
             float running = 0f;
             for (int i = 0; i < cutoffIndex; i++)
             {
                 running += sorted[i].prob;
-                if (r <= running) return sorted[i].index;
+                if (r <= running)
+                    return sorted[i].index;
             }
 
             return sorted[cutoffIndex - 1].index;
@@ -795,7 +813,8 @@ namespace GDNN.Llm
                     _currentCts.Token.ThrowIfCancellationRequested();
 
                     var logits = await session.GetNextLogitsAsync();
-                    if (logits == null || logits.Length == 0) break;
+                    if (logits == null || logits.Length == 0)
+                        break;
 
                     ApplyRepetitionPenalty(logits, generatedTokens, _repetitionPenalty);
                     ApplyTemperature(logits, _temperature);
@@ -879,7 +898,8 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public int EstimateTokens(string text)
         {
-            if (string.IsNullOrEmpty(text)) return 0;
+            if (string.IsNullOrEmpty(text))
+                return 0;
 
             if (_loadedModels.TryGetValue(_currentModelId, out var session))
             {
@@ -942,15 +962,18 @@ namespace GDNN.Llm
         /// <inheritdoc/>
         public Task<HealthCheckStatus> CheckHealthAsync(CancellationToken cancellationToken = default)
         {
-            if (_disposed) return Task.FromResult(HealthCheckStatus.Unhealthy);
-            if (_loadedModels.Count == 0) return Task.FromResult(HealthCheckStatus.Degraded);
+            if (_disposed)
+                return Task.FromResult(HealthCheckStatus.Unhealthy);
+            if (_loadedModels.Count == 0)
+                return Task.FromResult(HealthCheckStatus.Degraded);
             return Task.FromResult(HealthCheckStatus.Healthy);
         }
 
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _currentCts?.Cancel();
             _currentCts?.Dispose();
@@ -999,7 +1022,8 @@ namespace GDNN.Llm
                     _currentCts.Token.ThrowIfCancellationRequested();
 
                     var logits = await session.GetNextLogitsAsync();
-                    if (logits == null || logits.Length == 0) break;
+                    if (logits == null || logits.Length == 0)
+                        break;
 
                     ApplyRepetitionPenalty(logits, generatedTokens, parameters.RepetitionPenalty);
 
@@ -1069,11 +1093,13 @@ namespace GDNN.Llm
 
                 foreach (var beam in beams)
                 {
-                    if (beam.Finished) { candidates.Add(beam); continue; }
+                    if (beam.Finished)
+                    { candidates.Add(beam); continue; }
 
                     await session.SetInputAsync(beam.TokenIds.ToArray());
                     var logits = await session.GetNextLogitsAsync();
-                    if (logits == null || logits.Length == 0) continue;
+                    if (logits == null || logits.Length == 0)
+                        continue;
 
                     ApplyTemperature(logits, 0f); // Greedy within beam
                     var probs = Softmax(logits);
@@ -1104,7 +1130,8 @@ namespace GDNN.Llm
                     .Take(beamCount)
                     .ToList();
 
-                if (beams.All(b => b.Finished)) break;
+                if (beams.All(b => b.Finished))
+                    break;
             }
 
             var bestBeam = beams.OrderByDescending(b => b.Score / Math.Max(b.TokenIds.Count, 1)).First();
@@ -1117,7 +1144,8 @@ namespace GDNN.Llm
             float frequencyPenalty,
             float presencePenalty)
         {
-            if (frequencyPenalty == 0f && presencePenalty == 0f) return;
+            if (frequencyPenalty == 0f && presencePenalty == 0f)
+                return;
 
             var tokenCounts = new Dictionary<int, int>();
             foreach (var t in generatedTokens)
@@ -1128,7 +1156,8 @@ namespace GDNN.Llm
 
             foreach (var (tokenId, count) in tokenCounts)
             {
-                if (tokenId < 0 || tokenId >= logits.Length) continue;
+                if (tokenId < 0 || tokenId >= logits.Length)
+                    continue;
 
                 if (frequencyPenalty != 0f)
                     logits[tokenId] -= frequencyPenalty * count;
@@ -1250,7 +1279,8 @@ namespace GDNN.Llm
                 for (int i = 0; i < word.Length; i++)
                 {
                     int hash = word[i].GetHashCode() % VocabularySize;
-                    if (hash < 0) hash += VocabularySize;
+                    if (hash < 0)
+                        hash += VocabularySize;
                     tokens.Add(hash);
                 }
                 tokens.Add(1); // space token
@@ -1298,8 +1328,10 @@ namespace GDNN.Llm
             var sb = new StringBuilder();
             foreach (var id in tokenIds)
             {
-                if (id == 1) { sb.Append(' '); continue; }
-                if (id == 2) break; // EOS
+                if (id == 1)
+                { sb.Append(' '); continue; }
+                if (id == 2)
+                    break; // EOS
                 char c = (char)(id % 256);
                 if (c >= 32 && c < 127)
                     sb.Append(c);
@@ -1326,7 +1358,8 @@ namespace GDNN.Llm
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _kvCacheTokens.Clear();
         }

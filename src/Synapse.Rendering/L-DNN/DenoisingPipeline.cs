@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -238,7 +238,8 @@ namespace GDNN.Lighting.LDNN
                             int nIdx = gbuffer.GetIndex(nx, ny);
 
                             float normalSim = MathF.Max(0, Vector3.Dot(centerNormal, gbuffer.Normals[nIdx]));
-                            if (normalSim < 0.7f) continue;
+                            if (normalSim < 0.7f)
+                                continue;
 
                             meanP += gbuffer.Normals[nIdx];
                             meanI += input[nIdx];
@@ -263,7 +264,8 @@ namespace GDNN.Lighting.LDNN
                                 int nIdx = gbuffer.GetIndex(nx, ny);
 
                                 float normalSim = MathF.Max(0, Vector3.Dot(centerNormal, gbuffer.Normals[nIdx]));
-                                if (normalSim < 0.7f) continue;
+                                if (normalSim < 0.7f)
+                                    continue;
 
                                 Vector3 diffP = gbuffer.Normals[nIdx] - meanP;
                                 Vector3 diffI = input[nIdx] - meanI;

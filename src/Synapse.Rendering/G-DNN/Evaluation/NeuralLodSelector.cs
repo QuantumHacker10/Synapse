@@ -212,7 +212,8 @@ public sealed class NeuralLodSelector : IDisposable
     /// <returns>Selected LOD level index.</returns>
     public int SelectLod(int objectId, CameraState cameraState, Vector3 objectCenter, float objectRadius, int previousLod = -1)
     {
-        if (_candidates.Count == 0) return -1;
+        if (_candidates.Count == 0)
+            return -1;
 
         // Get or create object state
         if (!_objectStates.TryGetValue(objectId, out var state))
@@ -314,7 +315,8 @@ public sealed class NeuralLodSelector : IDisposable
     /// </summary>
     private void UpdateCameraState(CameraState current)
     {
-        if (!_config.EnablePredictiveSelection) return;
+        if (!_config.EnablePredictiveSelection)
+            return;
 
         // Compute camera velocity from position change
         Vector3 deltaPos = current.Position - _previousCameraState.Position;
@@ -379,7 +381,8 @@ public sealed class NeuralLodSelector : IDisposable
         Vector3 viewCenter = Vector3.Transform(objectCenter, camera.View);
         Vector4 clipCenter = Vector4.Transform(new Vector4(objectCenter, 1), camera.ViewProjection);
 
-        if (clipCenter.W <= 0) return 1.0f; // Behind camera
+        if (clipCenter.W <= 0)
+            return 1.0f; // Behind camera
 
         // Compute screen-space radius
         float screenRadius = (objectRadius / viewCenter.Z) *
@@ -499,7 +502,8 @@ public sealed class NeuralLodSelector : IDisposable
         Vector3 gradient = network.ComputeGradient(point);
         float gradLen = gradient.Length();
 
-        if (gradLen < 1e-8f) return 0.0f;
+        if (gradLen < 1e-8f)
+            return 0.0f;
 
         Vector3 normal = gradient / gradLen;
 
@@ -539,7 +543,8 @@ public sealed class NeuralLodSelector : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         _candidates.Clear();
         _objectStates.Clear();

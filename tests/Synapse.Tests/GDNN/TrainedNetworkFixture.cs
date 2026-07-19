@@ -13,7 +13,8 @@ public static class TrainedNetworkFixture
 
     public static DeepMicroMLP LoadTestNetwork()
     {
-        if (_cached != null) return _cached;
+        if (_cached != null)
+            return _cached;
         _cached = new DeepMicroMLP(new Random(12345));
         _cached.PositionalScale = 1.0f;
         return _cached;

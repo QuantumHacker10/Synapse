@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: MatrixMath.cs
 // PATH: Core/Mathematics/MatrixMath.cs
@@ -24,13 +6,28 @@ using System.Threading.Tasks;
 
 
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using GDNN.Rendering.Compat;
 
 namespace GDNN.Core.Mathematics;
@@ -78,9 +75,15 @@ public static class MatrixMath
         }
 
         Matrix4x4 rotationMatrix = matrix;
-        rotationMatrix.M11 /= sx; rotationMatrix.M12 /= sx; rotationMatrix.M13 /= sx;
-        rotationMatrix.M21 /= sy; rotationMatrix.M22 /= sy; rotationMatrix.M23 /= sy;
-        rotationMatrix.M31 /= sz; rotationMatrix.M32 /= sz; rotationMatrix.M33 /= sz;
+        rotationMatrix.M11 /= sx;
+        rotationMatrix.M12 /= sx;
+        rotationMatrix.M13 /= sx;
+        rotationMatrix.M21 /= sy;
+        rotationMatrix.M22 /= sy;
+        rotationMatrix.M23 /= sy;
+        rotationMatrix.M31 /= sz;
+        rotationMatrix.M32 /= sz;
+        rotationMatrix.M33 /= sz;
 
         rotation = Quaternion.CreateFromRotationMatrix(rotationMatrix);
         return true;
@@ -93,9 +96,15 @@ public static class MatrixMath
     {
         translation = new Vector3(matrix.M41, matrix.M42, matrix.M43);
         rotation = Matrix4x4.Identity;
-        rotation.M11 = matrix.M11; rotation.M12 = matrix.M12; rotation.M13 = matrix.M13;
-        rotation.M21 = matrix.M21; rotation.M22 = matrix.M22; rotation.M23 = matrix.M23;
-        rotation.M31 = matrix.M31; rotation.M32 = matrix.M32; rotation.M33 = matrix.M33;
+        rotation.M11 = matrix.M11;
+        rotation.M12 = matrix.M12;
+        rotation.M13 = matrix.M13;
+        rotation.M21 = matrix.M21;
+        rotation.M22 = matrix.M22;
+        rotation.M23 = matrix.M23;
+        rotation.M31 = matrix.M31;
+        rotation.M32 = matrix.M32;
+        rotation.M33 = matrix.M33;
     }
 
     /// <summary>
@@ -146,10 +155,18 @@ public static class MatrixMath
     public static Matrix4x4 BuildTRS(Vector3 translation, Quaternion rotation, Vector3 scale)
     {
         Matrix4x4 result = Matrix4x4.CreateFromQuaternion(rotation);
-        result.M11 *= scale.X; result.M12 *= scale.X; result.M13 *= scale.X;
-        result.M21 *= scale.Y; result.M22 *= scale.Y; result.M23 *= scale.Y;
-        result.M31 *= scale.Z; result.M32 *= scale.Z; result.M33 *= scale.Z;
-        result.M41 = translation.X; result.M42 = translation.Y; result.M43 = translation.Z;
+        result.M11 *= scale.X;
+        result.M12 *= scale.X;
+        result.M13 *= scale.X;
+        result.M21 *= scale.Y;
+        result.M22 *= scale.Y;
+        result.M23 *= scale.Y;
+        result.M31 *= scale.Z;
+        result.M32 *= scale.Z;
+        result.M33 *= scale.Z;
+        result.M41 = translation.X;
+        result.M42 = translation.Y;
+        result.M43 = translation.Z;
         return result;
     }
 
@@ -211,10 +228,18 @@ public static class MatrixMath
         Vector3 yAxis = Vector3.Cross(zAxis, xAxis);
 
         Matrix4x4 result = Matrix4x4.Identity;
-        result.M11 = xAxis.X; result.M12 = xAxis.Y; result.M13 = xAxis.Z;
-        result.M21 = yAxis.X; result.M22 = yAxis.Y; result.M23 = yAxis.Z;
-        result.M31 = zAxis.X; result.M32 = zAxis.Y; result.M33 = zAxis.Z;
-        result.M41 = position.X; result.M42 = position.Y; result.M43 = position.Z;
+        result.M11 = xAxis.X;
+        result.M12 = xAxis.Y;
+        result.M13 = xAxis.Z;
+        result.M21 = yAxis.X;
+        result.M22 = yAxis.Y;
+        result.M23 = yAxis.Z;
+        result.M31 = zAxis.X;
+        result.M32 = zAxis.Y;
+        result.M33 = zAxis.Z;
+        result.M41 = position.X;
+        result.M42 = position.Y;
+        result.M43 = position.Z;
         return result;
     }
 
@@ -251,10 +276,18 @@ public static class MatrixMath
         float nx2 = nx * 2f, ny2 = ny * 2f, nz2 = nz * 2f;
 
         Matrix4x4 result = Matrix4x4.Identity;
-        result.M11 = 1f - nx2 * nx; result.M12 = -nx2 * ny; result.M13 = -nx2 * nz;
-        result.M21 = -ny2 * nx; result.M22 = 1f - ny2 * ny; result.M23 = -ny2 * nz;
-        result.M31 = -nz2 * nx; result.M32 = -nz2 * ny; result.M33 = 1f - nz2 * nz;
-        result.M41 = -2f * planeD * nx; result.M42 = -2f * planeD * ny; result.M43 = -2f * planeD * nz;
+        result.M11 = 1f - nx2 * nx;
+        result.M12 = -nx2 * ny;
+        result.M13 = -nx2 * nz;
+        result.M21 = -ny2 * nx;
+        result.M22 = 1f - ny2 * ny;
+        result.M23 = -ny2 * nz;
+        result.M31 = -nz2 * nx;
+        result.M32 = -nz2 * ny;
+        result.M33 = 1f - nz2 * nz;
+        result.M41 = -2f * planeD * nx;
+        result.M42 = -2f * planeD * ny;
+        result.M43 = -2f * planeD * nz;
         return result;
     }
 
@@ -264,9 +297,12 @@ public static class MatrixMath
     public static Matrix4x4 CreateShear(float xy, float xz, float yx, float yz, float zx, float zy)
     {
         Matrix4x4 result = Matrix4x4.Identity;
-        result.M12 = xy; result.M13 = xz;
-        result.M21 = yx; result.M23 = yz;
-        result.M31 = zx; result.M32 = zy;
+        result.M12 = xy;
+        result.M13 = xz;
+        result.M21 = yx;
+        result.M23 = yz;
+        result.M31 = zx;
+        result.M32 = zy;
         return result;
     }
 
@@ -284,10 +320,18 @@ public static class MatrixMath
         Vector3 up = Vector3.Cross(forward, right);
 
         Matrix4x4 result = Matrix4x4.Identity;
-        result.M11 = right.X; result.M12 = right.Y; result.M13 = right.Z;
-        result.M21 = up.X; result.M22 = up.Y; result.M23 = up.Z;
-        result.M31 = forward.X; result.M32 = forward.Y; result.M33 = forward.Z;
-        result.M41 = objectPosition.X; result.M42 = objectPosition.Y; result.M43 = objectPosition.Z;
+        result.M11 = right.X;
+        result.M12 = right.Y;
+        result.M13 = right.Z;
+        result.M21 = up.X;
+        result.M22 = up.Y;
+        result.M23 = up.Z;
+        result.M31 = forward.X;
+        result.M32 = forward.Y;
+        result.M33 = forward.Z;
+        result.M41 = objectPosition.X;
+        result.M42 = objectPosition.Y;
+        result.M43 = objectPosition.Z;
         return result;
     }
 
@@ -415,7 +459,8 @@ public static class MatrixMath
         float w3 = t3 * weights[3];
 
         float denominator = w0 + w1 + w2 + w3;
-        if (MathF.Abs(denominator) < Epsilon) return Vector3.Zero;
+        if (MathF.Abs(denominator) < Epsilon)
+            return Vector3.Zero;
 
         Vector4 result = w0 * controlPoints[0] +
                          w1 * controlPoints[1] +
@@ -440,8 +485,14 @@ public static class MatrixMath
         Vector3 l123 = Vector3.Lerp(l12, l23, t);
         Vector3 l0123 = Vector3.Lerp(l012, l123, t);
 
-        a0 = p0; a1 = l01; a2 = l012; a3 = l0123;
-        b0 = l0123; b1 = l123; b2 = l23; b3 = p3;
+        a0 = p0;
+        a1 = l01;
+        a2 = l012;
+        a3 = l0123;
+        b0 = l0123;
+        b1 = l123;
+        b2 = l23;
+        b3 = p3;
     }
 
     /// <summary>
@@ -459,7 +510,8 @@ public static class MatrixMath
             float t = (float)i / sampleCount;
             Vector3 point = CubicBezier(p0, p1, p2, p3, t);
             float distSq = Vector3.DistanceSquared(point, queryPoint);
-            if (distSq < bestDistSq) { bestDistSq = distSq; bestT = t; }
+            if (distSq < bestDistSq)
+            { bestDistSq = distSq; bestT = t; }
         }
 
         for (int iter = 0; iter < iterations; iter++)
@@ -567,7 +619,8 @@ public static class MatrixMath
         {
             float dot = planes[i].X * point.X + planes[i].Y * point.Y +
                         planes[i].Z * point.Z + planes[i].W;
-            if (dot < 0) return false;
+            if (dot < 0)
+                return false;
         }
         return true;
     }
@@ -586,8 +639,10 @@ public static class MatrixMath
         {
             float dot = planes[i].X * center.X + planes[i].Y * center.Y +
                         planes[i].Z * center.Z + planes[i].W;
-            if (dot < -radius) return 0;
-            if (dot >= radius) insideCount++;
+            if (dot < -radius)
+                return 0;
+            if (dot >= radius)
+                insideCount++;
         }
 
         return insideCount == 6 ? 2 : 1;
@@ -612,7 +667,8 @@ public static class MatrixMath
 
             float dot = planes[i].X * positiveVertex.X + planes[i].Y * positiveVertex.Y +
                         planes[i].Z * positiveVertex.Z + planes[i].W;
-            if (dot < 0) return 0;
+            if (dot < 0)
+                return 0;
 
             Vector3 negativeVertex = new(
                 planes[i].X > 0 ? boxMin.X : boxMax.X,
@@ -621,7 +677,8 @@ public static class MatrixMath
 
             float negDot = planes[i].X * negativeVertex.X + planes[i].Y * negativeVertex.Y +
                            planes[i].Z * negativeVertex.Z + planes[i].W;
-            if (negDot >= 0) insideCount++;
+            if (negDot >= 0)
+                insideCount++;
         }
 
         return insideCount == 6 ? 2 : 1;
@@ -652,8 +709,10 @@ public static class MatrixMath
 
             float d = Vector3.Dot(planeNormal, center) + planes[i].W;
 
-            if (d < -r) return 0;
-            if (d >= r) insideCount++;
+            if (d < -r)
+                return 0;
+            if (d >= r)
+                insideCount++;
         }
 
         return insideCount == 6 ? 2 : 1;
@@ -693,14 +752,16 @@ public static class MatrixMath
         ExtractFrustumCorners(invViewProj, corners);
 
         center = Vector3.Zero;
-        for (int i = 0; i < 8; i++) center += corners[i];
+        for (int i = 0; i < 8; i++)
+            center += corners[i];
         center /= 8f;
 
         radius = 0f;
         for (int i = 0; i < 8; i++)
         {
             float dist = Vector3.Distance(center, corners[i]);
-            if (dist > radius) radius = dist;
+            if (dist > radius)
+                radius = dist;
         }
     }
 
@@ -719,9 +780,15 @@ public static class MatrixMath
 
         Vector3 newCenter = Vector3.Transform(center, matrix);
         Matrix4x4 absMatrix = matrix;
-        absMatrix.M11 = MathF.Abs(absMatrix.M11); absMatrix.M12 = MathF.Abs(absMatrix.M12); absMatrix.M13 = MathF.Abs(absMatrix.M13);
-        absMatrix.M21 = MathF.Abs(absMatrix.M21); absMatrix.M22 = MathF.Abs(absMatrix.M22); absMatrix.M23 = MathF.Abs(absMatrix.M23);
-        absMatrix.M31 = MathF.Abs(absMatrix.M31); absMatrix.M32 = MathF.Abs(absMatrix.M32); absMatrix.M33 = MathF.Abs(absMatrix.M33);
+        absMatrix.M11 = MathF.Abs(absMatrix.M11);
+        absMatrix.M12 = MathF.Abs(absMatrix.M12);
+        absMatrix.M13 = MathF.Abs(absMatrix.M13);
+        absMatrix.M21 = MathF.Abs(absMatrix.M21);
+        absMatrix.M22 = MathF.Abs(absMatrix.M22);
+        absMatrix.M23 = MathF.Abs(absMatrix.M23);
+        absMatrix.M31 = MathF.Abs(absMatrix.M31);
+        absMatrix.M32 = MathF.Abs(absMatrix.M32);
+        absMatrix.M33 = MathF.Abs(absMatrix.M33);
 
         Vector3 newHalfExtent = new Vector3(
             absMatrix.M11 * halfExtent.X + absMatrix.M21 * halfExtent.Y + absMatrix.M31 * halfExtent.Z,
@@ -821,7 +888,8 @@ public static class MatrixMath
         Debug.Assert(points.Length >= 3);
 
         center = Vector3.Zero;
-        for (int i = 0; i < points.Length; i++) center += points[i];
+        for (int i = 0; i < points.Length; i++)
+            center += points[i];
         center /= points.Length;
 
         Span<float> covariance = stackalloc float[9];
@@ -833,9 +901,12 @@ public static class MatrixMath
         JacobiEigen(covariance, eigenvalues, eigenvectors);
 
         // Sort eigenvalues descending
-        if (eigenvalues[0] < eigenvalues[1]) { Swap(eigenvalues, 0, 1); Swap(eigenvectors, 0, 1); }
-        if (eigenvalues[0] < eigenvalues[2]) { Swap(eigenvalues, 0, 2); Swap(eigenvectors, 0, 2); }
-        if (eigenvalues[1] < eigenvalues[2]) { Swap(eigenvalues, 1, 2); Swap(eigenvectors, 1, 2); }
+        if (eigenvalues[0] < eigenvalues[1])
+        { Swap(eigenvalues, 0, 1); Swap(eigenvectors, 0, 1); }
+        if (eigenvalues[0] < eigenvalues[2])
+        { Swap(eigenvalues, 0, 2); Swap(eigenvectors, 0, 2); }
+        if (eigenvalues[1] < eigenvalues[2])
+        { Swap(eigenvalues, 1, 2); Swap(eigenvectors, 1, 2); }
 
         // Project points onto principal axes to find extents
         Vector3 axis0 = eigenvectors[0];
@@ -880,14 +951,23 @@ public static class MatrixMath
         for (int i = 0; i < points.Length; i++)
         {
             Vector3 d = points[i] - centroid;
-            cov[0] += d.X * d.X; cov[1] += d.X * d.Y; cov[2] += d.X * d.Z;
-            cov[4] += d.Y * d.Y; cov[5] += d.Y * d.Z;
+            cov[0] += d.X * d.X;
+            cov[1] += d.X * d.Y;
+            cov[2] += d.X * d.Z;
+            cov[4] += d.Y * d.Y;
+            cov[5] += d.Y * d.Z;
             cov[8] += d.Z * d.Z;
         }
 
-        cov[0] *= invN; cov[1] *= invN; cov[2] *= invN;
-        cov[3] = cov[1]; cov[4] *= invN; cov[5] *= invN;
-        cov[6] = cov[2]; cov[7] = cov[5]; cov[8] *= invN;
+        cov[0] *= invN;
+        cov[1] *= invN;
+        cov[2] *= invN;
+        cov[3] = cov[1];
+        cov[4] *= invN;
+        cov[5] *= invN;
+        cov[6] = cov[2];
+        cov[7] = cov[5];
+        cov[8] *= invN;
     }
 
     private static void JacobiEigen(Span<float> matrix, Span<float> eigenvalues, Span<Vector3> eigenvectors)
@@ -903,10 +983,13 @@ public static class MatrixMath
         {
             int p = 0, q = 1;
             float maxVal = MathF.Abs(a[1]);
-            if (MathF.Abs(a[2]) > maxVal) { p = 0; q = 2; maxVal = MathF.Abs(a[2]); }
-            if (MathF.Abs(a[5]) > maxVal) { p = 1; q = 2; }
+            if (MathF.Abs(a[2]) > maxVal)
+            { p = 0; q = 2; maxVal = MathF.Abs(a[2]); }
+            if (MathF.Abs(a[5]) > maxVal)
+            { p = 1; q = 2; }
 
-            if (maxVal < 1e-10f) break;
+            if (maxVal < 1e-10f)
+                break;
 
             float theta = 0.5f * MathF.Atan2(2f * a[p * 3 + q], a[p * 3 + p] - a[q * 3 + q]);
             float c = MathF.Cos(theta);
@@ -1277,9 +1360,15 @@ public static class MatrixMath
     public static Matrix4x4 NormalMatrix(this Matrix4x4 matrix)
     {
         Matrix4x4 m3x3 = Matrix4x4.Identity;
-        m3x3.M11 = matrix.M11; m3x3.M12 = matrix.M12; m3x3.M13 = matrix.M13;
-        m3x3.M21 = matrix.M21; m3x3.M22 = matrix.M22; m3x3.M23 = matrix.M23;
-        m3x3.M31 = matrix.M31; m3x3.M32 = matrix.M32; m3x3.M33 = matrix.M33;
+        m3x3.M11 = matrix.M11;
+        m3x3.M12 = matrix.M12;
+        m3x3.M13 = matrix.M13;
+        m3x3.M21 = matrix.M21;
+        m3x3.M22 = matrix.M22;
+        m3x3.M23 = matrix.M23;
+        m3x3.M31 = matrix.M31;
+        m3x3.M32 = matrix.M32;
+        m3x3.M33 = matrix.M33;
 
         Matrix4x4.Invert(m3x3, out Matrix4x4 inv);
         return Matrix4x4.Transpose(inv);
@@ -1367,14 +1456,22 @@ public static class MatrixMath
         for (int i = 0; i < matrices.Length; i++)
         {
             float w = weights[i];
-            result.M11 += matrices[i].M11 * w; result.M12 += matrices[i].M12 * w;
-            result.M13 += matrices[i].M13 * w; result.M14 += matrices[i].M14 * w;
-            result.M21 += matrices[i].M21 * w; result.M22 += matrices[i].M22 * w;
-            result.M23 += matrices[i].M23 * w; result.M24 += matrices[i].M24 * w;
-            result.M31 += matrices[i].M31 * w; result.M32 += matrices[i].M32 * w;
-            result.M33 += matrices[i].M33 * w; result.M34 += matrices[i].M34 * w;
-            result.M41 += matrices[i].M41 * w; result.M42 += matrices[i].M42 * w;
-            result.M43 += matrices[i].M43 * w; result.M44 += matrices[i].M44 * w;
+            result.M11 += matrices[i].M11 * w;
+            result.M12 += matrices[i].M12 * w;
+            result.M13 += matrices[i].M13 * w;
+            result.M14 += matrices[i].M14 * w;
+            result.M21 += matrices[i].M21 * w;
+            result.M22 += matrices[i].M22 * w;
+            result.M23 += matrices[i].M23 * w;
+            result.M24 += matrices[i].M24 * w;
+            result.M31 += matrices[i].M31 * w;
+            result.M32 += matrices[i].M32 * w;
+            result.M33 += matrices[i].M33 * w;
+            result.M34 += matrices[i].M34 * w;
+            result.M41 += matrices[i].M41 * w;
+            result.M42 += matrices[i].M42 * w;
+            result.M43 += matrices[i].M43 * w;
+            result.M44 += matrices[i].M44 * w;
         }
 
         return result;
@@ -1447,10 +1544,18 @@ public static class MatrixMath
     public static Matrix4x4 ChangeOfBasis(Vector3 right, Vector3 up, Vector3 forward, Vector3 origin)
     {
         Matrix4x4 result = Matrix4x4.Identity;
-        result.M11 = right.X; result.M12 = right.Y; result.M13 = right.Z;
-        result.M21 = up.X; result.M22 = up.Y; result.M23 = up.Z;
-        result.M31 = forward.X; result.M32 = forward.Y; result.M33 = forward.Z;
-        result.M41 = origin.X; result.M42 = origin.Y; result.M43 = origin.Z;
+        result.M11 = right.X;
+        result.M12 = right.Y;
+        result.M13 = right.Z;
+        result.M21 = up.X;
+        result.M22 = up.Y;
+        result.M23 = up.Z;
+        result.M31 = forward.X;
+        result.M32 = forward.Y;
+        result.M33 = forward.Z;
+        result.M41 = origin.X;
+        result.M42 = origin.Y;
+        result.M43 = origin.Z;
 
         Matrix4x4.Invert(result, out Matrix4x4 inv);
         return inv;
@@ -1511,7 +1616,8 @@ public static class MatrixMath
     public static Matrix4x4 RotationMatrixExp(Vector3 axisAngle)
     {
         float angle = axisAngle.Length();
-        if (angle < Epsilon) return Matrix4x4.Identity;
+        if (angle < Epsilon)
+            return Matrix4x4.Identity;
         Vector3 axis = axisAngle / angle;
         return Matrix4x4.CreateFromAxisAngle(axis, angle);
     }
@@ -1524,7 +1630,8 @@ public static class MatrixMath
     {
         float angle = 2f * MathF.Acos(MathF.Min(1f, MathF.Abs(q.W)));
         float s = MathF.Sqrt(1f - q.W * q.W);
-        if (s < Epsilon) return Vector3.Zero;
+        if (s < Epsilon)
+            return Vector3.Zero;
         return new Vector3(q.X, q.Y, q.Z) / s * angle;
     }
 

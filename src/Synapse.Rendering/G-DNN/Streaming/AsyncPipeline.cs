@@ -1,11 +1,22 @@
 using System;
+// ============================================================
+// FILE: AsyncPipeline.cs
+// PATH: Streaming/AsyncPipeline.cs
+// ============================================================
+
+
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -14,21 +25,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
-using System.Threading.Tasks;
-
-
-// ============================================================
-// FILE: AsyncPipeline.cs
-// PATH: Streaming/AsyncPipeline.cs
-// ============================================================
-
-
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Threading.Tasks;
 
 namespace GDNN.Streaming
@@ -213,7 +211,7 @@ namespace GDNN.Streaming
     public sealed class StageExecutionRecord
     {
         /// <summary>Stage name.</summary>
-        public required string StageName { get; init; }
+        public string StageName { get; init; }
 
         /// <summary>Current status.</summary>
         public PipelineStageStatus Status { get; set; } = PipelineStageStatus.Pending;
@@ -248,7 +246,7 @@ namespace GDNN.Streaming
     public sealed class PipelineJob
     {
         /// <summary>Unique job identifier.</summary>
-        public required string JobId { get; init; }
+        public string JobId { get; init; }
 
         /// <summary>Human-readable job name.</summary>
         public string? Name { get; set; }
@@ -429,10 +427,10 @@ namespace GDNN.Streaming
     public sealed class PipelineStageEventArgs : EventArgs
     {
         /// <summary>Job identifier.</summary>
-        public required string JobId { get; init; }
+        public string JobId { get; init; }
 
         /// <summary>Stage name.</summary>
-        public required string StageName { get; init; }
+        public string StageName { get; init; }
 
         /// <summary>Current stage status.</summary>
         public PipelineStageStatus Status { get; init; }
@@ -644,16 +642,17 @@ namespace GDNN.Streaming
                     _metrics.IncrementTimeouts();
 
                     OnStageProgress(new PipelineStageEventArgs
-                {
-                    JobId = "typed",
-                    StageName = stage.Name,
-                    Status = PipelineStageStatus.Failed,
-                    StageIndex = GetStageIndex(stages, stage),
-                    TotalStages = stages.Count,
-                    ErrorMessage = "Timeout"
-                });
+                    {
+                        JobId = "typed",
+                        StageName = stage.Name,
+                        Status = PipelineStageStatus.Failed,
+                        StageIndex = GetStageIndex(stages, stage),
+                        TotalStages = stages.Count,
+                        ErrorMessage = "Timeout"
+                    });
 
-                    if (stage.IsRequired) throw;
+                    if (stage.IsRequired)
+                        throw;
                 }
                 catch (Exception ex)
                 {
@@ -673,7 +672,8 @@ namespace GDNN.Streaming
                         Exception = ex
                     });
 
-                    if (stage.IsRequired) throw;
+                    if (stage.IsRequired)
+                        throw;
                 }
 
                 _metrics.IncrementStagesExecuted();
@@ -768,7 +768,8 @@ namespace GDNN.Streaming
 
             for (int attempt = 0; attempt < maxAttempts; attempt++)
             {
-                if (cancellationToken.IsCancellationRequested) return false;
+                if (cancellationToken.IsCancellationRequested)
+                    return false;
 
                 if (attempt > 0)
                 {
@@ -998,7 +999,8 @@ namespace GDNN.Streaming
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             _shutdownCts.Cancel();

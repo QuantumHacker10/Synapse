@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -30,12 +30,18 @@ namespace GDNN.Core.Neurons
 
         public static NeuronInput Default => new()
         {
-            Position = Vector3.Zero, Normal = Vector3.UnitY, Curvature = 0f,
-            DistanceToCamera = 10f, Time = 0f, DeltaTime = 1f / 60f,
+            Position = Vector3.Zero,
+            Normal = Vector3.UnitY,
+            Curvature = 0f,
+            DistanceToCamera = 10f,
+            Time = 0f,
+            DeltaTime = 1f / 60f,
             Parameters = ImmutableDictionary<string, float>.Empty,
             DataChannels = ImmutableArray<float>.Empty,
-            TextureCoordinate = Vector2.Zero, Tangent = Vector3.UnitX,
-            Bitangent = Vector3.UnitZ, ViewDirection = -Vector3.UnitZ,
+            TextureCoordinate = Vector2.Zero,
+            Tangent = Vector3.UnitX,
+            Bitangent = Vector3.UnitZ,
+            ViewDirection = -Vector3.UnitZ,
             LightDirection = Vector3.Normalize(new Vector3(1, 1, 1)),
             PreviousPosition = Vector3.Zero
         };
@@ -74,11 +80,21 @@ namespace GDNN.Core.Neurons
 
         public static NeuronOutput Default => new()
         {
-            Value = 0f, Displacement = Vector3.Zero, Color = Vector3.Zero,
-            ColorRGBA = new Vector4(0, 0, 0, 1), Roughness = 0.5f, Metallic = 0f,
-            Opacity = 1f, Emission = 0f, EmissionColor = Vector3.Zero,
-            OutputNormal = Vector3.UnitY, AmbientOcclusion = 1f, Height = 0f,
-            Thickness = 0f, IOR = 1.5f, Specular = 0.5f,
+            Value = 0f,
+            Displacement = Vector3.Zero,
+            Color = Vector3.Zero,
+            ColorRGBA = new Vector4(0, 0, 0, 1),
+            Roughness = 0.5f,
+            Metallic = 0f,
+            Opacity = 1f,
+            Emission = 0f,
+            EmissionColor = Vector3.Zero,
+            OutputNormal = Vector3.UnitY,
+            AmbientOcclusion = 1f,
+            Height = 0f,
+            Thickness = 0f,
+            IOR = 1.5f,
+            Specular = 0.5f,
             Outputs = ImmutableDictionary<string, float>.Empty,
             VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
         };
@@ -110,13 +126,21 @@ namespace GDNN.Core.Neurons
 
         public static NeuronGradient Zero => new()
         {
-            ValueGradient = 0f, DisplacementGradient = Vector3.Zero,
-            ColorGradient = Vector3.Zero, RoughnessGradient = 0f,
-            MetallicGradient = 0f, OpacityGradient = 0f, EmissionGradient = 0f,
-            EmissionColorGradient = Vector3.Zero, HeightGradient = 0f,
-            AmbientOcclusionGradient = 0f, PositionGradient = Vector3.Zero,
-            NormalGradient = Vector3.Zero, CurvatureGradient = 0f,
-            TimeGradient = 0f, ParameterGradients = ImmutableDictionary<string, float>.Empty,
+            ValueGradient = 0f,
+            DisplacementGradient = Vector3.Zero,
+            ColorGradient = Vector3.Zero,
+            RoughnessGradient = 0f,
+            MetallicGradient = 0f,
+            OpacityGradient = 0f,
+            EmissionGradient = 0f,
+            EmissionColorGradient = Vector3.Zero,
+            HeightGradient = 0f,
+            AmbientOcclusionGradient = 0f,
+            PositionGradient = Vector3.Zero,
+            NormalGradient = Vector3.Zero,
+            CurvatureGradient = 0f,
+            TimeGradient = 0f,
+            ParameterGradients = ImmutableDictionary<string, float>.Empty,
             WeightGradients = Array.Empty<float>()
         };
     }
@@ -179,7 +203,8 @@ namespace GDNN.Core.Neurons
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Repeat01(float t, float length)
         {
-            if (length <= Epsilon) return 0f;
+            if (length <= Epsilon)
+                return 0f;
             return t - MathF.Floor(t / length) * length;
         }
 
@@ -293,7 +318,8 @@ namespace GDNN.Core.Neurons
             float r = rgb.X, g = rgb.Y, b = rgb.Z;
             float mx = MathF.Max(r, MathF.Max(g, b)), mn = MathF.Min(r, MathF.Min(g, b));
             float d = mx - mn, h = 0f;
-            if (d > Epsilon) { if (MathF.Abs(mx - r) < Epsilon) h = ((g - b) / d) % 6f; else if (MathF.Abs(mx - g) < Epsilon) h = (b - r) / d + 2f; else h = (r - g) / d + 4f; h *= 60f; if (h < 0f) h += 360f; }
+            if (d > Epsilon)
+            { if (MathF.Abs(mx - r) < Epsilon) h = ((g - b) / d) % 6f; else if (MathF.Abs(mx - g) < Epsilon) h = (b - r) / d + 2f; else h = (r - g) / d + 4f; h *= 60f; if (h < 0f) h += 360f; }
             return new Vector3(h / 360f, mx > Epsilon ? d / mx : 0f, mx);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -302,7 +328,18 @@ namespace GDNN.Core.Neurons
             float h = hsv.X * 360f, s = hsv.Y, v = hsv.Z, c = v * s;
             float x = c * (1f - MathF.Abs((h / 60f) % 2f - 1f)), m = v - c;
             float r, g, b;
-            if (h < 60) { r = c; g = x; b = 0; } else if (h < 120) { r = x; g = c; b = 0; } else if (h < 180) { r = 0; g = c; b = x; } else if (h < 240) { r = 0; g = x; b = c; } else if (h < 300) { r = x; g = 0; b = c; } else { r = c; g = 0; b = x; }
+            if (h < 60)
+            { r = c; g = x; b = 0; }
+            else if (h < 120)
+            { r = x; g = c; b = 0; }
+            else if (h < 180)
+            { r = 0; g = c; b = x; }
+            else if (h < 240)
+            { r = 0; g = x; b = c; }
+            else if (h < 300)
+            { r = x; g = 0; b = c; }
+            else
+            { r = c; g = 0; b = x; }
             return new Vector3(r + m, g + m, b + m);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -427,12 +464,19 @@ namespace GDNN.Core.Neurons
             p = new Vector3(MathF.Abs(p.X), MathF.Abs(p.Y), MathF.Abs(p.Z));
             float m = p.X + p.Y + p.Z - s;
             Vector3 q = p;
-            if (3f * p.X < m) { }
-            else if (3f * p.Y < m) q = new Vector3(p.Y, p.Z, p.X);
-            else if (3f * p.Z < m) q = new Vector3(p.Z, p.X, p.Y);
-            else return m * 0.57735027f;
+            if (3f * p.X < m)
+            { }
+            else if (3f * p.Y < m)
+                q = new Vector3(p.Y, p.Z, p.X);
+            else if (3f * p.Z < m)
+                q = new Vector3(p.Z, p.X, p.Y);
+            else
+                return m * 0.57735027f;
             float k = MathHelper.Clamp01(0.5f * (q.Z - q.Y + s));
-            q.Z -= k; q.Y += k; q.Z -= s; q.Y -= s;
+            q.Z -= k;
+            q.Y += k;
+            q.Z -= s;
+            q.Y -= s;
             return -new Vector2(MathF.Sqrt(q.X * q.X + q.Z * q.Z), q.Y).Length() * MathHelper.Sign(q.Z);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -457,7 +501,8 @@ namespace GDNN.Core.Neurons
             Vector3 e0 = b - a, e1 = c - a, v = p - a;
             Vector3 n = Vector3.Cross(e0, e1);
             float a2 = Vector3.Dot(n, n);
-            if (a2 < MathHelper.Epsilon) return LineSegment(p, a, b);
+            if (a2 < MathHelper.Epsilon)
+                return LineSegment(p, a, b);
             float b0 = Vector3.Dot(Vector3.Cross(v, e1), n) / a2;
             float b1 = Vector3.Dot(Vector3.Cross(e0, v), n) / a2;
             float b2 = 1f - b0 - b1;
@@ -528,19 +573,32 @@ namespace GDNN.Core.Neurons
         {
             switch (shape)
             {
-                case SdfPrimitiveKernel.SdfShape.Sphere: return Sphere(p, r);
-                case SdfPrimitiveKernel.SdfShape.Box: return Box(p, size);
-                case SdfPrimitiveKernel.SdfShape.Torus: return Torus(p, r, param4);
-                case SdfPrimitiveKernel.SdfShape.Cylinder: return Cylinder(p, r, param4);
-                case SdfPrimitiveKernel.SdfShape.Cone: return Cone(p, r, param4);
-                case SdfPrimitiveKernel.SdfShape.Capsule: return Capsule(p, new Vector3(0, -param4, 0), new Vector3(0, param4, 0), r);
-                case SdfPrimitiveKernel.SdfShape.Octahedron: return Octahedron(p, r);
-                case SdfPrimitiveKernel.SdfShape.Plane: return Plane(p, Vector3.UnitY, param4);
-                case SdfPrimitiveKernel.SdfShape.RoundedBox: return RoundedBox(p, size, param4);
-                case SdfPrimitiveKernel.SdfShape.RoundedCylinder: return RoundedCylinder(p, r, param4, param5);
-                case SdfPrimitiveKernel.SdfShape.RoundedCone: return RoundedCone(p, r, param4, param5);
-                case SdfPrimitiveKernel.SdfShape.Ellipsoid: return Ellipsoid(p, size);
-                default: return Sphere(p, r);
+                case SdfPrimitiveKernel.SdfShape.Sphere:
+                    return Sphere(p, r);
+                case SdfPrimitiveKernel.SdfShape.Box:
+                    return Box(p, size);
+                case SdfPrimitiveKernel.SdfShape.Torus:
+                    return Torus(p, r, param4);
+                case SdfPrimitiveKernel.SdfShape.Cylinder:
+                    return Cylinder(p, r, param4);
+                case SdfPrimitiveKernel.SdfShape.Cone:
+                    return Cone(p, r, param4);
+                case SdfPrimitiveKernel.SdfShape.Capsule:
+                    return Capsule(p, new Vector3(0, -param4, 0), new Vector3(0, param4, 0), r);
+                case SdfPrimitiveKernel.SdfShape.Octahedron:
+                    return Octahedron(p, r);
+                case SdfPrimitiveKernel.SdfShape.Plane:
+                    return Plane(p, Vector3.UnitY, param4);
+                case SdfPrimitiveKernel.SdfShape.RoundedBox:
+                    return RoundedBox(p, size, param4);
+                case SdfPrimitiveKernel.SdfShape.RoundedCylinder:
+                    return RoundedCylinder(p, r, param4, param5);
+                case SdfPrimitiveKernel.SdfShape.RoundedCone:
+                    return RoundedCone(p, r, param4, param5);
+                case SdfPrimitiveKernel.SdfShape.Ellipsoid:
+                    return Ellipsoid(p, size);
+                default:
+                    return Sphere(p, r);
             }
         }
     }
@@ -697,7 +755,10 @@ namespace GDNN.Core.Neurons
             float x0 = x - X0;
             float y0 = y - Y0;
             int i1, j1;
-            if (x0 > y0) { i1 = 1; j1 = 0; } else { i1 = 0; j1 = 1; }
+            if (x0 > y0)
+            { i1 = 1; j1 = 0; }
+            else
+            { i1 = 0; j1 = 1; }
             float x1 = x0 - i1 + G2;
             float y1 = y0 - j1 + G2;
             float x2 = x0 - 1.0f + 2.0f * G2;
@@ -709,11 +770,14 @@ namespace GDNN.Core.Neurons
             int gi2 = Perm[ii + 1 + Perm[jj + 1]] % 12;
             float n0 = 0f, n1 = 0f, n2 = 0f;
             float t0 = 0.5f - x0 * x0 - y0 * y0;
-            if (t0 >= 0) { t0 *= t0; n0 = t0 * t0 * Dot(SimplexGrad3[gi0], x0, y0); }
+            if (t0 >= 0)
+            { t0 *= t0; n0 = t0 * t0 * Dot(SimplexGrad3[gi0], x0, y0); }
             float t1 = 0.5f - x1 * x1 - y1 * y1;
-            if (t1 >= 0) { t1 *= t1; n1 = t1 * t1 * Dot(SimplexGrad3[gi1], x1, y1); }
+            if (t1 >= 0)
+            { t1 *= t1; n1 = t1 * t1 * Dot(SimplexGrad3[gi1], x1, y1); }
             float t2 = 0.5f - x2 * x2 - y2 * y2;
-            if (t2 >= 0) { t2 *= t2; n2 = t2 * t2 * Dot(SimplexGrad3[gi2], x2, y2); }
+            if (t2 >= 0)
+            { t2 *= t2; n2 = t2 * t2 * Dot(SimplexGrad3[gi2], x2, y2); }
             return 70.0f * (n0 + n1 + n2);
         }
 
@@ -733,15 +797,21 @@ namespace GDNN.Core.Neurons
             int i1, j1, k1, i2, j2, k2;
             if (x0 >= y0)
             {
-                if (y0 >= z0) { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
-                else if (x0 >= z0) { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 0; k2 = 1; }
-                else { i1 = 0; j1 = 0; k1 = 1; i2 = 1; j2 = 0; k2 = 1; }
+                if (y0 >= z0)
+                { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
+                else if (x0 >= z0)
+                { i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 0; k2 = 1; }
+                else
+                { i1 = 0; j1 = 0; k1 = 1; i2 = 1; j2 = 0; k2 = 1; }
             }
             else
             {
-                if (y0 < z0) { i1 = 0; j1 = 0; k1 = 1; i2 = 0; j2 = 1; k2 = 1; }
-                else if (x0 < z0) { i1 = 0; j1 = 1; k1 = 0; i2 = 0; j2 = 1; k2 = 1; }
-                else { i1 = 0; j1 = 1; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
+                if (y0 < z0)
+                { i1 = 0; j1 = 0; k1 = 1; i2 = 0; j2 = 1; k2 = 1; }
+                else if (x0 < z0)
+                { i1 = 0; j1 = 1; k1 = 0; i2 = 0; j2 = 1; k2 = 1; }
+                else
+                { i1 = 0; j1 = 1; k1 = 0; i2 = 1; j2 = 1; k2 = 0; }
             }
             float x1 = x0 - i1 + G3, y1 = y0 - j1 + G3, z1 = z0 - k1 + G3;
             float x2 = x0 - i2 + 2f * G3, y2 = y0 - j2 + 2f * G3, z2 = z0 - k2 + 2f * G3;
@@ -753,13 +823,17 @@ namespace GDNN.Core.Neurons
             int gi3 = Perm[ii + 1 + Perm[jj + 1 + Perm[kk + 1]]] % 12;
             float n0 = 0f, n1 = 0f, n2 = 0f, n3 = 0f;
             float t0 = 0.6f - x0 * x0 - y0 * y0 - z0 * z0;
-            if (t0 > 0) { t0 *= t0; n0 = t0 * t0 * Dot(Grad3[gi0], x0, y0, z0); }
+            if (t0 > 0)
+            { t0 *= t0; n0 = t0 * t0 * Dot(Grad3[gi0], x0, y0, z0); }
             float t1 = 0.6f - x1 * x1 - y1 * y1 - z1 * z1;
-            if (t1 > 0) { t1 *= t1; n1 = t1 * t1 * Dot(Grad3[gi1], x1, y1, z1); }
+            if (t1 > 0)
+            { t1 *= t1; n1 = t1 * t1 * Dot(Grad3[gi1], x1, y1, z1); }
             float t2 = 0.6f - x2 * x2 - y2 * y2 - z2 * z2;
-            if (t2 > 0) { t2 *= t2; n2 = t2 * t2 * Dot(Grad3[gi2], x2, y2, z2); }
+            if (t2 > 0)
+            { t2 *= t2; n2 = t2 * t2 * Dot(Grad3[gi2], x2, y2, z2); }
             float t3 = 0.6f - x3 * x3 - y3 * y3 - z3 * z3;
-            if (t3 > 0) { t3 *= t3; n3 = t3 * t3 * Dot(Grad3[gi3], x3, y3, z3); }
+            if (t3 > 0)
+            { t3 *= t3; n3 = t3 * t3 * Dot(Grad3[gi3], x3, y3, z3); }
             return 32f * (n0 + n1 + n2 + n3);
         }
 
@@ -842,8 +916,10 @@ namespace GDNN.Core.Neurons
                             cy + CellPoints[(h >> 4) & 255].Y,
                             cz + CellPoints[(h >> 8) & 255].Z);
                         float dist = (cellPoint - new Vector3(x, y, z)).LengthSquared();
-                        if (dist < f1) { f2 = f1; f1 = dist; p1 = cellPoint - new Vector3(x, y, z); }
-                        else if (dist < f2) { f2 = dist; }
+                        if (dist < f1)
+                        { f2 = f1; f1 = dist; p1 = cellPoint - new Vector3(x, y, z); }
+                        else if (dist < f2)
+                        { f2 = dist; }
                     }
                 }
             }
@@ -1201,7 +1277,8 @@ namespace GDNN.Core.Neurons
                 Height = height,
                 AmbientOcclusion = ComputeAO(p, normal, r, size, param4, param5),
                 Thickness = MathHelper.Clamp01(MathF.Abs(d) * 2f),
-                IOR = 1.5f, Specular = 0.5f,
+                IOR = 1.5f,
+                Specular = 0.5f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("sdf_distance", smoothD)
                     .Add("noise_displacement", noiseDisp)
@@ -1255,19 +1332,32 @@ namespace GDNN.Core.Neurons
         {
             switch (Shape)
             {
-                case SdfShape.Sphere: return SdfOperations.Sphere(p, r);
-                case SdfShape.Box: return SdfOperations.Box(p, size);
-                case SdfShape.Torus: return SdfOperations.Torus(p, r, p4);
-                case SdfShape.Cylinder: return SdfOperations.Cylinder(p, r, p4);
-                case SdfShape.Cone: return SdfOperations.Cone(p, r, p4);
-                case SdfShape.Capsule: return SdfOperations.Capsule(p, new Vector3(0, -p4, 0), new Vector3(0, p4, 0), r);
-                case SdfShape.Octahedron: return SdfOperations.Octahedron(p, r);
-                case SdfShape.Plane: return SdfOperations.Plane(p, Vector3.UnitY, p4);
-                case SdfShape.RoundedBox: return SdfOperations.RoundedBox(p, size, p4);
-                case SdfShape.RoundedCylinder: return SdfOperations.RoundedCylinder(p, r, p4, p5);
-                case SdfShape.RoundedCone: return SdfOperations.RoundedCone(p, r, p4, p5);
-                case SdfShape.Ellipsoid: return SdfOperations.Ellipsoid(p, size);
-                default: return SdfOperations.Sphere(p, r);
+                case SdfShape.Sphere:
+                    return SdfOperations.Sphere(p, r);
+                case SdfShape.Box:
+                    return SdfOperations.Box(p, size);
+                case SdfShape.Torus:
+                    return SdfOperations.Torus(p, r, p4);
+                case SdfShape.Cylinder:
+                    return SdfOperations.Cylinder(p, r, p4);
+                case SdfShape.Cone:
+                    return SdfOperations.Cone(p, r, p4);
+                case SdfShape.Capsule:
+                    return SdfOperations.Capsule(p, new Vector3(0, -p4, 0), new Vector3(0, p4, 0), r);
+                case SdfShape.Octahedron:
+                    return SdfOperations.Octahedron(p, r);
+                case SdfShape.Plane:
+                    return SdfOperations.Plane(p, Vector3.UnitY, p4);
+                case SdfShape.RoundedBox:
+                    return SdfOperations.RoundedBox(p, size, p4);
+                case SdfShape.RoundedCylinder:
+                    return SdfOperations.RoundedCylinder(p, r, p4, p5);
+                case SdfShape.RoundedCone:
+                    return SdfOperations.RoundedCone(p, r, p4, p5);
+                case SdfShape.Ellipsoid:
+                    return SdfOperations.Ellipsoid(p, size);
+                default:
+                    return SdfOperations.Sphere(p, r);
             }
         }
 
@@ -1325,19 +1415,29 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 128;
         public INeuronKernel Clone() { var c = new SdfPrimitiveKernel { Shape = this.Shape }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() { if (_weights[0] <= 0) return "Radius must be positive"; return null; }
+        public string? Validate() { if (_weights[0] <= 0) return "Radius must be positive"; return null; }
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters()
         {
-            _weights[0] = 1f; _weights[1] = 1f; _weights[2] = 1f; _weights[3] = 1f;
-            _weights[4] = 0.5f; _weights[5] = 0.1f; _weights[6] = 0f; _weights[7] = 1f;
-            _weights[8] = 0.1f; _weights[9] = 0f; _weights[10] = 1f; _weights[11] = 0f;
+            _weights[0] = 1f;
+            _weights[1] = 1f;
+            _weights[2] = 1f;
+            _weights[3] = 1f;
+            _weights[4] = 0.5f;
+            _weights[5] = 0.1f;
+            _weights[6] = 0f;
+            _weights[7] = 1f;
+            _weights[8] = 0.1f;
+            _weights[9] = 0f;
+            _weights[10] = 1f;
+            _weights[11] = 0f;
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr)
         {
             if (gradient.WeightGradients != null && gradient.WeightGradients.Length >= ParamCount)
-                for (int i = 0; i < ParamCount; i++) _weights[i] -= lr * gradient.WeightGradients[i];
+                for (int i = 0; i < ParamCount; i++)
+                    _weights[i] -= lr * gradient.WeightGradients[i];
         }
     }
 
@@ -1373,18 +1473,32 @@ namespace GDNN.Core.Neurons
             float t = 0f;
             switch (Mode)
             {
-                case DisplacementMode.Perlin: return NoiseGenerator.Perlin3D(p.X * freq, p.Y * freq, p.Z * freq) * amp;
-                case DisplacementMode.Simplex: return NoiseGenerator.Simplex3D(p.X * freq, p.Y * freq, p.Z * freq) * amp;
-                case DisplacementMode.Worley: return NoiseGenerator.Worley3D(p.X * freq, p.Y * freq, p.Z * freq).Item1 * amp;
-                case DisplacementMode.Voronoi: var v = NoiseGenerator.Voronoi3D(p.X * freq, p.Y * freq, p.Z * freq); return MathHelper.Lerp(v.Item1, v.Item2, 0.5f) * amp;
-                case DisplacementMode.Curl: return NoiseGenerator.CurlNoise3D(p.X * freq, p.Y * freq, p.Z * freq).Length() * amp;
-                case DisplacementMode.FBM: return NoiseGenerator.FBM3D(p.X * freq, p.Y * freq, p.Z * freq, oct, lac, gain) * amp;
-                case DisplacementMode.RidgedMultifractal: return NoiseGenerator.RidgedMultifractal3D(p.X * freq, p.Y * freq, p.Z * freq, oct, lac, gain, _weights[7]) * amp;
-                case DisplacementMode.DomainWarped: var wp = NoiseGenerator.DomainWarp3D(p * freq, _weights[6], t); return NoiseGenerator.FBM3D(wp.X, wp.Y, wp.Z, oct, lac, gain) * amp;
-                case DisplacementMode.Turbulence: return NoiseGenerator.Turbulence3D(p.X * freq, p.Y * freq, p.Z * freq, oct, lac, gain) * amp;
-                case DisplacementMode.Billow: return NoiseGenerator.Billow3D(p.X * freq, p.Y * freq, p.Z * freq, oct, lac, gain) * amp;
-                case DisplacementMode.Heterogeneous: return NoiseGenerator.HeterogeneousTerrain3D(p.X * freq, p.Y * freq, p.Z * freq, oct, lac, gain, _weights[5]) * amp;
-                default: return 0f;
+                case DisplacementMode.Perlin:
+                    return NoiseGenerator.Perlin3D(p.X * freq, p.Y * freq, p.Z * freq) * amp;
+                case DisplacementMode.Simplex:
+                    return NoiseGenerator.Simplex3D(p.X * freq, p.Y * freq, p.Z * freq) * amp;
+                case DisplacementMode.Worley:
+                    return NoiseGenerator.Worley3D(p.X * freq, p.Y * freq, p.Z * freq).Item1 * amp;
+                case DisplacementMode.Voronoi:
+                    var v = NoiseGenerator.Voronoi3D(p.X * freq, p.Y * freq, p.Z * freq);
+                    return MathHelper.Lerp(v.Item1, v.Item2, 0.5f) * amp;
+                case DisplacementMode.Curl:
+                    return NoiseGenerator.CurlNoise3D(p.X * freq, p.Y * freq, p.Z * freq).Length() * amp;
+                case DisplacementMode.FBM:
+                    return NoiseGenerator.FBM3D(p.X * freq, p.Y * freq, p.Z * freq, oct, lac, gain) * amp;
+                case DisplacementMode.RidgedMultifractal:
+                    return NoiseGenerator.RidgedMultifractal3D(p.X * freq, p.Y * freq, p.Z * freq, oct, lac, gain, _weights[7]) * amp;
+                case DisplacementMode.DomainWarped:
+                    var wp = NoiseGenerator.DomainWarp3D(p * freq, _weights[6], t);
+                    return NoiseGenerator.FBM3D(wp.X, wp.Y, wp.Z, oct, lac, gain) * amp;
+                case DisplacementMode.Turbulence:
+                    return NoiseGenerator.Turbulence3D(p.X * freq, p.Y * freq, p.Z * freq, oct, lac, gain) * amp;
+                case DisplacementMode.Billow:
+                    return NoiseGenerator.Billow3D(p.X * freq, p.Y * freq, p.Z * freq, oct, lac, gain) * amp;
+                case DisplacementMode.Heterogeneous:
+                    return NoiseGenerator.HeterogeneousTerrain3D(p.X * freq, p.Y * freq, p.Z * freq, oct, lac, gain, _weights[5]) * amp;
+                default:
+                    return 0f;
             }
         }
 
@@ -1474,14 +1588,16 @@ namespace GDNN.Core.Neurons
                 Displacement = finalDisp,
                 Color = new Vector3(MathHelper.Remap(displacement, clampMin, clampMax, 0, 1), MathHelper.Remap(displacement, -2, 2, 0, 1), MathHelper.Remap(input.Time % 10f, 0, 10, 0, 1)),
                 Roughness = MathHelper.Clamp01(0.5f + displacement * 0.25f),
-                Metallic = 0f, Opacity = 1f,
+                Metallic = 0f,
+                Opacity = 1f,
                 Emission = MathHelper.Max(0, displacement - threshold) * 2f,
                 EmissionColor = new Vector3(1f, 0.8f, 0.4f),
                 OutputNormal = Vector3.Normalize(MathHelper.Lerp(normal, estimatedNormal, normalStr)),
                 Height = MathHelper.Remap(displacement, clampMin, clampMax, 0, 1),
                 AmbientOcclusion = MathHelper.Clamp01(1f - MathF.Abs(displacement) * 0.5f),
                 Thickness = MathHelper.Clamp01(MathF.Abs(displacement) * 0.5f),
-                IOR = 1.5f, Specular = 0.5f,
+                IOR = 1.5f,
+                Specular = 0.5f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("displacement_magnitude", displacement)
                     .Add("displacement_length", finalDisp.Length()),
@@ -1546,7 +1662,8 @@ namespace GDNN.Core.Neurons
                     {
                         Vector3 off = new Vector3(i, j, k) * radius;
                         float hash = NoiseGenerator.HashFloat3(p.X * freq + off.X, p.Y * freq + off.Y, p.Z * freq + off.Z);
-                        if (hash > threshold) { float w = MathHelper.SmoothStep(threshold, threshold + smoothK, hash); sum += hash * w; totalW += w; }
+                        if (hash > threshold)
+                        { float w = MathHelper.SmoothStep(threshold, threshold + smoothK, hash); sum += hash * w; totalW += w; }
                     }
             return totalW > 0.001f ? sum / totalW : 0f;
         }
@@ -1561,7 +1678,8 @@ namespace GDNN.Core.Neurons
                     {
                         Vector3 off = new Vector3(i, j, k) * radius;
                         float hash = NoiseGenerator.HashFloat3(p.X * freq + off.X, p.Y * freq + off.Y, p.Z * freq + off.Z);
-                        if (hash > threshold) { float w = MathHelper.SmoothStep(threshold, threshold + smoothK, hash); sum += off * hash * w; totalW += w; }
+                        if (hash > threshold)
+                        { float w = MathHelper.SmoothStep(threshold, threshold + smoothK, hash); sum += off * hash * w; totalW += w; }
                     }
             return totalW > 0.001f ? sum / totalW : Vector3.Zero;
         }
@@ -1610,15 +1728,27 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 128;
         public INeuronKernel Clone() { var c = new DisplacementFieldKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() { if (_weights[0] < 0) return "Amplitude must be non-negative"; if (_weights[1] <= 0) return "Frequency must be positive"; return null; }
+        public string? Validate() { if (_weights[0] < 0) return "Amplitude must be non-negative"; if (_weights[1] <= 0) return "Frequency must be positive"; return null; }
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters()
         {
-            _weights[0] = 0.5f; _weights[1] = 1.0f; _weights[2] = 2.0f; _weights[3] = 0.5f;
-            _weights[4] = 6f; _weights[5] = 0.5f; _weights[6] = 0.3f; _weights[7] = 1.0f;
-            _weights[8] = 1.0f; _weights[9] = -10f; _weights[10] = 10f; _weights[11] = 1.0f;
-            _weights[12] = 0.0f; _weights[13] = 0.5f; _weights[14] = 0.5f; _weights[15] = 0.1f;
+            _weights[0] = 0.5f;
+            _weights[1] = 1.0f;
+            _weights[2] = 2.0f;
+            _weights[3] = 0.5f;
+            _weights[4] = 6f;
+            _weights[5] = 0.5f;
+            _weights[6] = 0.3f;
+            _weights[7] = 1.0f;
+            _weights[8] = 1.0f;
+            _weights[9] = -10f;
+            _weights[10] = 10f;
+            _weights[11] = 1.0f;
+            _weights[12] = 0.0f;
+            _weights[13] = 0.5f;
+            _weights[14] = 0.5f;
+            _weights[15] = 0.1f;
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr)
         {
@@ -1666,7 +1796,8 @@ namespace GDNN.Core.Neurons
             float curvature = ComputeCurvature(p, sampleRadius);
             float remapped = MathHelper.Remap(MathHelper.Pow(MathF.Abs(curvature), power) * MathHelper.Sign(curvature + 1e-10f), -2f, 2f, remapMin, remapMax);
             float blended = MathHelper.Lerp(input.Curvature, MathHelper.Clamp01(remapped), blendWithInput);
-            if (timeDecay > 0 && t > 0) blended *= MathHelper.Exp(-timeDecay * t);
+            if (timeDecay > 0 && t > 0)
+                blended *= MathHelper.Exp(-timeDecay * t);
             Vector3 curvatureNormal = ComputeCurvatureNormal(p, sampleRadius);
             Vector3 outputNormal = Vector3.Normalize(MathHelper.Lerp(input.Normal, curvatureNormal, normalInfluence));
             float ao = ComputeCurvatureAO(p, curvature, sampleRadius);
@@ -1679,13 +1810,16 @@ namespace GDNN.Core.Neurons
                 Displacement = outputNormal * blended * 0.1f,
                 Color = color,
                 Roughness = MathHelper.Clamp01(MathHelper.Remap(MathF.Abs(blended), 0, 1, 0.9f, 0.1f)),
-                Metallic = 0f, Opacity = 1f,
+                Metallic = 0f,
+                Opacity = 1f,
                 Emission = MathHelper.Max(0, blended - 0.8f) * 5f,
                 EmissionColor = new Vector3(1f, 0.3f, 0.1f),
                 OutputNormal = outputNormal,
-                Height = blended, AmbientOcclusion = ao,
+                Height = blended,
+                AmbientOcclusion = ao,
                 Thickness = MathHelper.Clamp01(MathF.Abs(blended) * 0.5f),
-                IOR = 1.5f, Specular = MathHelper.Clamp01(MathF.Abs(blended)),
+                IOR = 1.5f,
+                Specular = MathHelper.Clamp01(MathF.Abs(blended)),
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("raw_curvature", curvature).Add("remapped_curvature", remapped)
                     .Add("curvature_magnitude", MathF.Abs(blended)),
@@ -1699,17 +1833,32 @@ namespace GDNN.Core.Neurons
         {
             switch (Mode)
             {
-                case CurvatureMode.GaussianCurvature: return ComputeGaussianCurvature(p, radius);
-                case CurvatureMode.MeanCurvature: return ComputeMeanCurvature(p, radius);
-                case CurvatureMode.AbsoluteCurvature: return MathF.Abs(ComputeMeanCurvature(p, radius));
-                case CurvatureMode.Curvedness: var (k1, k2) = ComputePrincipalCurvatures(p, radius); return MathF.Sqrt(0.5f * (k1 * k1 + k2 * k2));
-                case CurvatureMode.ShapeIndex: var (sk1, sk2) = ComputePrincipalCurvatures(p, radius); float denom = sk1 - sk2; return MathF.Abs(denom) > 1e-6f ? (2f / MathF.PI) * MathF.Atan((sk1 + sk2) / denom) : 0f;
-                case CurvatureMode.AnisotropicCurvature: return ComputeAnisotropicCurvature(p, radius);
-                case CurvatureMode.MixedPartialDerivatives: return ComputeMixedPartials(p, radius);
-                case CurvatureMode.LaplacianSmoothing: return ComputeLaplacian(p, radius);
-                case CurvatureMode.CurvatureFlow: return ComputeLaplacian(p, radius) * _weights[3];
-                case CurvatureMode.PrincipalCurvatures: var (pk1, pk2) = ComputePrincipalCurvatures(p, radius); return (pk1 + pk2) * 0.5f;
-                default: return 0f;
+                case CurvatureMode.GaussianCurvature:
+                    return ComputeGaussianCurvature(p, radius);
+                case CurvatureMode.MeanCurvature:
+                    return ComputeMeanCurvature(p, radius);
+                case CurvatureMode.AbsoluteCurvature:
+                    return MathF.Abs(ComputeMeanCurvature(p, radius));
+                case CurvatureMode.Curvedness:
+                    var (k1, k2) = ComputePrincipalCurvatures(p, radius);
+                    return MathF.Sqrt(0.5f * (k1 * k1 + k2 * k2));
+                case CurvatureMode.ShapeIndex:
+                    var (sk1, sk2) = ComputePrincipalCurvatures(p, radius);
+                    float denom = sk1 - sk2;
+                    return MathF.Abs(denom) > 1e-6f ? (2f / MathF.PI) * MathF.Atan((sk1 + sk2) / denom) : 0f;
+                case CurvatureMode.AnisotropicCurvature:
+                    return ComputeAnisotropicCurvature(p, radius);
+                case CurvatureMode.MixedPartialDerivatives:
+                    return ComputeMixedPartials(p, radius);
+                case CurvatureMode.LaplacianSmoothing:
+                    return ComputeLaplacian(p, radius);
+                case CurvatureMode.CurvatureFlow:
+                    return ComputeLaplacian(p, radius) * _weights[3];
+                case CurvatureMode.PrincipalCurvatures:
+                    var (pk1, pk2) = ComputePrincipalCurvatures(p, radius);
+                    return (pk1 + pk2) * 0.5f;
+                default:
+                    return 0f;
             }
         }
 
@@ -1756,7 +1905,8 @@ namespace GDNN.Core.Neurons
             float eps = radius * 0.05f;
             float dtt = EstSecondDir(p, tangentDir, eps);
             Vector3 bitangent = Vector3.Cross(Vector3.UnitY, tangentDir);
-            if (bitangent.LengthSquared() < 0.001f) bitangent = Vector3.UnitZ;
+            if (bitangent.LengthSquared() < 0.001f)
+                bitangent = Vector3.UnitZ;
             bitangent = Vector3.Normalize(bitangent);
             return dtt - EstSecondDir(p, bitangent, eps);
         }
@@ -1848,14 +1998,21 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 128;
         public INeuronKernel Clone() { var c = new CurvatureModulatorKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() { if (_weights[0] <= 0) return "Sample radius must be positive"; return null; }
+        public string? Validate() { if (_weights[0] <= 0) return "Sample radius must be positive"; return null; }
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters()
         {
-            _weights[0] = 0.5f; _weights[1] = 16f; _weights[2] = 0f; _weights[3] = 0.1f;
-            _weights[4] = 0f; _weights[5] = 1f; _weights[6] = 1f; _weights[7] = 1f;
-            _weights[8] = 0.5f; _weights[9] = 0f;
+            _weights[0] = 0.5f;
+            _weights[1] = 16f;
+            _weights[2] = 0f;
+            _weights[3] = 0.1f;
+            _weights[4] = 0f;
+            _weights[5] = 1f;
+            _weights[6] = 1f;
+            _weights[7] = 1f;
+            _weights[8] = 0.5f;
+            _weights[9] = 0f;
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr)
         {
@@ -1945,15 +2102,20 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = luminance, Color = baseColor,
+                Value = luminance,
+                Color = baseColor,
                 ColorRGBA = new Vector4(baseColor, input.GetParameter("alpha", 1f)),
                 Roughness = input.GetParameter("roughness", 0.5f),
                 Metallic = input.GetParameter("metallic", 0f),
                 Opacity = input.GetParameter("alpha", 1f),
                 Emission = luminance > 0.9f ? (luminance - 0.9f) * 10f : 0f,
-                EmissionColor = baseColor, OutputNormal = input.Normal,
-                Height = luminance, AmbientOcclusion = 1f, Thickness = 0f,
-                IOR = 1.5f, Specular = 0.5f,
+                EmissionColor = baseColor,
+                OutputNormal = input.Normal,
+                Height = luminance,
+                AmbientOcclusion = 1f,
+                Thickness = 0f,
+                IOR = 1.5f,
+                Specular = 0.5f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("luminance", luminance).Add("hue", hsv.X).Add("saturation", hsv.Y).Add("value", hsv.Z),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -1966,8 +2128,10 @@ namespace GDNN.Core.Neurons
         {
             float temp = kelvin / 100f;
             float r, g, b;
-            if (temp <= 66f) { r = 1f; g = MathHelper.Clamp(99.4708f * MathF.Log(temp) - 161.1196f, 0, 255) / 255f; b = temp <= 19f ? 0f : MathHelper.Clamp(138.5177f * MathF.Log(temp - 10f) - 305.0448f, 0, 255) / 255f; }
-            else { r = MathHelper.Clamp(329.6987f * MathF.Pow(temp - 60f, -0.1332f), 0, 255) / 255f; g = MathHelper.Clamp(288.1222f * MathF.Pow(temp - 60f, -0.0755f), 0, 255) / 255f; b = 1f; }
+            if (temp <= 66f)
+            { r = 1f; g = MathHelper.Clamp(99.4708f * MathF.Log(temp) - 161.1196f, 0, 255) / 255f; b = temp <= 19f ? 0f : MathHelper.Clamp(138.5177f * MathF.Log(temp - 10f) - 305.0448f, 0, 255) / 255f; }
+            else
+            { r = MathHelper.Clamp(329.6987f * MathF.Pow(temp - 60f, -0.1332f), 0, 255) / 255f; g = MathHelper.Clamp(288.1222f * MathF.Pow(temp - 60f, -0.0755f), 0, 255) / 255f; b = 1f; }
             return new Vector3(MathHelper.Clamp01(r), MathHelper.Clamp01(g), MathHelper.Clamp01(b));
         }
 
@@ -1975,21 +2139,30 @@ namespace GDNN.Core.Neurons
         {
             float t = temperature;
             float r, g, b;
-            if (t < 3500) { r = 1f; g = MathHelper.Clamp01(0.3901f * MathF.Pow(t / 3500f, 1.5073f)); b = MathHelper.Clamp01(0.0774f * MathF.Pow(t / 3500f, 2.4804f)); }
-            else if (t < 6600) { r = MathHelper.Clamp01(MathF.Pow((t - 6000f) / 3900f, -0.1243f) * 1.2f); g = MathHelper.Clamp01(MathF.Pow(t / 6600f, -0.0659f)); b = 1f; }
-            else { r = MathHelper.Clamp01(0.8777f * MathF.Pow(t / 6600f, 0.1074f)); g = MathHelper.Clamp01(0.9054f * MathF.Pow(t / 6600f, 0.0847f)); b = 1f; }
+            if (t < 3500)
+            { r = 1f; g = MathHelper.Clamp01(0.3901f * MathF.Pow(t / 3500f, 1.5073f)); b = MathHelper.Clamp01(0.0774f * MathF.Pow(t / 3500f, 2.4804f)); }
+            else if (t < 6600)
+            { r = MathHelper.Clamp01(MathF.Pow((t - 6000f) / 3900f, -0.1243f) * 1.2f); g = MathHelper.Clamp01(MathF.Pow(t / 6600f, -0.0659f)); b = 1f; }
+            else
+            { r = MathHelper.Clamp01(0.8777f * MathF.Pow(t / 6600f, 0.1074f)); g = MathHelper.Clamp01(0.9054f * MathF.Pow(t / 6600f, 0.0847f)); b = 1f; }
             return new Vector3(MathHelper.Clamp01(r), MathHelper.Clamp01(g), MathHelper.Clamp01(b));
         }
 
         private Vector3 SpectralToRGB(float wavelength)
         {
             float w = wavelength, r = 0f, g = 0f, b = 0f;
-            if (w >= 380f && w < 440f) { r = -(w - 440f) / (440f - 380f); b = 1f; }
-            else if (w >= 440f && w < 490f) { g = (w - 440f) / (490f - 440f); b = 1f; }
-            else if (w >= 490f && w < 510f) { g = 1f; b = -(w - 510f) / (510f - 490f); }
-            else if (w >= 510f && w < 580f) { r = (w - 510f) / (580f - 510f); g = 1f; }
-            else if (w >= 580f && w < 645f) { r = 1f; g = -(w - 645f) / (645f - 580f); }
-            else if (w >= 645f && w <= 780f) { r = 1f; }
+            if (w >= 380f && w < 440f)
+            { r = -(w - 440f) / (440f - 380f); b = 1f; }
+            else if (w >= 440f && w < 490f)
+            { g = (w - 440f) / (490f - 440f); b = 1f; }
+            else if (w >= 490f && w < 510f)
+            { g = 1f; b = -(w - 510f) / (510f - 490f); }
+            else if (w >= 510f && w < 580f)
+            { r = (w - 510f) / (580f - 510f); g = 1f; }
+            else if (w >= 580f && w < 645f)
+            { r = 1f; g = -(w - 645f) / (645f - 580f); }
+            else if (w >= 645f && w <= 780f)
+            { r = 1f; }
             float factor = (w >= 380f && w < 420f) ? 0.3f + 0.7f * (w - 380f) / (420f - 380f) : (w >= 420f && w <= 700f) ? 1f : (w > 700f && w <= 780f) ? 0.3f + 0.7f * (780f - w) / (780f - 700f) : 0f;
             return new Vector3(MathHelper.Clamp01(r * factor), MathHelper.Clamp01(g * factor), MathHelper.Clamp01(b * factor));
         }
@@ -2001,7 +2174,8 @@ namespace GDNN.Core.Neurons
             hsv.Z = MathHelper.Clamp01(hsv.Z * val);
             color = MathHelper.HSVToRGB(hsv);
             color = (color - new Vector3(0.5f)) * contrast + new Vector3(0.5f) + new Vector3(brightness);
-            if (gamma > 0.01f) { float invGamma = 1f / gamma; color = new Vector3(MathF.Pow(MathHelper.Clamp01(color.X), invGamma), MathF.Pow(MathHelper.Clamp01(color.Y), invGamma), MathF.Pow(MathHelper.Clamp01(color.Z), invGamma)); }
+            if (gamma > 0.01f)
+            { float invGamma = 1f / gamma; color = new Vector3(MathF.Pow(MathHelper.Clamp01(color.X), invGamma), MathF.Pow(MathHelper.Clamp01(color.Y), invGamma), MathF.Pow(MathHelper.Clamp01(color.Z), invGamma)); }
             return MathHelper.Clamp01Vec(color);
         }
 
@@ -2011,7 +2185,8 @@ namespace GDNN.Core.Neurons
             float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
                 float vP = MathHelper.Luminance(_lastOutput.Color);
                 _weights[i] = oldW - eps;
                 float vM = MathHelper.Luminance(_lastOutput.Color);
@@ -2024,15 +2199,29 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new ColorFieldKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters()
         {
-            _weights[0] = 0f; _weights[1] = 1f; _weights[2] = 1f; _weights[3] = 1f; _weights[4] = 0f;
-            _weights[5] = 2.2f; _weights[6] = 0.5f; _weights[7] = 1f; _weights[8] = 0f; _weights[9] = 0f;
-            _weights[10] = 0f; _weights[11] = 1f; _weights[12] = 0f; _weights[13] = 0f; _weights[14] = 0f;
-            _weights[15] = 1f; _weights[16] = 1f; _weights[17] = 1f;
+            _weights[0] = 0f;
+            _weights[1] = 1f;
+            _weights[2] = 1f;
+            _weights[3] = 1f;
+            _weights[4] = 0f;
+            _weights[5] = 2.2f;
+            _weights[6] = 0.5f;
+            _weights[7] = 1f;
+            _weights[8] = 0f;
+            _weights[9] = 0f;
+            _weights[10] = 0f;
+            _weights[11] = 1f;
+            _weights[12] = 0f;
+            _weights[13] = 0f;
+            _weights[14] = 0f;
+            _weights[15] = 1f;
+            _weights[16] = 1f;
+            _weights[17] = 1f;
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr)
         {
@@ -2105,7 +2294,8 @@ namespace GDNN.Core.Neurons
                 case NormalMapMode.CrossProduct:
                     Vector3 t2 = input.Tangent.LengthSquared() > 0.001f ? input.Tangent : Vector3.UnitX;
                     Vector3 b2 = Vector3.Cross(input.Normal, t2);
-                    if (b2.LengthSquared() < 0.001f) b2 = Vector3.Cross(input.Normal, Vector3.UnitX);
+                    if (b2.LengthSquared() < 0.001f)
+                        b2 = Vector3.Cross(input.Normal, Vector3.UnitX);
                     b2 = Vector3.Normalize(b2);
                     t2 = Vector3.Cross(b2, input.Normal);
                     computedNormal = Vector3.Normalize(Vector3.Cross(t2, b2));
@@ -2132,10 +2322,16 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = normalDot, Displacement = (computedNormal - input.Normal) * heightScale,
+                Value = normalDot,
+                Displacement = (computedNormal - input.Normal) * heightScale,
                 Color = new Vector3(MathHelper.Remap(computedNormal.X, -1, 1, 0, 1), MathHelper.Remap(computedNormal.Y, -1, 1, 0, 1), MathHelper.Remap(computedNormal.Z, -1, 1, 0, 1)),
-                Roughness = MathHelper.Clamp01(0.5f + MathF.Abs(normalDot - 1f) * 2f), Metallic = 0f, Opacity = 1f, Emission = 0f,
-                OutputNormal = computedNormal, Height = MathHelper.Remap(normalDot, -1, 1, 0, 1), AmbientOcclusion = 1f,
+                Roughness = MathHelper.Clamp01(0.5f + MathF.Abs(normalDot - 1f) * 2f),
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
+                OutputNormal = computedNormal,
+                Height = MathHelper.Remap(normalDot, -1, 1, 0, 1),
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty.Add("normal_dot", normalDot).Add("normal_length", computedNormal.Length()),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty.Add("computed_normal", computedNormal)
             };
@@ -2148,7 +2344,12 @@ namespace GDNN.Core.Neurons
             float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -2157,7 +2358,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new NormalMapKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 1f; _weights[1] = 1f; _weights[2] = 0.01f; _weights[3] = 0f; _weights[4] = 0.5f; _weights[5] = 1f; _weights[6] = 10f; _weights[7] = 0.3f; }
@@ -2226,7 +2427,9 @@ namespace GDNN.Core.Neurons
                     float rd = MathHelper.Clamp01(baseR * df + (1f - df) * 0.9f);
                     roughness = MathHelper.Clamp01(rn * 0.5f + rc * 0.3f + rd * 0.2f);
                     break;
-                default: roughness = baseR; break;
+                default:
+                    roughness = baseR;
+                    break;
             }
             roughness = MathHelper.Clamp01(roughness * range + (1f - range) * 0.5f);
             float alpha = roughness * roughness;
@@ -2240,8 +2443,13 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = roughness, Roughness = roughness, Metallic = 0f, Opacity = 1f, Emission = 0f,
-                OutputNormal = input.Normal, Height = roughness,
+                Value = roughness,
+                Roughness = roughness,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
+                OutputNormal = input.Normal,
+                Height = roughness,
                 AmbientOcclusion = MathHelper.Clamp01(1f - roughness * 0.3f),
                 Color = new Vector3(roughness, roughness, roughness),
                 Outputs = ImmutableDictionary<string, float>.Empty
@@ -2253,10 +2461,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -2265,7 +2479,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new RoughnessMapKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 0.5f; _weights[1] = 1f; _weights[2] = 2f; _weights[3] = 0.2f; _weights[4] = 0f; _weights[5] = 0f; _weights[6] = 0.3f; _weights[7] = 0.1f; }
@@ -2298,7 +2512,9 @@ namespace GDNN.Core.Neurons
             float metallic;
             switch (Mode)
             {
-                case MetallicMode.Constant: metallic = baseMetallic; break;
+                case MetallicMode.Constant:
+                    metallic = baseMetallic;
+                    break;
                 case MetallicMode.NoiseMapped:
                     float n = NoiseGenerator.Perlin3D(input.Position.X * noiseScale, input.Position.Y * noiseScale, input.Position.Z * noiseScale) * 0.5f + 0.5f;
                     metallic = MathHelper.SmoothStep(threshold - smoothness, threshold + smoothness, n);
@@ -2319,7 +2535,9 @@ namespace GDNN.Core.Neurons
                     float cn = NoiseGenerator.Perlin3D(input.Position.X * noiseScale, input.Position.Y * noiseScale, input.Position.Z * noiseScale) * 0.5f + 0.5f;
                     metallic = MathHelper.Clamp01(baseMetallic + cn * 0.5f + MathHelper.Remap(MathF.Abs(input.Curvature), 0, 2, 0, 1) * curvBias * 0.3f + gradBlend * 0.2f);
                     break;
-                default: metallic = baseMetallic; break;
+                default:
+                    metallic = baseMetallic;
+                    break;
             }
             metallic = MathHelper.Clamp01(metallic);
             Vector3 baseColor = new Vector3(input.GetParameter("base_color_r", 0.8f), input.GetParameter("base_color_g", 0.8f), input.GetParameter("base_color_b", 0.8f));
@@ -2328,9 +2546,16 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = metallic, Roughness = input.GetParameter("roughness", 0.5f), Metallic = metallic, Opacity = 1f,
-                Emission = 0f, OutputNormal = input.Normal, Height = metallic, AmbientOcclusion = 1f,
-                IOR = metallic > 0.5f ? 2.5f : 1.5f, Specular = metallic > 0.5f ? 1f : 0.5f,
+                Value = metallic,
+                Roughness = input.GetParameter("roughness", 0.5f),
+                Metallic = metallic,
+                Opacity = 1f,
+                Emission = 0f,
+                OutputNormal = input.Normal,
+                Height = metallic,
+                AmbientOcclusion = 1f,
+                IOR = metallic > 0.5f ? 2.5f : 1.5f,
+                Specular = metallic > 0.5f ? 1f : 0.5f,
                 Color = Vector3.Lerp(baseColor * 0.04f, baseColor, metallic),
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("metallic", metallic).Add("f0_r", F0.X).Add("f0_g", F0.Y).Add("f0_b", F0.Z),
@@ -2341,10 +2566,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -2353,7 +2584,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new MetallicMapKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 0f; _weights[1] = 0.5f; _weights[2] = 0.1f; _weights[3] = 2f; _weights[4] = 0.3f; _weights[5] = 1f; }
@@ -2424,10 +2655,16 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = emission, Emission = emission, EmissionColor = emissionColor,
+                Value = emission,
+                Emission = emission,
+                EmissionColor = emissionColor,
                 Color = emissionColor * emission,
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f,
-                OutputNormal = input.Normal, Height = emission, AmbientOcclusion = 1f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                OutputNormal = input.Normal,
+                Height = emission,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("emission_intensity", emission)
                     .Add("emission_luminance", MathHelper.Luminance(emissionColor * emission))
@@ -2440,10 +2677,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Emission; _weights[i] = oldW - eps; float vM = _lastOutput.Emission; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Emission;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Emission;
+                _weights[i] = oldW;
                 wg[i] = gradient.EmissionGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, EmissionGradient = gradient.EmissionGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -2452,7 +2695,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new EmissiveMapKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 1f; _weights[1] = 1f; _weights[2] = 0.1f; _weights[3] = 1f; _weights[4] = 0.8f; _weights[5] = 0.4f; _weights[6] = 2f; _weights[7] = 0.8f; }
@@ -2518,10 +2761,15 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = opacity, Opacity = opacity,
+                Value = opacity,
+                Opacity = opacity,
                 Color = new Vector3(opacity, opacity, opacity),
-                Roughness = 0.5f, Metallic = 0f, Emission = 0f,
-                OutputNormal = input.Normal, Height = opacity, AmbientOcclusion = 1f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Emission = 0f,
+                OutputNormal = input.Normal,
+                Height = opacity,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("opacity", opacity).Add("alpha_cutout", opacity > cutoff ? 1f : 0f),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -2531,10 +2779,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Opacity; _weights[i] = oldW - eps; float vM = _lastOutput.Opacity; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Opacity;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Opacity;
+                _weights[i] = oldW;
                 wg[i] = gradient.OpacityGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, OpacityGradient = gradient.OpacityGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -2543,7 +2797,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new OpacityMapKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 1f; _weights[1] = 0.5f; _weights[2] = 0.1f; _weights[3] = 2f; _weights[4] = 2f; _weights[5] = 100f; }
@@ -2617,12 +2871,19 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = profile * intensity, Color = finalSSS,
-                Subsurface = MathHelper.Clamp01(intensity), Thickness = thickness,
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
-                OutputNormal = input.Normal, Height = profile,
+                Value = profile * intensity,
+                Color = finalSSS,
+                Subsurface = MathHelper.Clamp01(intensity),
+                Thickness = thickness,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
+                OutputNormal = input.Normal,
+                Height = profile,
                 AmbientOcclusion = MathHelper.Clamp01(1f - thickness * 0.5f),
-                IOR = 1.333f, Specular = 0.5f,
+                IOR = 1.333f,
+                Specular = 0.5f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("sss_intensity", intensity).Add("sss_profile", profile).Add("thickness", thickness),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -2633,10 +2894,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -2645,7 +2912,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new SubsurfaceScatteringKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 1f; _weights[1] = 0.5f; _weights[2] = 0.9f; _weights[3] = 0.2f; _weights[4] = 0.1f; _weights[5] = 1f; _weights[6] = 1f; _weights[7] = 0.5f; _weights[8] = 2f; _weights[9] = 1f; }
@@ -2721,9 +2988,15 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = tessellationFactor, Displacement = tessNormal, Height = tessellationFactor / maxTess,
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
-                OutputNormal = input.Normal, AmbientOcclusion = 1f,
+                Value = tessellationFactor,
+                Displacement = tessNormal,
+                Height = tessellationFactor / maxTess,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
+                OutputNormal = input.Normal,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("tessellation_factor", tessellationFactor)
                     .Add("tessellation_level", tessLevel)
@@ -2736,10 +3009,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -2748,7 +3027,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new TessellationKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => _weights[0] <= 0 ? "Min tessellation must be positive" : null;
+        public string? Validate() => _weights[0] <= 0 ? "Min tessellation must be positive" : null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 1f; _weights[1] = 1f; _weights[2] = 100f; _weights[3] = 16f; _weights[4] = 1f; _weights[5] = 0.5f; _weights[6] = 0.1f; _weights[7] = 0.5f; }
@@ -2829,8 +3108,12 @@ namespace GDNN.Core.Neurons
                 Value = isVisible ? 1f : 0f,
                 Opacity = visibilityScore,
                 Color = isVisible ? new Vector3(0.2f, 0.8f, 0.2f) : new Vector3(0.8f, 0.2f, 0.2f),
-                Roughness = 0.5f, Metallic = 0f, Emission = 0f,
-                OutputNormal = input.Normal, Height = visibilityScore, AmbientOcclusion = visibilityScore,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Emission = 0f,
+                OutputNormal = input.Normal,
+                Height = visibilityScore,
+                AmbientOcclusion = visibilityScore,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("is_visible", isVisible ? 1f : 0f)
                     .Add("visibility_score", visibilityScore)
@@ -2849,7 +3132,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new OcclusionCullingKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 100f; _weights[1] = 1.2f; _weights[2] = 1f; _weights[3] = 0.001f; _weights[4] = 0.1f; _weights[5] = 8f; }
@@ -2961,8 +3244,12 @@ namespace GDNN.Core.Neurons
                 Value = value,
                 Displacement = new Vector3(value, velocity * 0.1f, acceleration * 0.01f),
                 Color = new Vector3(value, MathHelper.Clamp01(velocity * 0.1f), MathHelper.Clamp01(acceleration * 0.01f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
-                OutputNormal = input.Normal, Height = value,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
+                OutputNormal = input.Normal,
+                Height = value,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("animated_value", value)
                     .Add("velocity", velocity)
@@ -2974,10 +3261,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -2986,16 +3279,26 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new AnimationCurveKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters()
         {
-            _weights[0] = 0f; _weights[1] = 1f; _weights[2] = 0f; _weights[3] = 0f;
-            _weights[4] = 0.5f; _weights[5] = 0.5f; _weights[6] = 0f; _weights[7] = 0f;
+            _weights[0] = 0f;
+            _weights[1] = 1f;
+            _weights[2] = 0f;
+            _weights[3] = 0f;
+            _weights[4] = 0.5f;
+            _weights[5] = 0.5f;
+            _weights[6] = 0f;
+            _weights[7] = 0f;
             _weights[8] = 3f;
-            _weights[9] = 0f; _weights[10] = 0.5f; _weights[11] = 1f;
-            _weights[19] = 0f; _weights[20] = 1f; _weights[21] = 0f;
+            _weights[9] = 0f;
+            _weights[10] = 0.5f;
+            _weights[11] = 1f;
+            _weights[19] = 0f;
+            _weights[20] = 1f;
+            _weights[21] = 0f;
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr) { if (gradient.WeightGradients != null) for (int i = 0; i < MathHelper.Min(gradient.WeightGradients.Length, ParamCount); i++) _weights[i] -= lr * gradient.WeightGradients[i]; }
     }
@@ -3065,12 +3368,17 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = emission, Displacement = velocity * input.DeltaTime,
-                Color = color, Opacity = currentAlpha,
-                Emission = emission * 2f, EmissionColor = color,
-                Roughness = 0.5f, Metallic = 0f,
+                Value = emission,
+                Displacement = velocity * input.DeltaTime,
+                Color = color,
+                Opacity = currentAlpha,
+                Emission = emission * 2f,
+                EmissionColor = color,
+                Roughness = 0.5f,
+                Metallic = 0f,
                 OutputNormal = velocity.LengthSquared() > 0.001f ? Vector3.Normalize(velocity) : Vector3.UnitY,
-                Height = currentSize, AmbientOcclusion = 1f,
+                Height = currentSize,
+                AmbientOcclusion = 1f,
                 Thickness = currentSize,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("emission_rate", emission)
@@ -3087,10 +3395,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -3099,7 +3413,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 128;
         public INeuronKernel Clone() { var c = new ParticleEmitterKernel(); Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 100f; _weights[1] = 2f; _weights[2] = 0f; _weights[3] = 5f; _weights[4] = 0f; _weights[5] = 9.81f; _weights[6] = 0.1f; _weights[7] = 0.1f; _weights[8] = 0.01f; _weights[9] = 1f; _weights[10] = 0f; _weights[11] = 0.5f; _weights[12] = 1000f; _weights[13] = 0.5f; }
@@ -3165,7 +3479,9 @@ namespace GDNN.Core.Neurons
             float omegaX = (uYp - uYn) - (uZp - uZn);
             float omegaY = (uZp - uZn) - (uXp - uXn);
             float omegaZ = (uXp - uXn) - (uYp - uYn);
-            omegaX *= 0.5f / eps; omegaY *= 0.5f / eps; omegaZ *= 0.5f / eps;
+            omegaX *= 0.5f / eps;
+            omegaY *= 0.5f / eps;
+            omegaZ *= 0.5f / eps;
 
             float omLen = MathF.Sqrt(omegaX * omegaX + omegaY * omegaY + omegaZ * omegaZ) + 1e-5f;
             float N_x = (MathF.Sqrt((omegaX + eps) * (omegaX + eps)) - MathF.Sqrt((omegaX - eps) * (omegaX - eps))) / (2f * eps * omLen);
@@ -3230,13 +3546,17 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = velocity, Displacement = flowDir * dt,
+                Value = velocity,
+                Displacement = flowDir * dt,
                 Color = new Vector3(MathHelper.Clamp01(density), MathHelper.Clamp01(velocity * 0.5f), MathHelper.Clamp01(pressureScale * 0.1f)),
-                Roughness = 0.3f, Metallic = 0f, Opacity = MathHelper.Clamp01(density),
+                Roughness = 0.3f,
+                Metallic = 0f,
+                Opacity = MathHelper.Clamp01(density),
                 Emission = MathHelper.Max(0, velocity - 0.8f) * 3f,
                 EmissionColor = new Vector3(0.2f, 0.5f, 1f),
                 OutputNormal = flowDir.LengthSquared() > 0.001f ? Vector3.Normalize(flowDir) : Vector3.UnitY,
-                Height = density, AmbientOcclusion = MathHelper.Clamp01(1f - density * 0.5f),
+                Height = density,
+                AmbientOcclusion = MathHelper.Clamp01(1f - density * 0.5f),
                 Thickness = density,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("velocity_magnitude", velocity)
@@ -3250,10 +3570,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -3262,7 +3588,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 128;
         public INeuronKernel Clone() { var c = new FluidSolverKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 0.01f; _weights[1] = 0.5f; _weights[2] = 0.016f; _weights[3] = 0.5f; _weights[4] = 1f; _weights[5] = 0.99f; _weights[6] = 0.1f; _weights[7] = 1f; _weights[8] = 0.99f; _weights[9] = 20f; }
@@ -3325,11 +3651,16 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = tension, Displacement = displacement,
+                Value = tension,
+                Displacement = displacement,
                 Color = new Vector3(MathHelper.Clamp01(tension * 0.5f), MathHelper.Clamp01(1f - tension * 0.3f), MathHelper.Clamp01(bendResist * 0.5f + 0.5f)),
-                Roughness = MathHelper.Clamp01(0.6f + tension * 0.2f), Metallic = 0f, Opacity = 1f, Emission = 0f,
+                Roughness = MathHelper.Clamp01(0.6f + tension * 0.2f),
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
                 OutputNormal = clothNormal,
-                Height = MathHelper.Clamp01(tension), AmbientOcclusion = MathHelper.Clamp01(1f - MathF.Abs(bendResist) * 0.3f),
+                Height = MathHelper.Clamp01(tension),
+                AmbientOcclusion = MathHelper.Clamp01(1f - MathF.Abs(bendResist) * 0.3f),
                 Thickness = 0.01f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("tension", tension)
@@ -3347,10 +3678,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -3359,7 +3696,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 128;
         public INeuronKernel Clone() { var c = new ClothSimulatorKernel(); Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 100f; _weights[1] = 0.1f; _weights[2] = 1f; _weights[3] = 9.81f; _weights[4] = 2f; _weights[5] = 0f; _weights[6] = 1f; _weights[7] = 0.5f; _weights[8] = 50f; _weights[9] = 10f; _weights[10] = 20f; _weights[11] = 5f; }
@@ -3446,10 +3783,15 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = voxelDensity, Displacement = voxelPos - input.Position,
+                Value = voxelDensity,
+                Displacement = voxelPos - input.Position,
                 Color = new Vector3(occupancy, voxelDensity, 1f - occupancy),
-                Roughness = 0.5f, Metallic = 0f, Opacity = occupancy,
-                OutputNormal = voxelNormal, Height = voxelDensity, AmbientOcclusion = occupancy,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = occupancy,
+                OutputNormal = voxelNormal,
+                Height = voxelDensity,
+                AmbientOcclusion = occupancy,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("voxel_density", voxelDensity)
                     .Add("occupancy", occupancy)
@@ -3463,10 +3805,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -3475,7 +3823,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 128;
         public INeuronKernel Clone() { var c = new VoxelizerKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => _weights[0] <= 0 ? "Voxel size must be positive" : null;
+        public string? Validate() => _weights[0] <= 0 ? "Voxel size must be positive" : null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 0.1f; _weights[1] = 16f; _weights[2] = 0.5f; _weights[3] = 0.5f; _weights[4] = 1f; _weights[5] = 0.5f; _weights[6] = 0.1f; _weights[7] = 64f; }
@@ -3543,19 +3891,28 @@ namespace GDNN.Core.Neurons
             float corner111 = NoiseGenerator.FBM3D((gridPos.X + gridScale) * 2f, (gridPos.Y + gridScale) * 2f, (gridPos.Z + gridScale) * 2f, 4, 2f, 0.5f);
 
             int cubeIndex = 0;
-            if (corner000 < isoLevel) cubeIndex |= 1;
-            if (corner100 < isoLevel) cubeIndex |= 2;
-            if (corner110 < isoLevel) cubeIndex |= 4;
-            if (corner010 < isoLevel) cubeIndex |= 8;
-            if (corner001 < isoLevel) cubeIndex |= 16;
-            if (corner101 < isoLevel) cubeIndex |= 32;
-            if (corner111 < isoLevel) cubeIndex |= 64;
-            if (corner011 < isoLevel) cubeIndex |= 128;
+            if (corner000 < isoLevel)
+                cubeIndex |= 1;
+            if (corner100 < isoLevel)
+                cubeIndex |= 2;
+            if (corner110 < isoLevel)
+                cubeIndex |= 4;
+            if (corner010 < isoLevel)
+                cubeIndex |= 8;
+            if (corner001 < isoLevel)
+                cubeIndex |= 16;
+            if (corner101 < isoLevel)
+                cubeIndex |= 32;
+            if (corner111 < isoLevel)
+                cubeIndex |= 64;
+            if (corner011 < isoLevel)
+                cubeIndex |= 128;
 
             int edgeFlags = CubeEdgeFlags[cubeIndex];
             int triCount = 0;
             for (int i = 0; i < 16; i++)
-                if (TriTable[cubeIndex, i] >= 0) triCount++;
+                if (TriTable[cubeIndex, i] >= 0)
+                    triCount++;
             triCount /= 3;
 
             float surfaceTension = MathF.Abs(sdf) / gridScale;
@@ -3572,10 +3929,15 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = sdf, Displacement = estimatedNormal * sdf * 0.1f,
+                Value = sdf,
+                Displacement = estimatedNormal * sdf * 0.1f,
                 Color = new Vector3(MathHelper.Clamp01(surfaceTension), MathHelper.Clamp01(density), MathHelper.Clamp01(triCount / 12f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = density,
-                OutputNormal = estimatedNormal, Height = density, AmbientOcclusion = density,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = density,
+                OutputNormal = estimatedNormal,
+                Height = density,
+                AmbientOcclusion = density,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("sdf_value", sdf)
                     .Add("triangle_count", triCount)
@@ -3591,10 +3953,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -3603,7 +3971,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + sizeof(int) * 256 * 16 + 128;
         public INeuronKernel Clone() { var c = new MarchingCubeKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => _weights[1] <= 0 ? "Grid scale must be positive" : null;
+        public string? Validate() => _weights[1] <= 0 ? "Grid scale must be positive" : null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 0f; _weights[1] = 0.1f; _weights[2] = 1f; _weights[3] = 0.5f; _weights[4] = 1f; _weights[5] = 1f; }
@@ -3671,10 +4039,12 @@ namespace GDNN.Core.Neurons
             for (int i = 0; i < 32; i++)
             {
                 float h = SDFScene(ro + rd * t);
-                if (h < 0.001f) return 0f;
+                if (h < 0.001f)
+                    return 0f;
                 res = MathHelper.Min(res, k * h / t);
                 t += MathHelper.Clamp(h, 0.01f, 0.5f);
-                if (t > tMax) break;
+                if (t > tMax)
+                    break;
             }
             return MathHelper.Clamp01(res);
         }
@@ -3701,9 +4071,11 @@ namespace GDNN.Core.Neurons
             {
                 Vector3 p = ro + rd * totalDist;
                 float d = SDFScene(p);
-                if (d < 0.001f * totalDist) { hit = true; hitPoint = p; steps = i; break; }
+                if (d < 0.001f * totalDist)
+                { hit = true; hitPoint = p; steps = i; break; }
                 totalDist += d;
-                if (totalDist > maxDist) break;
+                if (totalDist > maxDist)
+                    break;
             }
 
             float colorValue = 0f;
@@ -3719,7 +4091,8 @@ namespace GDNN.Core.Neurons
                 shadow = ComputeSoftShadow(hitPoint + n * 0.01f, input.LightDirection, 0.02f, 10f, shadowSoftness);
 
                 Vector3 baseColor = new Vector3(0.8f, 0.2f, 0.1f);
-                if (hitPoint.Y < 0.05f) baseColor = new Vector3(0.3f, 0.5f, 0.2f);
+                if (hitPoint.Y < 0.05f)
+                    baseColor = new Vector3(0.3f, 0.5f, 0.2f);
 
                 Vector3 diffuse = baseColor * ndl * shadow;
                 Vector3 ambient = baseColor * 0.1f * ao;
@@ -3752,8 +4125,11 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = colorValue, Displacement = hit ? rd * totalDist : Vector3.Zero,
-                Color = hitColor, Roughness = 0.5f, Metallic = 0f,
+                Value = colorValue,
+                Displacement = hit ? rd * totalDist : Vector3.Zero,
+                Color = hitColor,
+                Roughness = 0.5f,
+                Metallic = 0f,
                 Opacity = hit ? 1f : 0f,
                 Emission = emissionStrength * (hit ? colorValue : 0f),
                 EmissionColor = hitColor,
@@ -3761,7 +4137,8 @@ namespace GDNN.Core.Neurons
                 Height = hit ? totalDist / maxDist : 0f,
                 AmbientOcclusion = hit ? ao : 1f,
                 Thickness = hit ? totalDist : 0f,
-                IOR = ior, Specular = 0.5f,
+                IOR = ior,
+                Specular = 0.5f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("ray_distance", totalDist)
                     .Add("hit", hit ? 1f : 0f)
@@ -3778,10 +4155,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -3790,7 +4173,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 1024;
         public INeuronKernel Clone() { var c = new RayMarcherKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 20f; _weights[1] = 64f; _weights[2] = 1f; _weights[3] = 16f; _weights[4] = 0.3f; _weights[5] = 0f; _weights[6] = 1.333f; _weights[7] = 0f; _weights[8] = 0.05f; _weights[9] = 0f; _weights[10] = 0.1f; _weights[11] = 0.001f; }
@@ -3867,8 +4250,10 @@ namespace GDNN.Core.Neurons
                     float alpha = MathF.Sqrt(omega);
                     float xi = alpha * p.X;
                     float hermite = 1f;
-                    if (normalize > 1.5f) hermite = 2f * xi;
-                    else if (normalize > 0.5f) hermite = 4f * xi * xi - 2f;
+                    if (normalize > 1.5f)
+                        hermite = 2f * xi;
+                    else if (normalize > 0.5f)
+                        hermite = 4f * xi * xi - 2f;
                     psi = amplitude * hermite * MathF.Exp(-xi * xi / 2f) * MathF.Cos(omega * (normalize + 0.5f) * t - phase);
                     psiGrad = new Vector3(
                         amplitude * (alpha * hermite * (-xi) + alpha * (normalize > 1.5f ? 2f * alpha : 8f * alpha * xi)) * MathF.Exp(-xi * xi / 2f) * MathF.Cos(omega * (normalize + 0.5f) * t - phase),
@@ -3889,12 +4274,17 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = psi, Displacement = psiGrad * 0.1f,
+                Value = psi,
+                Displacement = psiGrad * 0.1f,
                 Color = new Vector3(MathHelper.Clamp01(probability), MathHelper.Clamp01(MathF.Abs(psi)), MathHelper.Clamp01(phaseAngle / MathHelper.TwoPi + 0.5f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = MathHelper.Clamp01(probability),
-                Emission = probability * amplitude, EmissionColor = new Vector3(0.3f, 0.5f, 1f),
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = MathHelper.Clamp01(probability),
+                Emission = probability * amplitude,
+                EmissionColor = new Vector3(0.3f, 0.5f, 1f),
                 OutputNormal = psiGrad.LengthSquared() > 0.0001f ? Vector3.Normalize(psiGrad) : Vector3.UnitY,
-                Height = probability, AmbientOcclusion = MathHelper.Clamp01(1f - probability),
+                Height = probability,
+                AmbientOcclusion = MathHelper.Clamp01(1f - probability),
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("wave_function", psi)
                     .Add("probability_density", probability)
@@ -3907,10 +4297,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -3919,7 +4315,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new WaveFunctionKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 5f; _weights[1] = 1f; _weights[2] = 0.1f; _weights[3] = 2f; _weights[4] = 1f; _weights[5] = 1f; _weights[6] = 1f; _weights[7] = 0f; }
@@ -3967,8 +4363,10 @@ namespace GDNN.Core.Neurons
             {
                 case TensorOp.MatrixMultiply:
                     float[,,] A = new float[2, 2, 1];
-                    A[0, 0, 0] = input.Position.X; A[0, 1, 0] = input.Position.Y;
-                    A[1, 0, 0] = input.Position.Z; A[1, 1, 0] = 1f;
+                    A[0, 0, 0] = input.Position.X;
+                    A[0, 1, 0] = input.Position.Y;
+                    A[1, 0, 0] = input.Position.Z;
+                    A[1, 1, 0] = 1f;
                     float r00 = input.Position.X * _matrixData[0] + input.Position.Y * _matrixData[4] + input.Position.Z * _matrixData[8] + _matrixData[12];
                     float r01 = input.Position.X * _matrixData[1] + input.Position.Y * _matrixData[5] + input.Position.Z * _matrixData[9] + _matrixData[13];
                     float r10 = input.Position.X * _matrixData[2] + input.Position.Y * _matrixData[6] + input.Position.Z * _matrixData[10] + _matrixData[14];
@@ -3987,9 +4385,12 @@ namespace GDNN.Core.Neurons
                     break;
                 case TensorOp.Reduce:
                     float sum = 0f;
-                    if (axis < 0.5f) sum = input.Position.X + input.Position.Y + input.Position.Z;
-                    else if (axis < 1.5f) sum = input.Position.X * input.Position.Y * input.Position.Z;
-                    else sum = MathF.Max(MathF.Max(input.Position.X, input.Position.Y), input.Position.Z);
+                    if (axis < 0.5f)
+                        sum = input.Position.X + input.Position.Y + input.Position.Z;
+                    else if (axis < 1.5f)
+                        sum = input.Position.X * input.Position.Y * input.Position.Z;
+                    else
+                        sum = MathF.Max(MathF.Max(input.Position.X, input.Position.Y), input.Position.Z);
                     result = new Vector3(sum, sum, sum);
                     break;
                 case TensorOp.Concat:
@@ -4011,9 +4412,13 @@ namespace GDNN.Core.Neurons
                 Value = MathHelper.Luminance(result),
                 Displacement = result - input.Position,
                 Color = result,
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
                 OutputNormal = result.LengthSquared() > 0.0001f ? Vector3.Normalize(result) : Vector3.UnitY,
-                Height = result.Length(), AmbientOcclusion = 1f,
+                Height = result.Length(),
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("result_x", result.X).Add("result_y", result.Y).Add("result_z", result.Z),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -4024,10 +4429,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -4036,15 +4447,26 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount + 16;
         public long GetMemoryFootprint() => sizeof(float) * (ParamCount + 16) + 64;
         public INeuronKernel Clone() { var c = new TensorReshaperKernel { Operation = this.Operation }; Array.Copy(_weights, c._weights, ParamCount); Array.Copy(_matrixData, c._matrixData, 16); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount + 16) { p.Slice(0, ParamCount).CopyTo(_weights); p.Slice(ParamCount, 16).CopyTo(_matrixData); } }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount + 16) { _weights.AsSpan(0, ParamCount).CopyTo(p); _matrixData.AsSpan(0, 16).CopyTo(p.Slice(ParamCount)); } }
         public void ResetParameters()
         {
-            _weights[0] = 4f; _weights[1] = 4f; _weights[2] = 4f; _weights[3] = 4f;
-            _weights[4] = 1f; _weights[5] = 0f; _weights[6] = 0f; _weights[7] = 1f;
-            _matrixData[0] = 1f; _matrixData[5] = 1f; _matrixData[10] = 1f; _matrixData[15] = 1f;
-            for (int i = 1; i < 16; i++) if (i != 0 && i != 5 && i != 10 && i != 15) _matrixData[i] = 0f;
+            _weights[0] = 4f;
+            _weights[1] = 4f;
+            _weights[2] = 4f;
+            _weights[3] = 4f;
+            _weights[4] = 1f;
+            _weights[5] = 0f;
+            _weights[6] = 0f;
+            _weights[7] = 1f;
+            _matrixData[0] = 1f;
+            _matrixData[5] = 1f;
+            _matrixData[10] = 1f;
+            _matrixData[15] = 1f;
+            for (int i = 1; i < 16; i++)
+                if (i != 0 && i != 5 && i != 10 && i != 15)
+                    _matrixData[i] = 0f;
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr) { if (gradient.WeightGradients != null) for (int i = 0; i < MathHelper.Min(gradient.WeightGradients.Length, ParamCount); i++) _weights[i] -= lr * gradient.WeightGradients[i]; }
     }
@@ -4110,7 +4532,8 @@ namespace GDNN.Core.Neurons
             float attnWeight = MathHelper.Exp(MathHelper.Min(attnScore, 20f));
             attnWeight = MathHelper.Clamp01(attnWeight);
 
-            if (dropout > 0) attnWeight *= (1f - dropout);
+            if (dropout > 0)
+                attnWeight *= (1f - dropout);
 
             Vector3 attended = valueVec * attnWeight * outputScale;
             float entropy = -attnWeight * MathF.Log(attnWeight + 1e-7f) - (1f - attnWeight) * MathF.Log(1f - attnWeight + 1e-7f);
@@ -4120,9 +4543,13 @@ namespace GDNN.Core.Neurons
                 Value = attnWeight,
                 Displacement = attended - input.Position,
                 Color = new Vector3(MathHelper.Clamp01(attnWeight), MathHelper.Clamp01(entropy), MathHelper.Clamp01(attnScore * 0.1f + 0.5f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
                 OutputNormal = attended.LengthSquared() > 0.0001f ? Vector3.Normalize(attended) : input.Normal,
-                Height = attnWeight, AmbientOcclusion = 1f,
+                Height = attnWeight,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("attention_weight", attnWeight)
                     .Add("attention_score", attnScore)
@@ -4143,7 +4570,12 @@ namespace GDNN.Core.Neurons
             float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -4152,16 +4584,24 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount + 48;
         public long GetMemoryFootprint() => sizeof(float) * (ParamCount + 48) + 64;
         public INeuronKernel Clone() { var c = new AttentionHeadKernel(); Array.Copy(_weights, c._weights, ParamCount); Array.Copy(_queryWeights, c._queryWeights, 16); Array.Copy(_keyWeights, c._keyWeights, 16); Array.Copy(_valueWeights, c._valueWeights, 16); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount + 48) { p.Slice(0, ParamCount).CopyTo(_weights); p.Slice(ParamCount, 16).CopyTo(_queryWeights); p.Slice(ParamCount + 16, 16).CopyTo(_keyWeights); p.Slice(ParamCount + 32, 16).CopyTo(_valueWeights); } }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount + 48) { _weights.AsSpan(0, ParamCount).CopyTo(p); _queryWeights.AsSpan().CopyTo(p.Slice(ParamCount)); _keyWeights.AsSpan().CopyTo(p.Slice(ParamCount + 16)); _valueWeights.AsSpan().CopyTo(p.Slice(ParamCount + 32)); } }
         public void ResetParameters()
         {
-            _weights[0] = 1f; _weights[1] = 0f; _weights[2] = 1f; _weights[3] = 16f;
-            _weights[4] = 1f; _weights[5] = 0f; _weights[6] = 1f; _weights[7] = 512f;
-            _weights[8] = 1f; _weights[9] = 1f;
+            _weights[0] = 1f;
+            _weights[1] = 0f;
+            _weights[2] = 1f;
+            _weights[3] = 16f;
+            _weights[4] = 1f;
+            _weights[5] = 0f;
+            _weights[6] = 1f;
+            _weights[7] = 512f;
+            _weights[8] = 1f;
+            _weights[9] = 1f;
             var rng = new Random(42);
-            for (int i = 0; i < 16; i++) { _queryWeights[i] = (float)(rng.NextDouble() * 2 - 1) * 0.1f; _keyWeights[i] = (float)(rng.NextDouble() * 2 - 1) * 0.1f; _valueWeights[i] = (float)(rng.NextDouble() * 2 - 1) * 0.1f; }
+            for (int i = 0; i < 16; i++)
+            { _queryWeights[i] = (float)(rng.NextDouble() * 2 - 1) * 0.1f; _keyWeights[i] = (float)(rng.NextDouble() * 2 - 1) * 0.1f; _valueWeights[i] = (float)(rng.NextDouble() * 2 - 1) * 0.1f; }
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr) { if (gradient.WeightGradients != null) for (int i = 0; i < MathHelper.Min(gradient.WeightGradients.Length, ParamCount); i++) _weights[i] -= lr * gradient.WeightGradients[i]; }
     }
@@ -4263,16 +4703,23 @@ namespace GDNN.Core.Neurons
             }
 
             result = result * outputScale + bias;
-            if (activation > 0.5f) result = MathHelper.Max(0, result);
-            else if (activation > 1.5f) result = 1f / (1f + MathF.Exp(-result));
+            if (activation > 0.5f)
+                result = MathHelper.Max(0, result);
+            else if (activation > 1.5f)
+                result = 1f / (1f + MathF.Exp(-result));
 
             _lastOutput = new NeuronOutput
             {
                 Value = result,
                 Displacement = new Vector3(result, result * 0.5f, result * 0.25f),
                 Color = new Vector3(MathHelper.Clamp01(result * 0.5f + 0.5f), MathHelper.Clamp01(result * 0.3f), MathHelper.Clamp01(-result * 0.2f + 0.5f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
-                OutputNormal = input.Normal, Height = result, AmbientOcclusion = 1f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
+                OutputNormal = input.Normal,
+                Height = result,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("conv_output", result).Add("activation_type", activation),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -4286,12 +4733,22 @@ namespace GDNN.Core.Neurons
             float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             for (int i = 0; i < 25; i++)
             {
-                float oldW = _kernelWeights[i]; _kernelWeights[i] = oldW + eps; float vP = _lastOutput.Value; _kernelWeights[i] = oldW - eps; float vM = _lastOutput.Value; _kernelWeights[i] = oldW;
+                float oldW = _kernelWeights[i];
+                _kernelWeights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _kernelWeights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _kernelWeights[i] = oldW;
                 wg[ParamCount + i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -4300,16 +4757,23 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount + 25;
         public long GetMemoryFootprint() => sizeof(float) * (ParamCount + 25) + 64;
         public INeuronKernel Clone() { var c = new ConvolutionKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); Array.Copy(_kernelWeights, c._kernelWeights, 25); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount + 25) { p.Slice(0, ParamCount).CopyTo(_weights); p.Slice(ParamCount, 25).CopyTo(_kernelWeights); } }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount + 25) { _weights.AsSpan(0, ParamCount).CopyTo(p); _kernelWeights.AsSpan().CopyTo(p.Slice(ParamCount)); } }
         public void ResetParameters()
         {
-            _weights[0] = 1f; _weights[1] = 0f; _weights[2] = 1f; _weights[3] = 1f;
-            _weights[4] = 0f; _weights[5] = 1f; _weights[6] = 1f; _weights[7] = 1f;
+            _weights[0] = 1f;
+            _weights[1] = 0f;
+            _weights[2] = 1f;
+            _weights[3] = 1f;
+            _weights[4] = 0f;
+            _weights[5] = 1f;
+            _weights[6] = 1f;
+            _weights[7] = 1f;
             var rng = new Random(42);
             float std = MathF.Sqrt(2f / 25f);
-            for (int i = 0; i < 25; i++) _kernelWeights[i] = (float)(rng.NextDouble() * 2 - 1) * std;
+            for (int i = 0; i < 25; i++)
+                _kernelWeights[i] = (float)(rng.NextDouble() * 2 - 1) * std;
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr) { if (gradient.WeightGradients != null) { for (int i = 0; i < MathHelper.Min(gradient.WeightGradients.Length, ParamCount); i++) _weights[i] -= lr * gradient.WeightGradients[i]; for (int i = 0; i < MathHelper.Min(gradient.WeightGradients.Length - ParamCount, 25); i++) _kernelWeights[i] -= lr * gradient.WeightGradients[ParamCount + i]; } }
     }
@@ -4354,11 +4818,13 @@ namespace GDNN.Core.Neurons
             {
                 case PoolMode.Max:
                     result = localValues[0];
-                    for (int i = 1; i < localValues.Length; i++) result = MathHelper.Max(result, localValues[i]);
+                    for (int i = 1; i < localValues.Length; i++)
+                        result = MathHelper.Max(result, localValues[i]);
                     break;
                 case PoolMode.Average:
                     float sum = 0f;
-                    for (int i = 0; i < localValues.Length; i++) sum += localValues[i];
+                    for (int i = 0; i < localValues.Length; i++)
+                        sum += localValues[i];
                     result = sum / localValues.Length;
                     break;
                 case PoolMode.GlobalMax:
@@ -4374,9 +4840,11 @@ namespace GDNN.Core.Neurons
                     break;
                 case PoolMode.Stochastic:
                     float maxVal = localValues[0];
-                    for (int i = 1; i < localValues.Length; i++) maxVal = MathHelper.Max(maxVal, localValues[i]);
+                    for (int i = 1; i < localValues.Length; i++)
+                        maxVal = MathHelper.Max(maxVal, localValues[i]);
                     float sumExp = 0f;
-                    for (int i = 0; i < localValues.Length; i++) sumExp += MathF.Exp(localValues[i] - maxVal);
+                    for (int i = 0; i < localValues.Length; i++)
+                        sumExp += MathF.Exp(localValues[i] - maxVal);
                     result = maxVal + MathF.Log(sumExp) - MathF.Log(localValues.Length);
                     break;
             }
@@ -4389,8 +4857,13 @@ namespace GDNN.Core.Neurons
                 Value = result,
                 Displacement = new Vector3(result, outputW * 0.01f, outputH * 0.01f),
                 Color = new Vector3(MathHelper.Clamp01(result * 0.5f + 0.5f), MathHelper.Clamp01(result * 0.3f), MathHelper.Clamp01(0.5f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
-                OutputNormal = input.Normal, Height = result, AmbientOcclusion = 1f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
+                OutputNormal = input.Normal,
+                Height = result,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("pool_output", result)
                     .Add("output_width", outputW)
@@ -4402,10 +4875,16 @@ namespace GDNN.Core.Neurons
 
         public NeuronGradient Backpropagate(in NeuronGradient gradient)
         {
-            float[] wg = new float[ParamCount]; float eps = 0.001f;
+            float[] wg = new float[ParamCount];
+            float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -4414,7 +4893,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount;
         public long GetMemoryFootprint() => sizeof(float) * ParamCount + 64;
         public INeuronKernel Clone() { var c = new PoolingLayerKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount) p.Slice(0, ParamCount).CopyTo(_weights); }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount) _weights.AsSpan(0, ParamCount).CopyTo(p); }
         public void ResetParameters() { _weights[0] = 2f; _weights[1] = 2f; _weights[2] = 0f; _weights[3] = 1f; _weights[4] = 0f; _weights[5] = 1f; }
@@ -4511,9 +4990,13 @@ namespace GDNN.Core.Neurons
                 Value = MathHelper.Luminance(normalized),
                 Displacement = normalized - input.Position,
                 Color = normalized,
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
                 OutputNormal = normalized.LengthSquared() > 0.0001f ? Vector3.Normalize(normalized) : input.Normal,
-                Height = normalized.Length(), AmbientOcclusion = 1f,
+                Height = normalized.Length(),
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("norm_x", normalized.X).Add("norm_y", normalized.Y).Add("norm_z", normalized.Z),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -4528,17 +5011,32 @@ namespace GDNN.Core.Neurons
             float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             for (int i = 0; i < 8; i++)
             {
-                float oldG = _gamma[i]; _gamma[i] = oldG + eps; float vP = _lastOutput.Value; _gamma[i] = oldG - eps; float vM = _lastOutput.Value; _gamma[i] = oldG;
+                float oldG = _gamma[i];
+                _gamma[i] = oldG + eps;
+                float vP = _lastOutput.Value;
+                _gamma[i] = oldG - eps;
+                float vM = _lastOutput.Value;
+                _gamma[i] = oldG;
                 wg[ParamCount + i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             for (int i = 0; i < 8; i++)
             {
-                float oldB = _beta[i]; _beta[i] = oldB + eps; float vP = _lastOutput.Value; _beta[i] = oldB - eps; float vM = _lastOutput.Value; _beta[i] = oldB;
+                float oldB = _beta[i];
+                _beta[i] = oldB + eps;
+                float vP = _lastOutput.Value;
+                _beta[i] = oldB - eps;
+                float vM = _lastOutput.Value;
+                _beta[i] = oldB;
                 wg[ParamCount + 8 + i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -4547,7 +5045,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount + 16;
         public long GetMemoryFootprint() => sizeof(float) * (ParamCount + 32) + 64;
         public INeuronKernel Clone() { var c = new NormalizationLayerKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); Array.Copy(_gamma, c._gamma, 8); Array.Copy(_beta, c._beta, 8); return c; }
-        public string Validate() => _weights[0] <= 0 ? "Epsilon must be positive" : null;
+        public string? Validate() => _weights[0] <= 0 ? "Epsilon must be positive" : null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount + 16) { p.Slice(0, ParamCount).CopyTo(_weights); p.Slice(ParamCount, 8).CopyTo(_gamma); p.Slice(ParamCount + 8, 8).CopyTo(_beta); } }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount + 16) { _weights.AsSpan(0, ParamCount).CopyTo(p); _gamma.AsSpan().CopyTo(p.Slice(ParamCount)); _beta.AsSpan().CopyTo(p.Slice(ParamCount + 8)); } }
         public void ResetParameters() { _weights[0] = 1e-5f; _weights[1] = 0.1f; _weights[2] = 1f; _weights[3] = 3f; _weights[4] = 1f; _weights[5] = 1f; _weights[6] = 0f; _weights[7] = 3f; for (int i = 0; i < 8; i++) { _gamma[i] = 1f; _beta[i] = 0f; _runningMean[i] = 0f; _runningVar[i] = 1f; } }
@@ -4584,15 +5082,21 @@ namespace GDNN.Core.Neurons
             Vector3 embedding = new Vector3(e0, e1, e2) * scale;
 
             float norm = embedding.Length();
-            if (norm > 0.001f) embedding = embedding / MathF.Sqrt(embedDim + 0.001f);
+            if (norm > 0.001f)
+                embedding = embedding / MathF.Sqrt(embedDim + 0.001f);
 
             _lastOutput = new NeuronOutput
             {
-                Value = norm, Displacement = embedding,
+                Value = norm,
+                Displacement = embedding,
                 Color = MathHelper.Clamp01Vec(embedding * 0.5f + new Vector3(0.5f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
                 OutputNormal = embedding.LengthSquared() > 0.0001f ? Vector3.Normalize(embedding) : input.Normal,
-                Height = norm, AmbientOcclusion = 1f,
+                Height = norm,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("embedding_norm", norm).Add("index", idx),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -4607,14 +5111,24 @@ namespace GDNN.Core.Neurons
             float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             int idx = MathHelper.Clamp(MathHelper.FloorToInt(_lastOutput.Value * 10f + 64f), 0, 127);
             for (int i = 0; i < 3; i++)
             {
                 int ei = (idx + i) % 128;
-                float oldE = _embeddings[ei]; _embeddings[ei] = oldE + eps; float vP = _lastOutput.Value; _embeddings[ei] = oldE - eps; float vM = _lastOutput.Value; _embeddings[ei] = oldE;
+                float oldE = _embeddings[ei];
+                _embeddings[ei] = oldE + eps;
+                float vP = _lastOutput.Value;
+                _embeddings[ei] = oldE - eps;
+                float vM = _lastOutput.Value;
+                _embeddings[ei] = oldE;
                 wg[ParamCount + ei] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -4623,14 +5137,18 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount + 128;
         public long GetMemoryFootprint() => sizeof(float) * (ParamCount + 128) + 64;
         public INeuronKernel Clone() { var c = new EmbeddingLookupKernel(); Array.Copy(_weights, c._weights, ParamCount); Array.Copy(_embeddings, c._embeddings, 128); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount + 128) { p.Slice(0, ParamCount).CopyTo(_weights); p.Slice(ParamCount, 128).CopyTo(_embeddings); } }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount + 128) { _weights.AsSpan(0, ParamCount).CopyTo(p); _embeddings.AsSpan().CopyTo(p.Slice(ParamCount)); } }
         public void ResetParameters()
         {
-            _weights[0] = 1000f; _weights[1] = 64f; _weights[2] = 1f; _weights[3] = -1f;
+            _weights[0] = 1000f;
+            _weights[1] = 64f;
+            _weights[2] = 1f;
+            _weights[3] = -1f;
             var rng = new Random(42);
-            for (int i = 0; i < 128; i++) _embeddings[i] = (float)(rng.NextDouble() * 2 - 1) * 0.1f;
+            for (int i = 0; i < 128; i++)
+                _embeddings[i] = (float)(rng.NextDouble() * 2 - 1) * 0.1f;
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr) { if (gradient.WeightGradients != null) { for (int i = 0; i < MathHelper.Min(gradient.WeightGradients.Length, ParamCount); i++) _weights[i] -= lr * gradient.WeightGradients[i]; int idx = MathHelper.Clamp(MathHelper.FloorToInt(_lastOutput.Value * 10f + 64f), 0, 127); for (int i = 0; i < 3; i++) { int ei = (idx + i) % 128; if (ParamCount + ei < gradient.WeightGradients.Length) _embeddings[ei] -= lr * gradient.WeightGradients[ParamCount + ei]; } } }
     }
@@ -4716,17 +5234,23 @@ namespace GDNN.Core.Neurons
                     break;
             }
 
-            if (dropout > 0) encoded *= (1f - dropout);
+            if (dropout > 0)
+                encoded *= (1f - dropout);
 
             float positionNorm = encoded.Length();
 
             _lastOutput = new NeuronOutput
             {
-                Value = positionNorm, Displacement = encoded,
+                Value = positionNorm,
+                Displacement = encoded,
                 Color = MathHelper.Clamp01Vec(encoded * 0.5f + new Vector3(0.5f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
                 OutputNormal = encoded.LengthSquared() > 0.0001f ? Vector3.Normalize(encoded) : input.Normal,
-                Height = positionNorm, AmbientOcclusion = 1f,
+                Height = positionNorm,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("position_norm", positionNorm).Add("position_index", pos),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -4741,7 +5265,12 @@ namespace GDNN.Core.Neurons
             float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             if (Mode == PositionalMode.Learned)
@@ -4750,7 +5279,12 @@ namespace GDNN.Core.Neurons
                 for (int i = 0; i < 3; i++)
                 {
                     int ei = (pos + i) % 64;
-                    float oldE = _learnedEmbeddings[ei]; _learnedEmbeddings[ei] = oldE + eps; float vP = _lastOutput.Value; _learnedEmbeddings[ei] = oldE - eps; float vM = _lastOutput.Value; _learnedEmbeddings[ei] = oldE;
+                    float oldE = _learnedEmbeddings[ei];
+                    _learnedEmbeddings[ei] = oldE + eps;
+                    float vP = _lastOutput.Value;
+                    _learnedEmbeddings[ei] = oldE - eps;
+                    float vM = _lastOutput.Value;
+                    _learnedEmbeddings[ei] = oldE;
                     wg[ParamCount + ei] = gradient.ValueGradient * (vP - vM) / (2f * eps);
                 }
             }
@@ -4760,7 +5294,7 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount + 64;
         public long GetMemoryFootprint() => sizeof(float) * (ParamCount + 64) + 64;
         public INeuronKernel Clone() { var c = new PositionalEncoderKernel { Mode = this.Mode }; Array.Copy(_weights, c._weights, ParamCount); Array.Copy(_learnedEmbeddings, c._learnedEmbeddings, 64); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount + 64) { p.Slice(0, ParamCount).CopyTo(_weights); p.Slice(ParamCount, 64).CopyTo(_learnedEmbeddings); } }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount + 64) { _weights.AsSpan(0, ParamCount).CopyTo(p); _learnedEmbeddings.AsSpan().CopyTo(p.Slice(ParamCount)); } }
         public void ResetParameters() { _weights[0] = 64f; _weights[1] = 16f; _weights[2] = 1f; _weights[3] = 1f; _weights[4] = 0.5f; _weights[5] = 0f; var rng = new Random(42); for (int i = 0; i < 64; i++) _learnedEmbeddings[i] = (float)(rng.NextDouble() * 2 - 1) * 0.1f; }
@@ -4811,18 +5345,24 @@ namespace GDNN.Core.Neurons
             float attnWeight = MathHelper.Exp(MathHelper.Min(attnScore, 20f));
             float sumExp = attnWeight + MathHelper.Exp(0f);
             attnWeight /= sumExp;
-            if (dropout > 0) attnWeight *= (1f - dropout);
+            if (dropout > 0)
+                attnWeight *= (1f - dropout);
 
             Vector3 attended = v * attnWeight;
             float entropy = -attnWeight * MathF.Log(attnWeight + 1e-7f) - (1f - attnWeight) * MathF.Log(1f - attnWeight + 1e-7f);
 
             _lastOutput = new NeuronOutput
             {
-                Value = attnWeight, Displacement = attended - input.Position,
+                Value = attnWeight,
+                Displacement = attended - input.Position,
                 Color = new Vector3(MathHelper.Clamp01(attnWeight), MathHelper.Clamp01(entropy), MathHelper.Clamp01(attnScore * 0.1f + 0.5f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
                 OutputNormal = attended.LengthSquared() > 0.0001f ? Vector3.Normalize(attended) : input.Normal,
-                Height = attnWeight, AmbientOcclusion = 1f,
+                Height = attnWeight,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("attention_weight", attnWeight).Add("entropy", entropy),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -4837,14 +5377,24 @@ namespace GDNN.Core.Neurons
             float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             for (int i = 0; i < 27; i++)
             {
                 float[] allW = i < 9 ? _qWeights : i < 18 ? _kWeights : _vWeights;
                 int wi = i % 9;
-                float oldW = allW[wi]; allW[wi] = oldW + eps; float vP = _lastOutput.Value; allW[wi] = oldW - eps; float vM = _lastOutput.Value; allW[wi] = oldW;
+                float oldW = allW[wi];
+                allW[wi] = oldW + eps;
+                float vP = _lastOutput.Value;
+                allW[wi] = oldW - eps;
+                float vM = _lastOutput.Value;
+                allW[wi] = oldW;
                 wg[ParamCount + i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -4853,16 +5403,23 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount + 27;
         public long GetMemoryFootprint() => sizeof(float) * (ParamCount + 27) + 64;
         public INeuronKernel Clone() { var c = new CrossAttentionLayerKernel(); Array.Copy(_weights, c._weights, ParamCount); Array.Copy(_qWeights, c._qWeights, 9); Array.Copy(_kWeights, c._kWeights, 9); Array.Copy(_vWeights, c._vWeights, 9); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount + 27) { p.Slice(0, ParamCount).CopyTo(_weights); p.Slice(ParamCount, 9).CopyTo(_qWeights); p.Slice(ParamCount + 9, 9).CopyTo(_kWeights); p.Slice(ParamCount + 18, 9).CopyTo(_vWeights); } }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount + 27) { _weights.AsSpan(0, ParamCount).CopyTo(p); _qWeights.AsSpan().CopyTo(p.Slice(ParamCount)); _kWeights.AsSpan().CopyTo(p.Slice(ParamCount + 9)); _vWeights.AsSpan().CopyTo(p.Slice(ParamCount + 18)); } }
         public void ResetParameters()
         {
-            _weights[0] = 64f; _weights[1] = 8f; _weights[2] = 0f; _weights[3] = 1f;
-            _weights[4] = 0f; _weights[5] = 0f; _weights[6] = 0f; _weights[7] = 0f;
+            _weights[0] = 64f;
+            _weights[1] = 8f;
+            _weights[2] = 0f;
+            _weights[3] = 1f;
+            _weights[4] = 0f;
+            _weights[5] = 0f;
+            _weights[6] = 0f;
+            _weights[7] = 0f;
             var rng = new Random(42);
             float std = MathF.Sqrt(2f / 9f);
-            for (int i = 0; i < 9; i++) { _qWeights[i] = (float)(rng.NextDouble() * 2 - 1) * std; _kWeights[i] = (float)(rng.NextDouble() * 2 - 1) * std; _vWeights[i] = (float)(rng.NextDouble() * 2 - 1) * std; }
+            for (int i = 0; i < 9; i++)
+            { _qWeights[i] = (float)(rng.NextDouble() * 2 - 1) * std; _kWeights[i] = (float)(rng.NextDouble() * 2 - 1) * std; _vWeights[i] = (float)(rng.NextDouble() * 2 - 1) * std; }
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr) { if (gradient.WeightGradients != null) { for (int i = 0; i < MathHelper.Min(gradient.WeightGradients.Length, ParamCount); i++) _weights[i] -= lr * gradient.WeightGradients[i]; } }
     }
@@ -4898,11 +5455,13 @@ namespace GDNN.Core.Neurons
             if (causalMask > 0.5f)
             {
                 float pos = input.Position.X * 10f;
-                if (pos > input.Position.Y * 10f) attnScore = float.MinValue;
+                if (pos > input.Position.Y * 10f)
+                    attnScore = float.MinValue;
             }
             float attnWeight = MathHelper.Exp(MathHelper.Min(attnScore, 20f));
             attnWeight /= (attnWeight + 1f);
-            if (dropout > 0) attnWeight *= (1f - dropout);
+            if (dropout > 0)
+                attnWeight *= (1f - dropout);
 
             Vector3 attended = v * attnWeight;
             Vector3 projected = new Vector3(
@@ -4914,11 +5473,16 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = attnWeight, Displacement = residual - input.Position,
+                Value = attnWeight,
+                Displacement = residual - input.Position,
                 Color = new Vector3(MathHelper.Clamp01(attnWeight), MathHelper.Clamp01(entropy), MathHelper.Clamp01(residual.Length() * 0.1f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
                 OutputNormal = residual.LengthSquared() > 0.0001f ? Vector3.Normalize(residual) : input.Normal,
-                Height = attnWeight, AmbientOcclusion = 1f,
+                Height = attnWeight,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("attention_weight", attnWeight).Add("entropy", entropy).Add("residual_norm", residual.Length()),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -4933,12 +5497,22 @@ namespace GDNN.Core.Neurons
             float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             for (int i = 0; i < 9; i++)
             {
-                float oldW = _projWeights[i]; _projWeights[i] = oldW + eps; float vP = _lastOutput.Value; _projWeights[i] = oldW - eps; float vM = _lastOutput.Value; _projWeights[i] = oldW;
+                float oldW = _projWeights[i];
+                _projWeights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _projWeights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _projWeights[i] = oldW;
                 wg[ParamCount + i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -4947,15 +5521,21 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount + 9;
         public long GetMemoryFootprint() => sizeof(float) * (ParamCount + 9) + 64;
         public INeuronKernel Clone() { var c = new SelfAttentionLayerKernel(); Array.Copy(_weights, c._weights, ParamCount); Array.Copy(_projWeights, c._projWeights, 9); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount + 9) { p.Slice(0, ParamCount).CopyTo(_weights); p.Slice(ParamCount, 9).CopyTo(_projWeights); } }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount + 9) { _weights.AsSpan(0, ParamCount).CopyTo(p); _projWeights.AsSpan().CopyTo(p.Slice(ParamCount)); } }
         public void ResetParameters()
         {
-            _weights[0] = 64f; _weights[1] = 8f; _weights[2] = 0f; _weights[3] = 1f; _weights[4] = 512f; _weights[5] = 0f;
+            _weights[0] = 64f;
+            _weights[1] = 8f;
+            _weights[2] = 0f;
+            _weights[3] = 1f;
+            _weights[4] = 512f;
+            _weights[5] = 0f;
             var rng = new Random(42);
             float std = MathF.Sqrt(2f / 9f);
-            for (int i = 0; i < 9; i++) _projWeights[i] = (float)(rng.NextDouble() * 2 - 1) * std;
+            for (int i = 0; i < 9; i++)
+                _projWeights[i] = (float)(rng.NextDouble() * 2 - 1) * std;
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr) { if (gradient.WeightGradients != null) for (int i = 0; i < MathHelper.Min(gradient.WeightGradients.Length, ParamCount); i++) _weights[i] -= lr * gradient.WeightGradients[i]; }
     }
@@ -4987,15 +5567,25 @@ namespace GDNN.Core.Neurons
         {
             switch (Activation)
             {
-                case ActivationFunction.ReLU: return MathHelper.Max(0, x);
-                case ActivationFunction.GELU: return 0.5f * x * (1f + MathF.Tanh(MathF.Sqrt(2f / MathF.PI) * (x + 0.044715f * x * x * x)));
-                case ActivationFunction.SiLU: return x / (1f + MathF.Exp(-x));
-                case ActivationFunction.Tanh: return MathF.Tanh(x);
-                case ActivationFunction.Sigmoid: return 1f / (1f + MathF.Exp(-x));
-                case ActivationFunction.Mish: float sp = MathF.Log(1f + MathF.Exp(x)); return x * MathF.Tanh(sp);
-                case ActivationFunction.Swish: return x / (1f + MathF.Exp(-x));
-                case ActivationFunction.LeakyReLU: return x > 0 ? x : 0.01f * x;
-                default: return MathHelper.Max(0, x);
+                case ActivationFunction.ReLU:
+                    return MathHelper.Max(0, x);
+                case ActivationFunction.GELU:
+                    return 0.5f * x * (1f + MathF.Tanh(MathF.Sqrt(2f / MathF.PI) * (x + 0.044715f * x * x * x)));
+                case ActivationFunction.SiLU:
+                    return x / (1f + MathF.Exp(-x));
+                case ActivationFunction.Tanh:
+                    return MathF.Tanh(x);
+                case ActivationFunction.Sigmoid:
+                    return 1f / (1f + MathF.Exp(-x));
+                case ActivationFunction.Mish:
+                    float sp = MathF.Log(1f + MathF.Exp(x));
+                    return x * MathF.Tanh(sp);
+                case ActivationFunction.Swish:
+                    return x / (1f + MathF.Exp(-x));
+                case ActivationFunction.LeakyReLU:
+                    return x > 0 ? x : 0.01f * x;
+                default:
+                    return MathHelper.Max(0, x);
             }
         }
 
@@ -5013,7 +5603,8 @@ namespace GDNN.Core.Neurons
                 for (int j = 0; j < 3; j++)
                     sum += x[j] * _fc1Weights[i * 3 + j];
                 hidden[i] = ApplyActivation(sum);
-                if (dropout > 0 && dropout < 1f) hidden[i] *= (1f - dropout);
+                if (dropout > 0 && dropout < 1f)
+                    hidden[i] *= (1f - dropout);
             }
 
             Vector3 output = Vector3.Zero;
@@ -5030,11 +5621,16 @@ namespace GDNN.Core.Neurons
 
             _lastOutput = new NeuronOutput
             {
-                Value = outputNorm, Displacement = residual - input.Position,
+                Value = outputNorm,
+                Displacement = residual - input.Position,
                 Color = new Vector3(MathHelper.Clamp01(residual.X * 0.5f + 0.5f), MathHelper.Clamp01(residual.Y * 0.5f + 0.5f), MathHelper.Clamp01(residual.Z * 0.5f + 0.5f)),
-                Roughness = 0.5f, Metallic = 0f, Opacity = 1f, Emission = 0f,
+                Roughness = 0.5f,
+                Metallic = 0f,
+                Opacity = 1f,
+                Emission = 0f,
                 OutputNormal = residual.LengthSquared() > 0.0001f ? Vector3.Normalize(residual) : input.Normal,
-                Height = outputNorm, AmbientOcclusion = 1f,
+                Height = outputNorm,
+                AmbientOcclusion = 1f,
                 Outputs = ImmutableDictionary<string, float>.Empty
                     .Add("output_norm", outputNorm).Add("hidden_0", hidden[0]).Add("hidden_1", hidden[1]),
                 VectorOutputs = ImmutableDictionary<string, Vector3>.Empty
@@ -5049,22 +5645,42 @@ namespace GDNN.Core.Neurons
             float eps = 0.001f;
             for (int i = 0; i < ParamCount; i++)
             {
-                float oldW = _weights[i]; _weights[i] = oldW + eps; float vP = _lastOutput.Value; _weights[i] = oldW - eps; float vM = _lastOutput.Value; _weights[i] = oldW;
+                float oldW = _weights[i];
+                _weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _weights[i] = oldW;
                 wg[i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             for (int i = 0; i < 16; i++)
             {
-                float oldW = _fc1Weights[i]; _fc1Weights[i] = oldW + eps; float vP = _lastOutput.Value; _fc1Weights[i] = oldW - eps; float vM = _lastOutput.Value; _fc1Weights[i] = oldW;
+                float oldW = _fc1Weights[i];
+                _fc1Weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _fc1Weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _fc1Weights[i] = oldW;
                 wg[ParamCount + i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             for (int i = 0; i < 16; i++)
             {
-                float oldW = _fc2Weights[i]; _fc2Weights[i] = oldW + eps; float vP = _lastOutput.Value; _fc2Weights[i] = oldW - eps; float vM = _lastOutput.Value; _fc2Weights[i] = oldW;
+                float oldW = _fc2Weights[i];
+                _fc2Weights[i] = oldW + eps;
+                float vP = _lastOutput.Value;
+                _fc2Weights[i] = oldW - eps;
+                float vM = _lastOutput.Value;
+                _fc2Weights[i] = oldW;
                 wg[ParamCount + 16 + i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             for (int i = 0; i < 4; i++)
             {
-                float oldB = _fc1Bias[i]; _fc1Bias[i] = oldB + eps; float vP = _lastOutput.Value; _fc1Bias[i] = oldB - eps; float vM = _lastOutput.Value; _fc1Bias[i] = oldB;
+                float oldB = _fc1Bias[i];
+                _fc1Bias[i] = oldB + eps;
+                float vP = _lastOutput.Value;
+                _fc1Bias[i] = oldB - eps;
+                float vM = _lastOutput.Value;
+                _fc1Bias[i] = oldB;
                 wg[ParamCount + 32 + i] = gradient.ValueGradient * (vP - vM) / (2f * eps);
             }
             return new NeuronGradient { ValueGradient = gradient.ValueGradient, WeightGradients = wg, ParameterGradients = ImmutableDictionary<string, float>.Empty };
@@ -5073,18 +5689,27 @@ namespace GDNN.Core.Neurons
         public int GetParameterCount() => ParamCount + 36;
         public long GetMemoryFootprint() => sizeof(float) * (ParamCount + 36) + 64;
         public INeuronKernel Clone() { var c = new FeedForwardKernel { Activation = this.Activation }; Array.Copy(_weights, c._weights, ParamCount); Array.Copy(_fc1Weights, c._fc1Weights, 16); Array.Copy(_fc1Bias, c._fc1Bias, 4); Array.Copy(_fc2Weights, c._fc2Weights, 16); Array.Copy(_fc2Bias, c._fc2Bias, 3); return c; }
-        public string Validate() => null;
+        public string? Validate() => null;
         public void LoadParameters(ReadOnlySpan<float> p) { if (p.Length >= ParamCount + 36) { p.Slice(0, ParamCount).CopyTo(_weights); p.Slice(ParamCount, 16).CopyTo(_fc1Weights); p.Slice(ParamCount + 16, 4).CopyTo(_fc1Bias); p.Slice(ParamCount + 20, 16).CopyTo(_fc2Weights); p.Slice(ParamCount + 36 - 3, 3).CopyTo(_fc2Bias); } }
         public void SaveParameters(Span<float> p) { if (p.Length >= ParamCount + 36) { _weights.AsSpan(0, ParamCount).CopyTo(p); _fc1Weights.AsSpan().CopyTo(p.Slice(ParamCount)); _fc1Bias.AsSpan().CopyTo(p.Slice(ParamCount + 16)); _fc2Weights.AsSpan().CopyTo(p.Slice(ParamCount + 20)); _fc2Bias.AsSpan().CopyTo(p.Slice(ParamCount + 36 - 3)); } }
         public void ResetParameters()
         {
-            _weights[0] = 64f; _weights[1] = 3f; _weights[2] = 0f; _weights[3] = 1f; _weights[4] = 0f; _weights[5] = (float)ActivationFunction.GELU;
+            _weights[0] = 64f;
+            _weights[1] = 3f;
+            _weights[2] = 0f;
+            _weights[3] = 1f;
+            _weights[4] = 0f;
+            _weights[5] = (float)ActivationFunction.GELU;
             var rng = new Random(42);
             float std1 = MathF.Sqrt(2f / 3f), std2 = MathF.Sqrt(2f / 4f);
-            for (int i = 0; i < 16; i++) _fc1Weights[i] = (float)(rng.NextDouble() * 2 - 1) * std1;
-            for (int i = 0; i < 4; i++) _fc1Bias[i] = 0f;
-            for (int i = 0; i < 16; i++) _fc2Weights[i] = (float)(rng.NextDouble() * 2 - 1) * std2;
-            for (int i = 0; i < 3; i++) _fc2Bias[i] = 0f;
+            for (int i = 0; i < 16; i++)
+                _fc1Weights[i] = (float)(rng.NextDouble() * 2 - 1) * std1;
+            for (int i = 0; i < 4; i++)
+                _fc1Bias[i] = 0f;
+            for (int i = 0; i < 16; i++)
+                _fc2Weights[i] = (float)(rng.NextDouble() * 2 - 1) * std2;
+            for (int i = 0; i < 3; i++)
+                _fc2Bias[i] = 0f;
         }
         public void ApplyGradient(in NeuronGradient gradient, float lr) { if (gradient.WeightGradients != null) { for (int i = 0; i < MathHelper.Min(gradient.WeightGradients.Length, ParamCount); i++) _weights[i] -= lr * gradient.WeightGradients[i]; } }
     }
@@ -5269,7 +5894,7 @@ namespace GDNN.Core.Neurons
             return kernel.GetMemoryFootprint();
         }
 
-        public string ValidateAll()
+        public string? ValidateAll()
         {
             var errors = new List<string>();
             foreach (var kvp in _factories)

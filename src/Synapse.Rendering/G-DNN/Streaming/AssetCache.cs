@@ -1,11 +1,22 @@
 using System;
+// ============================================================
+// FILE: AssetCache.cs
+// PATH: Streaming/AssetCache.cs
+// ============================================================
+
+
+using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -14,21 +25,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
-using System.Threading.Tasks;
-
-
-// ============================================================
-// FILE: AssetCache.cs
-// PATH: Streaming/AssetCache.cs
-// ============================================================
-
-
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using GDNN.Core.NeuralNetwork;
 
 namespace GDNN.Streaming
@@ -72,10 +70,10 @@ namespace GDNN.Streaming
     internal sealed class CacheEntry
     {
         /// <summary>Cache key.</summary>
-        public required string Key { get; init; }
+        public string Key { get; init; }
 
         /// <summary>Cached asset value.</summary>
-        public required NeuralAsset Value { get; set; }
+        public NeuralAsset Value { get; set; }
 
         /// <summary>Size of this entry in bytes.</summary>
         public long SizeBytes { get; set; }
@@ -275,7 +273,8 @@ namespace GDNN.Streaming
         /// <returns>The cached NeuralAsset, or null.</returns>
         public NeuralAsset? Get(string key)
         {
-            if (string.IsNullOrEmpty(key)) return null;
+            if (string.IsNullOrEmpty(key))
+                return null;
 
             if (!_entries.TryGetValue(key, out var entry))
             {
@@ -320,7 +319,8 @@ namespace GDNN.Streaming
             if (!_entries.TryGetValue(key, out var entry) || entry.IsExpired)
             {
                 asset = null;
-                if (entry?.IsExpired == true) Remove(key);
+                if (entry?.IsExpired == true)
+                    Remove(key);
                 return false;
             }
 
@@ -341,7 +341,8 @@ namespace GDNN.Streaming
         /// <param name="priority">Priority level for eviction decisions.</param>
         public void Put(string key, NeuralAsset asset, float? ttlSeconds = null, int priority = 0)
         {
-            if (string.IsNullOrEmpty(key) || asset == null) return;
+            if (string.IsNullOrEmpty(key) || asset == null)
+                return;
 
             long sizeBytes = asset.ComputeMemoryFootprint();
 
@@ -397,7 +398,8 @@ namespace GDNN.Streaming
         /// <returns>True if the entry was found and removed.</returns>
         public bool Remove(string key)
         {
-            if (string.IsNullOrEmpty(key)) return false;
+            if (string.IsNullOrEmpty(key))
+                return false;
 
             if (!_entries.TryRemove(key, out var entry))
                 return false;
@@ -458,8 +460,10 @@ namespace GDNN.Streaming
         /// <returns>True if the key exists and is valid.</returns>
         public bool Contains(string key)
         {
-            if (!_entries.TryGetValue(key, out var entry)) return false;
-            if (entry.IsExpired) { Remove(key); return false; }
+            if (!_entries.TryGetValue(key, out var entry))
+                return false;
+            if (entry.IsExpired)
+            { Remove(key); return false; }
             return true;
         }
 
@@ -479,7 +483,8 @@ namespace GDNN.Streaming
         /// <returns>Matching keys.</returns>
         public IReadOnlyCollection<string> GetKeysByPrefix(string keyPrefix)
         {
-            if (string.IsNullOrEmpty(keyPrefix)) return GetKeys();
+            if (string.IsNullOrEmpty(keyPrefix))
+                return GetKeys();
 
             return _entries.Keys
                 .Where(k => k.StartsWith(keyPrefix, StringComparison.OrdinalIgnoreCase))
@@ -582,7 +587,8 @@ namespace GDNN.Streaming
         /// <returns>Number of entries removed.</returns>
         public int CleanupExpiredEntries()
         {
-            if (!_config.EnableTtl) return 0;
+            if (!_config.EnableTtl)
+                return 0;
 
             var expiredKeys = _entries.Values
                 .Where(e => e.IsExpired)
@@ -675,7 +681,8 @@ namespace GDNN.Streaming
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
 
             _cleanupTimer.Dispose();
@@ -710,7 +717,7 @@ namespace GDNN.Streaming
     public sealed class CacheEvictionEventArgs : EventArgs
     {
         /// <summary>Evicted entry key.</summary>
-        public required string Key { get; init; }
+        public string Key { get; init; }
 
         /// <summary>Size of the evicted entry in bytes.</summary>
         public long SizeBytes { get; init; }

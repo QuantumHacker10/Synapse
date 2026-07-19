@@ -11,17 +11,17 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GDNN.Rendering.ArtPipeline;
-using GDNN.Studio.Contracts;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
 using Synapse.Runtime;
-using SceneEntity = GDNN.Studio.Contracts.SceneEntity;
-using EntityType = GDNN.Studio.Contracts.EntityType;
+using Synapse.Studio.Contracts;
+using EntityType = Synapse.Studio.Contracts.EntityType;
+using SceneEntity = Synapse.Studio.Contracts.SceneEntity;
 
-namespace GDNN.Studio.ViewModels
+namespace Synapse.Studio.ViewModels
 {
     /// <summary>
-    /// Avalonia view model for G-DNN Studio: scene editing, living laws, LLM console,
+    /// Avalonia view model for Synapse Studio: scene editing, living laws, LLM console,
     /// evolution, blueprint/sculpt tools, and status HUD bound to <see cref="EngineHost"/>.
     /// </summary>
     public partial class MainWindowViewModel : ObservableObject, IDisposable
@@ -47,57 +47,148 @@ namespace GDNN.Studio.ViewModels
             RefreshEntities();
             RefreshLaws();
             RefreshBlueprint();
+            _host.ViewportEditor.ShowGrid = ShowViewportGrid;
+            _host.ViewportEditor.ShowGizmos = ShowViewportGizmos;
+            _host.ViewportEditor.ToolMode = ViewportToolMode.Translate;
+            _host.ViewportEntitySelected += OnViewportEntitySelected;
 
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
             _uiTimer.Tick += (_, _) => RefreshStatus();
             _uiTimer.Start();
 
-            ViewportHint = "Viewport Vulkan — WASD / souris (GLFW) ou panneau embarqué (Windows HWND)";
-            PlayPauseLabel = "Pause";
-            SculptStatus = "Brush ready";
-            MegascansStatus = $"Library: {_megascans.Config.LibraryRootPath}";
+            ViewportHint = "Viewport Vulkan — Grille/Gizmos · Ctrl+clic = relier les nœuds blueprint · Espace = pause";
+            SculptStatus = "Pinceau prêt";
+            MegascansStatus = $"Bibliothèque : {_megascans.Config.LibraryRootPath}";
+            LlmStatusText = _host.LlmProviderSummary;
+            AboutText =
+                "SYNAPSE OMNIA 1.1 — Moteur de simulation 3D\n\n" +
+                "Un monde numérique que l'on observe, modifie et fait évoluer : formes apprises (G-DNN), " +
+                "lois physiques réécrivables, évolution NEAT-G, habitants sentients, assistance créative " +
+                "(LLM) et rendu Vulkan temps réel.\n\n" +
+                "Site : https://quantumhacker10.github.io/Synapse/\n" +
+                "Licence propriétaire — usage personnel non commercial.\n\n" +
+                "Apprendre · Réécrire · Cultiver";
+
+            foreach (EntityType t in Enum.GetValues<EntityType>())
+            {
+                if (t != EntityType.Unknown)
+                    EntityTypes.Add(t);
+            }
+            NewEntityType = EntityType.Empty;
         }
 
         public ObservableCollection<SceneEntity> Entities { get; } = new();
         public ObservableCollection<string> LawIds { get; } = new();
+        public ObservableCollection<EntityType> EntityTypes { get; } = new();
         public ObservableCollection<ChatMessageRecord> ChatMessages { get; } = new();
         public ObservableCollection<string> BlueprintNodes { get; } = new();
 
         [ObservableProperty] private SceneEntity? selectedEntity;
+        [ObservableProperty] private EntityType newEntityType = EntityType.Empty;
+        [ObservableProperty] private string entityName = "";
+        [ObservableProperty] private double entityPosX;
+        [ObservableProperty] private double entityPosY;
+        [ObservableProperty] private double entityPosZ;
+        [ObservableProperty] private string inspectorMeta = "";
+        [ObservableProperty] private bool hasSelectedEntity;
+        [ObservableProperty] private string llmStatusText = "";
+        [ObservableProperty] private bool showWelcomeTips = true;
+        [ObservableProperty] private bool showAboutText;
+        [ObservableProperty] private string aboutText = "";
         [ObservableProperty] private string? selectedLawId;
         [ObservableProperty] private string lawExpression = "∂T/∂t = α*∇²T";
-        [ObservableProperty] private string lawStatus = "Ready";
+        [ObservableProperty] private string lawStatus = "Prêt";
         [ObservableProperty] private string chatInput = "";
-        [ObservableProperty] private string statusFps = "FPS: —";
-        [ObservableProperty] private string statusPhysics = "Physics: —";
-        [ObservableProperty] private string statusSimulation = "Sim: —";
-        [ObservableProperty] private string statusQuality = "Quality: —";
-        [ObservableProperty] private string statusLaw = "Law: —";
-        [ObservableProperty] private string inspectorText = "Select an entity";
-        [ObservableProperty] private string performanceReport = "Waiting for frames…";
-        [ObservableProperty] private string simulationStatus = "Playing";
-        [ObservableProperty] private string evolutionStatus = "Idle";
+        [ObservableProperty] private string statusFps = "IPS : —";
+        [ObservableProperty] private string statusPhysics = "Physique : —";
+        [ObservableProperty] private string statusSimulation = "Sim : —";
+        [ObservableProperty] private string statusQuality = "Qualité : —";
+        [ObservableProperty] private string statusLaw = "Loi : —";
+        [ObservableProperty] private string performanceReport = "En attente des premières images…";
+        [ObservableProperty] private string simulationStatus = "En cours";
+        [ObservableProperty] private string evolutionStatus = "Inactif";
         [ObservableProperty] private string viewportHint = "";
-        [ObservableProperty] private string playPauseLabel = "Pause";
-        [ObservableProperty] private string blueprintStatus = "Ready";
+        [ObservableProperty] private string blueprintStatus = "Prêt";
         [ObservableProperty] private string sculptStatus = "";
         [ObservableProperty] private double sculptRadius = 0.5;
         [ObservableProperty] private double sculptStrength = 0.15;
         [ObservableProperty] private bool sculptInvert;
         [ObservableProperty] private string megascansPath = "";
         [ObservableProperty] private string megascansStatus = "";
-        [ObservableProperty] private string llmApplyStatus = "Ask for lighting JSON or SDF hints, then Apply.";
+        [ObservableProperty] private string llmApplyStatus = "Demandez un JSON d'éclairage ou un hint SDF, puis Appliquer.";
+        [ObservableProperty] private bool showViewportGrid = true;
+        [ObservableProperty] private bool showViewportGizmos = true;
+        [ObservableProperty] private string giStatus = "GI : lecture GPU en attente";
+        [ObservableProperty] private ViewportToolMode viewportTool = ViewportToolMode.Translate;
+
+        public BlueprintDocument Blueprint => _blueprint;
 
         partial void OnSelectedEntityChanged(SceneEntity? value)
         {
-            InspectorText = value == null
-                ? "Select an entity"
-                : $"{value.Name}\nType: {value.Type}\nPos: {value.Position}\nBehavior: {value.BehaviorProfile ?? "—"}\nGenome: {value.GenomeId ?? "—"}";
+            HasSelectedEntity = value != null;
+            if (value != null)
+                _host.SetViewportSelection(value.Id);
+            else
+                _host.SetViewportSelection(Guid.Empty);
+            _host.SyncSceneToRenderer();
+            if (value == null)
+            {
+                InspectorMeta = "";
+                EntityName = "";
+                return;
+            }
+
+            EntityName = value.Name;
+            EntityPosX = value.Position.X;
+            EntityPosY = value.Position.Y;
+            EntityPosZ = value.Position.Z;
+            InspectorMeta =
+                $"Type : {value.Type}\nComportement : {value.BehaviorProfile ?? "—"}\n" +
+                $"Génome : {value.GenomeId ?? "—"}\nLoi : {value.LawId ?? "—"}";
         }
+
+        partial void OnShowViewportGridChanged(bool value)
+        {
+            _host.ViewportEditor.ShowGrid = value;
+            _host.SyncSceneToRenderer();
+        }
+
+        partial void OnShowViewportGizmosChanged(bool value)
+        {
+            _host.ViewportEditor.ShowGizmos = value;
+            _host.SyncSceneToRenderer();
+        }
+
+        partial void OnViewportToolChanged(ViewportToolMode value)
+        {
+            _host.ViewportEditor.ToolMode = value;
+        }
+
+        public void NotifyBlueprintChanged() => RefreshBlueprint();
+
+        public void SelectEntityById(Guid id)
+        {
+            SelectedEntity = Entities.FirstOrDefault(e => e.Id == id);
+        }
+
+        private void OnViewportEntitySelected(Guid id)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => SelectEntityById(id));
+        }
+
+        [RelayCommand]
+        private void SetViewportToolTranslate() => ViewportTool = ViewportToolMode.Translate;
+
+        [RelayCommand]
+        private void SetViewportToolRotate() => ViewportTool = ViewportToolMode.Rotate;
+
+        [RelayCommand]
+        private void SetViewportToolSelect() => ViewportTool = ViewportToolMode.Select;
 
         partial void OnSelectedLawIdChanged(string? value)
         {
-            if (value == null) return;
+            if (value == null)
+                return;
             var law = _host.ListLaws().FirstOrDefault(l => l.Id == value);
             if (law.Id != null)
                 LawExpression = law.Expression;
@@ -135,33 +226,58 @@ namespace GDNN.Studio.ViewModels
         private void RefreshStatus()
         {
             var s = _orchestrator.LastStats;
-            StatusFps = $"FPS: {s.Fps:F0}";
-            StatusPhysics = $"Physics: {s.PhysicsMs:F1} ms  T≈{s.FieldTemperatureAvg:F1}K";
-            StatusSimulation = $"Sim: {s.SimulationMs:F1} ms  entities={s.EntityCount}";
-            StatusQuality = $"Quality: {s.QualityPreset}";
-            StatusLaw = $"Law: {s.ActiveLawId}";
+            StatusFps = $"IPS : {s.Fps:F0}";
+            StatusPhysics = $"Physique : {s.PhysicsMs:F1} ms  T≈{s.FieldTemperatureAvg:F1} K";
+            StatusSimulation = $"Sim : {s.SimulationMs:F1} ms  entités={s.EntityCount}";
+            StatusQuality = $"Qualité : {s.QualityPreset}";
+            StatusLaw = $"Loi : {s.ActiveLawId}";
+            LlmStatusText = _host.LlmProviderSummary;
             PerformanceReport =
-                $"Frame {s.RenderMs:F1} ms | Physics {s.PhysicsMs:F1} | Sim {s.SimulationMs:F1}\n" +
-                $"Total time {s.TotalTime:F1}s | Evolution gen={_host.EvolutionGeneration} fitness={_host.BestFitness:F3}";
-            SimulationStatus = _host.SimulationPlaying ? $"Playing — {s.EntityCount} agents" : "Paused";
-            PlayPauseLabel = _host.SimulationPlaying ? "Pause" : "Play";
+                $"Image {s.RenderMs:F1} ms | Physique {s.PhysicsMs:F1} | Sim {s.SimulationMs:F1}\n" +
+                $"Temps total {s.TotalTime:F1} s | Évolution gen={_host.EvolutionGeneration} fitness={_host.BestFitness:F3}";
+            SimulationStatus = _host.SimulationPlaying
+                ? $"En cours — {s.EntityCount} agents"
+                : "En pause";
             if (_host.EvolutionRunning)
-                EvolutionStatus = $"Running gen {_host.EvolutionGeneration} best={_host.BestFitness:F3}";
+                EvolutionStatus = $"En cours gen {_host.EvolutionGeneration} best={_host.BestFitness:F3}";
+            else if (!EvolutionStatus.StartsWith("Terminé", StringComparison.Ordinal))
+                EvolutionStatus = "Inactif";
+
+            var giGpu = _host.RenderEngine?.SceneRenderer?.GiUsesGpuReadback ?? false;
+            GiStatus = giGpu ? "GI : lecture G-buffer GPU active" : "GI : constantes de repli";
         }
 
         [RelayCommand]
         private void AddEntity()
         {
-            var id = _host.CreateSceneEntity($"Entity_{Entities.Count + 1}", "Empty");
+            var typeName = NewEntityType.ToString();
+            var id = _host.CreateSceneEntity($"{typeName}_{Entities.Count + 1}", typeName);
             RefreshEntities();
             SelectedEntity = Entities.FirstOrDefault(e => e.Id == id);
-            _logger.Info("Studio", $"Created entity {id}");
+            _logger.Info("Studio", $"Created entity {id} ({typeName})");
         }
+
+        [RelayCommand]
+        private void ApplyInspector()
+        {
+            if (SelectedEntity == null)
+                return;
+
+            var pos = new Vector3((float)EntityPosX, (float)EntityPosY, (float)EntityPosZ);
+            var id = SelectedEntity.Id;
+            _host.UpdateSceneEntity(id, EntityName, pos, SelectedEntity.Scale);
+            RefreshEntities();
+            SelectedEntity = Entities.FirstOrDefault(e => e.Id == id);
+        }
+
+        [RelayCommand]
+        private void DismissWelcome() => ShowWelcomeTips = false;
 
         [RelayCommand]
         private void DeleteEntity()
         {
-            if (SelectedEntity == null) return;
+            if (SelectedEntity == null)
+                return;
             _host.DeleteSceneEntity(SelectedEntity.Id);
             RefreshEntities();
         }
@@ -173,16 +289,17 @@ namespace GDNN.Studio.ViewModels
             var result = _host.CompileLaw(id, LawExpression);
             LawStatus = result.Success
                 ? $"OK — {result.InstructionCount} ops, {result.CompilationTimeMs} ms"
-                : $"Failed: {result.Message}";
+                : $"Échec : {result.Message}";
         }
 
         [RelayCommand]
         private async Task SendChatAsync()
         {
-            if (string.IsNullOrWhiteSpace(ChatInput)) return;
+            if (string.IsNullOrWhiteSpace(ChatInput))
+                return;
             var prompt = ChatInput.Trim();
             ChatInput = "";
-            ChatMessages.Add(new ChatMessageRecord { Role = "user", Content = prompt });
+            ChatMessages.Add(new ChatMessageRecord { Role = "Vous", Content = prompt });
 
             // Steer the model toward structured lighting/SDF JSON when relevant.
             string routedPrompt = LooksLikeSceneControlPrompt(prompt)
@@ -192,17 +309,20 @@ namespace GDNN.Studio.ViewModels
                 : prompt;
 
             var response = await _host.ChatAsync(routedPrompt);
-            string content = response?.Content ?? "(no response)";
+            string content = response?.Content ?? "(aucune réponse)";
             ChatMessages.Add(new ChatMessageRecord
             {
-                Role = "assistant",
+                Role = "Assistant",
                 Content = content,
                 Provider = response?.Provider ?? ""
             });
 
-            // Auto-apply when the reply contains parseable lighting/SDF params.
+            // Auto-apply scene or behavior hints when parseable.
             LlmApplyStatus = _host.ApplyLlmSceneHints(content);
-            if (LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+            if (!LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+                LlmApplyStatus = _host.ApplyLlmBehaviorHints(content);
+            if (LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
+                LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
                 RefreshEntities();
         }
 
@@ -210,15 +330,18 @@ namespace GDNN.Studio.ViewModels
         private void ApplyLastLlmReply()
         {
             var last = ChatMessages.LastOrDefault(m =>
-                string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase));
+                string.Equals(m.Role, "Assistant", StringComparison.OrdinalIgnoreCase));
             if (last == null || string.IsNullOrWhiteSpace(last.Content))
             {
-                LlmApplyStatus = "No assistant reply to apply.";
+                LlmApplyStatus = "Aucune réponse de l'assistant à appliquer.";
                 return;
             }
 
             LlmApplyStatus = _host.ApplyLlmSceneHints(last.Content);
-            if (LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+            if (!LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+                LlmApplyStatus = _host.ApplyLlmBehaviorHints(last.Content);
+            if (LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
+                LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
                 RefreshEntities();
         }
 
@@ -231,11 +354,35 @@ namespace GDNN.Studio.ViewModels
         }
 
         [RelayCommand]
+        private void InsertBehaviorPrompt()
+        {
+            ChatInput =
+                "Design an NPC behavior tree. When the player is near, action: greet. " +
+                "Otherwise action: patrol. Include conditions and LLM query nodes if needed.";
+        }
+
+        [RelayCommand]
         private void InsertSdfPrompt()
         {
             ChatInput =
                 "Propose a neural SDF primitive as JSON with primitive (sphere|box), " +
                 "center [x,y,z], and radius (or size [x,y,z] for a box).";
+        }
+
+        [RelayCommand]
+        private void AddBlueprintLlmNode()
+        {
+            _blueprint.Nodes.Add(new BlueprintNode
+            {
+                Kind = BlueprintNodeKind.LlmQuery,
+                Title = "LLM Query",
+                Payload = "Decide next action based on player proximity.",
+                X = 120 + _blueprint.Nodes.Count * 24,
+                Y = 200,
+                Inputs = { new BlueprintPin { Name = "Exec", IsInput = true } },
+                Outputs = { new BlueprintPin { Name = "Then", IsInput = false } }
+            });
+            RefreshBlueprint();
         }
 
         private static bool LooksLikeSceneControlPrompt(string prompt)
@@ -269,9 +416,10 @@ namespace GDNN.Studio.ViewModels
         [RelayCommand]
         private async Task StartEvolutionAsync()
         {
-            EvolutionStatus = "Starting…";
+            EvolutionStatus = "Démarrage…";
             await Task.Run(async () => await _host.StartEvolutionAsync(20, 5));
-            EvolutionStatus = $"Done gen={_host.EvolutionGeneration} best={_host.BestFitness:F3}";
+            EvolutionStatus = $"Terminé — gen {_host.EvolutionGeneration} fitness={_host.BestFitness:F3} (volume mis à jour)";
+            RefreshEntities();
         }
 
         [RelayCommand]
@@ -290,10 +438,11 @@ namespace GDNN.Studio.ViewModels
         private async Task OpenProjectAsync()
         {
             var window = GetMainWindow();
-            if (window?.StorageProvider == null) return;
+            if (window?.StorageProvider == null)
+                return;
             var files = await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
             {
-                Title = "Open Synapse Project",
+                Title = "Ouvrir un projet Synapse",
                 AllowMultiple = false,
                 FileTypeFilter = new[]
                 {
@@ -304,7 +453,8 @@ namespace GDNN.Studio.ViewModels
                 }
             });
             var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
-            if (path == null) return;
+            if (path == null)
+                return;
             await _host.LoadSceneAsync(path);
             GDNN.Streaming.AssetStreamer.AssetRootDirectory = Path.Combine(Path.GetDirectoryName(path)!, "assets");
             _projectPath = path;
@@ -319,10 +469,11 @@ namespace GDNN.Studio.ViewModels
             if (string.IsNullOrWhiteSpace(path))
             {
                 var window = GetMainWindow();
-                if (window?.StorageProvider == null) return;
+                if (window?.StorageProvider == null)
+                    return;
                 var file = await window.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
                 {
-                    Title = "Save Synapse Project",
+                    Title = "Enregistrer le projet Synapse",
                     DefaultExtension = "synapse",
                     SuggestedFileName = "project.synapse",
                     FileTypeChoices = new[]
@@ -335,7 +486,8 @@ namespace GDNN.Studio.ViewModels
                 });
                 path = file?.TryGetLocalPath();
             }
-            if (string.IsNullOrWhiteSpace(path)) return;
+            if (string.IsNullOrWhiteSpace(path))
+                return;
 
             Directory.CreateDirectory(_config.ProjectsDirectory);
             var assetsDir = Path.Combine(Path.GetDirectoryName(path)!, "assets");
@@ -347,14 +499,7 @@ namespace GDNN.Studio.ViewModels
         }
 
         [RelayCommand]
-        private void About()
-        {
-            LawStatus =
-                "SYNAPSE OMNIA 1.1 — G-DNN Studio. SDF neuronaux (G-DNN), illumination L-DNN " +
-                "(teacher path tracing, ombres & reflets neuronaux, fog/nuages), NEAT-G, " +
-                "lois physiques vivantes, console LLM → éclairage/SDF. " +
-                "Les moteurs classiques assemblent ; Synapse apprend, réécrit et cultive.";
-        }
+        private void About() => ShowAboutText = true;
 
         [RelayCommand]
         private void Exit()
@@ -400,14 +545,13 @@ namespace GDNN.Studio.ViewModels
         {
             try
             {
-                var profile = _blueprint.CompileToBehaviorTreeName();
-                _host.SpawnAgent(profile, Vector3.Zero);
+                _host.CompileAndSpawnBlueprint(_blueprint, Vector3.Zero);
                 RefreshEntities();
-                BlueprintStatus = $"Compiled → agent '{profile}' spawned";
+                BlueprintStatus = $"Compilé → arbre '{_blueprint.Name}' enregistré + agent";
             }
             catch (Exception ex)
             {
-                BlueprintStatus = $"Compile failed: {ex.Message}";
+                BlueprintStatus = $"Échec de compilation : {ex.Message}";
             }
         }
 
@@ -415,10 +559,11 @@ namespace GDNN.Studio.ViewModels
         private async Task SaveBlueprintAsync()
         {
             var window = GetMainWindow();
-            if (window?.StorageProvider == null) return;
+            if (window?.StorageProvider == null)
+                return;
             var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
-                Title = "Save Blueprint",
+                Title = "Enregistrer le blueprint",
                 DefaultExtension = "blueprint.json",
                 SuggestedFileName = "agent.blueprint.json",
                 FileTypeChoices = new[]
@@ -427,9 +572,10 @@ namespace GDNN.Studio.ViewModels
                 }
             });
             var path = file?.TryGetLocalPath();
-            if (path == null) return;
+            if (path == null)
+                return;
             await _blueprint.SaveAsync(path);
-            BlueprintStatus = $"Saved {path}";
+            BlueprintStatus = $"Enregistré : {path}";
         }
 
         [RelayCommand]
@@ -441,28 +587,29 @@ namespace GDNN.Studio.ViewModels
             var pos = SelectedEntity?.Position ?? Vector3.Zero;
             _sculpt.ApplyStroke(pos.X, pos.Y, pos.Z);
             float disp = _sculpt.SampleDisplacement(pos.X, pos.Y, pos.Z);
-            SculptStatus = $"Strokes={_sculpt.Strokes.Count}  displacement@selection={disp:F3}";
+            SculptStatus = $"Coups={_sculpt.Strokes.Count}  déplacement@sélection={disp:F3}";
         }
 
         [RelayCommand]
         private void ClearSculpt()
         {
             _sculpt.Clear();
-            SculptStatus = "Cleared";
+            SculptStatus = "Effacé";
         }
 
         [RelayCommand]
         private async Task ImportMegascansAsync()
         {
             var window = GetMainWindow();
-            if (window?.StorageProvider == null) return;
+            if (window?.StorageProvider == null)
+                return;
 
             string? path = MegascansPath;
             if (string.IsNullOrWhiteSpace(path))
             {
                 var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
                 {
-                    Title = "Megascans asset folder",
+                    Title = "Dossier d'asset Megascans",
                     AllowMultiple = false
                 });
                 path = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
@@ -470,24 +617,26 @@ namespace GDNN.Studio.ViewModels
 
             if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
             {
-                MegascansStatus = "No folder selected";
+                MegascansStatus = "Aucun dossier sélectionné";
                 return;
             }
 
             MegascansPath = path;
-            MegascansStatus = "Importing…";
+            MegascansStatus = "Import en cours…";
             var entry = await _megascans.ImportAssetAsync(path);
             MegascansStatus = entry.ImportSucceeded
                 ? $"OK — {entry.Asset?.Name} ({entry.ImportDuration.TotalMilliseconds:F0} ms)"
-                : $"Failed — {string.Join("; ", entry.Warnings)}";
+                : $"Échec — {string.Join("; ", entry.Warnings)}";
             _logger.Info("Megascans", MegascansStatus);
         }
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+                return;
             _disposed = true;
             _uiTimer.Stop();
+            _host.ViewportEntitySelected -= OnViewportEntitySelected;
             _megascans.Dispose();
             GC.SuppressFinalize(this);
         }

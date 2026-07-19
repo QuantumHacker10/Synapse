@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: AABBTree.cs
 // PATH: Core/DataStructures/AABBTree.cs
@@ -25,11 +7,27 @@ using System.Threading.Tasks;
 
 using System;
 using System.Buffers;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Core.DataStructures;
 
@@ -229,7 +227,8 @@ public sealed class AABBTree<T> : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(results);
 
-        if (_rootIndex < 0) return 0;
+        if (_rootIndex < 0)
+            return 0;
         return QueryAABBInternal(_rootIndex, queryBounds, results);
     }
 
@@ -241,7 +240,8 @@ public sealed class AABBTree<T> : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(results);
 
-        if (_rootIndex < 0) return 0;
+        if (_rootIndex < 0)
+            return 0;
 
         AABB sphereBounds = new(center, new Vector3(radius));
         return QueryAABBInternal(_rootIndex, sphereBounds, results);
@@ -255,7 +255,8 @@ public sealed class AABBTree<T> : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(results);
 
-        if (_rootIndex < 0) return 0;
+        if (_rootIndex < 0)
+            return 0;
         return QueryFrustumInternal(_rootIndex, frustum, results);
     }
 
@@ -267,7 +268,8 @@ public sealed class AABBTree<T> : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(results);
 
-        if (_rootIndex < 0) return 0;
+        if (_rootIndex < 0)
+            return 0;
         return QueryRayInternal(_rootIndex, ray, maxDistance, results);
     }
 
@@ -282,7 +284,8 @@ public sealed class AABBTree<T> : IDisposable
         hitDistance = float.MaxValue;
         hitPoint = Vector3.Zero;
 
-        if (_rootIndex < 0) return false;
+        if (_rootIndex < 0)
+            return false;
 
         bool found = false;
         RaycastInternal(_rootIndex, ray, maxDistance, ref found, ref hitItem, ref hitDistance, ref hitPoint);
@@ -296,7 +299,8 @@ public sealed class AABBTree<T> : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (_rootIndex < 0) return false;
+        if (_rootIndex < 0)
+            return false;
         return RaycastAnyInternal(_rootIndex, ray, maxDistance);
     }
 
@@ -309,7 +313,8 @@ public sealed class AABBTree<T> : IDisposable
         ArgumentNullException.ThrowIfNull(other);
         ArgumentNullException.ThrowIfNull(results);
 
-        if (_rootIndex < 0 || other._rootIndex < 0) return 0;
+        if (_rootIndex < 0 || other._rootIndex < 0)
+            return 0;
 
         return FindOverlapsInternal(_rootIndex, other, other._rootIndex, results);
     }
@@ -335,7 +340,8 @@ public sealed class AABBTree<T> : IDisposable
     /// </summary>
     public int GetHeight()
     {
-        if (_rootIndex < 0) return 0;
+        if (_rootIndex < 0)
+            return 0;
         return _nodes[_rootIndex].Height;
     }
 
@@ -344,7 +350,8 @@ public sealed class AABBTree<T> : IDisposable
     /// </summary>
     public bool Validate()
     {
-        if (_rootIndex < 0) return true;
+        if (_rootIndex < 0)
+            return true;
         return ValidateNode(_rootIndex, out _);
     }
 
@@ -517,7 +524,8 @@ public sealed class AABBTree<T> : IDisposable
 
     private float GetAreaMultiplier(int nodeIndex)
     {
-        if (nodeIndex < 0 || nodeIndex >= _nodeCount) return 1.0f;
+        if (nodeIndex < 0 || nodeIndex >= _nodeCount)
+            return 1.0f;
         return _nodes[nodeIndex].Height + 1;
     }
 
@@ -594,7 +602,8 @@ public sealed class AABBTree<T> : IDisposable
 
     private int QueryAABBInternal(int nodeIndex, AABB queryBounds, List<T> results)
     {
-        if (nodeIndex < 0) return 0;
+        if (nodeIndex < 0)
+            return 0;
 
         if (!AABB.Intersects(_nodes[nodeIndex].Bounds, queryBounds))
             return 0;
@@ -620,7 +629,8 @@ public sealed class AABBTree<T> : IDisposable
 
     private int QueryFrustumInternal(int nodeIndex, Frustum frustum, List<T> results)
     {
-        if (nodeIndex < 0) return 0;
+        if (nodeIndex < 0)
+            return 0;
 
         FrustumTest test = frustum.TestAABB(_nodes[nodeIndex].Bounds);
         if (test == FrustumTest.Outside)
@@ -651,7 +661,8 @@ public sealed class AABBTree<T> : IDisposable
 
     private int QueryRayInternal(int nodeIndex, Ray ray, float maxDistance, List<RayHit<T>> results)
     {
-        if (nodeIndex < 0) return 0;
+        if (nodeIndex < 0)
+            return 0;
 
         if (!AABB.IntersectsRay(_nodes[nodeIndex].Bounds, ray, out float tmin, out float tmax))
             return 0;
@@ -700,7 +711,8 @@ public sealed class AABBTree<T> : IDisposable
     private void RaycastInternal(int nodeIndex, Ray ray, float maxDistance,
         ref bool found, ref T? hitItem, ref float hitDistance, ref Vector3 hitPoint)
     {
-        if (nodeIndex < 0) return;
+        if (nodeIndex < 0)
+            return;
 
         if (!AABB.IntersectsRay(_nodes[nodeIndex].Bounds, ray, out float tmin, out float tmax))
             return;
@@ -739,7 +751,8 @@ public sealed class AABBTree<T> : IDisposable
 
     private bool RaycastAnyInternal(int nodeIndex, Ray ray, float maxDistance)
     {
-        if (nodeIndex < 0) return false;
+        if (nodeIndex < 0)
+            return false;
 
         if (!AABB.IntersectsRay(_nodes[nodeIndex].Bounds, ray, out float tmin, out float tmax))
             return false;
@@ -758,7 +771,8 @@ public sealed class AABBTree<T> : IDisposable
 
     private int FindOverlapsInternal(int nodeA, AABBTree<T> other, int nodeB, List<(T ItemA, T ItemB)> results)
     {
-        if (nodeA < 0 || nodeB < 0) return 0;
+        if (nodeA < 0 || nodeB < 0)
+            return 0;
 
         if (!AABB.Intersects(_nodes[nodeA].Bounds, other._nodes[nodeB].Bounds))
             return 0;
@@ -796,7 +810,8 @@ public sealed class AABBTree<T> : IDisposable
 
     private void CollectAllItems(int nodeIndex, List<T> results)
     {
-        if (nodeIndex < 0) return;
+        if (nodeIndex < 0)
+            return;
 
         if (_nodes[nodeIndex].IsLeaf)
         {

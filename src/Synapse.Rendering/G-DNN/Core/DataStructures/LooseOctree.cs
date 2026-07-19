@@ -1,22 +1,4 @@
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
-
 // ============================================================
 // FILE: LooseOctree.cs
 // PATH: Core/DataStructures/LooseOctree.cs
@@ -25,10 +7,26 @@ using System.Threading.Tasks;
 
 using System;
 using System.Buffers;
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Numerics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GDNN.Core.DataStructures;
 
@@ -492,7 +490,8 @@ public sealed class LooseOctree<T> : IDisposable, IEnumerable<LooseOctree<T>.Loo
             Vector3 toItem = node.Items[i].Position - ray.Position;
             float t = Vector3.Dot(toItem, ray.Direction);
 
-            if (t < 0 || t > maxDistance) continue;
+            if (t < 0 || t > maxDistance)
+                continue;
 
             Vector3 closest = ray.Position + ray.Direction * t;
             float distSq = Vector3.DistanceSquared(closest, node.Items[i].Position);
@@ -666,15 +665,19 @@ public sealed class LooseOctree<T> : IDisposable, IEnumerable<LooseOctree<T>.Loo
     {
         Vector3 local = position - parentBounds.Center;
         int index = 0;
-        if (local.X >= 0) index |= 1;
-        if (local.Y >= 0) index |= 2;
-        if (local.Z >= 0) index |= 4;
+        if (local.X >= 0)
+            index |= 1;
+        if (local.Y >= 0)
+            index |= 2;
+        if (local.Z >= 0)
+            index |= 4;
         return index;
     }
 
     private void PruneEmptyNodes(LooseNode node)
     {
-        if (!node.HasChildren) return;
+        if (!node.HasChildren)
+            return;
 
         bool allEmpty = true;
         for (int i = 0; i < 8; i++)

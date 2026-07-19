@@ -1,4 +1,4 @@
-﻿// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
+// L-DNN neural global illumination subsystem (split from LDNNRenderer.cs).
 
 using System;
 using System.Collections.Generic;
@@ -73,7 +73,8 @@ namespace GDNN.Lighting.LDNN
         public Vector3 ProjectToScreen(Vector3 worldPos)
         {
             Vector4 clip = Vector4.Transform(new Vector4(worldPos.X, worldPos.Y, worldPos.Z, 1.0f), ViewProjectionMatrix);
-            if (MathF.Abs(clip.W) < 0.0001f) return new Vector3(-1, -1, -1);
+            if (MathF.Abs(clip.W) < 0.0001f)
+                return new Vector3(-1, -1, -1);
             float ndcX = clip.X / clip.W;
             float ndcY = clip.Y / clip.W;
             float ndcZ = clip.Z / clip.W;

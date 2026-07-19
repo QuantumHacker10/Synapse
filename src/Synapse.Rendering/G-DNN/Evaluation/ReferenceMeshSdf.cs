@@ -38,7 +38,8 @@ public sealed class ReferenceMeshSdf
             Vector3 v1 = _vertices[_indices[t + 1]];
             Vector3 v2 = _vertices[_indices[t + 2]];
             float d = point.PointToTriangleDistance(v0, v1, v2);
-            if (d < minDist) minDist = d;
+            if (d < minDist)
+                minDist = d;
         }
         return minDist;
     }
@@ -181,10 +182,18 @@ public sealed class ReferenceMeshSdf
             int bc = Midpoint(b, c);
             int ca = Midpoint(c, a);
 
-            newIndices.Add(a); newIndices.Add(ab); newIndices.Add(ca);
-            newIndices.Add(b); newIndices.Add(bc); newIndices.Add(ab);
-            newIndices.Add(c); newIndices.Add(ca); newIndices.Add(bc);
-            newIndices.Add(ab); newIndices.Add(bc); newIndices.Add(ca);
+            newIndices.Add(a);
+            newIndices.Add(ab);
+            newIndices.Add(ca);
+            newIndices.Add(b);
+            newIndices.Add(bc);
+            newIndices.Add(ab);
+            newIndices.Add(c);
+            newIndices.Add(ca);
+            newIndices.Add(bc);
+            newIndices.Add(ab);
+            newIndices.Add(bc);
+            newIndices.Add(ca);
         }
 
         indices.Clear();
@@ -201,16 +210,19 @@ public sealed class ReferenceMeshSdf
         Vector3 e2 = v2 - v0;
         Vector3 pvec = Vector3.Cross(dir, e2);
         float det = Vector3.Dot(e1, pvec);
-        if (MathF.Abs(det) < epsilon) return false;
+        if (MathF.Abs(det) < epsilon)
+            return false;
 
         float invDet = 1f / det;
         Vector3 tvec = origin - v0;
         float u = Vector3.Dot(tvec, pvec) * invDet;
-        if (u < 0f || u > 1f) return false;
+        if (u < 0f || u > 1f)
+            return false;
 
         Vector3 qvec = Vector3.Cross(tvec, e1);
         float v = Vector3.Dot(dir, qvec) * invDet;
-        if (v < 0f || u + v > 1f) return false;
+        if (v < 0f || u + v > 1f)
+            return false;
 
         t = Vector3.Dot(e2, qvec) * invDet;
         return t > epsilon;
