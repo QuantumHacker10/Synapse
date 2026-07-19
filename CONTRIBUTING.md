@@ -112,6 +112,18 @@ dotnet format --verify-no-changes   # comme en CI
 
 Les workflows [`build.yml`](.github/workflows/build.yml) et [`analysis.yml`](.github/workflows/analysis.yml) doivent passer avant merge.
 
+## Licence et contributions
+
+Ce projet est sous **licence propriétaire** ([LICENSE](LICENSE)). En contribuant, vous acceptez que :
+
+- vous ne copiez pas le code vers d'autres dépôts sans autorisation ;
+- vos contributions acceptées peuvent être intégrées sous la licence du projet ;
+- vous ne revendiquez pas la paternité du code existant.
+
+Les forks GitHub sont **interdits par la licence** ([LICENSE](LICENSE)). Sur un dépôt public personnel,
+GitHub peut toutefois afficher le bouton « Fork » — cela ne constitue pas une autorisation légale ;
+toute republication non autorisée reste une violation des droits d'auteur.
+
 ## Questions
 
 Ouvrez une [issue](https://github.com/QuantumHacker10/Synapse/issues) ou une [discussion](https://github.com/QuantumHacker10/Synapse/discussions) pour bugs, idées ou questions d'architecture.
