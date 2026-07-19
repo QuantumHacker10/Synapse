@@ -33,8 +33,11 @@ jobs:
         run: |
           Copy-Item README.md artifacts/Synapse-win-x64/
           Copy-Item LICENSE artifacts/Synapse-win-x64/
+          Copy-Item COPYRIGHT artifacts/Synapse-win-x64/
           @"
           SYNAPSE OMNIA 1.1 — Windows x64
+          Proprietary license — all rights reserved. See LICENSE and COPYRIGHT.
+          No copying, forking, or redistribution without written permission.
           Prerequisites: Vulkan-capable GPU + drivers.
           Place glfw3.dll next to Synapse.Studio.exe if not already present
           (see src/Synapse.Studio/native/README.md).
@@ -55,7 +58,7 @@ jobs:
             ## SYNAPSE OMNIA ${{ github.ref_name }}
 
             ### Windows x64
-            - Self-contained .NET 10 publish of **G-DNN Studio**
+            - Self-contained .NET 10 publish of **Synapse Studio**
             - Requires a Vulkan-capable GPU
             - Optional: `glfw3.dll` beside the exe (see native README)
 

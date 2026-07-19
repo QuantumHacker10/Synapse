@@ -1,7 +1,7 @@
 # SYNAPSE OMNIA — Synapse Engine 1.1
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
 
 Moteur de simulation et éditeur **Synapse Studio** en **C# 14 / .NET 10**.
@@ -184,4 +184,11 @@ Déployée automatiquement sur [GitHub Pages](https://quantumhacker10.github.io/
 
 ## Licence
 
-MIT — voir [`LICENSE`](LICENSE).
+**Licence propriétaire — tous droits réservés.** Ce dépôt n'est pas open source.
+
+Interdit sans autorisation écrite : copie, fork, redistribution, plagiat, œuvres
+dérivées et usage commercial. Consultation du source et exécution des binaires
+[Releases](https://github.com/QuantumHacker10/Synapse/releases) officiels
+autorisées uniquement à titre personnel et non commercial.
+
+Voir [`LICENSE`](LICENSE) et [`COPYRIGHT`](COPYRIGHT).
