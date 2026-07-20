@@ -158,6 +158,7 @@ namespace Synapse.Runtime
 
         public static MeshCollisionSource ToCollisionSource(string meshId, MeshAsset asset)
         {
+            ArgumentNullException.ThrowIfNull(asset);
             var verts = new List<Vector3>();
             var indices = new List<int>();
             int baseVertex = 0;

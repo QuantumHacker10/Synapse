@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using GDNN.RHI.Vulkan;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.Rendering.Compute
 {
@@ -462,7 +463,11 @@ namespace GDNN.Rendering.Compute
                 buf.Buffer.Unmap();
                 return result;
             }
-            catch { return new float[buf.ElementCount * buf.Stride / 4]; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("ComputePipeline", "Failed to read compute buffer; returning zero-filled fallback.", ex);
+                return new float[buf.ElementCount * buf.Stride / 4];
+            }
         }
 
         private void WriteBuffer(ComputeBuffer buf, float[] data)
@@ -481,7 +486,10 @@ namespace GDNN.Rendering.Compute
                 }
                 buf.Buffer.Unmap();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("ComputePipeline", "Failed to write compute buffer.", ex);
+            }
         }
 
         public int Dispatch(string kernelName, uint groupsX, uint groupsY, uint groupsZ, ComputeBuffer[] buffers, ComputeTexture[] textures = null, float[] pushConstants = null)

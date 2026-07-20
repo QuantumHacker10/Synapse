@@ -10,6 +10,7 @@ namespace Synapse.Runtime
     {
         public static BehaviorTreeBlueprint Compile(BlueprintDocument doc)
         {
+            ArgumentNullException.ThrowIfNull(doc);
             var (ok, msg) = doc.Validate();
             if (!ok)
                 throw new InvalidOperationException(msg);

@@ -51,6 +51,7 @@ namespace Synapse.Studio.ViewModels
             _host.ViewportEditor.ShowGizmos = ShowViewportGizmos;
             _host.ViewportEditor.ToolMode = ViewportToolMode.Translate;
             _host.ViewportEntitySelected += OnViewportEntitySelected;
+            _host.InspectorFeedEntryAdded += OnInspectorFeedEntry;
 
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
             _uiTimer.Tick += (_, _) => RefreshStatus();
@@ -83,6 +84,7 @@ namespace Synapse.Studio.ViewModels
         public ObservableCollection<EntityType> EntityTypes { get; } = new();
         public ObservableCollection<ChatMessageRecord> ChatMessages { get; } = new();
         public ObservableCollection<string> BlueprintNodes { get; } = new();
+        public ObservableCollection<LiveInspectorEntry> InspectorFeed { get; } = new();
 
         [ObservableProperty] private SceneEntity? selectedEntity;
         [ObservableProperty] private EntityType newEntityType = EntityType.Empty;
@@ -125,7 +127,10 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private bool entityIsVehicle;
         [ObservableProperty] private bool entityBakeNeuralSdf;
         [ObservableProperty] private string physicsToolsStatus = "Physique Omnia : mesh · joints · véhicule";
+        [ObservableProperty] private bool isInspectorModeEnabled;
+        [ObservableProperty] private string inspectorFeedStatus = "Mode inspecteur inactif";
         private Guid? _jointPartnerId;
+        private const int MaxInspectorFeedEntries = 500;
 
         public BlueprintDocument Blueprint => _blueprint;
 
@@ -188,6 +193,47 @@ namespace Synapse.Studio.ViewModels
         private void OnViewportEntitySelected(Guid id)
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(() => SelectEntityById(id));
+        }
+
+        private void OnInspectorFeedEntry(InspectorFeedEntry entry)
+        {
+            if (!IsInspectorModeEnabled)
+                return;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                InspectorFeed.Insert(0, new LiveInspectorEntry
+                {
+                    Timestamp = entry.Timestamp,
+                    Category = entry.Category,
+                    Title = entry.Title,
+                    Detail = entry.Detail
+                });
+                while (InspectorFeed.Count > MaxInspectorFeedEntries)
+                    InspectorFeed.RemoveAt(InspectorFeed.Count - 1);
+                InspectorFeedStatus = $"{InspectorFeed.Count} entrées · dernier : [{entry.Category}] {entry.Title}";
+            });
+        }
+
+        partial void OnIsInspectorModeEnabledChanged(bool value)
+        {
+            InspectorFeedStatus = value
+                ? "Mode inspecteur actif — NEAT-G et lois en direct"
+                : "Mode inspecteur inactif";
+            if (value && InspectorFeed.Count == 0)
+                InspectorFeedStatus = "Mode inspecteur actif — en attente d'événements…";
+        }
+
+        [RelayCommand]
+        private void ToggleInspectorMode() => IsInspectorModeEnabled = !IsInspectorModeEnabled;
+
+        [RelayCommand]
+        private void ClearInspectorFeed()
+        {
+            InspectorFeed.Clear();
+            InspectorFeedStatus = IsInspectorModeEnabled
+                ? "Flux vidé — en attente d'événements…"
+                : "Mode inspecteur inactif";
         }
 
         [RelayCommand]
@@ -547,6 +593,8 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task StartEvolutionAsync()
         {
+            if (!IsInspectorModeEnabled)
+                IsInspectorModeEnabled = true;
             EvolutionStatus = "Démarrage…";
             await Task.Run(async () => await _host.StartEvolutionAsync(20, 5));
             EvolutionStatus = $"Terminé — gen {_host.EvolutionGeneration} fitness={_host.BestFitness:F3} (volume mis à jour)";
@@ -768,6 +816,7 @@ namespace Synapse.Studio.ViewModels
             _disposed = true;
             _uiTimer.Stop();
             _host.ViewportEntitySelected -= OnViewportEntitySelected;
+            _host.InspectorFeedEntryAdded -= OnInspectorFeedEntry;
             _megascans.Dispose();
             GC.SuppressFinalize(this);
         }

@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
 using GDNN.Scene;
+using Synapse.Infrastructure.Logging;
 
 #nullable enable
 
@@ -101,7 +102,10 @@ namespace GDNN.Llm
                     if (data != null)
                         return StructuredOutput<T>.Ok(data, 0.7f, rawText);
                 }
-                catch { /* Repair failed */ }
+                catch (Exception repairEx)
+                {
+                    SynapseLogger.Default.Debug("StructuredOutputParser", "JSON repair attempt failed.", repairEx);
+                }
 
                 return StructuredOutput<T>.Fail($"JSON parse error: {ex.Message}", rawText);
             }

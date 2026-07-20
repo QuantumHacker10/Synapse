@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.GPU;
 
@@ -113,7 +114,10 @@ public static class SpirvToolchain
         {
             try
             { Directory.Delete(tempDir, recursive: true); }
-            catch { /* ignore */ }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Debug("SpirvToolchain", "Failed to delete temporary compile directory.", ex);
+            }
         }
     }
 
@@ -198,7 +202,10 @@ public static class SpirvToolchain
         {
             try
             { Directory.Delete(tempDir, recursive: true); }
-            catch { /* ignore */ }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Debug("SpirvToolchain", "Failed to delete temporary compile directory.", ex);
+            }
         }
     }
 
@@ -245,7 +252,10 @@ public static class SpirvToolchain
                 if (File.Exists(candidate))
                     return candidate;
             }
-            catch { /* ignore bad PATH entries */ }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Debug("SpirvToolchain", $"Skipping invalid PATH entry '{dir}'.", ex);
+            }
         }
         return null;
     }

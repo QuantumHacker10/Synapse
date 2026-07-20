@@ -23,6 +23,9 @@
       <MenuItem Header="_Simulation">
         <MenuItem Header="Lecture / Pause (Espace)" Command="{Binding TogglePlayCommand}" />
         <MenuItem Header="Créer un agent sentient" Command="{Binding SpawnAgentCommand}" />
+        <Separator />
+        <MenuItem Header="Mode inspecteur live" Command="{Binding ToggleInspectorModeCommand}"
+                  ToggleType="CheckBox" IsChecked="{Binding IsInspectorModeEnabled}" />
       </MenuItem>
       <MenuItem Header="_Aide">
         <MenuItem Header="À propos" Command="{Binding AboutCommand}" />
@@ -207,6 +210,36 @@
                   <TextBlock Text="{Binding PhysicsToolsStatus}" Foreground="#45E0B8" TextWrapping="Wrap" FontSize="11" />
                   <Button Content="Appliquer les modifications" Command="{Binding ApplyInspectorCommand}" HorizontalAlignment="Stretch" />
                 </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
+          <TabItem Header="Live">
+            <ScrollViewer>
+              <StackPanel Spacing="10" Margin="4">
+                <TextBlock Text="Inspecteur live" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                <TextBlock Text="Flux temps réel : évolution NEAT-G, compilations et hot-reload de lois."
+                           Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                <CheckBox Content="Activer le mode inspecteur"
+                          IsChecked="{Binding IsInspectorModeEnabled}" />
+                <TextBlock Text="{Binding InspectorFeedStatus}" Foreground="#45E0B8" FontSize="11" TextWrapping="Wrap" />
+                <Button Content="Vider le flux" Command="{Binding ClearInspectorFeedCommand}" HorizontalAlignment="Stretch" />
+                <ListBox ItemsSource="{Binding InspectorFeed}" Height="420" Background="#0E1218">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="contracts:LiveInspectorEntry">
+                      <Border BorderBrush="#1E2633" BorderThickness="0,0,0,1" Padding="0,0,0,8" Margin="0,0,0,4">
+                        <StackPanel Spacing="2">
+                          <Grid ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Grid.Column="0" Text="{Binding DisplayTime}" Foreground="#6B7A94" FontSize="10" Margin="0,0,8,0" />
+                            <TextBlock Grid.Column="1" Text="{Binding Category}" Foreground="#45E0B8" FontSize="10" />
+                            <TextBlock Grid.Column="2" Text="{Binding Title}" Foreground="#E8EEF7" FontSize="11" HorizontalAlignment="Right" />
+                          </Grid>
+                          <TextBlock Text="{Binding Detail}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
               </StackPanel>
             </ScrollViewer>
           </TabItem>

@@ -12,6 +12,8 @@ namespace Synapse.Runtime
             SceneRenderer renderer,
             ViewportRay ray)
         {
+            ArgumentNullException.ThrowIfNull(scene);
+            ArgumentNullException.ThrowIfNull(renderer);
             Guid? bestId = null;
             float bestDist = float.MaxValue;
 
@@ -76,6 +78,8 @@ namespace Synapse.Runtime
             int width,
             int height)
         {
+            ArgumentNullException.ThrowIfNull(editor);
+            ArgumentNullException.ThrowIfNull(entity);
             var axis = editor.ActiveGizmoAxis switch
             {
                 GizmoAxis.X => Vector3.UnitX,
@@ -108,6 +112,8 @@ namespace Synapse.Runtime
             float mouseX,
             float mouseY)
         {
+            ArgumentNullException.ThrowIfNull(editor);
+            ArgumentNullException.ThrowIfNull(entity);
             float deltaX = mouseX - editor.DragStartMouseX;
             float deltaY = mouseY - editor.DragStartMouseY;
             var rot = editor.DragStartRotation;

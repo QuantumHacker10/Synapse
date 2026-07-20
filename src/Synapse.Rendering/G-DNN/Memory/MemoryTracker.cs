@@ -32,6 +32,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading;
 using System.Threading.Tasks;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.Memory;
 
@@ -481,7 +482,10 @@ public sealed class MemoryTracker : IDisposable
             {
                 try
                 { listener(record); }
-                catch { }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Warn("MemoryTracker", "Allocation listener threw an exception.", ex);
+                }
             }
         }
     }
@@ -494,7 +498,10 @@ public sealed class MemoryTracker : IDisposable
             {
                 try
                 { listener(record); }
-                catch { }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Warn("MemoryTracker", "Free listener threw an exception.", ex);
+                }
             }
         }
     }

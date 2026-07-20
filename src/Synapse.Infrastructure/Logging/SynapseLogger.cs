@@ -20,9 +20,9 @@ namespace Synapse.Infrastructure.Logging
     {
         void Log(LogLevel level, string category, string message, Exception? exception = null);
         void Trace(string category, string message) => Log(LogLevel.Trace, category, message);
-        void Debug(string category, string message) => Log(LogLevel.Debug, category, message);
+        void Debug(string category, string message, Exception? exception = null) => Log(LogLevel.Debug, category, message, exception);
         void Info(string category, string message) => Log(LogLevel.Information, category, message);
-        void Warn(string category, string message) => Log(LogLevel.Warning, category, message);
+        void Warn(string category, string message, Exception? exception = null) => Log(LogLevel.Warning, category, message, exception);
         void Error(string category, string message, Exception? exception = null) => Log(LogLevel.Error, category, message, exception);
         void Fatal(string category, string message, Exception? exception = null) => Log(LogLevel.Fatal, category, message, exception);
     }
@@ -51,7 +51,7 @@ namespace Synapse.Infrastructure.Logging
             }
         }
 
-        public static SynapseLogger Default { get; } = new(
+        public static ISynapseLogger Default { get; } = new SynapseLogger(
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Synapse", "logs"),
             LogLevel.Information,
             consoleEnabled: true);

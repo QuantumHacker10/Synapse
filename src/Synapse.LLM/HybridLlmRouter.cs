@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
 using GDNN.Scene;
+using Synapse.Infrastructure.Logging;
 
 #nullable enable
 
@@ -894,7 +895,10 @@ namespace GDNN.Llm
             {
                 try
                 { provider.CancelCurrentInference(); }
-                catch { /* Best effort */ }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Debug("HybridLlmRouter", "Provider cancel failed during best-effort shutdown.", ex);
+                }
             }
         }
 
@@ -925,7 +929,10 @@ namespace GDNN.Llm
             {
                 await Task.WhenAll(tasks);
             }
-            catch { /* Graceful shutdown */ }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("HybridLlmRouter", "One or more providers failed during graceful shutdown.", ex);
+            }
         }
 
         /// <inheritdoc/>
@@ -958,7 +965,10 @@ namespace GDNN.Llm
             {
                 try
                 { provider.Dispose(); }
-                catch { /* Best effort */ }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Debug("HybridLlmRouter", "Provider dispose failed during best-effort cleanup.", ex);
+                }
             }
 
             _providers.Clear();

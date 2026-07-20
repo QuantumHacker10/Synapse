@@ -28,6 +28,7 @@ using System.Threading;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.Streaming
 {
@@ -741,8 +742,9 @@ namespace GDNN.Streaming
                 job.Status = PipelineJobStatus.Cancelled;
                 job.EndTime = DateTime.UtcNow;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                SynapseLogger.Default.Warn("AsyncPipeline", $"Pipeline job '{job.JobId}' failed.", ex);
                 job.Status = PipelineJobStatus.Failed;
                 job.EndTime = DateTime.UtcNow;
                 _metrics.IncrementJobsFailed();

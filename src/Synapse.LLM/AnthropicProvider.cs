@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
 using GDNN.Scene;
+using Synapse.Infrastructure.Logging;
 
 #nullable enable
 
@@ -223,7 +224,10 @@ namespace GDNN.Llm
                                 isMessageStop = true;
                             }
                         }
-                        catch { /* Skip malformed SSE lines */ }
+                        catch (Exception ex)
+                        {
+                            SynapseLogger.Default.Debug("AnthropicProvider", "Skipping malformed SSE line.", ex);
+                        }
 
                         if (!string.IsNullOrEmpty(anthropicText))
                         {
@@ -294,7 +298,11 @@ namespace GDNN.Llm
                 var response = await _httpClient.SendAsync(request, cancellationToken);
                 return response.StatusCode != HttpStatusCode.Unauthorized;
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("AnthropicProvider", "Availability check failed.", ex);
+                return false;
+            }
         }
 
         /// <inheritdoc/>
@@ -328,7 +336,11 @@ namespace GDNN.Llm
                 var available = await IsAvailableAsync(cancellationToken);
                 return available ? HealthCheckStatus.Healthy : HealthCheckStatus.Unhealthy;
             }
-            catch { return HealthCheckStatus.Unhealthy; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("AnthropicProvider", "Health check failed.", ex);
+                return HealthCheckStatus.Unhealthy;
+            }
         }
 
         /// <inheritdoc/>

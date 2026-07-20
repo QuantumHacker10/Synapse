@@ -30,6 +30,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.Core.Genome
 {
@@ -581,7 +582,12 @@ namespace GDNN.Core.Genome
             { result = Initial; return false; }
             try
             { result = Parse(input); return true; }
-            catch { result = Initial; return false; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Debug("GenomeVersion", $"Failed to parse version string '{input}'.", ex);
+                result = Initial;
+                return false;
+            }
         }
 
         /// <summary>Gets whether this version is compatible with the specified version.</summary>

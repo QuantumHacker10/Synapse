@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
 using GDNN.Scene;
+using Synapse.Infrastructure.Logging;
 
 #nullable enable
 
@@ -738,7 +739,10 @@ namespace GDNN.Llm
                     if (doc.RootElement.TryGetProperty("max_position_embeddings", out var maxPos))
                         metadata.MaxPositionEmbeddings = maxPos.GetInt32();
                 }
-                catch { /* Best effort metadata extraction */ }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Debug("OnnxRuntimeGenAi", "Best-effort model metadata extraction failed.", ex);
+                }
             }
 
             return metadata;
@@ -907,7 +911,10 @@ namespace GDNN.Llm
                 {
                     return session.EstimateTokenCount(text);
                 }
-                catch { /* Fallback to estimation */ }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Debug("OnnxRuntimeGenAi", "Token count estimation failed; using character fallback.", ex);
+                }
             }
 
             // Fallback: approximate 1 token per 4 characters for BPE
@@ -1264,7 +1271,10 @@ namespace GDNN.Llm
                     if (doc.RootElement.TryGetProperty("hidden_size", out var hs))
                         HeadDimension = hs.GetInt32() / Math.Max(HeadsCount, 1);
                 }
-                catch { /* Best effort */ }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Debug("OnnxRuntimeGenAi", "Best-effort config metadata extraction failed.", ex);
+                }
             }
         }
 

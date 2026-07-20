@@ -141,6 +141,16 @@ namespace Synapse.Studio.Contracts
         public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
     }
 
+    /// <summary>One row in the Studio live inspector panel (NEAT-G, living laws, milestones).</summary>
+    public sealed class LiveInspectorEntry
+    {
+        public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.UtcNow;
+        public string Category { get; init; } = "";
+        public string Title { get; init; } = "";
+        public string Detail { get; init; } = "";
+        public string DisplayTime => Timestamp.LocalDateTime.ToString("HH:mm:ss");
+    }
+
     public sealed class CompilationResultInfo
     {
         public bool Success { get; set; }
