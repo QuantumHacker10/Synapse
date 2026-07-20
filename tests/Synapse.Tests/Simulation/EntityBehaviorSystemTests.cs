@@ -11,7 +11,7 @@ public class EntityBehaviorSystemTests
     [Fact]
     public void Entity_Create_ShouldHaveDefaultValues()
     {
-        var entity = new SentientEntity(Guid.NewGuid(), EntityType.NPC);
+        var entity = new SentientEntity(Guid.NewGuid(), EntityType.Sentient);
 
         entity.EntityId.Should().NotBe(Guid.Empty);
         entity.Position.Should().Be(Vector3.Zero);
@@ -21,7 +21,7 @@ public class EntityBehaviorSystemTests
     [Fact]
     public void PerceptionSystem_AddPerception_ShouldIncreaseCount()
     {
-        var entity = new SentientEntity(Guid.NewGuid(), EntityType.NPC);
+        var entity = new SentientEntity(Guid.NewGuid(), EntityType.Sentient);
         var perception = new PerceptionEvent(
             PerceptionType.Visual,
             Guid.NewGuid(),
@@ -41,7 +41,7 @@ public class EntityBehaviorSystemTests
     public void EmotionalModel_GetEmotion_ShouldReturnDefaultValue()
     {
         var model = new EmotionalModel();
-        var entity = new SentientEntity(Guid.NewGuid(), EntityType.NPC);
+        var entity = new SentientEntity(Guid.NewGuid(), EntityType.Sentient);
 
         model.GetCurrentState(entity).Should().Be(EmotionalState.Neutral);
     }
@@ -50,7 +50,7 @@ public class EntityBehaviorSystemTests
     public void EmotionalModel_SetEmotion_ShouldClampValue()
     {
         var model = new EmotionalModel();
-        var entity = new SentientEntity(Guid.NewGuid(), EntityType.NPC);
+        var entity = new SentientEntity(Guid.NewGuid(), EntityType.Sentient);
         var perception = new PerceptionEvent(
             PerceptionType.Tactile,
             Guid.NewGuid(),
@@ -70,7 +70,7 @@ public class EntityBehaviorSystemTests
     public void MemorySystem_Store_ShouldIncreaseMemoryCount()
     {
         var memory = new MemorySystem();
-        var entity = new SentientEntity(Guid.NewGuid(), EntityType.NPC);
+        var entity = new SentientEntity(Guid.NewGuid(), EntityType.Sentient);
         var entry = new MemoryEntry
         {
             Content = "Test memory",

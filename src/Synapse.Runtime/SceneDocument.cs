@@ -41,7 +41,7 @@ namespace Synapse.Runtime
                     {
                         Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
                         Name = "Agent_Alpha",
-                        Type = "Character",
+                        Type = SceneEntityKinds.Agent,
                         Position = new Vec3(2, 0, 0),
                         BehaviorProfile = "patrol"
                     },
@@ -49,7 +49,7 @@ namespace Synapse.Runtime
                     {
                         Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
                         Name = "Agent_Beta",
-                        Type = "Character",
+                        Type = SceneEntityKinds.Agent,
                         Position = new Vec3(-2, 0, 1),
                         BehaviorProfile = "guard"
                     },
@@ -148,6 +148,28 @@ namespace Synapse.Runtime
         public Vec3(float x, float y, float z) { X = x; Y = y; Z = z; }
         public Vector3 ToVector3() => new(X, Y, Z);
         public static Vec3 From(Vector3 v) => new(v.X, v.Y, v.Z);
+    }
+
+    /// <summary>
+    /// Canonical scene entity type labels for the simulation atelier.
+    /// Legacy "Character" (game-engine wording) is accepted on load and rewritten to <see cref="Agent"/>.
+    /// </summary>
+    public static class SceneEntityKinds
+    {
+        public const string Agent = "Agent";
+
+        public static bool IsSentientAgent(string? type) =>
+            !string.IsNullOrWhiteSpace(type) &&
+            (type.Equals(Agent, StringComparison.OrdinalIgnoreCase) ||
+             type.Equals("Character", StringComparison.OrdinalIgnoreCase) ||
+             type.Equals("Sentient", StringComparison.OrdinalIgnoreCase));
+
+        public static string Normalize(string? type)
+        {
+            if (IsSentientAgent(type))
+                return Agent;
+            return string.IsNullOrWhiteSpace(type) ? "Empty" : type;
+        }
     }
 
     [JsonSerializable(typeof(SceneDocument))]

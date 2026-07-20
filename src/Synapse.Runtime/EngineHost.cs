@@ -432,17 +432,17 @@ namespace Synapse.Runtime
         /// <summary>Requests cancellation of an in-flight evolution run.</summary>
         public void CancelEvolution() => _evolutionCts?.Cancel();
 
-        /// <summary>Spawns a sentient NPC and mirrors it in the scene document.</summary>
+        /// <summary>Spawns a sentient simulation agent and mirrors it in the scene document.</summary>
         public SentientEntity SpawnAgent(string profile, Vector3 position)
         {
             InitializeModules();
             var factory = new SentientEntityFactory(_sentience!);
-            var entity = factory.CreateNPC(position, profile);
+            var entity = factory.CreateAgent(position, profile);
             _scene.Entities.Add(new SceneEntityData
             {
                 Id = entity.EntityId,
                 Name = $"Agent_{profile}_{entity.EntityId.ToString()[..8]}",
-                Type = "Character",
+                Type = SceneEntityKinds.Agent,
                 Position = Vec3.From(position),
                 BehaviorProfile = profile
             });
@@ -450,20 +450,21 @@ namespace Synapse.Runtime
             return entity;
         }
 
-        /// <summary>Adds a scene entity; spawns a patrol agent when <paramref name="type"/> is Character.</summary>
+        /// <summary>Adds a scene entity; spawns a patrol agent when <paramref name="type"/> is an agent kind.</summary>
         public Guid CreateSceneEntity(string name, string type)
         {
             InitializeModules();
             var id = Guid.NewGuid();
+            var normalized = SceneEntityKinds.Normalize(type);
             _scene.Entities.Add(new SceneEntityData
             {
                 Id = id,
                 Name = name,
-                Type = type,
+                Type = normalized,
                 Position = new Vec3(0, 0, 0)
             });
 
-            if (type.Equals("Character", StringComparison.OrdinalIgnoreCase))
+            if (SceneEntityKinds.IsSentientAgent(normalized))
                 SpawnAgent("patrol", Vector3.Zero);
 
             SyncSceneToRenderer();
@@ -553,12 +554,12 @@ namespace Synapse.Runtime
             var tree = _sentience!.Compiler.CompileFromBlueprint("LLM_Generated", blueprint);
             _sentience.RegisterBehaviorTree(tree.Name, tree);
 
-            var agent = _sentience.CreateEntity(EntityType.NPC, Vector3.Zero, tree.Name);
+            var agent = _sentience.CreateEntity(EntityType.Sentient, Vector3.Zero, tree.Name);
             _scene.Entities.Add(new SceneEntityData
             {
                 Id = agent.EntityId,
                 Name = tree.Name,
-                Type = "Character",
+                Type = SceneEntityKinds.Agent,
                 Position = Vec3.From(Vector3.Zero),
                 BehaviorProfile = tree.Name
             });
@@ -573,12 +574,12 @@ namespace Synapse.Runtime
             var blueprint = document.CompileToBehaviorTreeBlueprint();
             var tree = _sentience!.Compiler.CompileFromBlueprint(document.Name, blueprint);
             _sentience.RegisterBehaviorTree(document.Name, tree);
-            var entity = _sentience.CreateEntity(EntityType.NPC, position, document.Name);
+            var entity = _sentience.CreateEntity(EntityType.Sentient, position, document.Name);
             _scene.Entities.Add(new SceneEntityData
             {
                 Id = entity.EntityId,
                 Name = $"Agent_{document.Name}",
-                Type = "Character",
+                Type = SceneEntityKinds.Agent,
                 Position = Vec3.From(position),
                 BehaviorProfile = document.Name
             });
@@ -842,9 +843,10 @@ namespace Synapse.Runtime
             var factory = new SentientEntityFactory(_sentience);
             foreach (var e in scene.Entities)
             {
-                if (e.Type.Equals("Character", StringComparison.OrdinalIgnoreCase))
+                if (SceneEntityKinds.IsSentientAgent(e.Type))
                 {
-                    var agent = factory.CreateNPC(e.Position.ToVector3(), e.BehaviorProfile ?? "patrol");
+                    e.Type = SceneEntityKinds.Normalize(e.Type);
+                    var agent = factory.CreateAgent(e.Position.ToVector3(), e.BehaviorProfile ?? "patrol");
                     // keep scene id mapping loosely via name
                     e.Id = agent.EntityId;
                 }
@@ -1051,7 +1053,7 @@ namespace Synapse.Runtime
             {
                 var messages = new List<ChatMessage>
                 {
-                    new() { Role = MessageRole.System, Content = $"You are an NPC behavior assistant for entity {entity.EntityId}." },
+                    new() { Role = MessageRole.System, Content = $"You are a sentient simulation agent assistant for entity {entity.EntityId}. You help an inhabitant perceive and decide inside a 3D simulation — not a game NPC." },
                     new() { Role = MessageRole.User, Content = prompt }
                 };
                 var promptContext = new PromptContext

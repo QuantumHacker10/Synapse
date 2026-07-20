@@ -24,7 +24,12 @@ namespace GDNN.Sentience
     #region ENUMS
 
     public enum BehaviorState { Idle, Active, Dormant, Transitioning, Terminated }
-    public enum EntityType { Static, Dynamic, Kinematic, Player, NPC, Environmental, Trigger, Sensor }
+    /// <summary>
+    /// Simulation entity roles — not game-engine actor kinds.
+    /// <see cref="Sentient"/> is an adaptive inhabitant (perception + decisions), not an NPC script.
+    /// <see cref="Observer"/> is the operator/camera presence in the simulation, not a player avatar.
+    /// </summary>
+    public enum EntityType { Static, Dynamic, Kinematic, Observer, Sentient, Environmental, Trigger, Sensor }
     public enum PerceptionType { Visual, Auditory, Tactile, Proximity, Semantic, Emotional }
     public enum RelationshipType { Neutral, Friendly, Hostile, Parent, Child, Sibling, Partner, Servant, Master }
     public enum EmotionalState { Neutral, Happy, Sad, Angry, Fearful, Surprised, Disgusted, Trusting, Anticipating, Calm, Excited, Bored, Curious, Confused, Determined, Anxious, Frustrated }
@@ -5727,9 +5732,12 @@ namespace GDNN.Sentience
 
         public SentientEntityFactory(SentienceManager manager) { _manager = manager; }
 
-        public SentientEntity CreateNPC(Vector3 position, string behaviorType, string groupName = "")
+        /// <summary>
+        /// Spawns a sentient simulation agent (perceives, decides, adapts) — not a scripted game NPC.
+        /// </summary>
+        public SentientEntity CreateAgent(Vector3 position, string behaviorType, string groupName = "")
         {
-            var entity = _manager.CreateEntity(EntityType.NPC, position);
+            var entity = _manager.CreateEntity(EntityType.Sentient, position);
             entity.CanMove = true;
             entity.MaxSpeed = 5f;
             entity.Health = 100f;
@@ -5737,8 +5745,8 @@ namespace GDNN.Sentience
             entity.PerceptionRadius = 50f;
             entity.FieldOfView = 120f;
 
-            var tree = new BehaviorTree($"NPC_{behaviorType}_{entity.EntityId:N}");
-            var root = new SelectorNode("NPC_Behavior");
+            var tree = new BehaviorTree($"Agent_{behaviorType}_{entity.EntityId:N}");
+            var root = new SelectorNode("Agent_Behavior");
 
             switch (behaviorType.ToLower())
             {
@@ -5753,12 +5761,12 @@ namespace GDNN.Sentience
                     break;
                 case "aggressive":
                     root = CreateAggressiveBehavior(entity);
-                    root = new SelectorNode("NPC_Behavior", root);
+                    root = new SelectorNode("Agent_Behavior", root);
                     entity.PersonalityTraits["Aggression"] = 0.8f;
                     entity.PersonalityTraits["Courage"] = 0.7f;
                     break;
                 case "passive":
-                    root = new SelectorNode("NPC_Behavior",
+                    root = new SelectorNode("Agent_Behavior",
                         new ActionNode("Idle", (_, _, _) => TaskStatus.Success));
                     entity.PersonalityTraits["Aggression"] = 0.1f;
                     entity.PersonalityTraits["Agreeableness"] = 0.9f;
@@ -5774,7 +5782,7 @@ namespace GDNN.Sentience
                     entity.PersonalityTraits["Neuroticism"] = 0.8f;
                     break;
                 default:
-                    root = new SelectorNode("NPC_Behavior",
+                    root = new SelectorNode("Agent_Behavior",
                         new ActionNode("DefaultBehavior", (_, _, _) => TaskStatus.Success));
                     break;
             }
@@ -5788,9 +5796,16 @@ namespace GDNN.Sentience
             return entity;
         }
 
-        public SentientEntity CreatePlayer(Vector3 position)
+        [Obsolete("Use CreateAgent — Synapse models sentient simulation agents, not game NPCs.")]
+        public SentientEntity CreateNPC(Vector3 position, string behaviorType, string groupName = "")
+            => CreateAgent(position, behaviorType, groupName);
+
+        /// <summary>
+        /// Spawns a simulation observer (operator presence), not a game player avatar.
+        /// </summary>
+        public SentientEntity CreateObserver(Vector3 position)
         {
-            var entity = _manager.CreateEntity(EntityType.Player, position);
+            var entity = _manager.CreateEntity(EntityType.Observer, position);
             entity.CanMove = true;
             entity.MaxSpeed = 8f;
             entity.Health = 150f;
@@ -5800,6 +5815,9 @@ namespace GDNN.Sentience
             entity.UpdatePriority = 100;
             return entity;
         }
+
+        [Obsolete("Use CreateObserver — Synapse is a simulation tool, not a game engine.")]
+        public SentientEntity CreatePlayer(Vector3 position) => CreateObserver(position);
 
         public SentientEntity CreateTrigger(Vector3 position, float radius, Action<SentientEntity, SentientEntity> onEnter)
         {
@@ -5827,7 +5845,7 @@ namespace GDNN.Sentience
             {
                 float angle = (2 * MathF.PI * i) / count;
                 var pos = center + new Vector3(MathF.Cos(angle) * spacing, 0, MathF.Sin(angle) * spacing);
-                var entity = CreateNPC(pos, "patrol", groupName);
+                var entity = CreateAgent(pos, "patrol", groupName);
                 entities.Add(entity);
             }
             if (entities.Count > 0)

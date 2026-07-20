@@ -26,6 +26,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 - README enrichi : exemples C#, captures d'écran, liens communauté, badges CI étendus.
 - **PhysicsState.cs** (276 Ko) découpé en **26 fichiers** modulaires sous `Synapse.Core/` (`Vector3D.cs`, `PhysicsStateCore.cs`, `UnitConverter.cs`, etc.).
+- Positionnement recentré sur l'**outil de simulation 3D** (pas un moteur de jeu) : agents sentients ≠ PNJ, observateur ≠ joueur.
+- Vocabulaire runtime : `EntityType.Sentient` / `Observer`, scène `Agent` (legacy `Character` accepté), `CreateAgent` / `CreateObserver`.
+- Interface Studio, README et site vitrine alignés sur ce positionnement.
 
 ## [1.2.0] — 2026-07-20
 

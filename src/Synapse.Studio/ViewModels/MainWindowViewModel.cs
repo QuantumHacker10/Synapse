@@ -61,10 +61,11 @@ namespace Synapse.Studio.ViewModels
             MegascansStatus = $"Bibliothèque : {_megascans.Config.LibraryRootPath}";
             LlmStatusText = _host.LlmProviderSummary;
             AboutText =
-                "SYNAPSE OMNIA 1.2 — Moteur de simulation 3D\n\n" +
-                "Un monde numérique que l'on observe, modifie et fait évoluer : formes apprises (G-DNN), " +
-                "lois physiques réécrivables, évolution NEAT-G, habitants sentients, assistance créative " +
-                "(LLM) et rendu Vulkan temps réel.\n\n" +
+                "SYNAPSE OMNIA 1.2 — Outil de simulation 3D\n\n" +
+                "Pas un moteur de jeu : un monde numérique que l'on observe, modifie et fait évoluer.\n" +
+                "Formes apprises (G-DNN), lois physiques réécrivables, évolution NEAT-G, " +
+                "agents sentients (perception et décisions — pas des PNJ scriptés), " +
+                "assistance créative (LLM) et rendu Vulkan temps réel.\n\n" +
                 "Site : https://quantumhacker10.github.io/Synapse/\n" +
                 "Licence MIT — open source.\n\n" +
                 "Apprendre · Réécrire · Cultiver";
@@ -217,7 +218,7 @@ namespace Synapse.Studio.ViewModels
                 {
                     Id = e.Id,
                     Name = e.Name,
-                    Type = Enum.TryParse<EntityType>(e.Type, true, out var t) ? t : EntityType.Empty,
+                    Type = ParseSceneEntityType(e.Type),
                     Position = e.Position.ToVector3(),
                     Scale = e.Scale.ToVector3(),
                     IsVisible = e.Visible,
@@ -229,6 +230,13 @@ namespace Synapse.Studio.ViewModels
                     BakeNeuralSdf = e.BakeNeuralSdf
                 });
             }
+        }
+
+        private static EntityType ParseSceneEntityType(string type)
+        {
+            if (SceneEntityKinds.IsSentientAgent(type))
+                return EntityType.Agent;
+            return Enum.TryParse<EntityType>(type, true, out var t) ? t : EntityType.Empty;
         }
 
         private void RefreshLaws()
@@ -479,8 +487,9 @@ namespace Synapse.Studio.ViewModels
         private void InsertBehaviorPrompt()
         {
             ChatInput =
-                "Design an NPC behavior tree. When the player is near, action: greet. " +
-                "Otherwise action: patrol. Include conditions and LLM query nodes if needed.";
+                "Design a sentient simulation agent behavior tree (not a game NPC). " +
+                "When an observer is near, action: greet. Otherwise action: patrol. " +
+                "Include conditions and LLM query nodes if needed.";
         }
 
         [RelayCommand]
@@ -498,7 +507,7 @@ namespace Synapse.Studio.ViewModels
             {
                 Kind = BlueprintNodeKind.LlmQuery,
                 Title = "LLM Query",
-                Payload = "Decide next action based on player proximity.",
+                Payload = "Decide next action based on nearby observer proximity.",
                 X = 120 + _blueprint.Nodes.Count * 24,
                 Y = 200,
                 Inputs = { new BlueprintPin { Name = "Exec", IsInput = true } },
