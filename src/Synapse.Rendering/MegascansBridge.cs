@@ -17,6 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using GDNN.Materials.SubstrateOmega;
 using GDNN.Rendering.MeshIO;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.Rendering.ArtPipeline
 {
@@ -564,7 +565,11 @@ namespace GDNN.Rendering.ArtPipeline
                     var rawId = id.GetString() ?? Guid.NewGuid().ToString("N");
                     try
                     { asset.Id = Synapse.Core.Security.PathSecurity.RequireSafeAssetId(rawId); }
-                    catch { asset.Id = Guid.NewGuid().ToString("N"); }
+                    catch (Exception ex)
+                    {
+                        SynapseLogger.Default.Warn("MegascansBridge", $"Unsafe asset id '{rawId}'; generating fallback id.", ex);
+                        asset.Id = Guid.NewGuid().ToString("N");
+                    }
                 }
                 if (root.TryGetProperty("type", out var type))
                 {
@@ -617,7 +622,10 @@ namespace GDNN.Rendering.ArtPipeline
                 if (root.TryGetProperty("surfaceArea", out var area))
                     asset.SurfaceArea = area.GetSingle();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("MegascansBridge", $"Failed to parse Megascans metadata in '{directory}'.", ex);
+            }
 
             if (string.IsNullOrEmpty(asset.Name))
                 asset.Name = new DirectoryInfo(directory).Name;
@@ -625,7 +633,11 @@ namespace GDNN.Rendering.ArtPipeline
                 asset.Id = Guid.NewGuid().ToString("N");
             try
             { asset.Id = Synapse.Core.Security.PathSecurity.RequireSafeAssetId(asset.Id); }
-            catch { asset.Id = Guid.NewGuid().ToString("N"); }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("MegascansBridge", $"Asset id '{asset.Id}' failed validation; generating fallback id.", ex);
+                asset.Id = Guid.NewGuid().ToString("N");
+            }
             Directory.CreateDirectory(_config.LibraryRootPath);
             asset.LibraryPath = Synapse.Core.Security.PathSecurity.CombineUnderRoot(_config.LibraryRootPath, asset.Id);
             return asset;
@@ -796,7 +808,10 @@ namespace GDNN.Rendering.ArtPipeline
                     if (_config.ImportMode == MegascansImportMode.MoveToLibrary)
                         try
                         { File.Delete(file); }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            SynapseLogger.Default.Warn("MegascansBridge", $"Failed to delete source file '{file}' after import.", ex);
+                        }
                 }
             }
         }

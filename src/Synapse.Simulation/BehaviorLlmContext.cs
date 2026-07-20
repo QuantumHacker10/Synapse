@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.Sentience
 {
@@ -17,7 +18,11 @@ namespace GDNN.Sentience
             {
                 try
                 { return ResponseHandler(entity, context, response); }
-                catch { return TaskStatus.Failure; }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Warn("BehaviorLlmContext", "LLM response handler threw an exception.", ex);
+                    return TaskStatus.Failure;
+                }
             }
 
             if (response.Contains("fail", StringComparison.OrdinalIgnoreCase))

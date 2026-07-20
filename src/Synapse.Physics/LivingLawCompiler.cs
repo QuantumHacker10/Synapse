@@ -26,6 +26,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Synapse.Infrastructure.Logging;
 
 namespace Synapse.Physics
 {
@@ -4075,6 +4076,7 @@ namespace Synapse.Physics
         public LawValidation Validation => _validation;
         public LawInventor Inventor => _inventor;
         public LawSimulationRunner SimulationRunner => _simulationRunner;
+        public LawEventSystem Events { get; } = new();
         public long TotalCompilationTimeMs => Interlocked.Read(ref _totalCompilationTimeMs);
         public int TotalCompilations => Interlocked.CompareExchange(ref _totalCompilations, 0, 0);
 
@@ -4126,6 +4128,7 @@ namespace Synapse.Physics
         public CompilationResult Compile(string expression, string? lawId = null)
         {
             var sw = Stopwatch.StartNew();
+            Events.Raise(LawEventType.CompilationStarted, lawId, expression);
             try
             {
                 var parser = new LawExpressionParser(expression);
@@ -4136,7 +4139,10 @@ namespace Synapse.Physics
                     sw.Stop();
                     Interlocked.Add(ref _totalCompilationTimeMs, sw.ElapsedMilliseconds);
                     Interlocked.Increment(ref _totalCompilations);
-                    return CompilationResult.Fail("Parse errors", parser.Errors.ToArray());
+                    var errors = parser.Errors.ToArray();
+                    Events.Raise(LawEventType.CompilationFailed, lawId, expression,
+                        string.Join("; ", errors));
+                    return CompilationResult.Fail("Parse errors", errors);
                 }
 
                 var bytecode = parser.CompileToBytecode(ast);
@@ -4150,6 +4156,8 @@ namespace Synapse.Physics
                         sw.Stop();
                         Interlocked.Add(ref _totalCompilationTimeMs, sw.ElapsedMilliseconds);
                         Interlocked.Increment(ref _totalCompilations);
+                        Events.Raise(LawEventType.ValidationFailed, lawId, expression,
+                            string.Join("; ", valResult.Errors));
                         return CompilationResult.Fail("Validation errors", valResult.Errors);
                     }
                 }
@@ -4161,10 +4169,15 @@ namespace Synapse.Physics
                 string cacheKey = lawId ?? expression;
                 _compiledCache[cacheKey] = bytecode;
 
+                if (!string.IsNullOrEmpty(lawId))
+                    CreateVersionTree(lawId, expression);
+
                 var result = CompilationResult.Ok(
                     $"Compiled successfully in {sw.ElapsedMilliseconds}ms",
                     bytecode, bytecode.InstructionCount, sw.ElapsedMilliseconds);
                 _compilationResults[cacheKey] = result;
+                Events.Raise(LawEventType.CompilationCompleted, lawId, expression,
+                    $"{result.InstructionCount} ops, {sw.ElapsedMilliseconds} ms");
                 return result;
             }
             catch (Exception ex)
@@ -4172,6 +4185,7 @@ namespace Synapse.Physics
                 sw.Stop();
                 Interlocked.Add(ref _totalCompilationTimeMs, sw.ElapsedMilliseconds);
                 Interlocked.Increment(ref _totalCompilations);
+                Events.Raise(LawEventType.CompilationFailed, lawId, expression, ex.Message);
                 return CompilationResult.Fail($"Compilation failed: {ex.Message}", new[] { ex.Message });
             }
         }
@@ -4188,6 +4202,7 @@ namespace Synapse.Physics
         /// <summary>Hot-reload: modify a law expression and recompile without stopping.</summary>
         public CompilationResult HotReload(string lawId, string newExpression)
         {
+            Events.Raise(LawEventType.HotReloadTriggered, lawId, newExpression);
             var law = _library.GetLaw(lawId);
             if (law != null)
                 law.Expression = newExpression;
@@ -4196,7 +4211,9 @@ namespace Synapse.Physics
                 tree.Commit(newExpression, $"Hot-reload at {DateTime.UtcNow:HH:mm:ss}");
 
             _compiledCache.Remove(lawId);
-            return Compile(newExpression, lawId);
+            var result = Compile(newExpression, lawId);
+            Events.Raise(LawEventType.HotReloadCompleted, lawId, newExpression, result.Message);
+            return result;
         }
 
         /// <summary>Create a version tree for a law expression.</summary>
@@ -4990,7 +5007,10 @@ namespace Synapse.Physics
                 {
                     try
                     { handler(this, args); }
-                    catch { /* swallow handler errors */ }
+                    catch (Exception ex)
+                    {
+                        SynapseLogger.Default.Warn("LivingLawCompiler", $"Law event handler for '{eventType}' threw an exception.", ex);
+                    }
                 }
             }
         }

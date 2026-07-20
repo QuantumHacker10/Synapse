@@ -21,6 +21,7 @@ namespace Synapse.Runtime
 
         public void Synchronize(IReadOnlyDictionary<string, object> physicalState)
         {
+            ArgumentNullException.ThrowIfNull(physicalState);
             foreach (var kv in physicalState)
                 _properties[kv.Key] = kv.Value;
             LastSynchronized = DateTime.UtcNow;
@@ -36,6 +37,7 @@ namespace Synapse.Runtime
 
         public void RestoreSnapshot(IDigitalTwinSnapshot snapshot)
         {
+            ArgumentNullException.ThrowIfNull(snapshot);
             _properties.Clear();
             foreach (var kv in snapshot.Properties)
                 _properties[kv.Key] = kv.Value;
@@ -66,6 +68,7 @@ namespace Synapse.Runtime
 
         public IDigitalTwin Register(IDigitalTwin twin)
         {
+            ArgumentNullException.ThrowIfNull(twin);
             _twins[twin.Id] = twin;
             return twin;
         }

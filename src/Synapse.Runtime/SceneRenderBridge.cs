@@ -12,6 +12,9 @@ namespace Synapse.Runtime
     {
         public static void SyncDocument(RenderEngine? renderEngine, SceneDocument scene, ViewportEditorState editor, ISynapseLogger logger)
         {
+            ArgumentNullException.ThrowIfNull(scene);
+            ArgumentNullException.ThrowIfNull(editor);
+            ArgumentNullException.ThrowIfNull(logger);
             var renderer = renderEngine?.SceneRenderer;
             if (renderer == null || !renderer.IsInitialized)
                 return;
@@ -50,6 +53,8 @@ namespace Synapse.Runtime
             double fitness,
             ISynapseLogger logger)
         {
+            ArgumentNullException.ThrowIfNull(scene);
+            ArgumentNullException.ThrowIfNull(logger);
             var genomeEntity = scene.Entities.Find(e =>
                 e.Type.Equals("Genome", StringComparison.OrdinalIgnoreCase));
 

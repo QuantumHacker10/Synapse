@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
 using GDNN.Scene;
+using Synapse.Infrastructure.Logging;
 
 #nullable enable
 
@@ -367,7 +368,10 @@ namespace GDNN.Llm
                 var json = JsonSerializer.Serialize(entry);
                 File.AppendAllText(filePath, json + Environment.NewLine);
             }
-            catch { /* Best effort persistence */ }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("LlmCostTracker", "Best-effort cost persistence failed.", ex);
+            }
         }
     }
 

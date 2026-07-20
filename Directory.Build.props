@@ -15,8 +15,10 @@
     <AnalysisMode>Default</AnalysisMode>
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
-    <!-- High-volume style/legacy noise across the research codebase; keep real errors. -->
-    <NoWarn>$(NoWarn);CA1062;CA1305;CA1707;CA1716;CA1720;CA1725;CA1805;CA1819;CA1822;CA1848;CA1859;CA1861;CA2007;CA2201;CA2211;IDE0005;IDE0007;IDE0011;IDE0040;IDE0055;IDE0060;IDE0078;IDE0090;IDE0130;IDE0290;IDE1006</NoWarn>
+    <!-- Style/legacy noise: suppressed globally across the research codebase. -->
+    <NoWarn>$(NoWarn);CA1305;CA1707;CA1716;CA1720;CA1725;CA1805;CA1819;CA1822;CA1848;CA1859;CA1861;CA2201;CA2211;IDE0005;IDE0007;IDE0011;IDE0040;IDE0055;IDE0060;IDE0078;IDE0090;IDE0130;IDE0290;IDE1006</NoWarn>
+    <!-- Robustness (CA1062 null args, CA2007 ConfigureAwait): enabled on Synapse.Core and Synapse.Runtime only. -->
+    <NoWarn Condition="'$(MSBuildProjectName)' != 'Synapse.Core' And '$(MSBuildProjectName)' != 'Synapse.Runtime'">$(NoWarn);CA1062;CA2007</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.*">

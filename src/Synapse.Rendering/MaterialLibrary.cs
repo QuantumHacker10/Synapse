@@ -16,6 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using GDNN.Materials.SubstrateOmega;
 using MaterialCategory = GDNN.Materials.SubstrateOmega.MaterialCategory;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.Rendering.ArtPipeline
 {
@@ -940,7 +941,10 @@ namespace GDNN.Rendering.ArtPipeline
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("MaterialLibrary", "Failed to restore material library usage metadata.", ex);
+            }
         }
 
         public void Dispose()

@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
 using GDNN.Scene;
+using Synapse.Infrastructure.Logging;
 
 #nullable enable
 
@@ -244,7 +245,10 @@ namespace GDNN.Llm
                             }
                         }
                     }
-                    catch { /* Skip malformed SSE lines */ }
+                    catch (Exception ex)
+                    {
+                        SynapseLogger.Default.Debug("GoogleGeminiProvider", "Skipping malformed SSE line.", ex);
+                    }
 
                     foreach (var text in geminiTexts)
                     {
@@ -349,7 +353,11 @@ namespace GDNN.Llm
                 var response = await _httpClient.GetAsync(url, cancellationToken);
                 return response.IsSuccessStatusCode;
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("GoogleGeminiProvider", "Availability check failed.", ex);
+                return false;
+            }
         }
 
         /// <inheritdoc/>
@@ -383,7 +391,11 @@ namespace GDNN.Llm
                 var available = await IsAvailableAsync(cancellationToken);
                 return available ? HealthCheckStatus.Healthy : HealthCheckStatus.Unhealthy;
             }
-            catch { return HealthCheckStatus.Unhealthy; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("GoogleGeminiProvider", "Health check failed.", ex);
+                return HealthCheckStatus.Unhealthy;
+            }
         }
 
         /// <inheritdoc/>

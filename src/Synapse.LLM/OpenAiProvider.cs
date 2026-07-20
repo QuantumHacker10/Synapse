@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
 using GDNN.Scene;
+using Synapse.Infrastructure.Logging;
 
 #nullable enable
 
@@ -274,7 +275,10 @@ namespace GDNN.Llm
                             }
                         }
                     }
-                    catch { /* Skip malformed SSE lines */ }
+                    catch (Exception ex)
+                    {
+                        SynapseLogger.Default.Debug("OpenAiProvider", "Skipping malformed SSE line.", ex);
+                    }
 
                     if (!string.IsNullOrEmpty(openaiText))
                     {

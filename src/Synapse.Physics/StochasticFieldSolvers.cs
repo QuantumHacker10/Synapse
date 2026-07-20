@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Synapse.Infrastructure.Logging;
 
 namespace Synapse.Physics;
 
@@ -4880,7 +4881,11 @@ public sealed unsafe class StochasticFieldUQ : IDisposable
         // Likelihood contribution
         try
         { logL += MathF.Log(MathF.Max(likelihood(parameters, _field), 1e-10f)); }
-        catch { logL -= 1e6f; }
+        catch (Exception ex)
+        {
+            SynapseLogger.Default.Warn("StochasticFieldSolvers", "Likelihood evaluation failed; applying penalty.", ex);
+            logL -= 1e6f;
+        }
         return logL;
     }
 

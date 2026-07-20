@@ -18,6 +18,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.Sentience
 {
@@ -552,7 +553,11 @@ namespace GDNN.Sentience
         {
             try
             { CurrentStatus = _condition(entity, context) ? TaskStatus.Success : TaskStatus.Failure; }
-            catch { CurrentStatus = TaskStatus.Failure; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("ConditionNode", $"Condition '{Name}' threw an exception.", ex);
+                CurrentStatus = TaskStatus.Failure;
+            }
             return CurrentStatus;
         }
 
@@ -578,7 +583,11 @@ namespace GDNN.Sentience
                 { _elapsed += deltaTime; if (_elapsed < _duration) { CurrentStatus = TaskStatus.Running; return CurrentStatus; } _elapsed = 0; }
                 CurrentStatus = _action(entity, context, deltaTime);
             }
-            catch { CurrentStatus = TaskStatus.Failure; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("ActionNode", $"Action '{Name}' threw an exception.", ex);
+                CurrentStatus = TaskStatus.Failure;
+            }
             return CurrentStatus;
         }
 
@@ -772,7 +781,12 @@ namespace GDNN.Sentience
         {
             try
             { if (!_condition(entity, context)) { CurrentStatus = TaskStatus.Failure; return CurrentStatus; } }
-            catch { CurrentStatus = TaskStatus.Failure; return CurrentStatus; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("GuardNode", $"Guard condition '{Name}' threw an exception.", ex);
+                CurrentStatus = TaskStatus.Failure;
+                return CurrentStatus;
+            }
             CurrentStatus = _child.Tick(entity, context, deltaTime);
             return CurrentStatus;
         }
@@ -839,7 +853,11 @@ namespace GDNN.Sentience
             {
                 try
                 { CurrentStatus = _handler(entity, context, _response); }
-                catch { CurrentStatus = TaskStatus.Failure; }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Warn("LLMQueryNode", $"Response handler for '{Name}' threw an exception.", ex);
+                    CurrentStatus = TaskStatus.Failure;
+                }
                 _sent = false;
                 _response = string.Empty;
                 return CurrentStatus;
@@ -861,7 +879,11 @@ namespace GDNN.Sentience
                     _response = $"Entity {entity.EntityId} context: {_prompt}";
                 }
             }
-            catch { _response = "TIMEOUT"; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("LLMQueryNode", $"LLM query for '{Name}' timed out or failed.", ex);
+                _response = "TIMEOUT";
+            }
         }
 
         public override void Reset() { base.Reset(); _sent = false; _response = string.Empty; }
@@ -934,7 +956,11 @@ namespace GDNN.Sentience
                     return null;
                 return new BehaviorTree("Deserialized") { Root = FromBlueprint(bp) };
             }
-            catch { return null; }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("BehaviorTree", "Failed to deserialize behavior tree JSON.", ex);
+                return null;
+            }
         }
 
         public static BehaviorTree FromLLMPrompt(string name, string prompt)

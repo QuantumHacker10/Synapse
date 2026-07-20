@@ -26,6 +26,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading;
 using System.Threading.Tasks;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.Threading
 {
@@ -1472,8 +1473,9 @@ namespace GDNN.Threading
                     {
                         task.State = ScheduledTaskState.Cancelled;
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        SynapseLogger.Default.Warn("JobScheduler", $"Scheduled task '{task.Id}' failed.", ex);
                         task.State = ScheduledTaskState.Failed;
                         tasksFailed++;
                     }

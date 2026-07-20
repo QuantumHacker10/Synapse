@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Synapse.Infrastructure.Logging;
 
 namespace GDNN.Core.Neurons
 {
@@ -5844,7 +5845,10 @@ namespace GDNN.Core.Neurons
                         Register(kernel.Kind, () => (INeuronKernel)Activator.CreateInstance(type));
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Warn("NeuronKernelRegistry", $"Failed to auto-register kernel type '{type.FullName}': {ex.Message}");
+                }
             }
         }
 
@@ -5863,7 +5867,10 @@ namespace GDNN.Core.Neurons
                         Register(kernel.Kind, () => (INeuronKernel)Activator.CreateInstance(type));
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Warn("NeuronKernelRegistry", $"Failed to register kernel type '{type.FullName}' from assembly '{assembly.FullName}': {ex.Message}");
+                }
             }
         }
 

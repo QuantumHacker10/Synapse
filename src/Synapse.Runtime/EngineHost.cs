@@ -48,6 +48,7 @@ namespace Synapse.Runtime
         private string? _activeLawId;
         private int _evolutionGeneration;
         private double _bestFitness;
+        private bool _evolutionInProgress;
         private bool _simulationPlaying = true;
         private string _llmProviderSummary = "LLM not initialized";
         private readonly ViewportEditorState _viewportEditor = new();
@@ -121,7 +122,10 @@ namespace Synapse.Runtime
         public double BestFitness => _bestFitness;
 
         /// <summary>True while a background NEAT-G run is in progress.</summary>
-        public bool EvolutionRunning => _evolutionCts is { IsCancellationRequested: false } && _evolution != null;
+        public bool EvolutionRunning => _evolutionInProgress;
+
+        /// <summary>Raised when evolution or living-law activity produces an inspector feed line.</summary>
+        public event Action<InspectorFeedEntry>? InspectorFeedEntryAdded;
 
         /// <summary>Human-readable list of registered LLM providers.</summary>
         public string LlmProviderSummary => _llmProviderSummary;
@@ -136,6 +140,7 @@ namespace Synapse.Runtime
                 return;
 
             _lawCompiler = new LivingLawCompiler();
+            WireLawInspectorEvents(_lawCompiler);
             _physicsField = CreateSeedField(16);
             _multiphysics = new MultiphysicsOrchestrator(
                 _lawCompiler,
@@ -404,7 +409,38 @@ namespace Synapse.Runtime
             _evolution = new NeatGEvolutionEngine(config);
             _evolution.InitializePopulation(3, 1);
 
+            void OnGenerationCompleted(object? sender, GenerationCompletedEventArgs args)
+            {
+                _evolutionGeneration = args.Generation;
+                _bestFitness = args.Metrics.BestFitness;
+
+                string mutationDetail = "";
+                var rates = _evolution!.Diagnostics.GetMutationSuccessRates();
+                if (rates.Count > 0)
+                {
+                    var top = rates.OrderByDescending(kvp => kvp.Value).First();
+                    mutationDetail = $" · mutation {top.Key} {top.Value:P0}";
+                }
+
+                RaiseInspector("Evolution", $"Gen {args.Generation}",
+                    $"best={args.Metrics.BestFitness:F3} avg={args.Metrics.AverageFitness:F3} " +
+                    $"species={args.Metrics.SpeciesCount}{mutationDetail}");
+                ApplyEvolutionToScene();
+            }
+
+            void OnMilestoneReached(object? sender, EvolutionMilestoneEventArgs args)
+            {
+                RaiseInspector("Evolution", args.MilestoneType.ToString(),
+                    $"gen={args.Generation} fitness={args.BestFitness:F3}");
+            }
+
+            _evolution.GenerationCompleted += OnGenerationCompleted;
+            _evolution.MilestoneReached += OnMilestoneReached;
+            _evolutionInProgress = true;
+
             _logger.Info("Evolution", $"Starting NEAT-G pop={config.PopulationSize} gens={config.MaxGenerations}");
+            RaiseInspector("Evolution", "Démarrage",
+                $"pop={config.PopulationSize} gens={config.MaxGenerations}");
 
             try
             {
@@ -412,20 +448,31 @@ namespace Synapse.Runtime
                 for (int g = 0; g < config.MaxGenerations; g++)
                 {
                     _evolutionCts.Token.ThrowIfCancellationRequested();
-                    var metrics = await _evolution.StepAsync(context, _evolutionCts.Token).ConfigureAwait(false);
+                    await _evolution.StepAsync(context, _evolutionCts.Token).ConfigureAwait(false);
                     _evolutionGeneration = _evolution.CurrentGeneration;
-                    _bestFitness = metrics.BestFitness;
+                    _bestFitness = _evolution.GetBestGenome()?.Fitness ?? _bestFitness;
                 }
 
                 ApplyEvolutionToScene();
+                RaiseInspector("Evolution", "Terminé",
+                    $"gen={_evolutionGeneration} best={_bestFitness:F3}");
             }
             catch (OperationCanceledException)
             {
                 _logger.Info("Evolution", "Cancelled");
+                RaiseInspector("Evolution", "Annulé",
+                    $"gen={_evolutionGeneration} best={_bestFitness:F3}");
             }
             catch (Exception ex)
             {
                 _logger.Warn("Evolution", $"Evolution step failed: {ex.Message}");
+                RaiseInspector("Evolution", "Erreur", ex.Message);
+            }
+            finally
+            {
+                _evolution.GenerationCompleted -= OnGenerationCompleted;
+                _evolution.MilestoneReached -= OnMilestoneReached;
+                _evolutionInProgress = false;
             }
         }
 
@@ -570,6 +617,7 @@ namespace Synapse.Runtime
         /// <summary>Compiles a blueprint graph to a behavior tree and spawns an agent.</summary>
         public SentientEntity CompileAndSpawnBlueprint(BlueprintDocument document, Vector3 position)
         {
+            ArgumentNullException.ThrowIfNull(document);
             InitializeModules();
             var blueprint = document.CompileToBehaviorTreeBlueprint();
             var tree = _sentience!.Compiler.CompileFromBlueprint(document.Name, blueprint);
@@ -1025,6 +1073,47 @@ namespace Synapse.Runtime
                 _activeLawId = lawId;
 
             return result;
+        }
+
+        private void WireLawInspectorEvents(LivingLawCompiler compiler)
+        {
+            void Forward(object sender, LawEventArgs args)
+            {
+                if (args.EventType is LawEventType.CompilationStarted or LawEventType.CacheHit
+                    or LawEventType.CacheMiss or LawEventType.CacheEviction)
+                    return;
+
+                string title = args.EventType switch
+                {
+                    LawEventType.CompilationCompleted => "Compilation OK",
+                    LawEventType.CompilationFailed => "Compilation échouée",
+                    LawEventType.ValidationFailed => "Validation échouée",
+                    LawEventType.HotReloadTriggered => "Hot-reload",
+                    LawEventType.HotReloadCompleted => "Hot-reload OK",
+                    LawEventType.VersionCreated => "Version créée",
+                    LawEventType.LawApplied => "Loi appliquée",
+                    _ => args.EventType.ToString()
+                };
+
+                string detail = args.Message ?? "";
+                if (!string.IsNullOrEmpty(args.LawId))
+                    detail = string.IsNullOrEmpty(detail)
+                        ? args.LawId
+                        : $"{args.LawId} — {detail}";
+                if (!string.IsNullOrEmpty(args.Expression))
+                    detail += $"\n{args.Expression}";
+
+                RaiseInspector("LivingLaw", title, detail.Trim());
+            }
+
+            foreach (LawEventType eventType in Enum.GetValues<LawEventType>())
+                compiler.Events.Subscribe(eventType, Forward);
+        }
+
+        private void RaiseInspector(string category, string title, string detail)
+        {
+            InspectorFeedEntryAdded?.Invoke(new InspectorFeedEntry(
+                DateTime.UtcNow, category, title, detail));
         }
 
         private static PhysicsField CreateSeedField(int size)

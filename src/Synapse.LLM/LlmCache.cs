@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
 using GDNN.Scene;
+using Synapse.Infrastructure.Logging;
 
 #nullable enable
 
@@ -354,7 +355,10 @@ namespace GDNN.Llm
                     }
                 }
             }
-            catch { /* Best effort loading */ }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("LlmCache", "Best-effort cache load failed.", ex);
+            }
         }
     }
 

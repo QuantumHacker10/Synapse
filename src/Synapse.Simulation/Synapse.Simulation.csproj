@@ -11,5 +11,6 @@
     <ProjectReference Include="..\Synapse.Rendering\Synapse.Rendering.csproj" />
     <ProjectReference Include="..\Synapse.Physics\Synapse.Physics.csproj" />
     <ProjectReference Include="..\Synapse.AI\Synapse.AI.csproj" />
+    <ProjectReference Include="..\Synapse.Infrastructure\Synapse.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

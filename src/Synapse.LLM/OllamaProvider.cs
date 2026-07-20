@@ -33,6 +33,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Timers;
 using GDNN.Scene;
+using Synapse.Infrastructure.Logging;
 
 #nullable enable
 
@@ -235,7 +236,10 @@ namespace GDNN.Llm
                         progressCallback?.Invoke(status.GetString() ?? "");
                     }
                 }
-                catch { /* Skip malformed lines */ }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Debug("OllamaProvider", "Skipping malformed progress line.", ex);
+                }
             }
         }
 
@@ -387,7 +391,10 @@ namespace GDNN.Llm
                                        doneProp.GetBoolean();
                         }
                     }
-                    catch { /* Skip malformed lines */ }
+                    catch (Exception ex)
+                    {
+                        SynapseLogger.Default.Debug("OllamaProvider", "Skipping malformed streaming line.", ex);
+                    }
 
                     if (!string.IsNullOrEmpty(ollamaText))
                     {
