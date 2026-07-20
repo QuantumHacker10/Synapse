@@ -31,10 +31,10 @@ Release industrielle **Synapse OMNIA 1.2** : physique/rendu durcis, multiplatefo
 
 ### Modifié
 
+- Passage à la **licence MIT** (open source) — remplace la licence propriétaire ; voir [LICENSE](LICENSE) et [COPYRIGHT](COPYRIGHT).
 - Interface Studio entièrement en français (menus, statuts, dialogues, console LLM).
 - Texte « À propos » enrichi (onglet Performance) aligné sur le README et le site vitrine (v1.2).
 - README, site GitHub Pages et CHANGELOG recentrés sur le positionnement « moteur de simulation 3D ».
-- Remplacement de la licence MIT par une **licence propriétaire** (anti-copie, anti-fork, anti-plagiat) — voir [LICENSE](LICENSE) et [COPYRIGHT](COPYRIGHT).
 - Remplacement du LOD stochastique placeholder et des stubs AO / compute no-op.
 - `SceneRenderer.RenderGI` réutilise le G-buffer résident au lieu de forcer des constantes chaque frame.
 - Version produit **1.2.0** (`Directory.Build.props`).
