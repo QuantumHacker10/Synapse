@@ -19,8 +19,8 @@ endorsement when distributing modified builds.
 
 ## History
 
-- **v1.1–v1.2** — initially shipped under a proprietary license
-- **v1.3+ (planned)** — MIT License adopted to encourage community contributions
+- **v1.1–v1.2** — shipped under a proprietary license
+- **v1.3.0** — MIT License adopted to encourage community contributions
 
 See [CHANGELOG.md](../CHANGELOG.md) for the exact release when the license changed.
 

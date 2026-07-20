@@ -1,4 +1,4 @@
-# SYNAPSE OMNIA — 3D Simulation Engine · v1.2
+# SYNAPSE OMNIA — 3D Simulation Engine · v1.3
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
@@ -15,11 +15,11 @@ shapes, laws, and inhabitants change together.
 Where classic 3D tools *freeze* objects and *replay* immutable rules, Synapse *learns*,
 *rewrites*, and *cultivates* the simulated world.
 
-> **Product v1.2** — Synapse Studio + unified runtime (industrial physics, joints/vehicles,
+> **Product v1.3** — MIT-licensed open source. Synapse Studio + unified runtime (industrial physics, joints/vehicles,
 > mesh provider, GPU-resident GI, cross-platform GLFW/Vulkan). Builds for **Windows x64**,
 > **Linux x64**, and **macOS arm64** via CI / `scripts/publish-all.sh`.
 
-**Landing page:** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases:** [Download v1.2](https://github.com/QuantumHacker10/Synapse/releases)
+**Landing page:** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases:** [Download v1.3](https://github.com/QuantumHacker10/Synapse/releases)
 
 ## Demo
 

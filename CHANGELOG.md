@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-07-20
+
+Release **Synapse OMNIA 1.3** — MIT license, community documentation, demo media, Codecov CI.
+
 ### Added
 
 - English README, CONTRIBUTING, and GitHub issue/PR templates for international contributors.
@@ -18,6 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - **License switched to MIT** — replaces proprietary license; forks and contributions welcome.
 - Release workflow bundles demo media; release notes reference MIT License.
 - CI uploads Cobertura coverage to Codecov (requires `CODECOV_TOKEN` repository secret).
+- Product version **1.3.0** (`Directory.Build.props`).
 
 ## [1.2.0] — 2026-07-20
 
@@ -88,5 +93,6 @@ Première release produit **Synapse OMNIA 1.1** : Synapse Studio, moteur de simu
 - **.NET 10** / C# 14, Vulkan (Windows HWND + GLFW, Linux, macOS MoltenVK).
 - Tag Git : [`v1.1.0`](https://github.com/QuantumHacker10/Synapse/releases/tag/v1.1.0).
 
+[1.3.0]: https://github.com/QuantumHacker10/Synapse/releases/tag/v1.3.0
 [1.2.0]: https://github.com/QuantumHacker10/Synapse/releases/tag/v1.2.0
 [1.1.0]: https://github.com/QuantumHacker10/Synapse/releases/tag/v1.1.0
