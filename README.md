@@ -54,7 +54,7 @@ Six idées rares réunies dans **un seul moteur de simulation**, pas comme des p
 | Windows (publish) | `glfw3.dll` 3.4+ (voir [glfw3.dll](#glfw3dll)) |
 | LLM (optionnel) | [Ollama](https://ollama.com/) en local, ou clés API cloud (voir [Configuration](#configuration)) |
 
-**Plateformes cibles :** Windows x64 (publish officiel), Linux et macOS via compilation locale.
+**Plateformes cibles :** Windows, Linux et macOS en **natif GLFW + Vulkan** (MoltenVK sur macOS). Publish officiel win-x64 ; Linux/macOS via `dotnet publish -r linux-x64|osx-arm64`. HWND = embed Studio Windows uniquement.
 
 ## Démarrage rapide
 
@@ -99,14 +99,14 @@ Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.
 | Projet | Rôle |
 |---|---|
 | `Synapse.Core` | Fondations mathématiques / physiques (`PhysicsState` 256 octets, algèbre, octree, kd-tree, sécurité) |
-| `Synapse.Physics` | `LivingLawCompiler` — 100 lois texte ; **RigidBodyWorld** + **MultiphysicsOrchestrator** ; solveurs Maxwell, SPH, LBM, Schrödinger, N-corps, champs stochastiques |
+| `Synapse.Physics` | `LivingLawCompiler` ; **RigidBodyWorld** (joints, vehicles, CCD, mesh colliders) + **MultiphysicsOrchestrator** ; Maxwell, SPH, LBM… |
 | `Synapse.AI` | `NeatGEvolutionEngine` — évolution NEAT-G, sélection NSGA-II, fitness SDF + irradiance L-DNN |
 | `Synapse.Genomics` | `GeoGenome` — génomes de formes (builder, validation, registry, pool) |
 | `Synapse.Rendering` | Vulkan RHI, G-DNN (SDF), L-DNN (GI + SSAO), polygonisation LOD **QEM**, mesh→SDF, export glTF |
 | `Synapse.LLM` | `HybridLlmRouter` — ONNX / Ollama / OpenAI / Anthropic / Gemini / Azure + parse lighting/SDF |
 | `Synapse.Simulation` | `SentienceManager` — entités, behavior trees, perception, jumeaux numériques |
 | `Synapse.Infrastructure` | Qualité adaptative, benchmarks, logging et config |
-| `Synapse.Runtime` | `EngineHost` + `FrameOrchestrator` + projets `.synapse`, application des hints LLM→scène |
+| `Synapse.Runtime` | `EngineHost` + `FrameOrchestrator` + **SynapseMeshProvider** + projets `.synapse` |
 | `Synapse.Studio` | **Synapse Studio** — éditeur Avalonia + mode `--engine` GLFW |
 
 ```mermaid

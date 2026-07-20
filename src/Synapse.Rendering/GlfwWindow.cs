@@ -148,6 +148,25 @@ namespace GDNN.Platform
 
         public static bool ShouldClose(IntPtr window) => glfwWindowShouldClose(window) != 0;
 
+        /// <summary>True when the GLFW native library can be resolved on this platform.</summary>
+        public static bool IsAvailable()
+        {
+            try
+            {
+                NativeLibraryResolver.EnsureRegistered();
+                // Probe by resolving the DllImport target without requiring a successful glfwInit
+                // (init may fail in headless CI without a display).
+                return NativeLibrary.TryLoad(NativeLibraryResolver.GlfwLibraryName, out _)
+                    || NativeLibrary.TryLoad("glfw3", out _)
+                    || NativeLibrary.TryLoad("libglfw.so.3", out _)
+                    || NativeLibrary.TryLoad("libglfw.3.dylib", out _);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public static void PollEvents() => glfwPollEvents();
         public static double GetTime() => glfwGetTime();
 

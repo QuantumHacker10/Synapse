@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using GDNN.Core.NEAT;
 using GDNN.Llm;
+using GDNN.Platform;
 using GDNN.Rendering.Engine;
 using GDNN.Rendering.Quality;
 using GDNN.Scene;
@@ -34,6 +35,7 @@ namespace Synapse.Runtime
         private LivingLawCompiler? _lawCompiler;
         private PhysicsField? _physicsField;
         private MultiphysicsOrchestrator? _multiphysics;
+        private SynapseMeshProvider? _meshProvider;
         private SentienceManager? _sentience;
         private HybridLlmRouter? _llmRouter;
         private RuntimeQualityManager? _quality;
@@ -74,6 +76,12 @@ namespace Synapse.Runtime
 
         /// <summary>Rigid-body world driven each physics tick.</summary>
         public RigidBodyWorld? RigidWorld => _multiphysics?.RigidWorld;
+
+        /// <summary>Synapse Omnia mesh provider (load → cook → optional G-DNN bake).</summary>
+        public SynapseMeshProvider? MeshProvider => _meshProvider;
+
+        /// <summary>Native platform capabilities (GLFW / Vulkan / HWND).</summary>
+        public PlatformCapabilities PlatformCaps { get; private set; } = NativePlatform.Probe();
 
         /// <summary>Multi-provider LLM router.</summary>
         public HybridLlmRouter? LlmRouter => _llmRouter;
@@ -139,6 +147,7 @@ namespace Synapse.Runtime
                     MaxSubSteps = 4,
                     Gravity = new Vector3(0f, -9.81f, 0f)
                 });
+            _meshProvider = new SynapseMeshProvider(_logger);
             _sentience = new SentienceManager();
             _llmRouter = new HybridLlmRouter();
             _llmProviderSummary = LlmProviderBootstrap.Register(_llmRouter, _config, _logger).Summary;
@@ -156,8 +165,24 @@ namespace Synapse.Runtime
             twin.SetProperty("EntityType", GDNN.Sentience.EntityType.Environmental.ToString());
             _twins.Register(twin);
 
+            PlatformCaps = NativePlatform.Probe();
             _modulesInitialized = true;
-            _logger.Info("EngineHost", "Modules initialized (Physics, Simulation, LLM, Quality, Twins)");
+            _logger.Info("EngineHost", "Modules initialized (Physics, Simulation, LLM, Quality, Twins, MeshProvider)");
+            _logger.Info("Platform", PlatformCaps.Summary);
+        }
+
+        /// <summary>
+        /// Native multiplatform render init: always uses GLFW as the primary Vulkan WSI
+        /// on Windows, Linux, and macOS (MoltenVK). Prefer this over HWND except for
+        /// Avalonia Studio embedding on Windows.
+        /// </summary>
+        public void InitializeRenderNative(int width, int height, bool enableValidation = true)
+        {
+            PlatformCaps = NativePlatform.Probe();
+            _logger.Info("Platform", PlatformCaps.Summary);
+            if (!PlatformCaps.GlfwAvailable)
+                _logger.Warn("Platform", "GLFW probe failed — RenderEngine will still attempt DllImport resolution");
+            InitializeRender(width, height, enableValidation);
         }
 
         /// <summary>Creates a standalone GLFW render surface.</summary>
@@ -759,7 +784,66 @@ namespace Synapse.Runtime
             }
 
             _multiphysics.SyncFromEntities(descs);
-            _logger.Info("Physics", $"Rigid world synced ({_multiphysics.RigidWorld.Bodies.Count} bodies)");
+
+            // Mesh-backed colliders + optional vehicles (Synapse Omnia extensions).
+            foreach (var e in _scene.Entities)
+            {
+                if (!string.IsNullOrWhiteSpace(e.MeshPath) && _meshProvider != null && File.Exists(e.MeshPath))
+                {
+                    try
+                    {
+                        var asset = new GDNN.Rendering.MeshIO.MeshLoader().LoadSync(e.MeshPath);
+                        if (asset != null)
+                        {
+                            string meshId = e.Id.ToString("N");
+                            _meshProvider.RegisterAsset(meshId, asset);
+                            bool isStatic = e.Name.Contains("Ground", StringComparison.OrdinalIgnoreCase);
+                            var bodyType = isStatic ? BodyType.Static : BodyType.Dynamic;
+                            var cooked = _meshProvider.CookCollider(meshId, bodyType);
+                            if (cooked != null)
+                            {
+                                _multiphysics.RigidWorld.RemoveBody(e.Id);
+                                var replacement = new RigidBody
+                                {
+                                    Id = e.Id,
+                                    Name = e.Name,
+                                    Type = bodyType,
+                                    Collider = cooked,
+                                    Position = e.Position.ToVector3()
+                                };
+                                if (bodyType == BodyType.Dynamic)
+                                    replacement.SetMass(MathF.Max(0.1f, e.Scale.X * e.Scale.Y * e.Scale.Z));
+                                else
+                                    replacement.SetMass(0f);
+                                _multiphysics.RigidWorld.AddBody(replacement);
+                            }
+
+                            if (e.BakeNeuralSdf)
+                                _ = _meshProvider.BakeNeuralSdfAsync(meshId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn("MeshProvider", $"Mesh bind failed for '{e.Name}': {ex.Message}");
+                    }
+                }
+
+                if (e.IsVehicle)
+                {
+                    var chassis = _multiphysics.RigidWorld.GetBody(e.Id);
+                    if (chassis != null)
+                    {
+                        chassis.Type = BodyType.Dynamic;
+                        if (chassis.InverseMass <= 0f)
+                            chassis.SetMass(1200f);
+                        _multiphysics.RigidWorld.AddVehicle(VehicleController.CreateDefaultCar(chassis.Id));
+                    }
+                }
+            }
+
+            _logger.Info("Physics",
+                $"Rigid world synced ({_multiphysics.RigidWorld.Bodies.Count} bodies, " +
+                $"{_multiphysics.RigidWorld.Joints.Count} joints, {_multiphysics.RigidWorld.Vehicles.Count} vehicles)");
         }
 
         private void WritePhysicsTransformsToScene()

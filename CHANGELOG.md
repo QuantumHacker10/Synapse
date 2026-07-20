@@ -17,6 +17,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - **GI GPU-résidente** : `GpuResidentGiPipeline` + kernel `ssgi_irradiance` — plus de fill constant tant qu'un G-buffer GPU est résident.
 - **CCD** : détection continue (TOI) sphère/plan et sphère/AABB pour empêcher le tunneling.
 - **Certification CFD/FEA** : `PhysicsCertification.RunIndustrialCore()` (repos, moment, CCD, onde, CFL Maxwell, élasticité, SPH).
+- **Multiplateforme native** : `NativePlatform` + `IVulkanSurfaceFactory` (GLFW primaire partout, HWND optionnel Windows), résolution native élargie (`runtimes/{rid}/native`).
+- **Joints avancés** : hinge, ball-socket, slider, fixed, distance (PGS).
+- **Véhicules** : `VehicleController` raycast (suspension, steer/drive/brake).
+- **SynapseMeshProvider** : mesh → cook convex/triangle → corps + bake G-DNN SDF optionnel.
 
 ### Modifié
 

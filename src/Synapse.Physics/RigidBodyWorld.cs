@@ -25,7 +25,11 @@ public enum ColliderShape : byte
     Sphere = 0,
     Box = 1,
     Capsule = 2,
-    Plane = 3
+    Plane = 3,
+    /// <summary>Cooked convex hull (dynamic-friendly).</summary>
+    ConvexHull = 4,
+    /// <summary>Triangle mesh (prefer static / kinematic for Synapse worlds).</summary>
+    TriangleMesh = 5
 }
 
 /// <summary>Material parameters for friction / restitution / density.</summary>
@@ -47,6 +51,15 @@ public sealed class Collider
     /// <summary>Half-extents for box; radius in X for sphere; (radius, half-height, radius) for capsule.</summary>
     public Vector3 Size { get; set; } = new(0.5f, 0.5f, 0.5f);
     public Vector3 LocalOffset { get; set; }
+
+    /// <summary>Cooked convex hull vertices in local space (ConvexHull).</summary>
+    public Vector3[]? HullVertices { get; set; }
+    /// <summary>Triangle indices into <see cref="MeshVertices"/> (TriangleMesh).</summary>
+    public int[]? MeshIndices { get; set; }
+    /// <summary>Triangle mesh vertices in local space.</summary>
+    public Vector3[]? MeshVertices { get; set; }
+    /// <summary>Optional source mesh asset id (Synapse MeshProvider).</summary>
+    public string? SourceMeshId { get; set; }
 }
 
 /// <summary>Single rigid body in the industrial dynamics world.</summary>
@@ -156,9 +169,24 @@ public sealed class RigidBody
             ColliderShape.Sphere => new Vector3(Collider.Size.X),
             ColliderShape.Capsule => new Vector3(Collider.Size.X, Collider.Size.Y + Collider.Size.X, Collider.Size.X),
             ColliderShape.Plane => new Vector3(1e6f, 0.01f, 1e6f),
+            ColliderShape.ConvexHull => ComputePointsExtents(Collider.HullVertices),
+            ColliderShape.TriangleMesh => ComputePointsExtents(Collider.MeshVertices),
             _ => Collider.Size
         };
         WorldAabb = new Aabb(center - extents, center + extents);
+    }
+
+    private static Vector3 ComputePointsExtents(Vector3[]? pts)
+    {
+        if (pts == null || pts.Length == 0)
+            return new Vector3(0.5f);
+        Vector3 min = pts[0], max = pts[0];
+        for (int i = 1; i < pts.Length; i++)
+        {
+            min = Vector3.Min(min, pts[i]);
+            max = Vector3.Max(max, pts[i]);
+        }
+        return (max - min) * 0.5f + new Vector3(0.01f);
     }
 }
 
@@ -224,6 +252,8 @@ public sealed class RigidBodyWorld
     private readonly List<ContactManifold> _manifolds = new();
     private readonly Dictionary<Guid, RigidBody> _byId = new();
     private readonly HashSet<int> _ccdResolved = new();
+    private readonly List<PhysicsJoint> _joints = new();
+    private readonly List<VehicleController> _vehicles = new();
 
     public Vector3 Gravity { get; set; } = new(0f, -9.81f, 0f);
     public int VelocityIterations { get; set; } = 10;
@@ -243,6 +273,8 @@ public sealed class RigidBodyWorld
 
     public IReadOnlyList<RigidBody> Bodies => _bodies;
     public IReadOnlyList<ContactManifold> Manifolds => _manifolds;
+    public IReadOnlyList<PhysicsJoint> Joints => _joints;
+    public IReadOnlyList<VehicleController> Vehicles => _vehicles;
     public PhysicsWorldStats LastStats { get; } = new();
 
     public RigidBody AddBody(RigidBody body)
@@ -275,6 +307,49 @@ public sealed class RigidBodyWorld
         _bodies.Clear();
         _byId.Clear();
         _manifolds.Clear();
+        _joints.Clear();
+        _vehicles.Clear();
+        _ccdResolved.Clear();
+    }
+
+    public PhysicsJoint AddJoint(PhysicsJoint joint)
+    {
+        ArgumentNullException.ThrowIfNull(joint);
+        _joints.Add(joint);
+        return joint;
+    }
+
+    public bool RemoveJoint(Guid id)
+    {
+        for (int i = 0; i < _joints.Count; i++)
+        {
+            if (_joints[i].Id == id)
+            {
+                _joints.RemoveAt(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public VehicleController AddVehicle(VehicleController vehicle)
+    {
+        ArgumentNullException.ThrowIfNull(vehicle);
+        _vehicles.Add(vehicle);
+        return vehicle;
+    }
+
+    public bool RemoveVehicle(Guid id)
+    {
+        for (int i = 0; i < _vehicles.Count; i++)
+        {
+            if (_vehicles[i].Id == id)
+            {
+                _vehicles.RemoveAt(i);
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>Advances the world by <paramref name="dt"/> seconds.</summary>
@@ -286,11 +361,15 @@ public sealed class RigidBodyWorld
         IntegrateForces(dt);
         BroadAndNarrowPhase();
         SolveVelocityConstraints(dt);
+        JointSolver.SolveVelocity(_joints, GetBody, VelocityIterations, dt);
+        for (int i = 0; i < _vehicles.Count; i++)
+            _vehicles[i].Step(this, dt);
         _ccdResolved.Clear();
         if (EnableCcd)
             SolveContinuousCollisions(dt);
         IntegrateVelocities(dt);
         SolvePositionConstraints();
+        JointSolver.SolvePosition(_joints, GetBody, PositionIterations, Baumgarte);
         UpdateSleepState(dt);
         ClearForcesAll();
 
@@ -594,7 +673,50 @@ public sealed class RigidBodyWorld
         if (a.Collider.Shape == ColliderShape.Sphere || b.Collider.Shape == ColliderShape.Sphere)
             return GenerateSphereBox(a, b, manifold);
 
+        // Convex hull / triangle mesh: use world AABB as a stable industrial contact proxy.
+        if (a.Collider.Shape is ColliderShape.ConvexHull or ColliderShape.TriangleMesh
+            || b.Collider.Shape is ColliderShape.ConvexHull or ColliderShape.TriangleMesh)
+            return GenerateBoxBoxFromAabb(a, b, manifold);
+
         return GenerateBoxBox(a, b, manifold);
+    }
+
+    private static bool GenerateBoxBoxFromAabb(RigidBody a, RigidBody b, ContactManifold m)
+    {
+        Vector3 ca = (a.WorldAabb.Min + a.WorldAabb.Max) * 0.5f;
+        Vector3 cb = (b.WorldAabb.Min + b.WorldAabb.Max) * 0.5f;
+        Vector3 ha = (a.WorldAabb.Max - a.WorldAabb.Min) * 0.5f;
+        Vector3 hb = (b.WorldAabb.Max - b.WorldAabb.Min) * 0.5f;
+        Vector3 d = cb - ca;
+        Vector3 overlap = ha + hb - new Vector3(MathF.Abs(d.X), MathF.Abs(d.Y), MathF.Abs(d.Z));
+        if (overlap.X <= 0f || overlap.Y <= 0f || overlap.Z <= 0f)
+            return false;
+
+        Vector3 n;
+        float pen;
+        if (overlap.X <= overlap.Y && overlap.X <= overlap.Z)
+        {
+            n = new Vector3(d.X >= 0 ? 1f : -1f, 0, 0);
+            pen = overlap.X;
+        }
+        else if (overlap.Y <= overlap.Z)
+        {
+            n = new Vector3(0, d.Y >= 0 ? 1f : -1f, 0);
+            pen = overlap.Y;
+        }
+        else
+        {
+            n = new Vector3(0, 0, d.Z >= 0 ? 1f : -1f);
+            pen = overlap.Z;
+        }
+
+        m.Points.Add(new ContactPoint
+        {
+            Position = ca + d * 0.5f,
+            Normal = n,
+            Penetration = pen
+        });
+        return true;
     }
 
     private static bool GeneratePlaneContact(RigidBody a, RigidBody b, ContactManifold m)

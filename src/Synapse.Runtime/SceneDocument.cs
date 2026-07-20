@@ -99,6 +99,12 @@ namespace Synapse.Runtime
         public string? BehaviorProfile { get; set; }
         public string? GenomeId { get; set; }
         public string? LawId { get; set; }
+        /// <summary>Optional mesh asset path (glTF/OBJ) for SynapseMeshProvider.</summary>
+        public string? MeshPath { get; set; }
+        /// <summary>When true with <see cref="MeshPath"/>, bake a G-DNN SDF after load.</summary>
+        public bool BakeNeuralSdf { get; set; }
+        /// <summary>When true, treat the entity as a raycast vehicle chassis.</summary>
+        public bool IsVehicle { get; set; }
     }
 
     public sealed class CameraData
