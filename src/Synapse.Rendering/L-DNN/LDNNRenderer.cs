@@ -20,27 +20,27 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class LDNNRenderer
     {
-        private required LDNNConfig _config;
-        private required RadianceCascadesManager _cascadesManager;
-        private required NeuralPredictiveIrradiance _neuralPredictor;
-        private required NeuralSpecularPredictor _specularPredictor;
-        private required ReferencePathTracer _referencePathTracer;
-        private required ScreenSpaceIrradiance _screenSpaceGI;
-        private required IrradianceCacheManager _probeCache;
-        private required TemporalStabilizer _temporalStabilizer;
-        private required DenoisingPipeline _denoisingPipeline;
-        private required VolumetricLighting _volumetricLighting;
-        private required AmbientOcclusionSystem _aoSystem;
-        private required LightCullingSystem _lightCulling;
-        private required LDNNAnalytics _analytics;
+        private LDNNConfig _config;
+        private RadianceCascadesManager _cascadesManager;
+        private NeuralPredictiveIrradiance _neuralPredictor;
+        private NeuralSpecularPredictor _specularPredictor;
+        private ReferencePathTracer _referencePathTracer;
+        private ScreenSpaceIrradiance _screenSpaceGI;
+        private IrradianceCacheManager _probeCache;
+        private TemporalStabilizer _temporalStabilizer;
+        private DenoisingPipeline _denoisingPipeline;
+        private VolumetricLighting _volumetricLighting;
+        private AmbientOcclusionSystem _aoSystem;
+        private LightCullingSystem _lightCulling;
+        private LDNNAnalytics _analytics;
 
-        private required FrameTelemetry _telemetry;
-        private required GBuffer _previousGBuffer;
-        private required Vector3[] _previousGIResult;
+        private FrameTelemetry _telemetry;
+        private GBuffer _previousGBuffer;
+        private Vector3[] _previousGIResult;
         private int _frameIndex;
         private bool _isInitialized;
         private bool _isShutdown;
-        private required RandomNumberGenerator _rng;
+        private RandomNumberGenerator _rng;
 
         private const float PI = MathF.PI;
         private const float TWO_PI = 2.0f * MathF.PI;
