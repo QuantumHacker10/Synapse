@@ -191,7 +191,7 @@ Déployée automatiquement sur [GitHub Pages](https://quantumhacker10.github.io/
 ## Licence
 
 **Licence MIT — open source.** Vous pouvez utiliser, modifier, distribuer et créer
-des œuvres dérivées du code source, y compris à des fins commerciales, sous réserve
+des simulations dérivées du code source, y compris à des fins commerciales, sous réserve
 de conserver l'avis de copyright et la licence.
 
 Voir [`LICENSE`](LICENSE) et [`COPYRIGHT`](COPYRIGHT).
