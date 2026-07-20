@@ -47,7 +47,7 @@ jobs:
         run: |
           Copy-Item README.md, LICENSE, COPYRIGHT artifacts/${{ matrix.artifact }}/
           @"
-          SYNAPSE OMNIA 1.2 — Moteur de simulation 3D (Windows x64)
+          SYNAPSE OMNIA — 3D Simulation Engine (Windows x64) — ${{ github.ref_name }}
           Proprietary license — see LICENSE / COPYRIGHT.
           Prerequisites: Vulkan GPU drivers. Place glfw3.dll beside the exe if needed
           (src/Synapse.Studio/native/README.md).
@@ -58,8 +58,8 @@ jobs:
         if: matrix.rid != 'win-x64'
         run: |
           cp README.md LICENSE COPYRIGHT "artifacts/${{ matrix.artifact }}/"
-          cat > "artifacts/${{ matrix.artifact }}/RELEASE_NOTES.txt" <<'EOF'
-          SYNAPSE OMNIA 1.2 — Moteur de simulation 3D
+          cat > "artifacts/${{ matrix.artifact }}/RELEASE_NOTES.txt" <<EOF
+          SYNAPSE OMNIA — 3D Simulation Engine — ${{ github.ref_name }}
           RID: see folder name. Proprietary — see LICENSE / COPYRIGHT.
           Needs: Vulkan (MoltenVK on macOS) + GLFW (system package or runtimes/*/native).
           Launch: ./Synapse.Studio | Engine: ./Synapse.Studio --engine
@@ -100,13 +100,17 @@ jobs:
           body: |
             ## SYNAPSE OMNIA ${{ github.ref_name }}
 
-            Moteur de **simulation 3D** multiplateforme (GLFW + Vulkan).
+            Cross-platform **3D simulation engine** (GLFW + Vulkan).
 
-            ### Artefacts
+            ### Artifacts
             - **Windows x64** — `.zip` self-contained
             - **Linux x64** — `.tar.gz` self-contained
             - **macOS arm64** — `.tar.gz` (MoltenVK)
 
             ### Launch
-            - Studio Avalonia : `Synapse.Studio` / `Synapse.Studio.exe`
-            - Moteur GLFW seul : `--engine`
+            - Synapse Studio (Avalonia): `Synapse.Studio` / `Synapse.Studio.exe`
+            - Engine-only GLFW mode: `--engine`
+
+            ### Documentation
+            - [Getting started](../blob/main/docs/getting-started.md)
+            - [Architecture](../blob/main/docs/architecture.md)

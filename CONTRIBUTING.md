@@ -1,81 +1,85 @@
-# Contribuer à Synapse
+# Contributing to Synapse
 
-Merci de votre intérêt pour **Synapse OMNIA**, moteur de simulation 3D. Ce guide décrit le flux Git, les branches protégées et le versionnement.
+Thank you for your interest in **Synapse OMNIA**, a 3D simulation engine. This guide
+describes the Git workflow, protected branches, and versioning.
 
 ## Branches
 
-| Branche | Rôle | Qui peut pousser |
+| Branch | Role | Who can push |
 |---|---|---|
-| `main` | Release stable, tags `v*` | Pull requests uniquement (branche protégée) |
-| `develop` | Intégration continue des features | Pull requests depuis `feat/*`, `fix/*`, etc. |
-| `feat/*` | Nouvelle fonctionnalité | Développeur / équipe |
-| `fix/*` | Correction de bug | Développeur / équipe |
-| `docs/*` | Documentation seule | Développeur / équipe |
-| `chore/*` | CI, tooling, dépendances | Développeur / équipe |
+| `main` | Stable release, `v*` tags | Pull requests only (protected branch) |
+| `develop` | Continuous feature integration | Pull requests from `feat/*`, `fix/*`, etc. |
+| `feat/*` | New feature | Developer / team |
+| `fix/*` | Bug fix | Developer / team |
+| `docs/*` | Documentation only | Developer / team |
+| `chore/*` | CI, tooling, dependencies | Developer / team |
 
-### Flux recommandé
+### Recommended flow
 
 ```text
-feat/ma-fonctionnalite ──PR──► develop ──PR──► main ──tag──► v1.2.0
+feat/my-feature ──PR──► develop ──PR──► main ──tag──► v1.2.0
 ```
 
-1. Partir de `develop` à jour : `git checkout develop && git pull`
-2. Créer une branche isolée : `git checkout -b feat/ma-fonctionnalite`
-3. Commiter des changements atomiques avec des messages clairs
-4. Vérifier localement : `dotnet build && dotnet test`
-5. Pousser et ouvrir une PR vers `develop`
-6. Après revue et CI verte, merger dans `develop`
-7. Pour une release : PR `develop` → `main`, puis taguer (voir ci-dessous)
+1. Start from an up-to-date `develop`: `git checkout develop && git pull`
+2. Create an isolated branch: `git checkout -b feat/my-feature`
+3. Commit atomic changes with clear messages
+4. Verify locally: `dotnet build && dotnet test`
+5. Push and open a PR toward `develop`
+6. After review and green CI, merge into `develop`
+7. For a release: PR `develop` → `main`, then tag (see below)
 
-### Conventions de nommage
+### Naming conventions
 
 ```text
-feat/neural-shadows      # nouvelle capacité
-fix/vulkan-resize-crash  # correction
+feat/neural-shadows      # new capability
+fix/vulkan-resize-crash  # bug fix
 docs/changelog-1.2       # documentation
 chore/ci-cache           # infrastructure
 ```
 
-## Branche `main` protégée
+## Protected `main` branch
 
-La branche `main` doit rester stable. Configuration cible :
+The `main` branch must stay stable. Target configuration:
 
-- **Pull requests obligatoires** — pas de push direct
-- **1 revue** minimum avant merge
-- **CI verte** — checks requis :
+- **Pull requests required** — no direct push
+- **1 review** minimum before merge
+- **Green CI** — required checks:
   - `test-linux`
   - `publish-windows`
   - `analyze`
-- **Branches à jour** — rebase ou merge de `main` avant merge de la PR
-- **Pas de force-push** sur `main`
+- **Up-to-date branches** — rebase or merge `main` before merging the PR
+- **No force-push** on `main`
 
-### Appliquer la protection (GitHub)
+### Apply protection (GitHub)
 
-> **Note :** la protection de branche via l'API GitHub nécessite un dépôt **public** ou un plan **GitHub Pro** (Team/Enterprise). Sur un dépôt privé gratuit, configurez manuellement dans **Settings → Branches** ou rendez le dépôt public.
+> **Note:** branch protection via the GitHub API requires a **public** repository or a
+> **GitHub Pro** plan (Team/Enterprise). On a free private repo, configure manually in
+> **Settings → Branches** or make the repository public.
 
-Script automatique (une fois éligible) :
+Automatic script (once eligible):
 
 ```powershell
 .\.github\scripts\apply-branch-protection.ps1
 ```
 
-Configuration manuelle : **Settings → Branches → Add branch protection rule** → pattern `main`, puis activer les options ci-dessus et sélectionner les trois checks CI.
+Manual configuration: **Settings → Branches → Add branch protection rule** → pattern `main`,
+then enable the options above and select the three CI checks.
 
-## Versionnement et tags
+## Versioning and tags
 
-Le projet suit [Semantic Versioning](https://semver.org/) :
+The project follows [Semantic Versioning](https://semver.org/):
 
-| Composant | Quand l'incrémenter |
+| Component | When to increment |
 |---|---|
-| **MAJOR** (`2.0.0`) | Changement incompatible de l'API ou du format de projet |
-| **MINOR** (`1.2.0`) | Nouvelle fonctionnalité rétro-compatible |
-| **PATCH** (`1.1.1`) | Correction de bug rétro-compatible |
+| **MAJOR** (`2.0.0`) | Incompatible API or project format change |
+| **MINOR** (`1.2.0`) | Backward-compatible new feature |
+| **PATCH** (`1.1.1`) | Backward-compatible bug fix |
 
-### Créer une release
+### Create a release
 
-1. Mettre à jour [CHANGELOG.md](CHANGELOG.md) (section `[Non publié]` → `[X.Y.Z] — date`)
-2. Merger `develop` → `main` via PR
-3. Taguer et pousser :
+1. Update [CHANGELOG.md](CHANGELOG.md) (`[Unreleased]` → `[X.Y.Z] — date`)
+2. Merge `develop` → `main` via PR
+3. Tag and push:
 
 ```bash
 git checkout main
@@ -84,46 +88,57 @@ git tag -a v1.2.0 -m "Synapse OMNIA 1.2.0"
 git push origin v1.2.0
 ```
 
-Le workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) publie automatiquement le zip Windows x64 sur GitHub Releases.
+Or use the helper script:
 
-### Tags existants
+```bash
+bash .github/scripts/create-release-tag.sh v1.2.0 "Synapse OMNIA 1.2.0"
+```
+
+The [`.github/workflows/release.yml`](.github/workflows/release.yml) workflow automatically
+publishes Windows, Linux, and macOS archives on GitHub Releases.
+
+### Existing tags
 
 | Tag | Description |
 |---|---|
-| `v1.1.0` | Release initiale Synapse OMNIA 1.1 |
+| [`v1.1.0`](https://github.com/QuantumHacker10/Synapse/releases/tag/v1.1.0) | Initial Synapse OMNIA 1.1 release |
+| [`v1.2.0`](https://github.com/QuantumHacker10/Synapse/releases/tag/v1.2.0) | Industrial Synapse OMNIA 1.2 release |
 
 ## CHANGELOG
 
-Chaque PR significative doit mettre à jour [CHANGELOG.md](CHANGELOG.md) sous la section `[Non publié]`, en catégories :
+Each significant PR should update [CHANGELOG.md](CHANGELOG.md) under `[Unreleased]`, in categories:
 
-- **Ajouté** — nouvelles fonctionnalités
-- **Modifié** — changements de comportement existant
-- **Corrigé** — corrections de bugs
-- **Supprimé** — fonctionnalités retirées
-- **Sécurité** — correctifs de vulnérabilité
+- **Added** — new features
+- **Changed** — changes to existing behavior
+- **Fixed** — bug fixes
+- **Removed** — removed features
+- **Security** — vulnerability fixes
 
-## Qualité
+## Quality
 
 ```bash
 dotnet build
 dotnet test
-dotnet format --verify-no-changes   # comme en CI
+dotnet format --verify-no-changes   # same as CI
 ```
 
-Les workflows [`build.yml`](.github/workflows/build.yml) et [`analysis.yml`](.github/workflows/analysis.yml) doivent passer avant merge.
+The [`build.yml`](.github/workflows/build.yml) and [`analysis.yml`](.github/workflows/analysis.yml)
+workflows must pass before merge.
 
-## Licence et contributions
+## License and contributions
 
-Ce projet est sous **licence propriétaire** ([LICENSE](LICENSE)). En contribuant, vous acceptez que :
+This project is under a **proprietary license** ([LICENSE](LICENSE)). By contributing, you agree that:
 
-- vous ne copiez pas le code vers d'autres dépôts sans autorisation ;
-- vos contributions acceptées peuvent être intégrées sous la licence du projet ;
-- vous ne revendiquez pas la paternité du code existant.
+- you will not copy the code to other repositories without permission;
+- accepted contributions may be integrated under the project license;
+- you do not claim ownership of existing code.
 
-Les forks GitHub sont **interdits par la licence** ([LICENSE](LICENSE)). Sur un dépôt public personnel,
-GitHub peut toutefois afficher le bouton « Fork » — cela ne constitue pas une autorisation légale ;
-toute republication non autorisée reste une violation des droits d'auteur.
+GitHub forks are **prohibited by the license** ([LICENSE](LICENSE)). On a public personal
+repository, GitHub may still show a "Fork" button — that is not legal authorization;
+any unauthorized republication remains a copyright violation.
 
 ## Questions
 
-Ouvrez une [issue](https://github.com/QuantumHacker10/Synapse/issues) ou une [discussion](https://github.com/QuantumHacker10/Synapse/discussions) pour bugs, idées ou questions d'architecture.
+Open an [issue](https://github.com/QuantumHacker10/Synapse/issues) or a
+[discussion](https://github.com/QuantumHacker10/Synapse/discussions) for bugs, ideas, or
+architecture questions.

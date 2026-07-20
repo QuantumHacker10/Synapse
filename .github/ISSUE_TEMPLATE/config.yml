@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Architecture & design questions
+    url: https://github.com/QuantumHacker10/Synapse/discussions
+    about: Ask about modules, G-DNN/L-DNN, physics, or simulation design
+  - name: License & commercial use
+    url: https://github.com/QuantumHacker10/Synapse/issues/new?template=license_request.yml
+    about: Request written permission for commercial or derivative use

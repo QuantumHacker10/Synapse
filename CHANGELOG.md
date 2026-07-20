@@ -1,8 +1,21 @@
 # Changelog
 
-Toutes les modifications notables de **Synapse OMNIA** sont documentées ici.
+All notable changes to **Synapse OMNIA** are documented here.
 
-Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+
+- English README, CONTRIBUTING, and GitHub issue/PR templates for international contributors.
+- Documentation: [docs/getting-started.md](docs/getting-started.md), [docs/architecture.md](docs/architecture.md), [docs/LICENSE-OPTIONS.md](docs/LICENSE-OPTIONS.md), [docs/PROMOTION.md](docs/PROMOTION.md).
+- CI coverage report generation (ReportGenerator) and README badges (build, analysis, release).
+- Explicit academic/research use clause in LICENSE.
+
+### Changed
+
+- Release workflow notes and helper script translated to English; release body links to new docs.
 
 ## [1.2.0] — 2026-07-20
 

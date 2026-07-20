@@ -1,0 +1,69 @@
+---
+name: Bug report
+description: Report a crash, regression, or incorrect behavior
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Synapse. Please search [existing issues](https://github.com/QuantumHacker10/Synapse/issues) first.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Synapse Studio (UI)
+        - Runtime / EngineHost
+        - Physics / Living Laws
+        - G-DNN (geometry / SDF)
+        - L-DNN (lighting / GI)
+        - LLM integration
+        - Build / CI
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected instead.
+      placeholder: Studio crashes when loading demo.synapse on Linux…
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse
+        2. Press Space to pause
+        3. …
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Synapse version
+      placeholder: v1.2.0 or commit SHA
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: Windows 11 x64 / Ubuntu 24.04 / macOS arm64
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Paste relevant console output or attach screenshots/GIFs.
+      render: shell

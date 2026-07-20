@@ -77,7 +77,12 @@ Sans autorisation supplémentaire, vous pouvez UNIQUEMENT :
      officielle (https://github.com/QuantumHacker10/Synapse/releases), à titre
      strictement personnel et non commercial, sans modification ni redistribution ;
 
-  3. SIGNALER des bugs ou proposer des améliorations via les issues GitHub
+  3. USAGE ACADÉMIQUE ET RECHERCHE — utiliser le Logiciel dans un cadre
+     universitaire ou de recherche non commerciale (cours, thèse, expérimentation,
+     publication citant Synapse), sans redistribution du source ni des binaires,
+     sans fork public, et sans intégration dans un produit commercial ;
+
+  4. SIGNALER des bugs ou proposer des améliorations via les issues GitHub
      officielles, sous réserve que vous ne revendiquiez aucun droit de propriété
      sur le Logiciel existant.
 
@@ -149,5 +154,6 @@ Issues         : https://github.com/QuantumHacker10/Synapse/issues
 
 English summary (non-binding): This is proprietary software. No copying,
 forking, redistribution, plagiarism, or derivative works without written
-permission. Official release binaries may be used for personal, non-commercial
-evaluation only. All rights reserved.
+permission. Official release binaries may be used for personal, non-commercial,
+and academic/research evaluation (no redistribution). All rights reserved.
+See docs/LICENSE-OPTIONS.md for details.

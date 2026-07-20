@@ -1,113 +1,125 @@
-# SYNAPSE OMNIA — Moteur de simulation 3D · v1.2
+# SYNAPSE OMNIA — 3D Simulation Engine · v1.2
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
+[![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
+[![Coverage](https://img.shields.io/badge/coverage-reported-blue)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/QuantumHacker10/Synapse?label=release)](https://github.com/QuantumHacker10/Synapse/releases)
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
 
-**Synapse OMNIA** est un moteur de **simulation 3D** : un monde numérique que l'on observe,
-modifie et fait évoluer — pas une boîte à monter des niveaux de jeu.
-**Synapse Studio** en est l'atelier pour éditer une scène, lancer la simulation et voir
-comment formes, lois et habitants changent ensemble.
+**Synapse OMNIA** is a **3D simulation engine**: a digital world you observe, modify, and
+evolve — not a level editor for assembling static game scenes.
+**Synapse Studio** is the workshop for editing a scene, running the simulation, and watching
+shapes, laws, and inhabitants change together.
 
-Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
-Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
+Where classic 3D tools *freeze* objects and *replay* immutable rules, Synapse *learns*,
+*rewrites*, and *cultivates* the simulated world.
 
-> **Produit v1.2** — Synapse Studio + runtime unifié (physique industrielle, joints/véhicules,
-> mesh provider, GI GPU-résidente, multiplateforme GLFW/Vulkan). Builds **Windows x64**,
-> **Linux x64** et **macOS arm64** via CI / `scripts/publish-all.sh`.
+> **Product v1.2** — Synapse Studio + unified runtime (industrial physics, joints/vehicles,
+> mesh provider, GPU-resident GI, cross-platform GLFW/Vulkan). Builds for **Windows x64**,
+> **Linux x64**, and **macOS arm64** via CI / `scripts/publish-all.sh`.
 
-**Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v1.2](https://github.com/QuantumHacker10/Synapse/releases)
+**Landing page:** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases:** [Download v1.2](https://github.com/QuantumHacker10/Synapse/releases)
 
-## Sommaire
+## Table of contents
 
-- [Pourquoi Synapse ?](#pourquoi-synapse-)
-- [Prérequis](#prérequis)
-- [Démarrage rapide](#démarrage-rapide)
+- [Why Synapse?](#why-synapse)
+- [Prerequisites](#prerequisites)
+- [Quick start](#quick-start)
+- [Getting started tutorial](#getting-started-tutorial)
 - [Configuration](#configuration)
 - [Architecture](#architecture)
-- [Pipeline G-DNN + L-DNN](#pipeline-g-dnn--l-dnn)
+- [G-DNN + L-DNN pipeline](#g-dnn--l-dnn-pipeline)
 - [Synapse Studio](#synapse-studio)
 - [Publish](#publish-windows-x64)
 - [Tests & CI](#tests--ci)
-- [Contribuer](#contribuer)
-- [Licence](#licence)
+- [Contributing](#contributing)
+- [License](#license)
 
-## Pourquoi Synapse ?
+## Why Synapse?
 
-| Ailleurs (Unity, Unreal, Godot…) | Ici |
+| Elsewhere (Unity, Unreal, Godot…) | Here |
 |---|---|
-| Des scènes assemblées à la main | Un monde simulé qui évolue |
-| Formes figées, découpées en triangles | Formes apprises, continues, zoomables sans limite |
-| Physique gravée une fois pour toutes | Lois réécrivables pendant que la simulation tourne |
-| Chaque objet modélisé individuellement | Populations de formes qui mutent et se sélectionnent |
-| IA souvent imposée depuis le cloud | Assistance locale ou distante, selon vos contraintes |
-| Entités scriptées | Habitants qui perçoivent, décident et s'adaptent |
+| Hand-assembled scenes | A simulated world that evolves |
+| Frozen shapes, triangulated meshes | Learned, continuous, infinitely zoomable shapes |
+| Physics baked once and for all | Laws rewritten while the simulation runs |
+| Every object modeled individually | Populations of shapes that mutate and get selected |
+| AI often forced from the cloud | Local or remote assistance, on your terms |
+| Scripted entities | Inhabitants that perceive, decide, and adapt |
 
-Six idées rares réunies dans **un seul moteur de simulation**, pas comme des plugins séparés.
+Six rare ideas united in **one simulation engine**, not as separate plugins.
 
-## Prérequis
+## Prerequisites
 
-| Composant | Version / détail |
+| Component | Version / detail |
 |---|---|
-| [.NET SDK](https://dotnet.microsoft.com/download) | **10.0.300** (voir [`global.json`](global.json)) |
-| GPU | Pilote **Vulkan** à jour (NVIDIA, AMD, Intel ; MoltenVK sur macOS) |
-| Windows (publish) | `glfw3.dll` 3.4+ (voir [glfw3.dll](#glfw3dll)) |
-| LLM (optionnel) | [Ollama](https://ollama.com/) en local, ou clés API cloud (voir [Configuration](#configuration)) |
+| [.NET SDK](https://dotnet.microsoft.com/download) | **10.0.300** (see [`global.json`](global.json)) |
+| GPU | Up-to-date **Vulkan** drivers (NVIDIA, AMD, Intel; MoltenVK on macOS) |
+| Windows (publish) | `glfw3.dll` 3.4+ (see [glfw3.dll](#glfw3dll)) |
+| LLM (optional) | [Ollama](https://ollama.com/) locally, or cloud API keys (see [Configuration](#configuration)) |
 
-**Plateformes cibles :** Windows, Linux et macOS en **natif GLFW + Vulkan** (MoltenVK sur macOS). Publish officiel win-x64 ; Linux/macOS via `dotnet publish -r linux-x64|osx-arm64`. HWND = embed Studio Windows uniquement.
+**Target platforms:** Windows, Linux, and macOS with native **GLFW + Vulkan** (MoltenVK on macOS). Official publish win-x64; Linux/macOS via `dotnet publish -r linux-x64|osx-arm64`. HWND embedding is Studio-on-Windows only.
 
-## Démarrage rapide
+## Quick start
 
 ```bash
-# Cloner et entrer dans le dépôt
+# Clone and enter the repository
 git clone https://github.com/QuantumHacker10/Synapse.git
 cd Synapse
 
 dotnet build
 dotnet test
 
-# Lancer Synapse Studio (interface Avalonia)
+# Launch Synapse Studio (Avalonia UI)
 dotnet run --project src/Synapse.Studio
 
-# Mode moteur GLFW seul, sans UI (--glfw est un alias)
+# Engine-only GLFW mode, no UI (--glfw is an alias)
 dotnet run --project src/Synapse.Studio -- --engine
 
-# Charger la scène d'exemple
+# Load the sample scene
 dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse
 ```
 
 ### glfw3.dll
 
-Placez `glfw3.dll` (GLFW 3.4+) à côté de l'exécutable, ou dans
-[`src/Synapse.Studio/native/`](src/Synapse.Studio/native/README.md) avant le publish.
+Place `glfw3.dll` (GLFW 3.4+) next to the executable, or in
+[`src/Synapse.Studio/native/`](src/Synapse.Studio/native/README.md) before publishing.
+
+## Getting started tutorial
+
+For a step-by-step walkthrough — building your first simulation, loading scenes, and
+exploring G-DNN / L-DNN — see **[docs/getting-started.md](docs/getting-started.md)**.
+
+For a module-level architecture overview with diagrams, see
+**[docs/architecture.md](docs/architecture.md)**.
 
 ## Configuration
 
-| Source | Paramètres |
+| Source | Parameters |
 |---|---|
-| [`src/Synapse.Studio/appsettings.json`](src/Synapse.Studio/appsettings.json) | Résolution, qualité, budgets physique/sim, LLM par défaut |
+| [`src/Synapse.Studio/appsettings.json`](src/Synapse.Studio/appsettings.json) | Resolution, quality, physics/sim budgets, default LLM |
 | CLI | `--width`, `--height`, `--scene`, `--quality`, `--validation` / `--no-validation`, `--engine` / `--glfw` |
-| Variables d'environnement | `SYNAPSE_WIDTH`, `SYNAPSE_HEIGHT`, `SYNAPSE_SCENE` |
-| LLM (jamais en dur dans le dépôt) | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `AZURE_OPENAI_API_KEY`, `OLLAMA_HOST` |
+| Environment variables | `SYNAPSE_WIDTH`, `SYNAPSE_HEIGHT`, `SYNAPSE_SCENE` |
+| LLM (never hard-coded in the repo) | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `AZURE_OPENAI_API_KEY`, `OLLAMA_HOST` |
 
-Le routeur [`HybridLlmRouter`](src/Synapse.LLM/HybridLlmRouter.cs) bascule automatiquement entre ONNX, Ollama, OpenAI, Anthropic, Gemini et Azure selon disponibilité, coût et confidentialité.
+The [`HybridLlmRouter`](src/Synapse.LLM/HybridLlmRouter.cs) automatically switches between ONNX, Ollama, OpenAI, Anthropic, Gemini, and Azure based on availability, cost, and privacy.
 
 ## Architecture
 
-Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.slnx)), scène d'exemple sous [`samples/`](samples/).
+Ten projects under `src/`, tests under `tests/` (solution [`Synapse.slnx`](Synapse.slnx)), sample scene under [`samples/`](samples/).
 
-| Projet | Rôle |
+| Project | Role |
 |---|---|
-| `Synapse.Core` | Fondations mathématiques / physiques (`PhysicsState` 256 octets, algèbre, octree, kd-tree, sécurité) |
-| `Synapse.Physics` | `LivingLawCompiler` ; **RigidBodyWorld** (joints, vehicles, CCD, mesh colliders) + **MultiphysicsOrchestrator** ; Maxwell, SPH, LBM… |
-| `Synapse.AI` | `NeatGEvolutionEngine` — évolution NEAT-G, sélection NSGA-II, fitness SDF + irradiance L-DNN |
-| `Synapse.Genomics` | `GeoGenome` — génomes de formes (builder, validation, registry, pool) |
-| `Synapse.Rendering` | Vulkan RHI, G-DNN (SDF), L-DNN (GI + SSAO), polygonisation LOD **QEM**, mesh→SDF, export glTF |
-| `Synapse.LLM` | `HybridLlmRouter` — ONNX / Ollama / OpenAI / Anthropic / Gemini / Azure + parse lighting/SDF |
-| `Synapse.Simulation` | `SentienceManager` — entités, behavior trees, perception, jumeaux numériques |
-| `Synapse.Infrastructure` | Qualité adaptative, benchmarks, logging et config |
-| `Synapse.Runtime` | `EngineHost` + `FrameOrchestrator` + **SynapseMeshProvider** + projets `.synapse` |
-| `Synapse.Studio` | **Synapse Studio** — éditeur Avalonia + mode `--engine` GLFW |
+| `Synapse.Core` | Math/physics foundations (`PhysicsState` 256 bytes, algebra, octree, kd-tree, security) |
+| `Synapse.Physics` | `LivingLawCompiler`; **RigidBodyWorld** (joints, vehicles, CCD, mesh colliders) + **MultiphysicsOrchestrator**; Maxwell, SPH, LBM… |
+| `Synapse.AI` | `NeatGEvolutionEngine` — NEAT-G evolution, NSGA-II selection, SDF + L-DNN irradiance fitness |
+| `Synapse.Genomics` | `GeoGenome` — shape genomes (builder, validation, registry, pool) |
+| `Synapse.Rendering` | Vulkan RHI, G-DNN (SDF), L-DNN (GI + SSAO), LOD polygonization **QEM**, mesh→SDF, glTF export |
+| `Synapse.LLM` | `HybridLlmRouter` — ONNX / Ollama / OpenAI / Anthropic / Gemini / Azure + lighting/SDF parsing |
+| `Synapse.Simulation` | `SentienceManager` — entities, behavior trees, perception, digital twins |
+| `Synapse.Infrastructure` | Adaptive quality, benchmarks, logging and config |
+| `Synapse.Runtime` | `EngineHost` + `FrameOrchestrator` + **SynapseMeshProvider** + `.synapse` projects |
+| `Synapse.Studio` | **Synapse Studio** — Avalonia editor + `--engine` GLFW mode |
 
 ```mermaid
 flowchart LR
@@ -120,26 +132,26 @@ flowchart LR
   LLM --> Runtime
 ```
 
-## Pipeline G-DNN + L-DNN
+## G-DNN + L-DNN pipeline
 
-| Domaine | Capacités |
+| Domain | Capabilities |
 |---|---|
-| **G-DNN (géométrie)** | SDF neuronaux, broad-phase BVH (`AABBTree`) pour le ray marching, polygonisation LOD adaptative, cache disque des chaînes polygonisées, pipeline mesh→SDF (`MeshToSdfPipeline`), export glTF/GLB |
-| **L-DNN (éclairage)** | GI hybride (SSGI + cascades + MLP), teacher path tracing online, ombres neuronales, reflets/réfractions neuronaux, brouillard froxel + nuages procéduraux, profils Tiny/Small/Full, cache GI scènes statiques |
-| **Intégration** | G-Buffer étendu (velocity + material ID), shadow pass dans la frame, RT hybride branché, styles post (Cartoon / Grayscale / Noir) |
-| **Studio / LLM** | Console LLM → parse JSON lighting/SDF → lumières L-DNN, fog/nuages, entités scène (`ApplyLlmSceneHints`) |
+| **G-DNN (geometry)** | Neural SDFs, BVH broad-phase (`AABBTree`) for ray marching, adaptive LOD polygonization, disk cache of polygonized chains, mesh→SDF pipeline (`MeshToSdfPipeline`), glTF/GLB export |
+| **L-DNN (lighting)** | Hybrid GI (SSGI + cascades + MLP), online path-tracing teacher, neural shadows, neural reflections/refractions, froxel fog + procedural clouds, Tiny/Small/Full profiles, static-scene GI cache |
+| **Integration** | Extended G-Buffer (velocity + material ID), shadow pass in frame, hybrid RT wired, post styles (Cartoon / Grayscale / Noir) |
+| **Studio / LLM** | LLM console → parse JSON lighting/SDF → L-DNN lights, fog/clouds, scene entities (`ApplyLlmSceneHints`) |
 
 ## Synapse Studio
 
-Atelier pour explorer et piloter la simulation :
+Workshop for exploring and driving the simulation:
 
-- **Vue 3D temps réel** — viewport Vulkan embarqué (Windows HWND) avec grille, gizmos et outils d'édition (sélection, déplacement, rotation)
-- **Projets `.synapse`** — ouvrir, sauver et organiser vos scènes
-- **Lois physiques** — réécrire les règles du monde sans arrêter la simulation
-- **Évolution** — faire muter des populations de formes, lancer des agents, play/pause (Espace)
-- **Console créative** — décrire une scène en langage naturel et voir le monde réagir
-- **Outils d'édition** — blueprints graphiques, sculpt, import d'assets Megascans
-- **Tableau de bord** — cadence (IPS), charge physique/sim, qualité adaptative et GI L-DNN
+- **Real-time 3D view** — embedded Vulkan viewport (Windows HWND) with grid, gizmos, and editing tools (select, move, rotate)
+- **`.synapse` projects** — open, save, and organize your scenes
+- **Physical laws** — rewrite world rules without stopping the simulation
+- **Evolution** — mutate shape populations, spawn agents, play/pause (Space)
+- **Creative console** — describe a scene in natural language and watch the world react
+- **Editing tools** — graph blueprints, sculpt, Megascans asset import
+- **Dashboard** — frame rate (FPS), physics/sim load, adaptive quality and L-DNN GI
 
 ## Publish (Windows x64)
 
@@ -147,7 +159,7 @@ Atelier pour explorer et piloter la simulation :
 dotnet publish src/Synapse.Studio/Synapse.Studio.csproj -c Release -r win-x64 --self-contained true -o artifacts/Synapse-win-x64
 ```
 
-Les tags `v*` déclenchent [`.github/workflows/release.yml`](.github/workflows/release.yml) et publient un zip win-x64 sur GitHub Releases.
+Tags matching `v*` (e.g. `v1.1.0`, `v1.2.0`) trigger [`.github/workflows/release.yml`](.github/workflows/release.yml) and publish multi-platform archives on GitHub Releases.
 
 ## Tests & CI
 
@@ -155,46 +167,47 @@ Les tags `v*` déclenchent [`.github/workflows/release.yml`](.github/workflows/r
 dotnet test
 ```
 
-Suite xUnit + FluentAssertions sous [`tests/Synapse.Tests`](tests/Synapse.Tests) : Core, Physics, AI, Genomics, Rendering/G-DNN, L-DNN, LLM, Simulation, Runtime.
+xUnit + FluentAssertions suite under [`tests/Synapse.Tests`](tests/Synapse.Tests): Core, Physics, AI, Genomics, Rendering/G-DNN, L-DNN, LLM, Simulation, Runtime.
 
-| Workflow | Rôle |
+| Workflow | Role |
 |---|---|
-| [`build.yml`](.github/workflows/build.yml) | Ubuntu — tests + Coverlet ; Windows — publish artefact |
-| [`analysis.yml`](.github/workflows/analysis.yml) | Analyseurs + `dotnet format --verify-no-changes` |
-| [`release.yml`](.github/workflows/release.yml) | Zip win-x64 sur tag `v*` |
-| [`pages.yml`](.github/workflows/pages.yml) | Déploiement du site vitrine sur GitHub Pages |
+| [`build.yml`](.github/workflows/build.yml) | Ubuntu — tests + Coverlet coverage; Windows/Linux — publish artifacts |
+| [`analysis.yml`](.github/workflows/analysis.yml) | Analyzers + `dotnet format --verify-no-changes` |
+| [`release.yml`](.github/workflows/release.yml) | Multi-platform zip/tar.gz on tag `v*` |
+| [`pages.yml`](.github/workflows/pages.yml) | Landing page deployment on GitHub Pages |
 
-## Contribuer
+## Contributing
 
-Voir **[CONTRIBUTING.md](CONTRIBUTING.md)** pour le flux Git complet :
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the full Git workflow:
 
-- Branches `feat/*` → `develop` → `main` (PR obligatoires sur `main`)
-- [CHANGELOG.md](CHANGELOG.md) pour l'historique des versions
-- Tags `v*` (ex. `v1.2.0`) pour les releases — voir [releases](https://github.com/QuantumHacker10/Synapse/releases)
-- Publish local multi-RID : `bash scripts/publish-all.sh`
+- Branches `feat/*` → `develop` → `main` (PRs required on `main`)
+- [CHANGELOG.md](CHANGELOG.md) for version history
+- Tags `v*` (e.g. `v1.2.0`) for releases — see [releases](https://github.com/QuantumHacker10/Synapse/releases)
+- Local multi-RID publish: `bash scripts/publish-all.sh`
 
-En bref :
+In short:
 
-1. Forker, créer une branche depuis `develop` (`feat/ma-fonctionnalite`)
-2. `dotnet build && dotnet test` — la CI doit passer
-3. Mettre à jour le CHANGELOG si le changement est visible
-4. Ouvrir une pull request vers `develop`
+1. Fork, create a branch from `develop` (`feat/my-feature`)
+2. `dotnet build && dotnet test` — CI must pass
+3. Update CHANGELOG if the change is user-visible
+4. Open a pull request toward `develop`
 
-Les issues et discussions GitHub sont ouvertes pour bugs, idées et questions d'architecture.
+GitHub issues and discussions are open for bugs, ideas, and architecture questions.
 
 ## Site
 
-Page vitrine dans [`site/`](site/) — présentation du moteur de simulation 3D, en langage clair,
-avec lien de téléchargement Releases.
-Déployée automatiquement sur [GitHub Pages](https://quantumhacker10.github.io/Synapse/) à chaque push touchant `site/**`.
+Landing page in [`site/`](site/) — plain-language presentation of the 3D simulation engine,
+with a download link to Releases.
+Automatically deployed to [GitHub Pages](https://quantumhacker10.github.io/Synapse/) on every push touching `site/**`.
 
-## Licence
+## License
 
-**Licence propriétaire — tous droits réservés.** Ce dépôt n'est pas open source.
+**Proprietary license — all rights reserved.** This repository is not open source.
 
-Interdit sans autorisation écrite : copie, fork, redistribution, plagiat, œuvres
-dérivées et usage commercial. Consultation du source et exécution des binaires
-[Releases](https://github.com/QuantumHacker10/Synapse/releases) officiels
-autorisées uniquement à titre personnel et non commercial.
+Without written permission: copying, forking, redistribution, plagiarism, derivative
+works, and commercial use are prohibited. Viewing the source and running official
+[Releases](https://github.com/QuantumHacker10/Synapse/releases) binaries is permitted
+for **personal, non-commercial, and academic/research evaluation**.
 
-Voir [`LICENSE`](LICENSE) et [`COPYRIGHT`](COPYRIGHT).
+See [`LICENSE`](LICENSE), [`COPYRIGHT`](COPYRIGHT), and [`docs/LICENSE-OPTIONS.md`](docs/LICENSE-OPTIONS.md)
+for details and future open-source considerations.
