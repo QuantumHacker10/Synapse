@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  id-token: write   # Codecov OIDC (no CODECOV_TOKEN when GitHub App is installed)
+
 jobs:
   test-linux:
     runs-on: ubuntu-latest
@@ -42,7 +46,7 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
+        use_oidc: true
         files: coverage/report/Cobertura.xml
         flags: unittests
         name: synapse-linux

@@ -125,10 +125,10 @@ dotnet format --verify-no-changes   # same as CI
 The [`build.yml`](.github/workflows/build.yml) and [`analysis.yml`](.github/workflows/analysis.yml)
 workflows must pass before merge.
 
-### Codecov (maintainers)
+### Codecov
 
-Add repository secret `CODECOV_TOKEN` from [codecov.io](https://codecov.io/gh/QuantumHacker10/Synapse)
-so the dynamic coverage badge in README updates after each CI run.
+Coverage uploads use **OIDC** by default (no secret). See **[docs/CODECOV_SETUP.md](docs/CODECOV_SETUP.md)**.
+Fallback: `bash scripts/setup-codecov-secret.sh` to set `CODECOV_TOKEN`.
 
 ## License and contributions
 

@@ -25,7 +25,7 @@ Where classic 3D tools *freeze* objects and *replay* immutable rules, Synapse *l
 
 ![Synapse Studio — simulation engine demo](docs/media/synapse-demo.gif)
 
-*Synapse Studio viewport: neural SDF geometry (G-DNN), dynamic lighting (L-DNN), and a live simulation world. [Full video (MP4)](docs/media/synapse-demo.mp4). Re-record locally with `bash scripts/render-demo-media.sh` after capturing a real Studio screenshot.*
+*Synapse Studio viewport: neural SDF geometry (G-DNN), dynamic lighting (L-DNN), and a live simulation world. [Full video (MP4)](docs/media/synapse-demo.mp4). On a GPU machine: `bash scripts/capture-studio-screenshot.sh` then `bash scripts/render-demo-media.sh`.*
 
 ## Table of contents
 

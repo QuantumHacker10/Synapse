@@ -21,7 +21,7 @@ Release **Synapse OMNIA 1.3** — MIT license, community documentation, demo med
 
 - **License switched to MIT** — replaces proprietary license; forks and contributions welcome.
 - Release workflow bundles demo media; release notes reference MIT License.
-- CI uploads Cobertura coverage to Codecov (requires `CODECOV_TOKEN` repository secret).
+- CI uploads Cobertura coverage to Codecov via OIDC; see [docs/CODECOV_SETUP.md](docs/CODECOV_SETUP.md).
 - Product version **1.3.0** (`Directory.Build.props`).
 
 ## [1.2.0] — 2026-07-20
