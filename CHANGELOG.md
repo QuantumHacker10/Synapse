@@ -10,6 +10,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 - **Synapse Studio** : viewport Vulkan embarqué (HWND), grille/gizmos, outils sélection/déplacement/rotation, édition d'entités et blueprint graphique.
 - Lecture G-buffer GPU pour l'illumination L-DNN (fallback constantes si indisponible).
+- **Physique industrielle** : `RigidBodyWorld` (primitives, AABB, contacts analytiques, PGS, sleep) et `MultiphysicsOrchestrator` (pas fixe, living laws + rigid bodies + continuum optionnel), branchés dans `EngineHost.TickPhysics`.
+- **Rendu industriel** : SSAO réel (`LDNNBridge.ComputeAO`), kernels compute CPU (`ssao` / `blur_ao` / `downsample_irradiance`), simplification mesh QEM (`QuadricMeshSimplifier`).
+- Tests de validation industrielle (repos, moment, SSAO, LOD, tick runtime).
 
 ### Modifié
 
@@ -17,6 +20,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - Texte « À propos » enrichi (onglet Performance) aligné sur le README et le site vitrine.
 - README, site GitHub Pages et CHANGELOG recentrés sur le positionnement « moteur de simulation 3D ».
 - Remplacement de la licence MIT par une **licence propriétaire** (anti-copie, anti-fork, anti-plagiat) — voir [LICENSE](LICENSE) et [COPYRIGHT](COPYRIGHT).
+- Remplacement du LOD stochastique placeholder et des stubs AO / compute no-op.
 
 ### Supprimé
 

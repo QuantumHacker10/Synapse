@@ -33,6 +33,7 @@ namespace Synapse.Runtime
         private RenderEngine? _renderEngine;
         private LivingLawCompiler? _lawCompiler;
         private PhysicsField? _physicsField;
+        private MultiphysicsOrchestrator? _multiphysics;
         private SentienceManager? _sentience;
         private HybridLlmRouter? _llmRouter;
         private RuntimeQualityManager? _quality;
@@ -67,6 +68,12 @@ namespace Synapse.Runtime
 
         /// <summary>Living-law compiler, available after <see cref="InitializeModules"/>.</summary>
         public LivingLawCompiler? LawCompiler => _lawCompiler;
+
+        /// <summary>Industrial multiphysics orchestrator (rigid bodies + living laws + continuum).</summary>
+        public MultiphysicsOrchestrator? Multiphysics => _multiphysics;
+
+        /// <summary>Rigid-body world driven each physics tick.</summary>
+        public RigidBodyWorld? RigidWorld => _multiphysics?.RigidWorld;
 
         /// <summary>Multi-provider LLM router.</summary>
         public HybridLlmRouter? LlmRouter => _llmRouter;
@@ -122,6 +129,16 @@ namespace Synapse.Runtime
 
             _lawCompiler = new LivingLawCompiler();
             _physicsField = CreateSeedField(16);
+            _multiphysics = new MultiphysicsOrchestrator(
+                _lawCompiler,
+                _physicsField,
+                new MultiphysicsConfig
+                {
+                    EnabledModules = ContinuumModules.LivingLaws | ContinuumModules.RigidBodies,
+                    FixedTimeStep = 1f / 60f,
+                    MaxSubSteps = 4,
+                    Gravity = new Vector3(0f, -9.81f, 0f)
+                });
             _sentience = new SentienceManager();
             _llmRouter = new HybridLlmRouter();
             _llmProviderSummary = LlmProviderBootstrap.Register(_llmRouter, _config, _logger).Summary;
@@ -130,7 +147,9 @@ namespace Synapse.Runtime
 
             _activeLawId = _scene.ActiveLawId ?? "heat_equation";
             EnsureLawCompiled(_activeLawId, _scene.ActiveLawExpression);
+            _multiphysics.SetActiveLaw(_activeLawId);
             ApplySceneToSimulation(_scene);
+            SyncSceneToPhysics();
 
             var twin = new InMemoryDigitalTwin { PhysicalId = "demo-world" };
             twin.SetProperty("Name", _scene.Name);
@@ -186,7 +205,9 @@ namespace Synapse.Runtime
 
             _activeLawId = _scene.ActiveLawId;
             EnsureLawCompiled(_activeLawId, _scene.ActiveLawExpression);
+            _multiphysics?.SetActiveLaw(_activeLawId);
             ApplySceneToSimulation(_scene);
+            SyncSceneToPhysics();
 
             if (_renderEngine != null)
             {
@@ -224,26 +245,29 @@ namespace Synapse.Runtime
             _logger.Info("EngineHost", $"Scene saved: {path}");
         }
 
-        /// <summary>Applies the active living law to the physics field for one timestep.</summary>
+        /// <summary>
+        /// Advances the industrial multiphysics pipeline (living laws + rigid bodies + optional continuum)
+        /// and writes dynamic transforms back to the scene.
+        /// </summary>
         public void TickPhysics(float dt)
         {
-            if (_lawCompiler == null || _physicsField == null || string.IsNullOrEmpty(_activeLawId))
+            if (_multiphysics == null)
                 return;
 
             var budget = TimeSpan.FromMilliseconds(_config.PhysicsBudgetMs);
-            var start = Environment.TickCount64;
             try
             {
-                _lawCompiler.ApplyLaw(_activeLawId, _physicsField, dt);
-                _physicsField.Time += dt;
-                AverageFieldTemperature = SampleAverageTemperature(_physicsField);
+                _multiphysics.SetActiveLaw(_activeLawId);
+                _multiphysics.Step(dt, budget);
+                AverageFieldTemperature = _multiphysics.LastStats.AverageTemperature;
+                WritePhysicsTransformsToScene();
             }
             catch (Exception ex)
             {
-                _logger.Warn("Physics", $"Law apply failed: {ex.Message}");
+                _logger.Warn("Physics", $"Multiphysics step failed: {ex.Message}");
             }
 
-            if (Environment.TickCount64 - start > budget.TotalMilliseconds)
+            if (_multiphysics.LastStats.TotalMs > budget.TotalMilliseconds)
                 _logger.Debug("Physics", "Exceeded physics budget");
         }
 
@@ -290,6 +314,7 @@ namespace Synapse.Runtime
             {
                 _scene.ActiveLawId = lawId;
                 _scene.ActiveLawExpression = expression;
+                _multiphysics?.SetActiveLaw(lawId);
                 _logger.Info("Physics", $"Law '{lawId}' active ({result.InstructionCount} ops)");
             }
             else
@@ -705,6 +730,64 @@ namespace Synapse.Runtime
             }
         }
 
+        /// <summary>Rebuilds the rigid-body world from the current scene document.</summary>
+        public void SyncSceneToPhysics()
+        {
+            if (_multiphysics == null)
+                return;
+
+            _multiphysics.RigidWorld.Clear();
+            var descs = new List<PhysicsEntityDesc>(_scene.Entities.Count);
+            foreach (var e in _scene.Entities)
+            {
+                descs.Add(new PhysicsEntityDesc
+                {
+                    Id = e.Id,
+                    Name = e.Name,
+                    Type = e.Type,
+                    Position = e.Position.ToVector3(),
+                    Scale = e.Scale.ToVector3(),
+                    IsStatic = e.Type.Equals("Mesh", StringComparison.OrdinalIgnoreCase)
+                        && e.Name.Contains("Ground", StringComparison.OrdinalIgnoreCase),
+                    Mass = 0f,
+                    Restitution = e.Type.Equals("Genome", StringComparison.OrdinalIgnoreCase) ? 0.6f : 0.2f,
+                    Collider = e.Type.Equals("Genome", StringComparison.OrdinalIgnoreCase)
+                        || e.Type.Equals("Character", StringComparison.OrdinalIgnoreCase)
+                        ? ColliderShape.Sphere
+                        : ColliderShape.Box
+                });
+            }
+
+            _multiphysics.SyncFromEntities(descs);
+            _logger.Info("Physics", $"Rigid world synced ({_multiphysics.RigidWorld.Bodies.Count} bodies)");
+        }
+
+        private void WritePhysicsTransformsToScene()
+        {
+            if (_multiphysics == null)
+                return;
+
+            bool dirty = false;
+            foreach (var e in _scene.Entities)
+            {
+                var body = _multiphysics.RigidWorld.GetBody(e.Id);
+                if (body == null || body.Type != BodyType.Dynamic)
+                    continue;
+
+                var p = body.Position;
+                if (MathF.Abs(p.X - e.Position.X) > 1e-4f
+                    || MathF.Abs(p.Y - e.Position.Y) > 1e-4f
+                    || MathF.Abs(p.Z - e.Position.Z) > 1e-4f)
+                {
+                    e.Position = Vec3.From(p);
+                    dirty = true;
+                }
+            }
+
+            if (dirty && _renderInitialized)
+                SyncSceneToRenderer();
+        }
+
         private void EnsureLawCompiled(string? lawId, string? expression)
         {
             if (_lawCompiler == null || string.IsNullOrWhiteSpace(lawId))
@@ -753,21 +836,6 @@ namespace Synapse.Runtime
             return field;
         }
 
-        private static float SampleAverageTemperature(PhysicsField field)
-        {
-            float sum = 0;
-            int n = 0;
-            int step = Math.Max(1, field.GridSize / 4);
-            for (int z = 0; z < field.GridSize; z += step)
-                for (int y = 0; y < field.GridSize; y += step)
-                    for (int x = 0; x < field.GridSize; x += step)
-                    {
-                        sum += field.Temperature[x, y, z];
-                        n++;
-                    }
-            return n == 0 ? 0 : sum / n;
-        }
-
         private static QualityPreset ParseQuality(string name) =>
             Enum.TryParse<QualityPreset>(name, true, out var p) ? p : QualityPreset.High;
 
@@ -807,6 +875,7 @@ namespace Synapse.Runtime
             _evolutionCts?.Dispose();
             if (_evolution != null)
                 await _evolution.DisposeAsync();
+            _multiphysics?.Dispose();
             _llmRouter?.Dispose();
             _quality?.Dispose();
             _renderEngine?.Dispose();

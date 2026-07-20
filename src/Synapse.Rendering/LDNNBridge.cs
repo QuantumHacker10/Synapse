@@ -27,6 +27,7 @@ namespace GDNN.Rendering.Bridge
         private int _gbufferVersion;
         private int? _lastStateHash;
         private Vector3[,]? _cachedIrradiance;
+        private int _aoGbufferVersion = -1;
 
         /// <summary>Monotonic frame counter from the underlying L-DNN renderer.</summary>
         public int FrameIndex => _ldnn?.FrameIndex ?? 0;
@@ -48,8 +49,21 @@ namespace GDNN.Rendering.Bridge
             _width = width;
             _height = height;
             _gbuffer = new GBuffer { Width = width, Height = height };
+            AllocateGBufferArrays();
             _cameraState = new CameraState();
             _lights = new List<LightConfig>();
+        }
+
+        private void AllocateGBufferArrays()
+        {
+            int count = Math.Max(1, _width * _height);
+            _gbuffer.Depth = new float[count];
+            _gbuffer.Normals = new Vector3[count];
+            _gbuffer.Albedo = new Vector3[count];
+            _gbuffer.Velocity = new Vector2[count];
+            _gbuffer.MaterialProps = new Vector4[count];
+            _gbuffer.Specular = new Vector3[count];
+            _gbuffer.Emissive = new Vector3[count];
         }
 
         /// <summary>Constructs and initializes the L-DNN renderer with the given or default config.</summary>
@@ -69,13 +83,7 @@ namespace GDNN.Rendering.Bridge
             _height = height;
             _gbuffer.Width = width;
             _gbuffer.Height = height;
-            _gbuffer.Depth = new float[width * height];
-            _gbuffer.Normals = new Vector3[width * height];
-            _gbuffer.Albedo = new Vector3[width * height];
-            _gbuffer.Velocity = new Vector2[width * height];
-            _gbuffer.MaterialProps = new Vector4[width * height];
-            _gbuffer.Specular = new Vector3[width * height];
-            _gbuffer.Emissive = new Vector3[width * height];
+            AllocateGBufferArrays();
         }
 
         /// <summary>Updates view/projection matrices and derived camera vectors for GI.</summary>
@@ -299,12 +307,86 @@ namespace GDNN.Rendering.Bridge
             return irradiance;
         }
 
-        /// <summary>Placeholder ambient-occlusion query (returns 1 = fully lit).</summary>
+        /// <summary>
+        /// Returns screen-space ambient occlusion at a pixel using the industrial SSAO kernel
+        /// (hemisphere sampling against the G-buffer depth/normals).
+        /// </summary>
         public float ComputeAO(int px, int py)
         {
             if (px < 0 || px >= _width || py < 0 || py >= _height)
                 return 1.0f;
-            return 1.0f;
+
+            if (!_initialized || _ldnn == null)
+                return SampleLocalDepthAO(px, py);
+
+            // Ensure AO buffer is current for this G-buffer version.
+            if (_aoGbufferVersion != _gbufferVersion)
+            {
+                _ldnn.DispatchComputeShaders(
+                    "ssao",
+                    (_width + 7) / 8,
+                    (_height + 7) / 8,
+                    1,
+                    new Dictionary<string, object>
+                    {
+                        ["gbuffer"] = _gbuffer,
+                        ["camera"] = _cameraState,
+                        ["kernelSize"] = 32,
+                        ["radius"] = 0.75f
+                    });
+                _ldnn.DispatchComputeShaders(
+                    "blur_ao",
+                    (_width + 7) / 8,
+                    (_height + 7) / 8,
+                    1,
+                    new Dictionary<string, object>
+                    {
+                        ["gbuffer"] = _gbuffer,
+                        ["radius"] = 2,
+                        ["sigma"] = 0.1f
+                    });
+                _aoGbufferVersion = _gbufferVersion;
+            }
+
+            var ao = _ldnn.AmbientOcclusion?.AOBuffer;
+            if (ao == null || ao.Length != _width * _height)
+                return SampleLocalDepthAO(px, py);
+
+            return Math.Clamp(ao[py * _width + px], 0f, 1f);
+        }
+
+        /// <summary>Fast local depth-based AO fallback when the full SSAO pass is unavailable.</summary>
+        private float SampleLocalDepthAO(int px, int py)
+        {
+            if (_gbuffer.Depth == null || _gbuffer.Normals == null)
+                return 1.0f;
+
+            int idx = py * _width + px;
+            float depth = _gbuffer.Depth[idx];
+            if (depth <= 0f)
+                return 1.0f;
+
+            Vector3 normal = _gbuffer.Normals[idx];
+            float occlusion = 0f;
+            int samples = 0;
+            ReadOnlySpan<int> ox = stackalloc int[] { -2, -1, 1, 2, -2, 2, -1, 1 };
+            ReadOnlySpan<int> oy = stackalloc int[] { -2, -1, 1, 2, 1, -1, 2, -2 };
+            for (int i = 0; i < ox.Length; i++)
+            {
+                int sx = Math.Clamp(px + ox[i], 0, _width - 1);
+                int sy = Math.Clamp(py + oy[i], 0, _height - 1);
+                float sampleDepth = _gbuffer.Depth[sy * _width + sx];
+                float delta = depth - sampleDepth;
+                if (delta > 0.002f && delta < 0.5f)
+                {
+                    float range = 1f - delta / 0.5f;
+                    float ndot = MathF.Max(0f, Vector3.Dot(normal, _gbuffer.Normals[sy * _width + sx]));
+                    occlusion += range * (0.5f + 0.5f * ndot);
+                }
+                samples++;
+            }
+
+            return samples == 0 ? 1f : Math.Clamp(1f - occlusion / samples, 0f, 1f);
         }
 
         private static LDNNConfig CreateDefaultConfig()

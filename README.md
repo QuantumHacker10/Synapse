@@ -99,10 +99,10 @@ Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.
 | Projet | Rôle |
 |---|---|
 | `Synapse.Core` | Fondations mathématiques / physiques (`PhysicsState` 256 octets, algèbre, octree, kd-tree, sécurité) |
-| `Synapse.Physics` | `LivingLawCompiler` — 100 lois texte sur 18 domaines, hot-reload ; solveurs Maxwell, SPH, Lattice-Boltzmann, Schrödinger, N-corps, champs stochastiques |
+| `Synapse.Physics` | `LivingLawCompiler` — 100 lois texte ; **RigidBodyWorld** + **MultiphysicsOrchestrator** ; solveurs Maxwell, SPH, LBM, Schrödinger, N-corps, champs stochastiques |
 | `Synapse.AI` | `NeatGEvolutionEngine` — évolution NEAT-G, sélection NSGA-II, fitness SDF + irradiance L-DNN |
 | `Synapse.Genomics` | `GeoGenome` — génomes de formes (builder, validation, registry, pool) |
-| `Synapse.Rendering` | Vulkan RHI, G-DNN (SDF), L-DNN (GI neuronale), polygonisation LOD, mesh→SDF, export glTF, styles artistiques |
+| `Synapse.Rendering` | Vulkan RHI, G-DNN (SDF), L-DNN (GI + SSAO), polygonisation LOD **QEM**, mesh→SDF, export glTF |
 | `Synapse.LLM` | `HybridLlmRouter` — ONNX / Ollama / OpenAI / Anthropic / Gemini / Azure + parse lighting/SDF |
 | `Synapse.Simulation` | `SentienceManager` — entités, behavior trees, perception, jumeaux numériques |
 | `Synapse.Infrastructure` | Qualité adaptative, benchmarks, logging et config |
@@ -112,7 +112,7 @@ Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.
 ```mermaid
 flowchart LR
   Studio[Synapse Studio] --> Runtime[EngineHost]
-  Runtime --> Physics[Living Laws]
+  Runtime --> Physics[Multiphysics + Living Laws]
   Runtime --> AI[NEAT-G]
   Runtime --> Render[G-DNN + L-DNN Vulkan]
   Runtime --> Sim[Sentience]
