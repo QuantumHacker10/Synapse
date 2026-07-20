@@ -22,7 +22,7 @@
       </MenuItem>
       <MenuItem Header="_Simulation">
         <MenuItem Header="Lecture / Pause (Espace)" Command="{Binding TogglePlayCommand}" />
-        <MenuItem Header="Créer un agent" Command="{Binding SpawnAgentCommand}" />
+        <MenuItem Header="Créer un agent sentient" Command="{Binding SpawnAgentCommand}" />
       </MenuItem>
       <MenuItem Header="_Aide">
         <MenuItem Header="À propos" Command="{Binding AboutCommand}" />
@@ -77,7 +77,7 @@
                     <Button Content="Supprimer" Command="{Binding DeleteEntityCommand}" />
                   </StackPanel>
                   <Button Content="▶ Lecture / Pause" Command="{Binding TogglePlayCommand}" HorizontalAlignment="Stretch" />
-                  <Button Content="Créer un agent" Command="{Binding SpawnAgentCommand}" HorizontalAlignment="Stretch" />
+                  <Button Content="Créer un agent sentient" Command="{Binding SpawnAgentCommand}" HorizontalAlignment="Stretch" />
                 </StackPanel>
               </ScrollViewer>
             </TabItem>
@@ -111,7 +111,7 @@
 
                   <Separator Margin="0,8" />
 
-                  <TextBlock Text="Blueprint agent" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="Blueprint agent sentient" FontWeight="SemiBold" Foreground="#E8EEF7" />
                   <views:BlueprintGraphCanvas x:Name="BlueprintCanvas" Height="180" DocumentChanged="OnBlueprintDocumentChanged" />
                   <ListBox ItemsSource="{Binding BlueprintNodes}" Height="70" Background="#0E1218" />
                   <TextBlock Text="{Binding BlueprintStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />

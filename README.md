@@ -1,4 +1,4 @@
-# SYNAPSE OMNIA — Moteur de simulation 3D · v1.2
+# SYNAPSE OMNIA — Outil de simulation 3D · v1.2
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
@@ -8,16 +8,16 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
 [![Tests](https://img.shields.io/badge/tests-238%2B%20passing-brightgreen)](tests/Synapse.Tests)
 
-**Synapse OMNIA** est un moteur de **simulation 3D** : un monde numérique que l'on observe,
-modifie et fait évoluer — pas une boîte à monter des niveaux de jeu.
+**Synapse OMNIA** est un **outil de simulation 3D** : un monde numérique que l'on observe,
+modifie et fait évoluer — pas un moteur de jeu, ni une boîte à monter des niveaux.
 **Synapse Studio** en est l'atelier pour éditer une scène, lancer la simulation et voir
-comment formes, lois et habitants changent ensemble.
+comment formes, lois et agents sentients changent ensemble.
 
 Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
 Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
 > **Produit v1.2** — Synapse Studio + runtime unifié (physique industrielle, joints/véhicules,
-> mesh provider, GI GPU-résidente, multiplateforme GLFW/Vulkan). Builds **Windows x64**,
+> mesh provider, GI GPU-résidente, multiplateforme GLFW/Vulkan, agents sentients). Builds **Windows x64**,
 > **Linux x64** et **macOS arm64** via CI / `scripts/publish-all.sh`.
 
 **Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v1.2](https://github.com/QuantumHacker10/Synapse/releases)
@@ -39,16 +39,16 @@ Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
 ## Pourquoi Synapse ?
 
-| Ailleurs (Unity, Unreal, Godot…) | Ici |
+| Ailleurs (moteurs de jeu : Unity, Unreal, Godot…) | Ici (outil de simulation 3D) |
 |---|---|
-| Des scènes assemblées à la main | Un monde simulé qui évolue |
+| Des scènes assemblées à la main pour le jeu | Un monde simulé qui évolue |
 | Formes figées, découpées en triangles | Formes apprises, continues, zoomables sans limite |
 | Physique gravée une fois pour toutes | Lois réécrivables pendant que la simulation tourne |
 | Chaque objet modélisé individuellement | Populations de formes qui mutent et se sélectionnent |
 | IA souvent imposée depuis le cloud | Assistance locale ou distante, selon vos contraintes |
-| Entités scriptées | Habitants qui perçoivent, décident et s'adaptent |
+| PNJ scriptés, joueur / avatar | Agents sentients qui perçoivent, décident et s'adaptent |
 
-Six idées rares réunies dans **un seul moteur de simulation**, pas comme des plugins séparés.
+Six idées rares réunies dans **un seul outil de simulation**, pas comme des plugins séparés.
 
 ## Prérequis
 
@@ -157,7 +157,7 @@ Documentation complémentaire :
 | `Synapse.Genomics` | `GeoGenome` — génomes de formes (builder, validation, registry, pool) |
 | `Synapse.Rendering` | Vulkan RHI, G-DNN (SDF), L-DNN (GI + SSAO), polygonisation LOD **QEM**, mesh→SDF, export glTF |
 | `Synapse.LLM` | `HybridLlmRouter` — ONNX / Ollama / OpenAI / Anthropic / Gemini / Azure + parse lighting/SDF |
-| `Synapse.Simulation` | `SentienceManager` — entités, behavior trees, perception, jumeaux numériques |
+| `Synapse.Simulation` | `SentienceManager` — agents sentients (≠ PNJ), behavior trees, perception, jumeaux numériques |
 | `Synapse.Infrastructure` | Qualité adaptative, benchmarks, logging et config |
 | `Synapse.Runtime` | `EngineHost` + `FrameOrchestrator` + **SynapseMeshProvider** + projets `.synapse` |
 | `Synapse.Studio` | **Synapse Studio** — éditeur Avalonia + mode `--engine` GLFW |
@@ -191,10 +191,12 @@ Atelier pour explorer et piloter la simulation :
 - **Vue 3D temps réel** — viewport Vulkan embarqué (Windows HWND) avec grille, gizmos et outils d'édition (sélection, déplacement, rotation)
 - **Projets `.synapse`** — ouvrir, sauver et organiser vos scènes
 - **Lois physiques** — réécrire les règles du monde sans arrêter la simulation
-- **Évolution** — faire muter des populations de formes, lancer des agents, play/pause (Espace)
+- **Évolution** — faire muter des populations de formes, lancer des agents sentients, play/pause (Espace)
 - **Console créative** — décrire une scène en langage naturel et voir le monde réagir
 - **Outils d'édition** — blueprints graphiques, sculpt, import d'assets Megascans
 - **Tableau de bord** — cadence (IPS), charge physique/sim, qualité adaptative et GI L-DNN
+
+Les agents sentients ne sont pas des PNJ de jeu : ils perçoivent, mémorisent et décident dans le rythme de la simulation.
 
 ## Captures d'écran
 
@@ -257,7 +259,7 @@ Les [issues](https://github.com/QuantumHacker10/Synapse/issues) et [discussions]
 
 ## Site
 
-Page vitrine dans [`site/`](site/) — présentation du moteur de simulation 3D, en langage clair,
+Page vitrine dans [`site/`](site/) — présentation de l'outil de simulation 3D, en langage clair,
 avec lien de téléchargement Releases.
 Déployée automatiquement sur [GitHub Pages](https://quantumhacker10.github.io/Synapse/) à chaque push touchant `site/**`.
 

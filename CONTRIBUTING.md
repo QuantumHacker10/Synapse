@@ -1,6 +1,6 @@
 # Contribuer à Synapse
 
-Merci de votre intérêt pour **Synapse OMNIA**, moteur de simulation 3D. Ce guide décrit le flux Git, les branches protégées et le versionnement.
+Merci de votre intérêt pour **Synapse OMNIA**, outil de simulation 3D. Ce guide décrit le flux Git, les branches protégées et le versionnement.
 
 ## Branches
 

@@ -26,7 +26,7 @@ namespace Synapse.Studio.Contracts
 
     public enum EditorMode
     {
-        Standard, LLM, Debug, GenomeEdit, LevelDesign
+        Standard, LLM, Debug, GenomeEdit, SimulationDesign
     }
 
     [Flags]
@@ -42,9 +42,13 @@ namespace Synapse.Studio.Contracts
         All = ~0
     }
 
+    /// <summary>
+    /// Scene entity kinds for the simulation atelier.
+    /// <see cref="Agent"/> is a sentient inhabitant — not a game Character/NPC.
+    /// </summary>
     public enum EntityType
     {
-        Unknown, Mesh, Light, Camera, ParticleSystem, Genome, Empty, Character, Volume
+        Unknown, Mesh, Light, Camera, ParticleSystem, Genome, Empty, Agent, Volume
     }
 
     public enum ComponentType

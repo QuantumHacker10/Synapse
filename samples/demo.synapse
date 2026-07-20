@@ -14,7 +14,7 @@
     {
       "id": "22222222-2222-2222-2222-222222222222",
       "name": "Agent_Alpha",
-      "type": "Character",
+      "type": "Agent",
       "position": { "x": 2, "y": 0, "z": 0 },
       "scale": { "x": 1, "y": 1, "z": 1 },
       "visible": true,
@@ -23,7 +23,7 @@
     {
       "id": "33333333-3333-3333-3333-333333333333",
       "name": "Agent_Beta",
-      "type": "Character",
+      "type": "Agent",
       "position": { "x": -2, "y": 0, "z": 1 },
       "scale": { "x": 1, "y": 1, "z": 1 },
       "visible": true,
