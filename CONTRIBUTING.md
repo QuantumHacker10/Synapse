@@ -16,7 +16,7 @@ Merci de votre intérêt pour **Synapse OMNIA**, outil de simulation 3D. Ce guid
 ### Flux recommandé
 
 ```text
-feat/ma-fonctionnalite ──PR──► develop ──PR──► main ──tag──► v1.2.0
+feat/ma-fonctionnalite ──PR──► develop ──PR──► main ──tag──► v1.3.0
 ```
 
 1. Partir de `develop` à jour : `git checkout develop && git pull`
@@ -32,7 +32,7 @@ feat/ma-fonctionnalite ──PR──► develop ──PR──► main ──ta
 ```text
 feat/neural-shadows      # nouvelle capacité
 fix/vulkan-resize-crash  # correction
-docs/changelog-1.2       # documentation
+docs/changelog-1.3       # documentation
 chore/ci-cache           # infrastructure
 ```
 
@@ -82,8 +82,8 @@ Le projet suit [Semantic Versioning](https://semver.org/) :
 ```bash
 git checkout main
 git pull
-git tag -a v1.2.0 -m "Synapse OMNIA 1.2.0"
-git push origin v1.2.0
+git tag -a v1.3.0 -m "Synapse OMNIA 1.3.0"
+git push origin v1.3.0
 ```
 
 Le workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) publie automatiquement le zip Windows x64 sur GitHub Releases.

@@ -17,7 +17,7 @@ The repo is a single product built from one solution (`Synapse.slnx`): ten libra
 xUnit test project (`tests/Synapse.Tests`).
 
 - Build: `dotnet build Synapse.slnx -c Release` (0 errors; ~2000 analyzer warnings are expected).
-- Test: `dotnet test Synapse.slnx --no-build -c Release` (198 tests).
+- Test: `dotnet test Synapse.slnx --no-build -c Release` (248 tests).
 - Lint (matches CI `analysis.yml`): `dotnet format whitespace --verify-no-changes`.
 - Run the editor: `DISPLAY=:1 dotnet run --project src/Synapse.Studio -c Release`.
 

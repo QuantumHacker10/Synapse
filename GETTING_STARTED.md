@@ -28,7 +28,7 @@ dotnet build
 
 ```bash
 dotnet test
-# Attendu : ~225 tests passés
+# Attendu : 248 tests passés
 ```
 
 Avec couverture de code (comme en CI) :

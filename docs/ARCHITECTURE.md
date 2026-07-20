@@ -224,13 +224,13 @@ Le monolithe `PhysicsState.cs` (276 Ko) a été découpé en **26 fichiers** mod
 | `UnitConverter.cs`, `MaterialDatabase.cs` | Conversions et matériaux |
 | `OctreeNode.cs`, `KdTree.cs`, `GridHash.cs` | Structures spatiales |
 
-Autres monolithes à découper progressivement :
+Autres gros modules (post-découpage v1.3) :
 
-| Fichier | Taille | Contenu principal |
-|---|---:|---|
-| `NeatGEvolutionEngine.cs` | ~870 KB | Évolution NEAT-G |
-| `VulkanRhiDevice.cs` | ~377 KB | Device Vulkan |
-| `LivingLawCompiler.cs` | ~293 KB | Compilateur de lois |
-| `Solvers.cs` | ~292 KB | Solveurs numériques |
+| Module | Fichiers | Contenu principal |
+|---|---|---|
+| `NeatGEvolutionEngine.*.cs` | 65 | Évolution NEAT-G (découpé depuis le monolithe) |
+| `VulkanRhiDevice.*.cs` | 9 | Device Vulkan (découpé) |
+| `Solvers.*.cs` | 56 | Solveurs numériques (découpé) |
+| `LivingLawCompiler.cs` | ~294 KB | Compilateur de lois — **prochain candidat au découpage** |
 
 Voir [CONTRIBUTING.md](../CONTRIBUTING.md) pour les conventions de contribution.

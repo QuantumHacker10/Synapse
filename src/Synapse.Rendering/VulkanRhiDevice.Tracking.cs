@@ -1,6 +1,6 @@
 // =============================================================================
 // GDNN Engine - Vulkan 1.4 Render Hardware Interface Backend
-// File: VulkanRhiDevice.cs
+// VulkanRhiDevice.Tracking.cs — Vulkan RHI partial module
 // Description: Complete Vulkan RHI implementation for the G-DNN Engine
 // Author: GDNN Engine Team
 // Version: 1.0.0

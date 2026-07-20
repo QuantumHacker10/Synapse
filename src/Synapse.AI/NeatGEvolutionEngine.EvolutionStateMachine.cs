@@ -1,5 +1,5 @@
 // =============================================================================
-// NeatGEvolutionEngine.cs - NEAT-G Evolution Engine Core
+// NeatGEvolutionEngine.EvolutionStateMachine.cs — NEAT-G partial module
 // GDNN.Engine - Geometric Deep Neural Network Engine
 // Copyright (c) 2024. All rights reserved.
 // =============================================================================

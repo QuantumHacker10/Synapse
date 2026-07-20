@@ -47,7 +47,7 @@ public sealed class CertificationCaseResult
 public sealed class CertificationReport
 {
     public DateTimeOffset GeneratedAt { get; init; } = DateTimeOffset.UtcNow;
-    public string EngineVersion { get; init; } = "1.1.0";
+    public string EngineVersion { get; init; } = Synapse.Infrastructure.SynapseProduct.Version;
     public CertificationLevel Level { get; set; }
     public List<CertificationCaseResult> Cases { get; } = new();
 

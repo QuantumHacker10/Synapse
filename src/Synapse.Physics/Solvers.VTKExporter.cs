@@ -96,7 +96,7 @@ public static class VTKExporter
 }
 
 // ============================================================================
-//  End of Solvers.cs — Synapse Omonia Physics
+// End of Synapse.Physics numerical solvers — Synapse OMNIA
 // ============================================================================
 // ============================================================================
 //  Additional Utility: Root Finding and Nonlinear Solvers

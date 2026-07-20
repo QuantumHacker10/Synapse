@@ -54,3 +54,7 @@ coverage*.xml
 ## Publish / release staging
 *.zip
 *.tar.gz
+
+## Python (split scripts)
+__pycache__/
+*.pyc
