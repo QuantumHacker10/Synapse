@@ -144,7 +144,8 @@ public sealed class RigidBody
     public void ApplyForce(Vector3 force) => Force += force;
     public void ApplyImpulse(Vector3 impulse, Vector3 worldPoint)
     {
-        if (InverseMass <= 0f) return;
+        if (InverseMass <= 0f)
+            return;
         IsSleeping = false;
         LinearVelocity += impulse * InverseMass;
         var r = worldPoint - Position;
@@ -355,7 +356,8 @@ public sealed class RigidBodyWorld
     /// <summary>Advances the world by <paramref name="dt"/> seconds.</summary>
     public void Step(float dt)
     {
-        if (dt <= 0f) return;
+        if (dt <= 0f)
+            return;
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
         IntegrateForces(dt);
@@ -1153,7 +1155,8 @@ public sealed class RigidBodyWorld
                     var p = m.Points[pi];
                     float corr = MathF.Max(p.Penetration - Slop, 0f) * Baumgarte;
                     float imSum = m.BodyA.InverseMass + m.BodyB.InverseMass;
-                    if (imSum <= 1e-8f) continue;
+                    if (imSum <= 1e-8f)
+                        continue;
                     // Normal A→B: move A opposite to normal, B along normal.
                     Vector3 correction = p.Normal * (corr / imSum);
                     if (m.BodyA.InverseMass > 0f)
@@ -1174,7 +1177,8 @@ public sealed class RigidBodyWorld
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ApplyImpulse(RigidBody body, Vector3 impulse, Vector3 r)
     {
-        if (body.InverseMass <= 0f) return;
+        if (body.InverseMass <= 0f)
+            return;
         body.IsSleeping = false;
         body.LinearVelocity += impulse * body.InverseMass;
         Vector3 ang = Vector3.Cross(r, impulse);
@@ -1186,11 +1190,13 @@ public sealed class RigidBodyWorld
 
     private void UpdateSleepState(float dt)
     {
-        if (!EnableSleeping) return;
+        if (!EnableSleeping)
+            return;
         for (int i = 0; i < _bodies.Count; i++)
         {
             var b = _bodies[i];
-            if (b.Type != BodyType.Dynamic) continue;
+            if (b.Type != BodyType.Dynamic)
+                continue;
 
             float lin = b.LinearVelocity.LengthSquared();
             float ang = b.AngularVelocity.LengthSquared();
@@ -1228,7 +1234,8 @@ public sealed class RigidBodyWorld
         for (int i = 0; i < _bodies.Count; i++)
         {
             var b = _bodies[i];
-            if (b.Type == BodyType.Dynamic && !b.IsSleeping) active++;
+            if (b.Type == BodyType.Dynamic && !b.IsSleeping)
+                active++;
             if (b.InverseMass > 0f)
             {
                 ke += 0.5f * b.Mass * b.LinearVelocity.LengthSquared();
@@ -1253,7 +1260,8 @@ public sealed class RigidBodyWorld
         for (int i = 0; i < _bodies.Count; i++)
         {
             var b = _bodies[i];
-            if (b.InverseMass <= 0f) continue;
+            if (b.InverseMass <= 0f)
+                continue;
             ke += 0.5f * b.Mass * b.LinearVelocity.LengthSquared();
             ke += 0.5f * Vector3.Dot(b.AngularVelocity * b.InertiaDiagonal, b.AngularVelocity);
         }
@@ -1267,7 +1275,8 @@ public sealed class RigidBodyWorld
         for (int i = 0; i < _bodies.Count; i++)
         {
             var b = _bodies[i];
-            if (b.InverseMass <= 0f) continue;
+            if (b.InverseMass <= 0f)
+                continue;
             p += b.LinearVelocity * b.Mass;
         }
         return p;

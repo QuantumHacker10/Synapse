@@ -71,7 +71,8 @@ public static class JointSolver
         int iterations,
         float dt)
     {
-        if (joints.Count == 0 || dt <= 0f) return;
+        if (joints.Count == 0 || dt <= 0f)
+            return;
         float invDt = 1f / dt;
 
         for (int iter = 0; iter < iterations; iter++)
@@ -80,7 +81,8 @@ public static class JointSolver
             {
                 var j = joints[ji];
                 var a = getBody(j.BodyA);
-                if (a == null) continue;
+                if (a == null)
+                    continue;
                 var b = j.BodyB == Guid.Empty ? null : getBody(j.BodyB);
 
                 Vector3 worldAnchorA = a.Position + Vector3.Transform(j.LocalAnchorA, a.Orientation);
@@ -120,7 +122,8 @@ public static class JointSolver
             {
                 var j = joints[ji];
                 var a = getBody(j.BodyA);
-                if (a == null) continue;
+                if (a == null)
+                    continue;
                 var b = j.BodyB == Guid.Empty ? null : getBody(j.BodyB);
 
                 Vector3 wa = a.Position + Vector3.Transform(j.LocalAnchorA, a.Orientation);
@@ -132,7 +135,8 @@ public static class JointSolver
                 {
                     Vector3 d = wb - wa;
                     float len = d.Length();
-                    if (len < 1e-6f) continue;
+                    if (len < 1e-6f)
+                        continue;
                     float err = len - j.RestLength;
                     Vector3 n = d / len;
                     float soft = 1f / (1f + MathF.Max(0f, j.Compliance) * 80f);
@@ -154,7 +158,8 @@ public static class JointSolver
     {
         Vector3 d = wb - wa;
         float len = d.Length();
-        if (len < 1e-6f) return;
+        if (len < 1e-6f)
+            return;
         Vector3 n = d / len;
         float C = len - j.RestLength;
 
@@ -165,7 +170,8 @@ public static class JointSolver
         float vn = Vector3.Dot(vb - va, n);
 
         float kn = SoftDenominator(EffectiveMass(a, b, ra, rb, n), j.Compliance, invDt);
-        if (kn < 1e-8f) return;
+        if (kn < 1e-8f)
+            return;
 
         float compliance = MathF.Max(0f, j.Compliance);
         float bias;
@@ -185,7 +191,8 @@ public static class JointSolver
         float lambda = -(vn + bias) / kn;
         Vector3 impulse = n * lambda;
         ApplyImpulse(a, -impulse, ra);
-        if (b != null) ApplyImpulse(b, impulse, rb);
+        if (b != null)
+            ApplyImpulse(b, impulse, rb);
         j.AccumulatedImpulse += impulse;
     }
 
@@ -211,12 +218,14 @@ public static class JointSolver
                 _ => Vector3.UnitZ
             };
             float kn = SoftDenominator(EffectiveMass(a, b, ra, rb, n), j.Compliance, invDt);
-            if (kn < 1e-8f) continue;
+            if (kn < 1e-8f)
+                continue;
             float bias = Vector3.Dot(err, n) * erp * invDt + j.Damping * Vector3.Dot(dv, n);
             float lambda = -(Vector3.Dot(dv, n) + bias) / kn;
             Vector3 impulse = n * lambda;
             ApplyImpulse(a, -impulse, ra);
-            if (b != null) ApplyImpulse(b, impulse, rb);
+            if (b != null)
+                ApplyImpulse(b, impulse, rb);
             j.AccumulatedImpulse += impulse;
         }
 
@@ -245,7 +254,8 @@ public static class JointSolver
             ? Vector3.Normalize(Vector3.Transform(j.LocalAxisB, b.Orientation))
             : Vector3.Normalize(j.LocalAxisB);
         Vector3 cross = Vector3.Cross(axisA, axisB);
-        if (cross.LengthSquared() < 1e-8f) return;
+        if (cross.LengthSquared() < 1e-8f)
+            return;
 
         // Torque impulses to align axes.
         if (b != null)
@@ -274,14 +284,16 @@ public static class JointSolver
         foreach (var n in new[] { t1, t2 })
         {
             float kn = SoftDenominator(EffectiveMass(a, b, ra, rb, n), j.Compliance, invDt);
-            if (kn < 1e-8f) continue;
+            if (kn < 1e-8f)
+                continue;
             float bias = Vector3.Dot(d, n) * 0.2f * invDt;
             Vector3 va = a.LinearVelocity + Vector3.Cross(a.AngularVelocity, ra);
             Vector3 vb = b != null ? b.LinearVelocity + Vector3.Cross(b.AngularVelocity, rb) : Vector3.Zero;
             float lambda = -(Vector3.Dot(vb - va, n) + bias) / kn;
             Vector3 impulse = n * lambda;
             ApplyImpulse(a, -impulse, ra);
-            if (b != null) ApplyImpulse(b, impulse, rb);
+            if (b != null)
+                ApplyImpulse(b, impulse, rb);
         }
 
         // Optional travel limits along axis.
@@ -296,7 +308,8 @@ public static class JointSolver
                 float lambda = -(err * 0.2f * invDt) / kn;
                 Vector3 impulse = axis * lambda;
                 ApplyImpulse(a, -impulse, ra);
-                if (b != null) ApplyImpulse(b, impulse, rb);
+                if (b != null)
+                    ApplyImpulse(b, impulse, rb);
             }
         }
     }
@@ -315,7 +328,8 @@ public static class JointSolver
 
     private static void ApplyImpulse(RigidBody body, Vector3 impulse, Vector3 r)
     {
-        if (body.InverseMass <= 0f) return;
+        if (body.InverseMass <= 0f)
+            return;
         body.IsSleeping = false;
         body.LinearVelocity += impulse * body.InverseMass;
         Vector3 ang = Vector3.Cross(r, impulse);
@@ -329,7 +343,8 @@ public static class JointSolver
         RigidBody a, RigidBody? b, Vector3 wa, Vector3 wb, Vector3 correction)
     {
         float imSum = a.InverseMass + (b?.InverseMass ?? 0f);
-        if (imSum < 1e-8f) return;
+        if (imSum < 1e-8f)
+            return;
         if (a.InverseMass > 0f)
         {
             a.Position -= correction * (a.InverseMass / imSum);

@@ -124,9 +124,15 @@ public class IndustrialRenderingTests
         for (uint i = 1; i <= 6; i++)
         {
             uint next = i == 6 ? 1u : i + 1;
-            indices.Add(0); indices.Add(i); indices.Add(next);
-            indices.Add(7); indices.Add(i); indices.Add(next);
-            indices.Add(8); indices.Add(next); indices.Add(i);
+            indices.Add(0);
+            indices.Add(i);
+            indices.Add(next);
+            indices.Add(7);
+            indices.Add(i);
+            indices.Add(next);
+            indices.Add(8);
+            indices.Add(next);
+            indices.Add(i);
         }
 
         int before = indices.Count / 3;

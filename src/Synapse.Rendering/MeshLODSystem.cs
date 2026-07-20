@@ -299,9 +299,12 @@ namespace GDNN.Rendering.LOD
                 for (int f = faces.Count - 1; f >= 0; f--)
                 {
                     var (a, b, c) = faces[f];
-                    if (a == vRemove) a = vKeep;
-                    if (b == vRemove) b = vKeep;
-                    if (c == vRemove) c = vKeep;
+                    if (a == vRemove)
+                        a = vKeep;
+                    if (b == vRemove)
+                        b = vKeep;
+                    if (c == vRemove)
+                        c = vKeep;
 
                     if (a == b || b == c || a == c)
                     {
@@ -365,9 +368,15 @@ namespace GDNN.Rendering.LOD
 
         private static void AddPlane(float[] q, float a, float b, float c, float d)
         {
-            q[0] += a * a; q[1] += a * b; q[2] += a * c; q[3] += a * d;
-            q[4] += b * b; q[5] += b * c; q[6] += b * d;
-            q[7] += c * c; q[8] += c * d;
+            q[0] += a * a;
+            q[1] += a * b;
+            q[2] += a * c;
+            q[3] += a * d;
+            q[4] += b * b;
+            q[5] += b * c;
+            q[6] += b * d;
+            q[7] += c * c;
+            q[8] += c * d;
             q[9] += d * d;
         }
 
@@ -461,7 +470,8 @@ namespace GDNN.Rendering.LOD
 
         private static long EdgeKey(int a, int b)
         {
-            if (a > b) (a, b) = (b, a);
+            if (a > b)
+                (a, b) = (b, a);
             return ((long)a << 32) | (uint)b;
         }
     }

@@ -173,14 +173,16 @@ public static class MeshCollisionCooker
                         break;
                     }
                 }
-                if (inside) continue;
+                if (inside)
+                    continue;
                 if (d > bestDist)
                 {
                     bestDist = d;
                     bestIdx = i;
                 }
             }
-            if (bestIdx < 0) break;
+            if (bestIdx < 0)
+                break;
             set.Add(points[bestIdx]);
         }
 

@@ -91,5 +91,5 @@ jobs:
       run: >
         dotnet test tests/Synapse.Tests/Synapse.Tests.csproj
         -c Release
-        --filter "FullyQualifiedName~PhysicsCertification|FullyQualifiedName~Ccd|FullyQualifiedName~Joint|FullyQualifiedName~MeshProvider|FullyQualifiedName~Industrial"
+        --filter "FullyQualifiedName~PhysicsCertification|FullyQualifiedName~Ccd|FullyQualifiedName~JointAndVehicle|FullyQualifiedName~MeshProvider|FullyQualifiedName~SoftConstraint|FullyQualifiedName~IndustrialHardening|FullyQualifiedName~DxcCompilation|FullyQualifiedName~GpuResident"
         --verbosity normal

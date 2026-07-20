@@ -18,7 +18,11 @@ public class NativePlatformTests
         NativePlatform.InvalidateProbeCache();
         var caps = NativePlatform.Probe();
         caps.Rid.Should().NotBeNullOrWhiteSpace();
-        caps.PreferredBackend.Should().Be(NativeSurfaceBackend.Glfw);
+        // Policy prefers GLFW everywhere; when the native lib is absent PreferredBackend is None.
+        if (caps.GlfwAvailable)
+            caps.PreferredBackend.Should().Be(NativeSurfaceBackend.Glfw);
+        else
+            caps.PreferredBackend.Should().Be(NativeSurfaceBackend.None);
         caps.Summary.Should().Contain("GLFW");
     }
 

@@ -20,27 +20,27 @@ namespace GDNN.Lighting.LDNN
     /// </summary>
     public class LDNNRenderer
     {
-        private LDNNConfig _config;
-        private RadianceCascadesManager _cascadesManager;
-        private NeuralPredictiveIrradiance _neuralPredictor;
-        private NeuralSpecularPredictor _specularPredictor;
-        private ReferencePathTracer _referencePathTracer;
-        private ScreenSpaceIrradiance _screenSpaceGI;
-        private IrradianceCacheManager _probeCache;
-        private TemporalStabilizer _temporalStabilizer;
-        private DenoisingPipeline _denoisingPipeline;
-        private VolumetricLighting _volumetricLighting;
-        private AmbientOcclusionSystem _aoSystem;
-        private LightCullingSystem _lightCulling;
-        private LDNNAnalytics _analytics;
+        private required LDNNConfig _config;
+        private required RadianceCascadesManager _cascadesManager;
+        private required NeuralPredictiveIrradiance _neuralPredictor;
+        private required NeuralSpecularPredictor _specularPredictor;
+        private required ReferencePathTracer _referencePathTracer;
+        private required ScreenSpaceIrradiance _screenSpaceGI;
+        private required IrradianceCacheManager _probeCache;
+        private required TemporalStabilizer _temporalStabilizer;
+        private required DenoisingPipeline _denoisingPipeline;
+        private required VolumetricLighting _volumetricLighting;
+        private required AmbientOcclusionSystem _aoSystem;
+        private required LightCullingSystem _lightCulling;
+        private required LDNNAnalytics _analytics;
 
-        private FrameTelemetry _telemetry;
-        private GBuffer _previousGBuffer;
-        private Vector3[] _previousGIResult;
+        private required FrameTelemetry _telemetry;
+        private required GBuffer _previousGBuffer;
+        private required Vector3[] _previousGIResult;
         private int _frameIndex;
         private bool _isInitialized;
         private bool _isShutdown;
-        private RandomNumberGenerator _rng;
+        private required RandomNumberGenerator _rng;
 
         private const float PI = MathF.PI;
         private const float TWO_PI = 2.0f * MathF.PI;
@@ -531,69 +531,69 @@ namespace GDNN.Lighting.LDNN
             {
                 case "ssao":
                 case "compute_ssao":
-                {
-                    if (parameters.TryGetValue("gbuffer", out var gbObj) && gbObj is GBuffer gb
-                        && parameters.TryGetValue("camera", out var camObj) && camObj is CameraState cam)
                     {
-                        int kernel = parameters.TryGetValue("kernelSize", out var k) && k is int ki ? ki : 32;
-                        float radius = parameters.TryGetValue("radius", out var r) && r is float rf ? rf : 0.75f;
-                        EnsureAoSize(gb.Width, gb.Height);
-                        _aoSystem.ComputeSSAO(gb, cam, kernel, radius);
+                        if (parameters.TryGetValue("gbuffer", out var gbObj) && gbObj is GBuffer gb
+                            && parameters.TryGetValue("camera", out var camObj) && camObj is CameraState cam)
+                        {
+                            int kernel = parameters.TryGetValue("kernelSize", out var k) && k is int ki ? ki : 32;
+                            float radius = parameters.TryGetValue("radius", out var r) && r is float rf ? rf : 0.75f;
+                            EnsureAoSize(gb.Width, gb.Height);
+                            _aoSystem.ComputeSSAO(gb, cam, kernel, radius);
+                        }
+                        break;
                     }
-                    break;
-                }
                 case "blur_ao":
                 case "ao_blur":
-                {
-                    if (parameters.TryGetValue("gbuffer", out var gbObj) && gbObj is GBuffer gb)
                     {
-                        int radius = parameters.TryGetValue("radius", out var r) && r is int ri ? ri : 2;
-                        float sigma = parameters.TryGetValue("sigma", out var s) && s is float sf ? sf : 0.1f;
-                        EnsureAoSize(gb.Width, gb.Height);
-                        _aoSystem.BlurAO(gb, radius, sigma);
+                        if (parameters.TryGetValue("gbuffer", out var gbObj) && gbObj is GBuffer gb)
+                        {
+                            int radius = parameters.TryGetValue("radius", out var r) && r is int ri ? ri : 2;
+                            float sigma = parameters.TryGetValue("sigma", out var s) && s is float sf ? sf : 0.1f;
+                            EnsureAoSize(gb.Width, gb.Height);
+                            _aoSystem.BlurAO(gb, radius, sigma);
+                        }
+                        break;
                     }
-                    break;
-                }
                 case "downsample_irradiance":
                 case "irradiance_downsample":
-                {
-                    if (parameters.TryGetValue("source", out var srcObj) && srcObj is Vector3[] source
-                        && parameters.TryGetValue("dest", out var dstObj) && dstObj is Vector3[] dest
-                        && parameters.TryGetValue("srcWidth", out var swObj) && swObj is int srcW
-                        && parameters.TryGetValue("srcHeight", out var shObj) && shObj is int srcH)
                     {
-                        DownsampleIrradiance(source, srcW, srcH, dest);
+                        if (parameters.TryGetValue("source", out var srcObj) && srcObj is Vector3[] source
+                            && parameters.TryGetValue("dest", out var dstObj) && dstObj is Vector3[] dest
+                            && parameters.TryGetValue("srcWidth", out var swObj) && swObj is int srcW
+                            && parameters.TryGetValue("srcHeight", out var shObj) && shObj is int srcH)
+                        {
+                            DownsampleIrradiance(source, srcW, srcH, dest);
+                        }
+                        break;
                     }
-                    break;
-                }
                 case "ssgi_irradiance":
                 case "gpu_resident_gi":
-                {
-                    if (parameters.TryGetValue("gbuffer", out var gbObj) && gbObj is GBuffer gb
-                        && parameters.TryGetValue("dest", out var destObj) && destObj is Vector3[] dest
-                        && parameters.TryGetValue("camera", out var camObj) && camObj is CameraState cam)
                     {
-                        IReadOnlyList<LightConfig> lights = Array.Empty<LightConfig>();
-                        if (parameters.TryGetValue("lights", out var lightsObj))
+                        if (parameters.TryGetValue("gbuffer", out var gbObj) && gbObj is GBuffer gb
+                            && parameters.TryGetValue("dest", out var destObj) && destObj is Vector3[] dest
+                            && parameters.TryGetValue("camera", out var camObj) && camObj is CameraState cam)
                         {
-                            if (lightsObj is IReadOnlyList<LightConfig> list)
-                                lights = list;
-                            else if (lightsObj is List<LightConfig> mutable)
-                                lights = mutable;
+                            IReadOnlyList<LightConfig> lights = Array.Empty<LightConfig>();
+                            if (parameters.TryGetValue("lights", out var lightsObj))
+                            {
+                                if (lightsObj is IReadOnlyList<LightConfig> list)
+                                    lights = list;
+                                else if (lightsObj is List<LightConfig> mutable)
+                                    lights = mutable;
+                            }
+                            ComputeSsgiIrradiance(gb, cam, lights, dest);
                         }
-                        ComputeSsgiIrradiance(gb, cam, lights, dest);
+                        break;
                     }
-                    break;
-                }
                 case "clear":
                 case "clear_buffer":
-                {
-                    if (parameters.TryGetValue("buffer", out var bufObj) && bufObj is float[] buffer)
-                        Array.Clear(buffer);
-                    else if (parameters.TryGetValue("buffer", out var vbuf) && vbuf is Vector3[] v3)
-                        Array.Clear(v3);
-                    break;
-                }
+                    {
+                        if (parameters.TryGetValue("buffer", out var bufObj) && bufObj is float[] buffer)
+                            Array.Clear(buffer);
+                        else if (parameters.TryGetValue("buffer", out var vbuf) && vbuf is Vector3[] v3)
+                            Array.Clear(v3);
+                        break;
+                    }
                 default:
                     // Unknown kernels still consume the dispatch so callers can schedule work
                     // without branching on GPU availability; groups is retained for telemetry.
@@ -644,7 +644,8 @@ namespace GDNN.Lighting.LDNN
                         int sy = Math.Clamp(y + oy[s], 0, h - 1);
                         int sidx = sy * w + sx;
                         float sd = gbuffer.Depth[sidx];
-                        if (sd <= 0f) continue;
+                        if (sd <= 0f)
+                            continue;
                         float depthWeight = 1f - Math.Clamp(MathF.Abs(sd - depth) / MathF.Max(0.05f, depth * 0.25f), 0f, 1f);
                         float nDot = MathF.Max(0f, Vector3.Dot(normal, gbuffer.Normals[sidx]));
                         indirect += gbuffer.Albedo[sidx] * (0.15f * depthWeight * nDot);
@@ -674,7 +675,8 @@ namespace GDNN.Lighting.LDNN
                         {
                             Vector3 toLight = light.Position - worldPos;
                             float dist = toLight.Length();
-                            if (dist < 1e-4f) continue;
+                            if (dist < 1e-4f)
+                                continue;
                             L = toLight / dist;
                             float range = MathF.Max(0.01f, light.Range);
                             atten *= MathF.Max(0f, 1f - dist / range);
@@ -719,9 +721,12 @@ namespace GDNN.Lighting.LDNN
                     int y0 = y * 2;
                     Vector3 sum = source[y0 * srcW + x0];
                     int count = 1;
-                    if (x0 + 1 < srcW) { sum += source[y0 * srcW + x0 + 1]; count++; }
-                    if (y0 + 1 < srcH) { sum += source[(y0 + 1) * srcW + x0]; count++; }
-                    if (x0 + 1 < srcW && y0 + 1 < srcH) { sum += source[(y0 + 1) * srcW + x0 + 1]; count++; }
+                    if (x0 + 1 < srcW)
+                    { sum += source[y0 * srcW + x0 + 1]; count++; }
+                    if (y0 + 1 < srcH)
+                    { sum += source[(y0 + 1) * srcW + x0]; count++; }
+                    if (x0 + 1 < srcW && y0 + 1 < srcH)
+                    { sum += source[(y0 + 1) * srcW + x0 + 1]; count++; }
                     dest[y * dstW + x] = sum / count;
                 }
             }

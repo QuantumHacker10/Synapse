@@ -72,7 +72,8 @@ public sealed class VehicleController
     /// </summary>
     public void Step(RigidBodyWorld world, float dt)
     {
-        if (dt <= 0f) return;
+        if (dt <= 0f)
+            return;
         var chassis = world.GetBody(ChassisBodyId);
         if (chassis == null || chassis.Type != BodyType.Dynamic)
             return;
@@ -105,7 +106,8 @@ public sealed class VehicleController
             w.ContactPoint = hitPos;
             w.ContactNormal = hitNormal;
 
-            if (!w.InContact) continue;
+            if (!w.InContact)
+                continue;
 
             // Spring-damper along suspension.
             Vector3 relVel = chassis.LinearVelocity + Vector3.Cross(chassis.AngularVelocity, hardPoint - chassis.Position);
@@ -155,14 +157,17 @@ public sealed class VehicleController
         for (int i = 0; i < world.Bodies.Count; i++)
         {
             var b = world.Bodies[i];
-            if (b.Type == BodyType.Dynamic) continue;
+            if (b.Type == BodyType.Dynamic)
+                continue;
 
             if (b.Collider.Shape == ColliderShape.Plane)
             {
                 float planeY = b.Position.Y;
-                if (MathF.Abs(delta.Y) < 1e-8f) continue;
+                if (MathF.Abs(delta.Y) < 1e-8f)
+                    continue;
                 float t = (planeY - start.Y) / delta.Y;
-                if (t < 0f || t > 1f || t >= best) continue;
+                if (t < 0f || t > 1f || t >= best)
+                    continue;
                 best = t;
                 hitPos = start + delta * t;
                 hitNormal = Vector3.UnitY;
@@ -210,19 +215,24 @@ public sealed class VehicleController
             float mx = axis == 0 ? max.X : axis == 1 ? max.Y : max.Z;
             if (MathF.Abs(d) < 1e-8f)
             {
-                if (o < mn || o > mx) return false;
+                if (o < mn || o > mx)
+                    return false;
                 continue;
             }
             float inv = 1f / d;
             float t1 = (mn - o) * inv;
             float t2 = (mx - o) * inv;
             float sign = -1f;
-            if (t1 > t2) { (t1, t2) = (t2, t1); sign = 1f; }
-            if (t1 > tMin) { tMin = t1; hitAxis = axis; hitSign = sign; }
+            if (t1 > t2)
+            { (t1, t2) = (t2, t1); sign = 1f; }
+            if (t1 > tMin)
+            { tMin = t1; hitAxis = axis; hitSign = sign; }
             tMax = MathF.Min(tMax, t2);
-            if (tMin > tMax) return false;
+            if (tMin > tMax)
+                return false;
         }
-        if (tMin < 0f || tMin > 1f) return false;
+        if (tMin < 0f || tMin > 1f)
+            return false;
         tEnter = tMin;
         normal = hitAxis switch
         {

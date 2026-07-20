@@ -259,7 +259,8 @@ public sealed class MultiphysicsOrchestrator : IDisposable
     /// </summary>
     public bool Step(float dt, TimeSpan? budget = null)
     {
-        if (_disposed) return false;
+        if (_disposed)
+            return false;
         var totalSw = System.Diagnostics.Stopwatch.StartNew();
         var budgetMs = budget?.TotalMilliseconds ?? double.PositiveInfinity;
 
@@ -338,7 +339,8 @@ public sealed class MultiphysicsOrchestrator : IDisposable
     private void InjectKineticHeating()
     {
         float ke = _rigidWorld.ComputeKineticEnergy();
-        if (ke < 1e-3f) return;
+        if (ke < 1e-3f)
+            return;
         float heat = MathF.Min(5f, ke * 0.001f);
         int g = _field.GridSize;
         int cx = g / 2, cy = Math.Clamp(g / 2 + 1, 0, g - 1), cz = g / 2;
@@ -362,7 +364,8 @@ public sealed class MultiphysicsOrchestrator : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
         _disposed = true;
         _elasticity?.Dispose();
         _sph = null;

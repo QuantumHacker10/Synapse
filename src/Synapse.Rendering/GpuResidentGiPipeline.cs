@@ -61,7 +61,8 @@ namespace GDNN.Rendering.Bridge
         public void UpdateFromGBuffer(GBuffer gbuffer)
         {
             ArgumentNullException.ThrowIfNull(gbuffer);
-            if (gbuffer.Depth == null) return;
+            if (gbuffer.Depth == null)
+                return;
             _width = gbuffer.Width;
             _height = gbuffer.Height;
             EnsureResident();
@@ -69,10 +70,14 @@ namespace GDNN.Rendering.Bridge
             Array.Copy(gbuffer.Depth, _resident!.Depth, n);
             Array.Copy(gbuffer.Normals, _resident.Normals, n);
             Array.Copy(gbuffer.Albedo, _resident.Albedo, n);
-            if (gbuffer.Velocity != null) Array.Copy(gbuffer.Velocity, _resident.Velocity, n);
-            if (gbuffer.MaterialProps != null) Array.Copy(gbuffer.MaterialProps, _resident.MaterialProps, n);
-            if (gbuffer.Specular != null) Array.Copy(gbuffer.Specular, _resident.Specular, n);
-            if (gbuffer.Emissive != null) Array.Copy(gbuffer.Emissive, _resident.Emissive, n);
+            if (gbuffer.Velocity != null)
+                Array.Copy(gbuffer.Velocity, _resident.Velocity, n);
+            if (gbuffer.MaterialProps != null)
+                Array.Copy(gbuffer.MaterialProps, _resident.MaterialProps, n);
+            if (gbuffer.Specular != null)
+                Array.Copy(gbuffer.Specular, _resident.Specular, n);
+            if (gbuffer.Emissive != null)
+                Array.Copy(gbuffer.Emissive, _resident.Emissive, n);
             _version++;
         }
 
@@ -124,7 +129,8 @@ namespace GDNN.Rendering.Bridge
 
         public void CopyResidentTo(GBuffer target)
         {
-            if (!HasResidentGBuffer || target == null) return;
+            if (!HasResidentGBuffer || target == null)
+                return;
             int n = _width * _height;
             if (target.Depth == null || target.Depth.Length != n)
                 return;
