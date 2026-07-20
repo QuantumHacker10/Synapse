@@ -186,6 +186,13 @@ public sealed class ShaderCompilationResult
     /// <summary>Hash of the preprocessed source (for caching).</summary>
     public string? SourceHash { get; set; }
 
+    /// <summary>Which backend produced the bytecode (DXC / glslang / simulated fallback).</summary>
+    public ShaderCompilationBackend Backend { get; set; } = ShaderCompilationBackend.None;
+
+    /// <summary>True when bytecode came from a native toolchain (DXC or glslang).</summary>
+    public bool UsedNativeCompiler =>
+        Backend is ShaderCompilationBackend.Dxc or ShaderCompilationBackend.Glslang;
+
     /// <summary>Number of warnings.</summary>
     public int WarningCount => Diagnostics.Count(d => d.Severity == ShaderDiagnosticSeverity.Warning);
 
@@ -230,6 +237,17 @@ public sealed class ShaderCompilerConfig
 
     /// <summary>Enable packing validation.</summary>
     public bool ValidatePacking { get; set; } = true;
+
+    /// <summary>
+    /// Prefer DXC / glslang when available. When false, always use the simulated backend.
+    /// </summary>
+    public bool PreferNativeCompiler { get; set; } = true;
+
+    /// <summary>
+    /// If native compilation is unavailable or fails, emit validated simulated bytecode
+    /// (CI / machines without the Vulkan SDK). Set false to hard-fail instead.
+    /// </summary>
+    public bool AllowSimulatedFallback { get; set; } = true;
 
     /// <summary>Treat warnings as errors.</summary>
     public bool WarningsAsErrors { get; set; } = false;
@@ -363,8 +381,8 @@ public sealed class ShaderCompiler : IDisposable
                 return result;
             }
 
-            // Phase 3: Compilation (simulated - in production, call DxcCompiler or similar)
-            await SimulateCompilationAsync(preprocessed, entryPoint, shaderType, result, cancellationToken);
+            // Phase 3: Native DXC/glslang compilation (falls back to simulated bytecode only if allowed)
+            await CompileBytecodeAsync(preprocessed, entryPoint, shaderType, result, cancellationToken);
 
             // Phase 4: Post-compilation validation
             if (result.Success && _config.ValidatePacking)
@@ -1068,19 +1086,18 @@ public sealed class ShaderCompiler : IDisposable
     }
 
     /// <summary>
-    /// Simulates shader compilation (in production, this would call DxcCompiler or fxc).
+    /// Compiles bytecode via DXC (SPIR-V) or glslang when available; otherwise uses the
+    /// validated simulated backend if <see cref="ShaderCompilerConfig.AllowSimulatedFallback"/> is set.
     /// </summary>
-    private Task SimulateCompilationAsync(string source, string entryPoint, ShaderType shaderType,
+    private Task CompileBytecodeAsync(string source, string entryPoint, ShaderType shaderType,
         ShaderCompilationResult result, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Compute source hash for cache key
         byte[] sourceBytes = Encoding.UTF8.GetBytes(source);
         string sourceHash = Convert.ToHexString(MD5.HashData(sourceBytes));
         result.SourceHash = sourceHash;
 
-        // Validate entry point exists
         string entryPattern = $@"\b{Regex.Escape(entryPoint)}\s*\(";
         if (!Regex.IsMatch(source, entryPattern))
         {
@@ -1091,22 +1108,135 @@ public sealed class ShaderCompiler : IDisposable
                 Message = $"Entry point '{entryPoint}' not found in shader source."
             });
             result.Success = false;
+            result.Backend = ShaderCompilationBackend.None;
             return Task.CompletedTask;
         }
 
-        // Simulate bytecode generation
-        // In production: call dxcCompiler.Compile() or fxcCompiler.Compile()
-        byte[] simulatedBytecode = GenerateSimulatedBytecode(source, entryPoint, shaderType);
-        result.Bytecode = simulatedBytecode;
-
-        // Generate assembly listing
-        if (_config.DumpPreprocessed || _config.EnableDebugInfo)
+        if (_config.PreferNativeCompiler && TryNativeCompile(source, entryPoint, shaderType, result))
         {
-            result.AssemblyListing = GenerateAssemblyListing(source, entryPoint, shaderType);
+            if (_config.DumpPreprocessed || _config.EnableDebugInfo)
+                result.AssemblyListing = GenerateAssemblyListing(source, entryPoint, shaderType);
+            return Task.CompletedTask;
         }
 
-        result.Success = true;
+        if (!_config.AllowSimulatedFallback)
+        {
+            result.Diagnostics.Add(new ShaderDiagnostic
+            {
+                Severity = ShaderDiagnosticSeverity.Error,
+                Code = "GDNN_NATIVE_COMPILER_REQUIRED",
+                Message = "Native DXC/glslang compilation failed or is unavailable, and simulated fallback is disabled."
+            });
+            result.Success = false;
+            result.Backend = ShaderCompilationBackend.None;
+            return Task.CompletedTask;
+        }
 
+        result.Diagnostics.Add(new ShaderDiagnostic
+        {
+            Severity = ShaderDiagnosticSeverity.Warning,
+            Code = "GDNN_SIMULATED_FALLBACK",
+            Message = SpirvToolchain.IsDxcAvailable
+                ? "DXC was available but compilation failed or was skipped; using simulated bytecode fallback."
+                : "DXC/glslang not found on PATH/VULKAN_SDK; using simulated bytecode fallback."
+        });
+
+        result.Bytecode = GenerateSimulatedBytecode(source, entryPoint, shaderType);
+        result.Backend = ShaderCompilationBackend.SimulatedFallback;
+        if (_config.DumpPreprocessed || _config.EnableDebugInfo)
+            result.AssemblyListing = GenerateAssemblyListing(source, entryPoint, shaderType);
+        result.Success = true;
+        return Task.CompletedTask;
+    }
+
+    private bool TryNativeCompile(string source, string entryPoint, ShaderType shaderType, ShaderCompilationResult result)
+    {
+        // Prefer DXC → SPIR-V for Vulkan and compute workloads; also fine for D3D when DXC is present.
+        if (SpirvToolchain.IsDxcAvailable)
+        {
+            string profile = SpirvToolchain.ProfileFor(shaderType);
+            if (SpirvToolchain.TryCompileHlsl(source, entryPoint, profile, out byte[] spirv, out string log))
+            {
+                result.Bytecode = spirv;
+                result.Backend = ShaderCompilationBackend.Dxc;
+                result.Success = true;
+                result.Diagnostics.Add(new ShaderDiagnostic
+                {
+                    Severity = ShaderDiagnosticSeverity.Info,
+                    Code = "GDNN_DXC_OK",
+                    Message = $"Compiled with DXC ({profile}) → SPIR-V ({spirv.Length} bytes)."
+                });
+                return true;
+            }
+
+            result.Diagnostics.Add(new ShaderDiagnostic
+            {
+                Severity = ShaderDiagnosticSeverity.Warning,
+                Code = "GDNN_DXC_FAILED",
+                Message = string.IsNullOrWhiteSpace(log) ? "DXC compilation failed." : $"DXC failed: {log}"
+            });
+        }
+
+        // glslang path: only meaningful for GLSL compute sources.
+        if (SpirvToolchain.IsGlslangAvailable
+            && shaderType == ShaderType.ComputeShader
+            && source.Contains("#version", StringComparison.Ordinal))
+        {
+            if (SpirvToolchain.TryCompileGlsl(source, out byte[] spirv, out string log))
+            {
+                result.Bytecode = spirv;
+                result.Backend = ShaderCompilationBackend.Glslang;
+                result.Success = true;
+                result.Diagnostics.Add(new ShaderDiagnostic
+                {
+                    Severity = ShaderDiagnosticSeverity.Info,
+                    Code = "GDNN_GLSLANG_OK",
+                    Message = $"Compiled with glslangValidator → SPIR-V ({spirv.Length} bytes)."
+                });
+                return true;
+            }
+
+            result.Diagnostics.Add(new ShaderDiagnostic
+            {
+                Severity = ShaderDiagnosticSeverity.Warning,
+                Code = "GDNN_GLSLANG_FAILED",
+                Message = string.IsNullOrWhiteSpace(log) ? "glslang compilation failed." : $"glslang failed: {log}"
+            });
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Legacy simulated-only path kept for internal callers. Prefer <see cref="CompileBytecodeAsync"/>.
+    /// </summary>
+    private Task SimulateCompilationAsync(string source, string entryPoint, ShaderType shaderType,
+        ShaderCompilationResult result, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        byte[] sourceBytes = Encoding.UTF8.GetBytes(source);
+        result.SourceHash = Convert.ToHexString(MD5.HashData(sourceBytes));
+
+        string entryPattern = $@"\b{Regex.Escape(entryPoint)}\s*\(";
+        if (!Regex.IsMatch(source, entryPattern))
+        {
+            result.Diagnostics.Add(new ShaderDiagnostic
+            {
+                Severity = ShaderDiagnosticSeverity.Error,
+                Code = "GDNN_ENTRY_POINT_NOT_FOUND",
+                Message = $"Entry point '{entryPoint}' not found in shader source."
+            });
+            result.Success = false;
+            result.Backend = ShaderCompilationBackend.None;
+            return Task.CompletedTask;
+        }
+
+        result.Bytecode = GenerateSimulatedBytecode(source, entryPoint, shaderType);
+        result.Backend = ShaderCompilationBackend.SimulatedFallback;
+        if (_config.DumpPreprocessed || _config.EnableDebugInfo)
+            result.AssemblyListing = GenerateAssemblyListing(source, entryPoint, shaderType);
+        result.Success = true;
         return Task.CompletedTask;
     }
 
@@ -1244,6 +1374,21 @@ public sealed class ShaderCompiler : IDisposable
         _cache.Clear();
         GC.SuppressFinalize(this);
     }
+}
+
+/// <summary>
+/// Backend that produced shader bytecode.
+/// </summary>
+public enum ShaderCompilationBackend
+{
+    /// <summary>No bytecode produced.</summary>
+    None = 0,
+    /// <summary>Microsoft DXC with <c>-spirv</c>.</summary>
+    Dxc = 1,
+    /// <summary>glslangValidator.</summary>
+    Glslang = 2,
+    /// <summary>Validated simulated DXBC/SPIR-V-like payload (CI without native tools).</summary>
+    SimulatedFallback = 3
 }
 
 /// <summary>

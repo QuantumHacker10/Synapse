@@ -74,6 +74,12 @@ public sealed class RigidBody
     public float SleepTimer { get; set; }
     public bool IsAwake => !IsSleeping;
 
+    /// <summary>When true, fast movers use continuous collision (TOI) against static geometry.</summary>
+    public bool EnableCcd { get; set; } = true;
+
+    /// <summary>Motion length (m) above which CCD activates for this body (scaled by shape radius).</summary>
+    public float CcdMotionThreshold { get; set; } = 0.25f;
+
     public Aabb WorldAabb;
 
     public void SetMass(float mass)
@@ -205,6 +211,7 @@ public sealed class PhysicsWorldStats
     public float KineticEnergy { get; set; }
     public Vector3 LinearMomentum { get; set; }
     public float StepTimeMs { get; set; }
+    public int CcdHitCount { get; set; }
 }
 
 /// <summary>
@@ -216,6 +223,7 @@ public sealed class RigidBodyWorld
     private readonly List<RigidBody> _bodies = new();
     private readonly List<ContactManifold> _manifolds = new();
     private readonly Dictionary<Guid, RigidBody> _byId = new();
+    private readonly HashSet<int> _ccdResolved = new();
 
     public Vector3 Gravity { get; set; } = new(0f, -9.81f, 0f);
     public int VelocityIterations { get; set; } = 10;
@@ -226,6 +234,12 @@ public sealed class RigidBodyWorld
     public float Baumgarte { get; set; } = 0.2f;
     public float Slop { get; set; } = 0.005f;
     public bool EnableSleeping { get; set; } = true;
+
+    /// <summary>Enables continuous collision detection for fast dynamic bodies.</summary>
+    public bool EnableCcd { get; set; } = true;
+
+    /// <summary>World-space speed (m/s) above which CCD is considered for a body.</summary>
+    public float CcdVelocityThreshold { get; set; } = 4f;
 
     public IReadOnlyList<RigidBody> Bodies => _bodies;
     public IReadOnlyList<ContactManifold> Manifolds => _manifolds;
@@ -272,6 +286,9 @@ public sealed class RigidBodyWorld
         IntegrateForces(dt);
         BroadAndNarrowPhase();
         SolveVelocityConstraints(dt);
+        _ccdResolved.Clear();
+        if (EnableCcd)
+            SolveContinuousCollisions(dt);
         IntegrateVelocities(dt);
         SolvePositionConstraints();
         UpdateSleepState(dt);
@@ -279,6 +296,204 @@ public sealed class RigidBodyWorld
 
         sw.Stop();
         CollectStats((float)sw.Elapsed.TotalMilliseconds);
+    }
+
+    /// <summary>
+    /// Continuous collision detection: sweeps fast dynamic shapes against static geometry
+    /// and clamps motion to the first time-of-impact (prevents tunneling).
+    /// </summary>
+    private void SolveContinuousCollisions(float dt)
+    {
+        int hits = 0;
+        for (int i = 0; i < _bodies.Count; i++)
+        {
+            var body = _bodies[i];
+            if (body.Type != BodyType.Dynamic || body.IsSleeping || !body.EnableCcd)
+                continue;
+
+            float speed = body.LinearVelocity.Length();
+            if (speed < CcdVelocityThreshold)
+                continue;
+
+            float radius = body.Collider.Shape switch
+            {
+                ColliderShape.Sphere => body.Collider.Size.X,
+                ColliderShape.Capsule => body.Collider.Size.X + body.Collider.Size.Y,
+                _ => MathF.Max(body.Collider.Size.X, MathF.Max(body.Collider.Size.Y, body.Collider.Size.Z))
+            };
+
+            float motion = speed * dt;
+            if (motion < body.CcdMotionThreshold && motion < radius)
+                continue;
+
+            Vector3 start = body.Position;
+            Vector3 end = start + body.LinearVelocity * dt;
+            float bestToi = 1f;
+            Vector3 hitNormal = Vector3.UnitY;
+            bool hit = false;
+
+            for (int j = 0; j < _bodies.Count; j++)
+            {
+                var other = _bodies[j];
+                if (ReferenceEquals(other, body) || other.Type == BodyType.Dynamic)
+                    continue;
+
+                if (TrySweptHit(body, start, end, other, out float toi, out Vector3 n) && toi < bestToi)
+                {
+                    bestToi = toi;
+                    hitNormal = n;
+                    hit = true;
+                }
+            }
+
+            if (!hit || bestToi >= 1f)
+                continue;
+
+            // Advance to TOI with a small skin and reflect the impact velocity.
+            float skin = Math.Clamp(bestToi - 1e-3f, 0f, 1f);
+            body.Position = start + (end - start) * skin;
+            float vn = Vector3.Dot(body.LinearVelocity, hitNormal);
+            if (vn < 0f)
+            {
+                float e = body.Material.Restitution;
+                body.LinearVelocity -= hitNormal * vn * (1f + e);
+            }
+
+            body.UpdateAabb();
+            _ccdResolved.Add(i);
+            hits++;
+        }
+
+        LastStats.CcdHitCount = hits;
+    }
+
+    private static bool TrySweptHit(
+        RigidBody moving,
+        Vector3 start,
+        Vector3 end,
+        RigidBody obstacle,
+        out float toi,
+        out Vector3 normal)
+    {
+        toi = 1f;
+        normal = Vector3.UnitY;
+        Vector3 delta = end - start;
+        float motionLen = delta.Length();
+        if (motionLen < 1e-8f)
+            return false;
+
+        if (obstacle.Collider.Shape == ColliderShape.Plane)
+        {
+            // Infinite ground plane y = obstacle.Position.Y, normal +Y.
+            float planeY = obstacle.Position.Y;
+            float radius = moving.Collider.Shape == ColliderShape.Sphere
+                ? moving.Collider.Size.X
+                : moving.Collider.Shape == ColliderShape.Capsule
+                    ? moving.Collider.Size.X + moving.Collider.Size.Y
+                    : moving.Collider.Size.Y;
+
+            float y0 = start.Y - radius;
+            float y1 = end.Y - radius;
+            if (y0 >= planeY && y1 >= planeY)
+                return false;
+            if (y0 < planeY && y1 < planeY)
+            {
+                // Already penetrating — TOI 0.
+                toi = 0f;
+                normal = Vector3.UnitY;
+                return true;
+            }
+
+            // Crossing from above.
+            if (y0 >= planeY && y1 < planeY)
+            {
+                toi = (y0 - planeY) / (y0 - y1);
+                normal = Vector3.UnitY;
+                return toi >= 0f && toi <= 1f;
+            }
+
+            return false;
+        }
+
+        if (moving.Collider.Shape == ColliderShape.Sphere
+            && (obstacle.Collider.Shape == ColliderShape.Sphere || obstacle.Collider.Shape == ColliderShape.Box))
+        {
+            // Sphere vs expanded AABB (or sphere treated as AABB of its diameter).
+            Vector3 center = obstacle.Position + obstacle.Collider.LocalOffset;
+            Vector3 he = obstacle.Collider.Shape == ColliderShape.Sphere
+                ? new Vector3(obstacle.Collider.Size.X)
+                : obstacle.Collider.Size;
+            float r = moving.Collider.Size.X;
+            he += new Vector3(r);
+
+            if (TryRayAabb(start, delta, center - he, center + he, out float tEnter, out Vector3 n)
+                && tEnter >= 0f && tEnter <= 1f)
+            {
+                toi = tEnter;
+                normal = n;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Ray vs AABB slab test. Returns entry TOI in [0,1] along <paramref name="dir"/>.</summary>
+    private static bool TryRayAabb(Vector3 origin, Vector3 dir, Vector3 min, Vector3 max, out float tEnter, out Vector3 normal)
+    {
+        tEnter = 0f;
+        normal = Vector3.UnitY;
+        float tMin = 0f;
+        float tMax = 1f;
+        int hitAxis = 1;
+        float hitSign = 1f;
+
+        for (int axis = 0; axis < 3; axis++)
+        {
+            float o = axis == 0 ? origin.X : axis == 1 ? origin.Y : origin.Z;
+            float d = axis == 0 ? dir.X : axis == 1 ? dir.Y : dir.Z;
+            float mn = axis == 0 ? min.X : axis == 1 ? min.Y : min.Z;
+            float mx = axis == 0 ? max.X : axis == 1 ? max.Y : max.Z;
+
+            if (MathF.Abs(d) < 1e-8f)
+            {
+                if (o < mn || o > mx)
+                    return false;
+                continue;
+            }
+
+            float inv = 1f / d;
+            float t1 = (mn - o) * inv;
+            float t2 = (mx - o) * inv;
+            float sign = -1f;
+            if (t1 > t2)
+            {
+                (t1, t2) = (t2, t1);
+                sign = 1f;
+            }
+
+            if (t1 > tMin)
+            {
+                tMin = t1;
+                hitAxis = axis;
+                hitSign = sign;
+            }
+            tMax = MathF.Min(tMax, t2);
+            if (tMin > tMax)
+                return false;
+        }
+
+        if (tMin < 0f || tMin > 1f)
+            return false;
+
+        tEnter = tMin;
+        normal = hitAxis switch
+        {
+            0 => new Vector3(hitSign, 0, 0),
+            2 => new Vector3(0, 0, hitSign),
+            _ => new Vector3(0, hitSign, 0)
+        };
+        return true;
     }
 
     private void IntegrateForces(float dt)
@@ -305,6 +520,19 @@ public sealed class RigidBodyWorld
             var b = _bodies[i];
             if (b.Type == BodyType.Static || b.IsSleeping)
                 continue;
+            if (_ccdResolved.Contains(i))
+            {
+                // CCD already placed the body at the TOI; only integrate orientation.
+                float angSpeedCcd = b.AngularVelocity.Length();
+                if (angSpeedCcd > 1e-6f)
+                {
+                    var axis = b.AngularVelocity / angSpeedCcd;
+                    b.Orientation = Quaternion.Normalize(
+                        Quaternion.CreateFromAxisAngle(axis, angSpeedCcd * dt) * b.Orientation);
+                }
+                b.UpdateAabb();
+                continue;
+            }
 
             b.Position += b.LinearVelocity * dt;
             float angSpeed = b.AngularVelocity.Length();

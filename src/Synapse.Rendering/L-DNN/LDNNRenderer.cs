@@ -566,6 +566,25 @@ namespace GDNN.Lighting.LDNN
                     }
                     break;
                 }
+                case "ssgi_irradiance":
+                case "gpu_resident_gi":
+                {
+                    if (parameters.TryGetValue("gbuffer", out var gbObj) && gbObj is GBuffer gb
+                        && parameters.TryGetValue("dest", out var destObj) && destObj is Vector3[] dest
+                        && parameters.TryGetValue("camera", out var camObj) && camObj is CameraState cam)
+                    {
+                        IReadOnlyList<LightConfig> lights = Array.Empty<LightConfig>();
+                        if (parameters.TryGetValue("lights", out var lightsObj))
+                        {
+                            if (lightsObj is IReadOnlyList<LightConfig> list)
+                                lights = list;
+                            else if (lightsObj is List<LightConfig> mutable)
+                                lights = mutable;
+                        }
+                        ComputeSsgiIrradiance(gb, cam, lights, dest);
+                    }
+                    break;
+                }
                 case "clear":
                 case "clear_buffer":
                 {
@@ -581,6 +600,94 @@ namespace GDNN.Lighting.LDNN
                     _ = groups;
                     break;
             }
+        }
+
+        /// <summary>
+        /// Screen-space GI compute kernel used by the GPU-resident path (no Vulkan readback).
+        /// Combines hemisphere albedo gather with direct lighting from the light list.
+        /// </summary>
+        private static void ComputeSsgiIrradiance(
+            GBuffer gbuffer,
+            CameraState camera,
+            IReadOnlyList<LightConfig> lights,
+            Vector3[] dest)
+        {
+            int w = gbuffer.Width;
+            int h = gbuffer.Height;
+            int n = w * h;
+            if (dest.Length < n || gbuffer.Depth == null || gbuffer.Normals == null || gbuffer.Albedo == null)
+                return;
+
+            Parallel.For(0, h, y =>
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    int idx = y * w + x;
+                    float depth = gbuffer.Depth[idx];
+                    if (depth <= 0f)
+                    {
+                        dest[idx] = Vector3.Zero;
+                        continue;
+                    }
+
+                    Vector3 normal = gbuffer.Normals[idx];
+                    Vector3 albedo = gbuffer.Albedo[idx];
+                    Vector3 indirect = Vector3.Zero;
+                    int samples = 0;
+
+                    // 8-tap screen-space gather weighted by normal agreement.
+                    ReadOnlySpan<int> ox = stackalloc int[] { -3, -1, 1, 3, -3, 3, -1, 1 };
+                    ReadOnlySpan<int> oy = stackalloc int[] { -3, -1, 1, 3, 1, -1, 3, -3 };
+                    for (int s = 0; s < ox.Length; s++)
+                    {
+                        int sx = Math.Clamp(x + ox[s], 0, w - 1);
+                        int sy = Math.Clamp(y + oy[s], 0, h - 1);
+                        int sidx = sy * w + sx;
+                        float sd = gbuffer.Depth[sidx];
+                        if (sd <= 0f) continue;
+                        float depthWeight = 1f - Math.Clamp(MathF.Abs(sd - depth) / MathF.Max(0.05f, depth * 0.25f), 0f, 1f);
+                        float nDot = MathF.Max(0f, Vector3.Dot(normal, gbuffer.Normals[sidx]));
+                        indirect += gbuffer.Albedo[sidx] * (0.15f * depthWeight * nDot);
+                        samples++;
+                    }
+
+                    if (samples > 0)
+                        indirect /= samples;
+
+                    Vector3 direct = Vector3.Zero;
+                    // Reconstruct a cheap view-space position proxy for lighting.
+                    float u = (x + 0.5f) / w;
+                    float v = (y + 0.5f) / h;
+                    var (origin, dir) = camera.GenerateRay(u, v);
+                    Vector3 worldPos = origin + dir * depth;
+
+                    for (int li = 0; li < lights.Count; li++)
+                    {
+                        var light = lights[li];
+                        Vector3 L;
+                        float atten = light.Intensity;
+                        if (light.Type == LightType.Directional)
+                        {
+                            L = Vector3.Normalize(-light.Direction);
+                        }
+                        else
+                        {
+                            Vector3 toLight = light.Position - worldPos;
+                            float dist = toLight.Length();
+                            if (dist < 1e-4f) continue;
+                            L = toLight / dist;
+                            float range = MathF.Max(0.01f, light.Range);
+                            atten *= MathF.Max(0f, 1f - dist / range);
+                        }
+
+                        float ndotl = MathF.Max(0f, Vector3.Dot(normal, L));
+                        direct += light.Color * (atten * ndotl * INV_PI);
+                    }
+
+                    Vector3 emissive = gbuffer.Emissive != null ? gbuffer.Emissive[idx] : Vector3.Zero;
+                    dest[idx] = albedo * (direct + indirect) + emissive;
+                }
+            });
         }
 
         private void EnsureAoSize(int width, int height)

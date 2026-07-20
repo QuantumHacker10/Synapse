@@ -28,6 +28,8 @@ namespace GDNN.Rendering.Bridge
         private int? _lastStateHash;
         private Vector3[,]? _cachedIrradiance;
         private int _aoGbufferVersion = -1;
+        private readonly GpuResidentGiPipeline _residentGi = new();
+        private bool _lastFillWasConstants;
 
         /// <summary>Monotonic frame counter from the underlying L-DNN renderer.</summary>
         public int FrameIndex => _ldnn?.FrameIndex ?? 0;
@@ -42,6 +44,15 @@ namespace GDNN.Rendering.Bridge
 
         /// <summary>Number of frames served from the static GI cache.</summary>
         public long StaticCacheHits { get; private set; }
+
+        /// <summary>GPU-resident GI pipeline (SSGI without per-frame readback).</summary>
+        public GpuResidentGiPipeline ResidentGi => _residentGi;
+
+        /// <summary>Which GI path produced the last irradiance.</summary>
+        public GiComputePath LastGiPath => _residentGi.LastPath;
+
+        /// <summary>True when a GPU-origin G-buffer is resident and usable without constants.</summary>
+        public bool HasResidentGBuffer => _residentGi.HasResidentGBuffer;
 
         /// <summary>Allocates G-Buffer storage for the given viewport size.</summary>
         public LDNNBridge(int width, int height)
@@ -158,6 +169,7 @@ namespace GDNN.Rendering.Bridge
             Vector3[] emissiveData)
         {
             _gbufferVersion++;
+            _lastFillWasConstants = false;
             if (depthData != null && depthData.Length == _gbuffer.Depth.Length)
                 Array.Copy(depthData, _gbuffer.Depth, depthData.Length);
             if (normalData != null && normalData.Length == _gbuffer.Normals.Length)
@@ -166,6 +178,7 @@ namespace GDNN.Rendering.Bridge
                 Array.Copy(albedoData, _gbuffer.Albedo, albedoData.Length);
             if (emissiveData != null && emissiveData.Length == _gbuffer.Emissive.Length)
                 Array.Copy(emissiveData, _gbuffer.Emissive, emissiveData.Length);
+            _residentGi.UpdateFromGBuffer(_gbuffer);
         }
 
         /// <summary>Copies all G-buffer channels including velocity, material, and specular.</summary>
@@ -192,6 +205,7 @@ namespace GDNN.Rendering.Bridge
             float fillDepth, Vector3 fillNormal, Vector3 fillAlbedo)
         {
             _gbufferVersion++;
+            _lastFillWasConstants = true;
             int count = _width * _height;
             for (int i = 0; i < count; i++)
             {
@@ -203,6 +217,37 @@ namespace GDNN.Rendering.Bridge
                 _gbuffer.Specular[i] = new Vector3(0.04f, 0.04f, 0.04f);
                 _gbuffer.Emissive[i] = Vector3.Zero;
             }
+            _residentGi.MarkConstantFallback();
+        }
+
+        /// <summary>
+        /// Restores the last GPU-origin G-buffer into the bridge without a new Vulkan readback.
+        /// Returns false when no resident buffer exists.
+        /// </summary>
+        public bool TryRestoreResidentGBuffer()
+        {
+            if (!_residentGi.HasResidentGBuffer)
+                return false;
+            _residentGi.CopyResidentTo(_gbuffer);
+            _gbufferVersion++;
+            _lastFillWasConstants = false;
+            return true;
+        }
+
+        /// <summary>Ingests a Vulkan G-buffer snapshot into the resident GI store.</summary>
+        public void IngestGpuSnapshot(GDNN.Rendering.Engine.GBufferSnapshot snapshot)
+        {
+            ArgumentNullException.ThrowIfNull(snapshot);
+            FillGBufferComplete(
+                snapshot.Depth,
+                snapshot.Normals,
+                snapshot.Albedo,
+                snapshot.Emissive,
+                snapshot.Velocity,
+                snapshot.MaterialProps,
+                snapshot.Specular);
+            _residentGi.UpdateFromSnapshot(snapshot);
+            _lastFillWasConstants = false;
         }
 
         /// <summary>
@@ -277,6 +322,15 @@ namespace GDNN.Rendering.Bridge
                 _lastStateHash = stateHash;
             }
 
+            // Prefer GPU-resident SSGI compute when we already have a GPU-origin G-buffer
+            // and no fresh constant fill was forced this frame.
+            if (!_lastFillWasConstants && _residentGi.HasResidentGBuffer)
+            {
+                var resident = _residentGi.ComputeResidentIrradiance(_ldnn, _cameraState, _lights);
+                _cachedIrradiance = resident;
+                return resident;
+            }
+
             var context = new RenderContext
             {
                 FrameIndex = _ldnn.FrameIndex,
@@ -302,6 +356,11 @@ namespace GDNN.Rendering.Bridge
                     for (int x = 0; x < _width; x++)
                         irradiance[x, y] = _gbuffer.Albedo[y * _width + x] * 0.3f;
             }
+
+            if (_lastFillWasConstants)
+                _residentGi.MarkConstantFallback();
+            else
+                _residentGi.UpdateFromGBuffer(_gbuffer);
 
             _cachedIrradiance = irradiance;
             return irradiance;
