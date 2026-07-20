@@ -2,12 +2,16 @@ SYNAPSE OMNIA / Synapse Engine — Copyright Notice
 =================================================
 
 Copyright (c) 2026 QuantumHacker10 — SYNAPSE OMNIA
-All Rights Reserved / Tous droits réservés
 
-Titulaire du dépôt officiel :
+Dépôt officiel :
   https://github.com/QuantumHacker10/Synapse
 
-Marques protégées (usage non autorisé interdit) :
+Licence :
+  MIT License — voir LICENSE.
+  Ce projet est open source : utilisation, modification, distribution et
+  création d'œuvres dérivées sont autorisées sous les conditions de la licence MIT.
+
+Marques du projet (non couvertes par la licence logicielle) :
   • SYNAPSE OMNIA
   • Synapse Engine
   • Synapse Studio
@@ -18,13 +22,5 @@ Logiciel couvert :
   • Site vitrine (site/)
   • Binaires publiés via GitHub Releases
 
-Licence :
-  Voir LICENSE — licence propriétaire restrictive.
-  Ce projet N'EST PAS sous licence MIT, Apache, GPL ou autre licence open source.
-
-Interdit sans autorisation écrite :
-  copie · fork · miroir · plagiat · redistribution · œuvres dérivées ·
-  usage commercial · extraction de composants
-
-Signalement d'usage non autorisé :
+Contact :
   https://github.com/QuantumHacker10/Synapse/issues

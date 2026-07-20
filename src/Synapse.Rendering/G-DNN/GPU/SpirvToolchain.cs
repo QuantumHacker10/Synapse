@@ -23,6 +23,15 @@ public static class SpirvToolchain
     /// Compile du HLSL compute en SPIR-V (DXC -spirv).
     /// </summary>
     public static bool TryCompileHlsl(string hlslSource, string entryPoint, out byte[] spirv, out string log)
+        => TryCompileHlsl(hlslSource, entryPoint, "cs_6_0", out spirv, out log);
+
+    /// <summary>
+    /// Compile du HLSL (vs/ps/cs/…) en SPIR-V via DXC <c>-spirv</c>.
+    /// </summary>
+    /// <param name="hlslSource">Source HLSL.</param>
+    /// <param name="entryPoint">Nom de l'entrypoint.</param>
+    /// <param name="profile">Profil DXC, ex. <c>cs_6_0</c>, <c>vs_6_0</c>, <c>ps_6_0</c>.</param>
+    public static bool TryCompileHlsl(string hlslSource, string entryPoint, string profile, out byte[] spirv, out string log)
     {
         spirv = Array.Empty<byte>();
         log = string.Empty;
@@ -33,9 +42,11 @@ public static class SpirvToolchain
         }
 
         string safeEntry;
+        string safeProfile;
         try
         {
             safeEntry = Synapse.Core.Security.PathSecurity.RequireSafeIdentifier(entryPoint, nameof(entryPoint));
+            safeProfile = Synapse.Core.Security.PathSecurity.RequireSafeIdentifier(profile, nameof(profile));
         }
         catch (ArgumentException ex)
         {
@@ -66,7 +77,7 @@ public static class SpirvToolchain
                 CreateNoWindow = true
             };
             psi.ArgumentList.Add("-T");
-            psi.ArgumentList.Add("cs_6_0");
+            psi.ArgumentList.Add(safeProfile);
             psi.ArgumentList.Add("-E");
             psi.ArgumentList.Add(safeEntry);
             psi.ArgumentList.Add("-spirv");
@@ -105,6 +116,20 @@ public static class SpirvToolchain
             catch { /* ignore */ }
         }
     }
+
+    /// <summary>Maps a <see cref="ShaderType"/> to a DXC shader model 6.0 profile.</summary>
+    public static string ProfileFor(ShaderType type) => type switch
+    {
+        ShaderType.VertexShader => "vs_6_0",
+        ShaderType.PixelShader => "ps_6_0",
+        ShaderType.GeometryShader => "gs_6_0",
+        ShaderType.HullShader => "hs_6_0",
+        ShaderType.DomainShader => "ds_6_0",
+        ShaderType.ComputeShader => "cs_6_0",
+        ShaderType.MeshShader => "ms_6_5",
+        ShaderType.AmplificationShader => "as_6_5",
+        _ => "cs_6_0"
+    };
 
     /// <summary>
     /// Compile du GLSL compute en SPIR-V (glslangValidator).

@@ -1137,9 +1137,7 @@ namespace GDNN.Rendering.Engine
 
             var snap = _pendingGBufferSnapshot;
             _pendingGBufferSnapshot = null;
-            _ldnnBridge.FillGBufferComplete(
-                snap.Depth, snap.Normals, snap.Albedo, snap.Emissive,
-                snap.Velocity, snap.MaterialProps, snap.Specular);
+            _ldnnBridge.IngestGpuSnapshot(snap);
             _giUsesGpuReadback = true;
         }
 
@@ -1497,8 +1495,12 @@ namespace GDNN.Rendering.Engine
             if (_sceneLights.Count > 0)
                 PushLightsToGlobalIllumination();
 
+            // Prefer fresh GPU readback; otherwise reuse resident GPU G-buffer (no constant fill).
             if (!_giUsesGpuReadback)
-                _ldnnBridge.FillGBufferFromConstants(10.0f, Vector3.UnitY, new Vector3(0.5f, 0.5f, 0.5f));
+            {
+                if (!_ldnnBridge.TryRestoreResidentGBuffer())
+                    _ldnnBridge.FillGBufferFromConstants(10.0f, Vector3.UnitY, new Vector3(0.5f, 0.5f, 0.5f));
+            }
             _giUsesGpuReadback = false;
 
             if (_rtPipeline != null && _rtPipeline.IsSupported)
@@ -1507,6 +1509,9 @@ namespace GDNN.Rendering.Engine
             var irradiance = _ldnnBridge.RenderGI();
             ApplyGiBoostFromIrradiance(irradiance);
         }
+
+        /// <summary>Last industrial GI path used by the L-DNN bridge.</summary>
+        public GiComputePath LastGiPath => _ldnnBridge?.LastGiPath ?? GiComputePath.None;
 
         private void ApplyGiBoostFromIrradiance(Vector3[,] irradiance)
         {

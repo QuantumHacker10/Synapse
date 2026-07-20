@@ -114,15 +114,14 @@ Les workflows [`build.yml`](.github/workflows/build.yml) et [`analysis.yml`](.gi
 
 ## Licence et contributions
 
-Ce projet est sous **licence propriétaire** ([LICENSE](LICENSE)). En contribuant, vous acceptez que :
+Ce projet est sous **licence MIT** ([LICENSE](LICENSE)). En contribuant, vous acceptez que :
 
-- vous ne copiez pas le code vers d'autres dépôts sans autorisation ;
-- vos contributions acceptées peuvent être intégrées sous la licence du projet ;
-- vous ne revendiquez pas la paternité du code existant.
+- vos contributions acceptées sont intégrées sous la licence MIT du projet ;
+- vous êtes l'auteur original de ce que vous soumettez et ne violez pas les droits de tiers ;
+- vous conservez vos droits d'auteur sur vos contributions, tout en accordant les droits
+  prévus par la licence MIT au projet et à ses utilisateurs.
 
-Les forks GitHub sont **interdits par la licence** ([LICENSE](LICENSE)). Sur un dépôt public personnel,
-GitHub peut toutefois afficher le bouton « Fork » — cela ne constitue pas une autorisation légale ;
-toute republication non autorisée reste une violation des droits d'auteur.
+Les forks et dérivés sont autorisés sous les conditions de la licence MIT.
 
 ## Questions
 
