@@ -1,8 +1,12 @@
 # SYNAPSE OMNIA — Moteur de simulation 3D · v1.2
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
+[![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
+[![CodeQL](https://github.com/QuantumHacker10/Synapse/actions/workflows/codeql.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/QuantumHacker10/Synapse/graph/badge.svg)](https://codecov.io/gh/QuantumHacker10/Synapse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
+[![Tests](https://img.shields.io/badge/tests-238%2B%20passing-brightgreen)](tests/Synapse.Tests)
 
 **Synapse OMNIA** est un moteur de **simulation 3D** : un monde numérique que l'on observe,
 modifie et fait évoluer — pas une boîte à monter des niveaux de jeu.
@@ -22,11 +26,12 @@ Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
 - [Pourquoi Synapse ?](#pourquoi-synapse-)
 - [Prérequis](#prérequis)
-- [Démarrage rapide](#démarrage-rapide)
+- [Démarrage rapide](#démarrage-rapide) — voir aussi **[GETTING_STARTED.md](GETTING_STARTED.md)**
 - [Configuration](#configuration)
 - [Architecture](#architecture)
 - [Pipeline G-DNN + L-DNN](#pipeline-g-dnn--l-dnn)
 - [Synapse Studio](#synapse-studio)
+- [Captures d'écran](#captures-décran)
 - [Publish](#publish-windows-x64)
 - [Tests & CI](#tests--ci)
 - [Contribuer](#contribuer)
@@ -58,6 +63,8 @@ Six idées rares réunies dans **un seul moteur de simulation**, pas comme des p
 
 ## Démarrage rapide
 
+> Guide détaillé avec exemples C# : **[GETTING_STARTED.md](GETTING_STARTED.md)**
+
 ```bash
 # Cloner et entrer dans le dépôt
 git clone https://github.com/QuantumHacker10/Synapse.git
@@ -74,6 +81,48 @@ dotnet run --project src/Synapse.Studio -- --engine
 
 # Charger la scène d'exemple
 dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse
+```
+
+### Exemple : intégrer le runtime en C#
+
+```csharp
+using Synapse.Infrastructure.Configuration;
+using Synapse.Infrastructure.Logging;
+using Synapse.Runtime;
+
+var config = SynapseConfig.Load();
+await using var host = new EngineHost(config, SynapseLogger.Default);
+
+host.InitializeModules();
+host.InitializeRender(1280, 720);
+// La loi active par défaut est "heat_equation" (définie dans la scène)
+
+// Boucle principale
+while (host.IsRenderInitialized)
+{
+    host.TickPhysics(1.0 / 60.0);
+    await host.TickSimulationAsync();
+    host.TickRender();
+}
+```
+
+### Exemple : créer une scène `.synapse`
+
+```json
+{
+  "name": "Ma scène",
+  "version": "1.0",
+  "activeLawId": "heat_equation",
+  "entities": [{
+    "id": "11111111-1111-1111-1111-111111111111",
+    "name": "Sol", "type": "Mesh",
+    "position": { "x": 0, "y": 0, "z": 0 },
+    "scale": { "x": 10, "y": 0.2, "z": 10 },
+    "visible": true
+  }],
+  "camera": { "position": { "x": 0, "y": 2, "z": 5 }, "yaw": -90, "pitch": 0, "fov": 60 },
+  "assets": {}
+}
 ```
 
 ### glfw3.dll
@@ -95,6 +144,10 @@ Le routeur [`HybridLlmRouter`](src/Synapse.LLM/HybridLlmRouter.cs) bascule autom
 ## Architecture
 
 Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.slnx)), scène d'exemple sous [`samples/`](samples/).
+
+Documentation complémentaire :
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — diagrammes Mermaid (pipeline, modules, CI)
+- **[docs/API.md](docs/API.md)** — référence des APIs publiques par module
 
 | Projet | Rôle |
 |---|---|
@@ -133,6 +186,8 @@ flowchart LR
 
 Atelier pour explorer et piloter la simulation :
 
+![Vue principale de Synapse Studio](docs/screenshots/studio-main-view.svg)
+
 - **Vue 3D temps réel** — viewport Vulkan embarqué (Windows HWND) avec grille, gizmos et outils d'édition (sélection, déplacement, rotation)
 - **Projets `.synapse`** — ouvrir, sauver et organiser vos scènes
 - **Lois physiques** — réécrire les règles du monde sans arrêter la simulation
@@ -140,6 +195,15 @@ Atelier pour explorer et piloter la simulation :
 - **Console créative** — décrire une scène en langage naturel et voir le monde réagir
 - **Outils d'édition** — blueprints graphiques, sculpt, import d'assets Megascans
 - **Tableau de bord** — cadence (IPS), charge physique/sim, qualité adaptative et GI L-DNN
+
+## Captures d'écran
+
+| Vue | Description |
+|---|---|
+| [Studio — vue principale](docs/screenshots/studio-main-view.svg) | Hiérarchie, viewport, inspecteur, console LLM |
+| [Rendu G-DNN + L-DNN](docs/screenshots/studio-rendering.svg) | SDF neural, GI hybride, SSAO, brouillard |
+
+Voir [docs/screenshots/README.md](docs/screenshots/README.md) pour capturer vos propres PNG.
 
 ## Publish (Windows x64)
 
@@ -159,14 +223,21 @@ Suite xUnit + FluentAssertions sous [`tests/Synapse.Tests`](tests/Synapse.Tests)
 
 | Workflow | Rôle |
 |---|---|
-| [`build.yml`](.github/workflows/build.yml) | Ubuntu — tests + Coverlet ; Windows — publish artefact |
-| [`analysis.yml`](.github/workflows/analysis.yml) | Analyseurs + `dotnet format --verify-no-changes` |
-| [`release.yml`](.github/workflows/release.yml) | Zip win-x64 sur tag `v*` |
+| [`build.yml`](.github/workflows/build.yml) | Linux + macOS tests, Coverlet + Codecov, publish win/linux |
+| [`analysis.yml`](.github/workflows/analysis.yml) | Analyseurs Roslyn + `dotnet format --verify-no-changes` |
+| [`codeql.yml`](.github/workflows/codeql.yml) | Analyse de sécurité CodeQL (C#) |
+| [`release.yml`](.github/workflows/release.yml) | Matrix win/linux/osx sur tag `v*` |
 | [`pages.yml`](.github/workflows/pages.yml) | Déploiement du site vitrine sur GitHub Pages |
+
+Couverture de code : `coverlet.runsettings` + upload Codecov. Audit dépendances : `scripts/verify-licenses.sh`.
 
 ## Contribuer
 
-Voir **[CONTRIBUTING.md](CONTRIBUTING.md)** pour le flux Git complet :
+Voir **[CONTRIBUTING.md](CONTRIBUTING.md)** pour le flux Git complet et **[COMMUNITY.md](COMMUNITY.md)** pour les canaux de communication.
+
+- **[ROADMAP.md](ROADMAP.md)** — vision et priorités publiques
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — code de conduite
+- **[SECURITY.md](SECURITY.md)** — signalement de vulnérabilités
 
 - Branches `feat/*` → `develop` → `main` (PR obligatoires sur `main`)
 - [CHANGELOG.md](CHANGELOG.md) pour l'historique des versions
@@ -180,7 +251,9 @@ En bref :
 3. Mettre à jour le CHANGELOG si le changement est visible
 4. Ouvrir une pull request vers `develop`
 
-Les issues et discussions GitHub sont ouvertes pour bugs, idées et questions d'architecture.
+Les [issues](https://github.com/QuantumHacker10/Synapse/issues) et [discussions](https://github.com/QuantumHacker10/Synapse/discussions) GitHub sont ouvertes pour bugs, idées et questions d'architecture.
+
+> **Mainteneurs :** activer Issues et Discussions dans **Settings → General → Features** si ce n'est pas déjà fait.
 
 ## Site
 
@@ -194,4 +267,10 @@ Déployée automatiquement sur [GitHub Pages](https://quantumhacker10.github.io/
 des simulations dérivées du code source, y compris à des fins commerciales, sous réserve
 de conserver l'avis de copyright et la licence.
 
-Voir [`LICENSE`](LICENSE) et [`COPYRIGHT`](COPYRIGHT).
+| Fichier | Contenu |
+|---|---|
+| [`LICENSE`](LICENSE) | Texte MIT |
+| [`COPYRIGHT`](COPYRIGHT) | Copyright et marques |
+| [`NOTICE`](NOTICE) | Avis standard (crédits) |
+| [`LICENSE_HISTORY.md`](LICENSE_HISTORY.md) | Historique des changements de licence |
+| [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Licences des dépendances |

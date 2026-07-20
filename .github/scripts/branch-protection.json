@@ -1,7 +1,7 @@
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": ["test-linux", "publish-windows", "analyze"]
+    "contexts": ["test-linux", "test-macos", "publish-windows", "analyze", "CodeQL"]
   },
   "enforce_admins": true,
   "required_pull_request_reviews": null,
