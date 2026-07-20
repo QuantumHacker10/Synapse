@@ -50,6 +50,11 @@ public sealed class PhysicsJoint
     public float RestLength { get; set; } = 1f;
     public float Stiffness { get; set; } = 1f;
     public float Damping { get; set; } = 0.1f;
+    /// <summary>
+    /// Soft-constraint compliance (CFM). 0 = hard bilateral; larger values yield springier joints.
+    /// Units approximate m/N scaled for the velocity-level PGS denominator.
+    /// </summary>
+    public float Compliance { get; set; }
     public bool CollideConnected { get; set; }
 
     // Accumulated impulses for warm-starting.
@@ -130,12 +135,14 @@ public static class JointSolver
                     if (len < 1e-6f) continue;
                     float err = len - j.RestLength;
                     Vector3 n = d / len;
-                    ApplyPositionalCorrection(a, b, wa, wb, n * (err * baumgarte));
+                    float soft = 1f / (1f + MathF.Max(0f, j.Compliance) * 80f);
+                    ApplyPositionalCorrection(a, b, wa, wb, n * (err * baumgarte * soft));
                 }
                 else
                 {
                     Vector3 err = wb - wa;
-                    ApplyPositionalCorrection(a, b, wa, wb, err * baumgarte);
+                    float soft = 1f / (1f + MathF.Max(0f, j.Compliance) * 80f);
+                    ApplyPositionalCorrection(a, b, wa, wb, err * (baumgarte * soft));
                 }
             }
         }
@@ -157,10 +164,24 @@ public static class JointSolver
         Vector3 vb = b != null ? b.LinearVelocity + Vector3.Cross(b.AngularVelocity, rb) : Vector3.Zero;
         float vn = Vector3.Dot(vb - va, n);
 
-        float kn = EffectiveMass(a, b, ra, rb, n);
+        float kn = SoftDenominator(EffectiveMass(a, b, ra, rb, n), j.Compliance, invDt);
         if (kn < 1e-8f) return;
 
-        float bias = j.Stiffness * C * invDt + j.Damping * vn;
+        float compliance = MathF.Max(0f, j.Compliance);
+        float bias;
+        if (compliance < 1e-8f)
+        {
+            // Hard bilateral spring (legacy industrial defaults).
+            bias = j.Stiffness * C * invDt + j.Damping * vn;
+        }
+        else
+        {
+            // Soft spring: ERP scaled by compliance; CFM already in the denominator.
+            float erp = Math.Clamp(0.2f * MathF.Max(0.05f, j.Stiffness), 0.02f, 0.9f);
+            erp /= 1f + compliance * 12f;
+            bias = erp * C * invDt + j.Damping * vn;
+        }
+
         float lambda = -(vn + bias) / kn;
         Vector3 impulse = n * lambda;
         ApplyImpulse(a, -impulse, ra);
@@ -178,6 +199,7 @@ public static class JointSolver
         Vector3 va = a.LinearVelocity + Vector3.Cross(a.AngularVelocity, ra);
         Vector3 vb = b != null ? b.LinearVelocity + Vector3.Cross(b.AngularVelocity, rb) : Vector3.Zero;
         Vector3 dv = vb - va;
+        float erp = Math.Clamp(0.2f + j.Stiffness * 0.05f, 0.05f, 0.8f);
 
         // Solve each axis independently (stable industrial subset).
         for (int axis = 0; axis < 3; axis++)
@@ -188,9 +210,9 @@ public static class JointSolver
                 1 => Vector3.UnitY,
                 _ => Vector3.UnitZ
             };
-            float kn = EffectiveMass(a, b, ra, rb, n);
+            float kn = SoftDenominator(EffectiveMass(a, b, ra, rb, n), j.Compliance, invDt);
             if (kn < 1e-8f) continue;
-            float bias = Vector3.Dot(err, n) * 0.2f * invDt;
+            float bias = Vector3.Dot(err, n) * erp * invDt + j.Damping * Vector3.Dot(dv, n);
             float lambda = -(Vector3.Dot(dv, n) + bias) / kn;
             Vector3 impulse = n * lambda;
             ApplyImpulse(a, -impulse, ra);
@@ -200,12 +222,17 @@ public static class JointSolver
 
         if (lockOrientation && b != null)
         {
-            // Soft angular lock: damp relative angular velocity.
+            // Soft angular lock: damp relative angular velocity (stronger when compliance is low).
+            float soft = 1f / (1f + MathF.Max(0f, j.Compliance) * 10f);
             Vector3 wRel = b.AngularVelocity - a.AngularVelocity;
-            a.AngularVelocity += wRel * 0.25f;
-            b.AngularVelocity -= wRel * 0.25f;
+            a.AngularVelocity += wRel * (0.25f * soft);
+            b.AngularVelocity -= wRel * (0.25f * soft);
         }
     }
+
+    /// <summary>PGS denominator with optional CFM compliance term.</summary>
+    private static float SoftDenominator(float effectiveMass, float compliance, float invDt)
+        => effectiveMass + MathF.Max(0f, compliance) * invDt;
 
     private static void SolveHinge(
         PhysicsJoint j, RigidBody a, RigidBody? b,
@@ -246,7 +273,7 @@ public static class JointSolver
 
         foreach (var n in new[] { t1, t2 })
         {
-            float kn = EffectiveMass(a, b, ra, rb, n);
+            float kn = SoftDenominator(EffectiveMass(a, b, ra, rb, n), j.Compliance, invDt);
             if (kn < 1e-8f) continue;
             float bias = Vector3.Dot(d, n) * 0.2f * invDt;
             Vector3 va = a.LinearVelocity + Vector3.Cross(a.AngularVelocity, ra);
@@ -263,7 +290,7 @@ public static class JointSolver
         {
             float target = Math.Clamp(travel, j.MinLimit, j.MaxLimit);
             float err = travel - target;
-            float kn = EffectiveMass(a, b, ra, rb, axis);
+            float kn = SoftDenominator(EffectiveMass(a, b, ra, rb, axis), j.Compliance, invDt);
             if (kn > 1e-8f)
             {
                 float lambda = -(err * 0.2f * invDt) / kn;

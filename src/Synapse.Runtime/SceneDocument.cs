@@ -16,6 +16,8 @@ namespace Synapse.Runtime
         public string? ActiveLawId { get; set; } = "heat_equation";
         public string? ActiveLawExpression { get; set; }
         public List<SceneEntityData> Entities { get; set; } = new();
+        /// <summary>Persisted physics joints (hinge, ball-socket, distance, …).</summary>
+        public List<SceneJointData> Joints { get; set; } = new();
         public CameraData Camera { get; set; } = new();
         public Dictionary<string, string> Assets { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -107,6 +109,28 @@ namespace Synapse.Runtime
         public bool IsVehicle { get; set; }
     }
 
+    /// <summary>Scene-serialized bilateral joint for Synapse Omnia assemblies.</summary>
+    public sealed class SceneJointData
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Name { get; set; } = "Joint";
+        /// <summary>Hinge | BallSocket | Slider | Fixed | Distance</summary>
+        public string Type { get; set; } = "Hinge";
+        public Guid BodyA { get; set; }
+        /// <summary>Guid.Empty = world anchor.</summary>
+        public Guid BodyB { get; set; }
+        public Vec3 LocalAnchorA { get; set; } = new();
+        public Vec3 LocalAnchorB { get; set; } = new();
+        public Vec3 LocalAxisA { get; set; } = new(0, 1, 0);
+        public Vec3 LocalAxisB { get; set; } = new(0, 1, 0);
+        public float RestLength { get; set; } = 1f;
+        public float Stiffness { get; set; } = 1f;
+        public float Damping { get; set; } = 0.1f;
+        public float Compliance { get; set; }
+        public float MinLimit { get; set; } = float.NegativeInfinity;
+        public float MaxLimit { get; set; } = float.PositiveInfinity;
+    }
+
     public sealed class CameraData
     {
         public Vec3 Position { get; set; } = new(0, 2, 5);
@@ -128,9 +152,11 @@ namespace Synapse.Runtime
 
     [JsonSerializable(typeof(SceneDocument))]
     [JsonSerializable(typeof(SceneEntityData))]
+    [JsonSerializable(typeof(SceneJointData))]
     [JsonSerializable(typeof(CameraData))]
     [JsonSerializable(typeof(Vec3))]
     [JsonSerializable(typeof(List<SceneEntityData>))]
+    [JsonSerializable(typeof(List<SceneJointData>))]
     [JsonSerializable(typeof(Dictionary<string, string>))]
     [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
     internal sealed partial class SceneDocumentJsonContext : JsonSerializerContext

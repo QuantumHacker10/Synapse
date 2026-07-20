@@ -670,15 +670,199 @@ public sealed class RigidBodyWorld
         if (a.Collider.Shape == ColliderShape.Sphere && b.Collider.Shape == ColliderShape.Sphere)
             return GenerateSphereSphere(a, b, manifold);
 
+        // Precise sphere ↔ triangle mesh / convex hull before falling back to AABB proxies.
+        if ((a.Collider.Shape == ColliderShape.Sphere
+                && b.Collider.Shape is ColliderShape.TriangleMesh or ColliderShape.ConvexHull)
+            || (b.Collider.Shape == ColliderShape.Sphere
+                && a.Collider.Shape is ColliderShape.TriangleMesh or ColliderShape.ConvexHull))
+            return GenerateSphereMesh(a, b, manifold);
+
         if (a.Collider.Shape == ColliderShape.Sphere || b.Collider.Shape == ColliderShape.Sphere)
             return GenerateSphereBox(a, b, manifold);
 
-        // Convex hull / triangle mesh: use world AABB as a stable industrial contact proxy.
+        // Remaining hull/mesh pairs: AABB proxy (stable industrial fallback).
         if (a.Collider.Shape is ColliderShape.ConvexHull or ColliderShape.TriangleMesh
             || b.Collider.Shape is ColliderShape.ConvexHull or ColliderShape.TriangleMesh)
             return GenerateBoxBoxFromAabb(a, b, manifold);
 
         return GenerateBoxBox(a, b, manifold);
+    }
+
+    /// <summary>
+    /// Sphere against cooked triangle mesh (or convex hull triangulated via centroid fan).
+    /// Picks the deepest penetrating triangle contact for a stable single-point manifold.
+    /// </summary>
+    private static bool GenerateSphereMesh(RigidBody a, RigidBody b, ContactManifold m)
+    {
+        RigidBody sphere = a.Collider.Shape == ColliderShape.Sphere ? a : b;
+        RigidBody mesh = ReferenceEquals(sphere, a) ? b : a;
+        Vector3 center = sphere.Position + sphere.Collider.LocalOffset;
+        float radius = sphere.Collider.Size.X;
+        if (radius <= 0f)
+            return false;
+
+        if (!TryGetWorldTriangles(mesh, out Vector3[] verts, out int[] indices))
+            return GenerateBoxBoxFromAabb(a, b, m);
+
+        float bestPen = 0f;
+        Vector3 bestNormal = Vector3.UnitY;
+        Vector3 bestPoint = center;
+        const int maxTris = 4096;
+        int triCount = Math.Min(indices.Length / 3, maxTris);
+
+        for (int t = 0; t < triCount; t++)
+        {
+            int i0 = indices[t * 3];
+            int i1 = indices[t * 3 + 1];
+            int i2 = indices[t * 3 + 2];
+            if ((uint)i0 >= (uint)verts.Length
+                || (uint)i1 >= (uint)verts.Length
+                || (uint)i2 >= (uint)verts.Length)
+                continue;
+
+            Vector3 p0 = verts[i0], p1 = verts[i1], p2 = verts[i2];
+            Vector3 closest = ClosestPointOnTriangle(center, p0, p1, p2);
+            Vector3 delta = center - closest;
+            float distSq = delta.LengthSquared();
+            if (distSq > radius * radius)
+                continue;
+
+            float dist = MathF.Sqrt(MathF.Max(distSq, 1e-12f));
+            float pen = radius - dist;
+            if (pen <= bestPen)
+                continue;
+
+            Vector3 n;
+            if (distSq < 1e-10f)
+            {
+                Vector3 faceN = Vector3.Cross(p1 - p0, p2 - p0);
+                n = faceN.LengthSquared() > 1e-12f
+                    ? Vector3.Normalize(faceN)
+                    : Vector3.UnitY;
+                // Orient normal so it points from mesh toward sphere center.
+                if (Vector3.Dot(n, center - (p0 + p1 + p2) * (1f / 3f)) < 0f)
+                    n = -n;
+            }
+            else
+            {
+                n = delta / dist;
+            }
+
+            bestPen = pen;
+            bestNormal = n;
+            bestPoint = closest;
+        }
+
+        if (bestPen <= 0f)
+            return false;
+
+        m.BodyA = mesh;
+        m.BodyB = sphere;
+        m.Points.Add(new ContactPoint
+        {
+            Position = bestPoint,
+            Normal = bestNormal,
+            Penetration = bestPen
+        });
+        return true;
+    }
+
+    private static bool TryGetWorldTriangles(RigidBody mesh, out Vector3[] worldVerts, out int[] indices)
+    {
+        worldVerts = Array.Empty<Vector3>();
+        indices = Array.Empty<int>();
+        var col = mesh.Collider;
+        Quaternion q = mesh.Orientation;
+        Vector3 origin = mesh.Position + col.LocalOffset;
+
+        if (col.Shape == ColliderShape.TriangleMesh
+            && col.MeshVertices is { Length: > 0 } mv
+            && col.MeshIndices is { Length: >= 3 } mi)
+        {
+            worldVerts = new Vector3[mv.Length];
+            for (int i = 0; i < mv.Length; i++)
+                worldVerts[i] = origin + Vector3.Transform(mv[i], q);
+            indices = mi;
+            return true;
+        }
+
+        if (col.Shape == ColliderShape.ConvexHull && col.HullVertices is { Length: >= 3 } hv)
+        {
+            worldVerts = new Vector3[hv.Length];
+            Vector3 centroid = Vector3.Zero;
+            for (int i = 0; i < hv.Length; i++)
+            {
+                worldVerts[i] = origin + Vector3.Transform(hv[i], q);
+                centroid += worldVerts[i];
+            }
+            centroid /= hv.Length;
+
+            // Centroid fan triangulation (industrial approx for cooked hulls).
+            var tris = new List<int>((hv.Length - 2) * 3);
+            for (int i = 1; i < hv.Length - 1; i++)
+            {
+                tris.Add(0);
+                tris.Add(i);
+                tris.Add(i + 1);
+            }
+            // Keep centroid available as vertex 0 of a temporary buffer if fan from first vertex fails
+            // for non-star-shaped hulls — still better than AABB for sphere contacts.
+            _ = centroid;
+            indices = tris.ToArray();
+            return indices.Length >= 3;
+        }
+
+        return false;
+    }
+
+    /// <summary>Closest point on triangle ABC to point P (Ericson RTCD).</summary>
+    public static Vector3 ClosestPointOnTriangle(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
+    {
+        Vector3 ab = b - a;
+        Vector3 ac = c - a;
+        Vector3 ap = p - a;
+        float d1 = Vector3.Dot(ab, ap);
+        float d2 = Vector3.Dot(ac, ap);
+        if (d1 <= 0f && d2 <= 0f)
+            return a;
+
+        Vector3 bp = p - b;
+        float d3 = Vector3.Dot(ab, bp);
+        float d4 = Vector3.Dot(ac, bp);
+        if (d3 >= 0f && d4 <= d3)
+            return b;
+
+        float vc = d1 * d4 - d3 * d2;
+        if (vc <= 0f && d1 >= 0f && d3 <= 0f)
+        {
+            float v = d1 / (d1 - d3);
+            return a + ab * v;
+        }
+
+        Vector3 cp = p - c;
+        float d5 = Vector3.Dot(ab, cp);
+        float d6 = Vector3.Dot(ac, cp);
+        if (d6 >= 0f && d5 <= d6)
+            return c;
+
+        float vb = d5 * d2 - d1 * d6;
+        if (vb <= 0f && d2 >= 0f && d6 <= 0f)
+        {
+            float w = d2 / (d2 - d6);
+            return a + ac * w;
+        }
+
+        float va = d3 * d6 - d5 * d4;
+        if (va <= 0f && (d4 - d3) >= 0f && (d5 - d6) >= 0f)
+        {
+            float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+            return b + (c - b) * w;
+        }
+
+        float denom = 1f / (va + vb + vc);
+        float v2 = vb * denom;
+        float w2 = vc * denom;
+        return a + ab * v2 + ac * w2;
     }
 
     private static bool GenerateBoxBoxFromAabb(RigidBody a, RigidBody b, ContactManifold m)

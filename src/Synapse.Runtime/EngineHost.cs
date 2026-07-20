@@ -695,7 +695,15 @@ namespace Synapse.Runtime
         private static float MathHelperDeg2Rad(float deg) => deg * MathF.PI / 180f;
 
         /// <summary>Updates an entity in the scene document and mirrors it to the renderer.</summary>
-        public bool UpdateSceneEntity(Guid id, string name, Vector3 position, Vector3 scale)
+        public bool UpdateSceneEntity(
+            Guid id,
+            string name,
+            Vector3 position,
+            Vector3 scale,
+            string? meshPath = null,
+            bool? isVehicle = null,
+            bool? bakeNeuralSdf = null,
+            bool resyncPhysics = false)
         {
             InitializeModules();
             var entity = _scene.Entities.Find(e => e.Id == id);
@@ -705,6 +713,94 @@ namespace Synapse.Runtime
             entity.Name = name;
             entity.Position = Vec3.From(position);
             entity.Scale = Vec3.From(scale);
+            if (meshPath != null)
+                entity.MeshPath = string.IsNullOrWhiteSpace(meshPath) ? null : meshPath;
+            if (isVehicle.HasValue)
+                entity.IsVehicle = isVehicle.Value;
+            if (bakeNeuralSdf.HasValue)
+                entity.BakeNeuralSdf = bakeNeuralSdf.Value;
+
+            SyncSceneToRenderer();
+            if (resyncPhysics)
+                SyncSceneToPhysics();
+            return true;
+        }
+
+        /// <summary>Adds a hinge joint anchoring <paramref name="bodyId"/> to the world.</summary>
+        public Guid? AddHingeToWorld(Guid bodyId, Vector3? worldAxis = null, float compliance = 0f)
+        {
+            InitializeModules();
+            if (_multiphysics?.RigidWorld.GetBody(bodyId) == null
+                && _scene.Entities.Find(e => e.Id == bodyId) == null)
+                return null;
+
+            var joint = new SceneJointData
+            {
+                Name = "Hinge_World",
+                Type = "Hinge",
+                BodyA = bodyId,
+                BodyB = Guid.Empty,
+                LocalAnchorA = new Vec3(0, 0, 0),
+                LocalAnchorB = Vec3.From(_scene.Entities.Find(e => e.Id == bodyId)?.Position.ToVector3() ?? Vector3.Zero),
+                LocalAxisA = Vec3.From(worldAxis ?? Vector3.UnitY),
+                LocalAxisB = Vec3.From(worldAxis ?? Vector3.UnitY),
+                Compliance = compliance,
+                Stiffness = 1.2f,
+                Damping = 0.15f
+            };
+            _scene.Joints.Add(joint);
+            SyncSceneToPhysics();
+            return joint.Id;
+        }
+
+        /// <summary>Adds a distance (soft rope) joint between two scene entities.</summary>
+        public Guid? AddDistanceJoint(Guid bodyA, Guid bodyB, float? restLength = null, float compliance = 0.01f)
+        {
+            InitializeModules();
+            var ea = _scene.Entities.Find(e => e.Id == bodyA);
+            var eb = _scene.Entities.Find(e => e.Id == bodyB);
+            if (ea == null || eb == null)
+                return null;
+
+            float rest = restLength ?? Vector3.Distance(ea.Position.ToVector3(), eb.Position.ToVector3());
+            var joint = new SceneJointData
+            {
+                Name = "Distance",
+                Type = "Distance",
+                BodyA = bodyA,
+                BodyB = bodyB,
+                RestLength = MathF.Max(0.05f, rest),
+                Stiffness = 1.5f,
+                Damping = 0.4f,
+                Compliance = compliance
+            };
+            _scene.Joints.Add(joint);
+            SyncSceneToPhysics();
+            return joint.Id;
+        }
+
+        /// <summary>Marks an entity as a raycast vehicle chassis and rebuilds physics.</summary>
+        public bool SetEntityAsVehicle(Guid id, bool isVehicle = true)
+        {
+            InitializeModules();
+            var entity = _scene.Entities.Find(e => e.Id == id);
+            if (entity == null)
+                return false;
+            entity.IsVehicle = isVehicle;
+            SyncSceneToPhysics();
+            return true;
+        }
+
+        /// <summary>Assigns a mesh asset path for SynapseMeshProvider cooking.</summary>
+        public bool SetEntityMeshPath(Guid id, string? meshPath, bool bakeNeuralSdf = false)
+        {
+            InitializeModules();
+            var entity = _scene.Entities.Find(e => e.Id == id);
+            if (entity == null)
+                return false;
+            entity.MeshPath = string.IsNullOrWhiteSpace(meshPath) ? null : meshPath;
+            entity.BakeNeuralSdf = bakeNeuralSdf;
+            SyncSceneToPhysics();
             SyncSceneToRenderer();
             return true;
         }
@@ -839,6 +935,32 @@ namespace Synapse.Runtime
                         _multiphysics.RigidWorld.AddVehicle(VehicleController.CreateDefaultCar(chassis.Id));
                     }
                 }
+            }
+
+            // Restore persisted joints after bodies exist.
+            foreach (var j in _scene.Joints)
+            {
+                if (!Enum.TryParse<JointType>(j.Type, ignoreCase: true, out var jt))
+                    jt = JointType.Hinge;
+
+                _multiphysics.RigidWorld.AddJoint(new PhysicsJoint
+                {
+                    Id = j.Id == Guid.Empty ? Guid.NewGuid() : j.Id,
+                    Name = j.Name,
+                    Type = jt,
+                    BodyA = j.BodyA,
+                    BodyB = j.BodyB,
+                    LocalAnchorA = j.LocalAnchorA.ToVector3(),
+                    LocalAnchorB = j.LocalAnchorB.ToVector3(),
+                    LocalAxisA = j.LocalAxisA.ToVector3(),
+                    LocalAxisB = j.LocalAxisB.ToVector3(),
+                    RestLength = j.RestLength,
+                    Stiffness = j.Stiffness,
+                    Damping = j.Damping,
+                    Compliance = j.Compliance,
+                    MinLimit = j.MinLimit,
+                    MaxLimit = j.MaxLimit
+                });
             }
 
             _logger.Info("Physics",

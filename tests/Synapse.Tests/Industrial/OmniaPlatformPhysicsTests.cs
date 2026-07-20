@@ -185,3 +185,111 @@ public class MeshProviderTests
         body.Mass.Should().BeApproximately(5f, 0.01f);
     }
 }
+
+public class SoftConstraintAndMeshContactTests
+{
+    [Fact]
+    public void SoftDistanceJoint_UnderGravity_ShouldHangLowerThanHard()
+    {
+        float HangHeight(float compliance)
+        {
+            var world = new RigidBodyWorld
+            {
+                Gravity = new Vector3(0, -9.81f, 0),
+                EnableSleeping = false,
+                EnableCcd = false
+            };
+            var anchor = world.AddBody(new RigidBody
+            {
+                Type = BodyType.Static,
+                Collider = new Collider { Shape = ColliderShape.Sphere, Size = new Vector3(0.05f) },
+                Position = new Vector3(0, 2, 0)
+            });
+            var bob = world.AddBody(new RigidBody
+            {
+                Type = BodyType.Dynamic,
+                Collider = new Collider { Shape = ColliderShape.Sphere, Size = new Vector3(0.15f) },
+                Position = new Vector3(0, 1, 0)
+            });
+            bob.SetMass(1f);
+
+            world.AddJoint(new PhysicsJoint
+            {
+                Type = JointType.Distance,
+                BodyA = bob.Id,
+                BodyB = Guid.Empty,
+                LocalAnchorA = Vector3.Zero,
+                LocalAnchorB = anchor.Position,
+                RestLength = 1.0f,
+                Stiffness = 1.2f,
+                Damping = 0.3f,
+                Compliance = compliance
+            });
+
+            for (int i = 0; i < 240; i++)
+                world.Step(1f / 60f);
+
+            return bob.Position.Y;
+        }
+
+        float hardY = HangHeight(0f);
+        float softY = HangHeight(0.35f);
+        // Soft CFM yields more stretch under gravity → bob hangs lower.
+        softY.Should().BeLessThan(hardY - 0.03f);
+        hardY.Should().BeGreaterThan(0.7f);
+    }
+
+    [Fact]
+    public void SphereTriangleMesh_ShouldGeneratePreciseContact()
+    {
+        var world = new RigidBodyWorld { Gravity = Vector3.Zero, EnableSleeping = false, EnableCcd = false };
+        // Flat floor triangle pair in XZ, y=0.
+        var floor = world.AddBody(new RigidBody
+        {
+            Type = BodyType.Static,
+            Position = Vector3.Zero,
+            Collider = new Collider
+            {
+                Shape = ColliderShape.TriangleMesh,
+                MeshVertices =
+                [
+                    new Vector3(-2, 0, -2),
+                    new Vector3(2, 0, -2),
+                    new Vector3(2, 0, 2),
+                    new Vector3(-2, 0, 2)
+                ],
+                MeshIndices = [0, 1, 2, 0, 2, 3],
+                Size = new Vector3(2, 0.01f, 2)
+            }
+        });
+        floor.SetMass(0f);
+
+        var ball = world.AddBody(new RigidBody
+        {
+            Type = BodyType.Dynamic,
+            Position = new Vector3(0, 0.3f, 0),
+            Collider = new Collider { Shape = ColliderShape.Sphere, Size = new Vector3(0.5f) }
+        });
+        ball.SetMass(1f);
+
+        world.Step(1f / 60f);
+        world.Manifolds.Should().NotBeEmpty();
+        world.Manifolds[0].Points.Should().NotBeEmpty();
+        world.Manifolds[0].Points[0].Penetration.Should().BeGreaterThan(0.1f);
+        // After a few steps the sphere should rest above the mesh plane.
+        for (int i = 0; i < 90; i++)
+            world.Step(1f / 60f);
+        ball.Position.Y.Should().BeGreaterThan(0.35f);
+    }
+
+    [Fact]
+    public void ClosestPointOnTriangle_AtVertex_ReturnsVertex()
+    {
+        var a = new Vector3(0, 0, 0);
+        var b = new Vector3(1, 0, 0);
+        var c = new Vector3(0, 1, 0);
+        var p = new Vector3(-1, -1, 0);
+        var closest = RigidBodyWorld.ClosestPointOnTriangle(p, a, b, c);
+        closest.Should().Be(a);
+    }
+}

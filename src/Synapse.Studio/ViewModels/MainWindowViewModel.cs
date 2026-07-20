@@ -61,7 +61,7 @@ namespace Synapse.Studio.ViewModels
             MegascansStatus = $"Bibliothèque : {_megascans.Config.LibraryRootPath}";
             LlmStatusText = _host.LlmProviderSummary;
             AboutText =
-                "SYNAPSE OMNIA 1.1 — Moteur de simulation 3D\n\n" +
+                "SYNAPSE OMNIA 1.2 — Moteur de simulation 3D\n\n" +
                 "Un monde numérique que l'on observe, modifie et fait évoluer : formes apprises (G-DNN), " +
                 "lois physiques réécrivables, évolution NEAT-G, habitants sentients, assistance créative " +
                 "(LLM) et rendu Vulkan temps réel.\n\n" +
@@ -120,6 +120,11 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private bool showViewportGizmos = true;
         [ObservableProperty] private string giStatus = "GI : lecture GPU en attente";
         [ObservableProperty] private ViewportToolMode viewportTool = ViewportToolMode.Translate;
+        [ObservableProperty] private string entityMeshPath = "";
+        [ObservableProperty] private bool entityIsVehicle;
+        [ObservableProperty] private bool entityBakeNeuralSdf;
+        [ObservableProperty] private string physicsToolsStatus = "Physique Omnia : mesh · joints · véhicule";
+        private Guid? _jointPartnerId;
 
         public BlueprintDocument Blueprint => _blueprint;
 
@@ -135,6 +140,9 @@ namespace Synapse.Studio.ViewModels
             {
                 InspectorMeta = "";
                 EntityName = "";
+                EntityMeshPath = "";
+                EntityIsVehicle = false;
+                EntityBakeNeuralSdf = false;
                 return;
             }
 
@@ -142,9 +150,14 @@ namespace Synapse.Studio.ViewModels
             EntityPosX = value.Position.X;
             EntityPosY = value.Position.Y;
             EntityPosZ = value.Position.Z;
+            EntityMeshPath = value.MeshPath ?? "";
+            EntityIsVehicle = value.IsVehicle;
+            EntityBakeNeuralSdf = value.BakeNeuralSdf;
             InspectorMeta =
                 $"Type : {value.Type}\nComportement : {value.BehaviorProfile ?? "—"}\n" +
-                $"Génome : {value.GenomeId ?? "—"}\nLoi : {value.LawId ?? "—"}";
+                $"Génome : {value.GenomeId ?? "—"}\nLoi : {value.LawId ?? "—"}\n" +
+                $"Mesh : {(string.IsNullOrWhiteSpace(value.MeshPath) ? "—" : value.MeshPath)}\n" +
+                $"Véhicule : {(value.IsVehicle ? "oui" : "non")}";
         }
 
         partial void OnShowViewportGridChanged(bool value)
@@ -210,7 +223,10 @@ namespace Synapse.Studio.ViewModels
                     IsVisible = e.Visible,
                     BehaviorProfile = e.BehaviorProfile,
                     GenomeId = e.GenomeId,
-                    LawId = e.LawId
+                    LawId = e.LawId,
+                    MeshPath = e.MeshPath,
+                    IsVehicle = e.IsVehicle,
+                    BakeNeuralSdf = e.BakeNeuralSdf
                 });
             }
         }
@@ -265,9 +281,115 @@ namespace Synapse.Studio.ViewModels
 
             var pos = new Vector3((float)EntityPosX, (float)EntityPosY, (float)EntityPosZ);
             var id = SelectedEntity.Id;
-            _host.UpdateSceneEntity(id, EntityName, pos, SelectedEntity.Scale);
+            _host.UpdateSceneEntity(
+                id,
+                EntityName,
+                pos,
+                SelectedEntity.Scale,
+                meshPath: EntityMeshPath,
+                isVehicle: EntityIsVehicle,
+                bakeNeuralSdf: EntityBakeNeuralSdf,
+                resyncPhysics: true);
             RefreshEntities();
             SelectedEntity = Entities.FirstOrDefault(e => e.Id == id);
+            PhysicsToolsStatus = "Propriétés appliquées · physique resynchronisée";
+        }
+
+        [RelayCommand]
+        private async Task BrowseMeshAsync()
+        {
+            if (SelectedEntity == null)
+                return;
+
+            var lifetime = Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
+            var window = lifetime?.MainWindow;
+            if (window?.StorageProvider == null)
+                return;
+
+            var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Importer un mesh (glTF / OBJ)",
+                AllowMultiple = false,
+                FileTypeFilter = new[]
+                {
+                    new FilePickerFileType("Mesh")
+                    {
+                        Patterns = new[] { "*.gltf", "*.glb", "*.obj" }
+                    }
+                }
+            });
+            var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
+            if (path == null)
+                return;
+
+            EntityMeshPath = path;
+            var id = SelectedEntity.Id;
+            _host.SetEntityMeshPath(id, path, EntityBakeNeuralSdf);
+            RefreshEntities();
+            SelectedEntity = Entities.FirstOrDefault(e => e.Id == id);
+            PhysicsToolsStatus = $"Mesh lié : {Path.GetFileName(path)}";
+        }
+
+        [RelayCommand]
+        private void MarkAsVehicle()
+        {
+            if (SelectedEntity == null)
+                return;
+            EntityIsVehicle = true;
+            var id = SelectedEntity.Id;
+            _host.SetEntityAsVehicle(id, true);
+            RefreshEntities();
+            SelectedEntity = Entities.FirstOrDefault(e => e.Id == id);
+            PhysicsToolsStatus = "Véhicule raycast activé sur la sélection";
+        }
+
+        [RelayCommand]
+        private void AddHingeToWorld()
+        {
+            if (SelectedEntity == null)
+                return;
+            var jointId = _host.AddHingeToWorld(SelectedEntity.Id);
+            PhysicsToolsStatus = jointId.HasValue
+                ? $"Charnière monde ajoutée ({jointId.Value:N})"
+                : "Impossible d'ajouter la charnière";
+        }
+
+        [RelayCommand]
+        private void RememberJointPartner()
+        {
+            if (SelectedEntity == null)
+                return;
+            _jointPartnerId = SelectedEntity.Id;
+            PhysicsToolsStatus = $"Partenaire joint mémorisé : {SelectedEntity.Name}";
+        }
+
+        [RelayCommand]
+        private void AddDistanceToPartner()
+        {
+            if (SelectedEntity == null || !_jointPartnerId.HasValue)
+            {
+                PhysicsToolsStatus = "Mémorisez d'abord un partenaire (bouton Partner), puis liez.";
+                return;
+            }
+            if (_jointPartnerId.Value == SelectedEntity.Id)
+            {
+                PhysicsToolsStatus = "Choisissez une autre entité pour le joint distance.";
+                return;
+            }
+
+            var jointId = _host.AddDistanceJoint(_jointPartnerId.Value, SelectedEntity.Id, compliance: 0.02f);
+            PhysicsToolsStatus = jointId.HasValue
+                ? $"Joint distance soft ajouté ({jointId.Value:N})"
+                : "Échec du joint distance";
+        }
+
+        [RelayCommand]
+        private void ResyncPhysics()
+        {
+            _host.SyncSceneToPhysics();
+            PhysicsToolsStatus =
+                $"Physique resync — {_host.Scene.Joints.Count} joints, " +
+                $"{_host.Scene.Entities.Count(e => e.IsVehicle)} véhicules";
         }
 
         [RelayCommand]

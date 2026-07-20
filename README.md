@@ -1,4 +1,4 @@
-# SYNAPSE OMNIA — Moteur de simulation 3D · v1.1
+# SYNAPSE OMNIA — Moteur de simulation 3D · v1.2
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
@@ -12,11 +12,11 @@ comment formes, lois et habitants changent ensemble.
 Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
 Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
-> **Produit v1.1** — Synapse Studio + un runtime unifié (physique, simulation, évolution,
-> assistance créative, rendu temps réel). Build officiel **Windows x64** ; Linux et macOS
-> en compilation locale.
+> **Produit v1.2** — Synapse Studio + runtime unifié (physique industrielle, joints/véhicules,
+> mesh provider, GI GPU-résidente, multiplateforme GLFW/Vulkan). Builds **Windows x64**,
+> **Linux x64** et **macOS arm64** via CI / `scripts/publish-all.sh`.
 
-**Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v1.1](https://github.com/QuantumHacker10/Synapse/releases)
+**Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v1.2](https://github.com/QuantumHacker10/Synapse/releases)
 
 ## Sommaire
 
@@ -170,7 +170,8 @@ Voir **[CONTRIBUTING.md](CONTRIBUTING.md)** pour le flux Git complet :
 
 - Branches `feat/*` → `develop` → `main` (PR obligatoires sur `main`)
 - [CHANGELOG.md](CHANGELOG.md) pour l'historique des versions
-- Tags `v*` (ex. `v1.1.0`) pour les releases — voir [releases](https://github.com/QuantumHacker10/Synapse/releases)
+- Tags `v*` (ex. `v1.2.0`) pour les releases — voir [releases](https://github.com/QuantumHacker10/Synapse/releases)
+- Publish local multi-RID : `bash scripts/publish-all.sh`
 
 En bref :
 
