@@ -1,8 +1,11 @@
 # SYNAPSE OMNIA — Moteur de simulation 3D · v1.2
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
+[![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
+[![CodeQL](https://github.com/QuantumHacker10/Synapse/actions/workflows/codeql.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
+[![Tests](https://img.shields.io/badge/tests-225%2B%20passing-brightgreen)](tests/Synapse.Tests)
 
 **Synapse OMNIA** est un moteur de **simulation 3D** : un monde numérique que l'on observe,
 modifie et fait évoluer — pas une boîte à monter des niveaux de jeu.
@@ -22,7 +25,7 @@ Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
 - [Pourquoi Synapse ?](#pourquoi-synapse-)
 - [Prérequis](#prérequis)
-- [Démarrage rapide](#démarrage-rapide)
+- [Démarrage rapide](#démarrage-rapide) — voir aussi **[GETTING_STARTED.md](GETTING_STARTED.md)**
 - [Configuration](#configuration)
 - [Architecture](#architecture)
 - [Pipeline G-DNN + L-DNN](#pipeline-g-dnn--l-dnn)
@@ -58,6 +61,8 @@ Six idées rares réunies dans **un seul moteur de simulation**, pas comme des p
 
 ## Démarrage rapide
 
+> Guide détaillé avec exemples C# : **[GETTING_STARTED.md](GETTING_STARTED.md)**
+
 ```bash
 # Cloner et entrer dans le dépôt
 git clone https://github.com/QuantumHacker10/Synapse.git
@@ -74,6 +79,48 @@ dotnet run --project src/Synapse.Studio -- --engine
 
 # Charger la scène d'exemple
 dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse
+```
+
+### Exemple : intégrer le runtime en C#
+
+```csharp
+using Synapse.Infrastructure.Configuration;
+using Synapse.Infrastructure.Logging;
+using Synapse.Runtime;
+
+var config = SynapseConfig.Load();
+await using var host = new EngineHost(config, SynapseLogger.Default);
+
+host.InitializeModules();
+host.InitializeRender(1280, 720);
+// La loi active par défaut est "heat_equation" (définie dans la scène)
+
+// Boucle principale
+while (host.IsRenderInitialized)
+{
+    host.TickPhysics(1.0 / 60.0);
+    await host.TickSimulationAsync();
+    host.TickRender();
+}
+```
+
+### Exemple : créer une scène `.synapse`
+
+```json
+{
+  "name": "Ma scène",
+  "version": "1.0",
+  "activeLawId": "heat_equation",
+  "entities": [{
+    "id": "11111111-1111-1111-1111-111111111111",
+    "name": "Sol", "type": "Mesh",
+    "position": { "x": 0, "y": 0, "z": 0 },
+    "scale": { "x": 10, "y": 0.2, "z": 10 },
+    "visible": true
+  }],
+  "camera": { "position": { "x": 0, "y": 2, "z": 5 }, "yaw": -90, "pitch": 0, "fov": 60 },
+  "assets": {}
+}
 ```
 
 ### glfw3.dll
@@ -95,6 +142,10 @@ Le routeur [`HybridLlmRouter`](src/Synapse.LLM/HybridLlmRouter.cs) bascule autom
 ## Architecture
 
 Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.slnx)), scène d'exemple sous [`samples/`](samples/).
+
+Documentation complémentaire :
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — diagrammes Mermaid (pipeline, modules, CI)
+- **[docs/API.md](docs/API.md)** — référence des APIs publiques par module
 
 | Projet | Rôle |
 |---|---|
@@ -159,9 +210,10 @@ Suite xUnit + FluentAssertions sous [`tests/Synapse.Tests`](tests/Synapse.Tests)
 
 | Workflow | Rôle |
 |---|---|
-| [`build.yml`](.github/workflows/build.yml) | Ubuntu — tests + Coverlet ; Windows — publish artefact |
-| [`analysis.yml`](.github/workflows/analysis.yml) | Analyseurs + `dotnet format --verify-no-changes` |
-| [`release.yml`](.github/workflows/release.yml) | Zip win-x64 sur tag `v*` |
+| [`build.yml`](.github/workflows/build.yml) | Ubuntu — tests + Coverlet ; Windows/Linux — publish artefacts |
+| [`analysis.yml`](.github/workflows/analysis.yml) | Analyseurs Roslyn + `dotnet format --verify-no-changes` |
+| [`codeql.yml`](.github/workflows/codeql.yml) | Analyse de sécurité CodeQL (C#) |
+| [`release.yml`](.github/workflows/release.yml) | Matrix win/linux/osx sur tag `v*` |
 | [`pages.yml`](.github/workflows/pages.yml) | Déploiement du site vitrine sur GitHub Pages |
 
 ## Contribuer
@@ -194,4 +246,10 @@ Déployée automatiquement sur [GitHub Pages](https://quantumhacker10.github.io/
 des œuvres dérivées du code source, y compris à des fins commerciales, sous réserve
 de conserver l'avis de copyright et la licence.
 
-Voir [`LICENSE`](LICENSE) et [`COPYRIGHT`](COPYRIGHT).
+| Fichier | Contenu |
+|---|---|
+| [`LICENSE`](LICENSE) | Texte MIT |
+| [`COPYRIGHT`](COPYRIGHT) | Copyright et marques |
+| [`NOTICE`](NOTICE) | Avis standard (crédits) |
+| [`LICENSE_HISTORY.md`](LICENSE_HISTORY.md) | Historique des changements de licence |
+| [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Licences des dépendances |
