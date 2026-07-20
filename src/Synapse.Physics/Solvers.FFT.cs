@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // Synapse Omnia — Physics Solvers
 // Complete implementations of electromagnetic, acoustic, thermodynamic,
 // chemical, gravitational, lattice-Boltzmann, quantum, elastic, turbulent,
@@ -18,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Synapse.Physics;
+
 public static class FFT
 {
     public static void Forward(Span<double> real, Span<double> imag)

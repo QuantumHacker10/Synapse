@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // Synapse Omnia — Physics Solvers
 // Complete implementations of electromagnetic, acoustic, thermodynamic,
 // chemical, gravitational, lattice-Boltzmann, quantum, elastic, turbulent,
@@ -18,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Synapse.Physics;
+
 public sealed class LoadBalancer
 {
     private readonly Dictionary<string, double> _executionTimes;

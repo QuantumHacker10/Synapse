@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // GDNN Engine - Vulkan 1.4 Render Hardware Interface Backend
 // File: VulkanRhiDevice.cs
 // Description: Complete Vulkan RHI implementation for the G-DNN Engine

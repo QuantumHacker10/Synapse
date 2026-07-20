@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // Synapse Omnia — Physics Solvers
 // Complete implementations of electromagnetic, acoustic, thermodynamic,
 // chemical, gravitational, lattice-Boltzmann, quantum, elastic, turbulent,
@@ -18,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Synapse.Physics;
+
 internal static class PhysicsConstants
 {
     public const double C0 = 299_792_458.0;            // speed of light m/s

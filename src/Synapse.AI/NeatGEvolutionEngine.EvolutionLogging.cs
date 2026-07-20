@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // NeatGEvolutionEngine.cs - NEAT-G Evolution Engine Core
 // GDNN.Engine - Geometric Deep Neural Network Engine
 // Copyright (c) 2024. All rights reserved.
