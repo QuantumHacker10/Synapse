@@ -46,9 +46,11 @@ jobs:
         shell: pwsh
         run: |
           Copy-Item README.md, LICENSE, COPYRIGHT artifacts/${{ matrix.artifact }}/
+          Copy-Item docs/media/synapse-demo.mp4, docs/media/synapse-demo.gif artifacts/${{ matrix.artifact }}/ -ErrorAction SilentlyContinue
           @"
           SYNAPSE OMNIA — 3D Simulation Engine (Windows x64) — ${{ github.ref_name }}
-          Proprietary license — see LICENSE / COPYRIGHT.
+          MIT License — see LICENSE / COPYRIGHT.
+          Demo: synapse-demo.mp4 / synapse-demo.gif (also in docs/media/ on GitHub)
           Prerequisites: Vulkan GPU drivers. Place glfw3.dll beside the exe if needed
           (src/Synapse.Studio/native/README.md).
           Launch: Synapse.Studio.exe | Engine: Synapse.Studio.exe --engine
@@ -58,9 +60,11 @@ jobs:
         if: matrix.rid != 'win-x64'
         run: |
           cp README.md LICENSE COPYRIGHT "artifacts/${{ matrix.artifact }}/"
+          cp docs/media/synapse-demo.mp4 docs/media/synapse-demo.gif "artifacts/${{ matrix.artifact }}/" 2>/dev/null || true
           cat > "artifacts/${{ matrix.artifact }}/RELEASE_NOTES.txt" <<EOF
           SYNAPSE OMNIA — 3D Simulation Engine — ${{ github.ref_name }}
-          RID: see folder name. Proprietary — see LICENSE / COPYRIGHT.
+          RID: see folder name. MIT License — see LICENSE / COPYRIGHT.
+          Demo: synapse-demo.mp4 / synapse-demo.gif included in this archive.
           Needs: Vulkan (MoltenVK on macOS) + GLFW (system package or runtimes/*/native).
           Launch: ./Synapse.Studio | Engine: ./Synapse.Studio --engine
           EOF
@@ -114,3 +118,7 @@ jobs:
             ### Documentation
             - [Getting started](../blob/main/docs/getting-started.md)
             - [Architecture](../blob/main/docs/architecture.md)
+
+            ### Demo
+            - `synapse-demo.mp4` and `synapse-demo.gif` are bundled in each platform archive
+            - Also available in [docs/media/](../tree/main/docs/media)

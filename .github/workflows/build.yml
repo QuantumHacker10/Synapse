@@ -39,7 +39,17 @@ jobs:
     - name: Coverage summary
       run: cat coverage/report/Summary.txt
 
-    - name: Upload coverage
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: coverage/report/Cobertura.xml
+        flags: unittests
+        name: synapse-linux
+        fail_ci_if_error: false
+        verbose: true
+
+    - name: Upload coverage artifact
       uses: actions/upload-artifact@v4
       if: always()
       with:

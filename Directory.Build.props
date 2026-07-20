@@ -6,8 +6,12 @@
     <InformationalVersion>1.2.0</InformationalVersion>
     <Company>Synapse</Company>
     <Product>SYNAPSE OMNIA</Product>
-    <Authors>Synapse</Authors>
-    <Copyright>Copyright (c) Synapse Contributors</Copyright>
+    <Authors>Synapse Contributors</Authors>
+    <Copyright>Copyright (c) 2026 QuantumHacker10 and Synapse Contributors</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/QuantumHacker10/Synapse</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/QuantumHacker10/Synapse</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>

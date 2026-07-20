@@ -66,7 +66,7 @@ namespace Synapse.Studio.ViewModels
                 "lois physiques réécrivables, évolution NEAT-G, habitants sentients, assistance créative " +
                 "(LLM) et rendu Vulkan temps réel.\n\n" +
                 "Site : https://quantumhacker10.github.io/Synapse/\n" +
-                "Licence propriétaire — usage personnel non commercial.\n\n" +
+                "Licence MIT — voir LICENSE.\n\n" +
                 "Apprendre · Réécrire · Cultiver";
 
             foreach (EntityType t in Enum.GetValues<EntityType>())

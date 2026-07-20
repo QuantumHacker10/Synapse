@@ -1,57 +1,36 @@
-# License options for Synapse OMNIA
+# License
 
-Synapse OMNIA currently ships under a **proprietary license** ([LICENSE](../LICENSE)).
-This document clarifies permitted use today and outlines open-source alternatives the
-maintainers may consider in the future.
+Synapse OMNIA is released under the **[MIT License](../LICENSE)**.
 
-## Current license (proprietary)
+## Summary
 
-| Permitted without written agreement | Requires written permission |
+| Allowed | Notes |
 |---|---|
-| Viewing the public source for personal evaluation | Copying or mirroring the repository |
-| Running official [Releases](https://github.com/QuantumHacker10/Synapse/releases) binaries | Forking or republishing the source |
-| **Academic and non-commercial research** (experiments, papers, coursework — no redistribution of source or binaries) | Commercial products, SaaS, or paid training |
-| Filing GitHub issues and authorized pull requests | Derivative works or component extraction |
+| Use, copy, modify, merge | Include copyright + license notice |
+| Publish and distribute | Commercial use permitted |
+| Sublicense | Subject to MIT terms |
+| Fork on GitHub | Encouraged — see [CONTRIBUTING.md](../CONTRIBUTING.md) |
 
-### Academic use
+## Trademarks
 
-University students, researchers, and educators may:
+Product names (**Synapse OMNIA**, **Synapse Engine**, **Synapse Studio**) may be protected
+as trademarks independently of the MIT license on source code. Do not imply official
+endorsement when distributing modified builds.
 
-- Clone the repository locally for **study and non-commercial experimentation**
-- Run Synapse Studio and cite Synapse in academic publications
-- Propose improvements via pull requests (subject to the contribution terms in LICENSE)
+## History
 
-They may **not**, without permission:
+- **v1.1–v1.2** — initially shipped under a proprietary license
+- **v1.3+ (planned)** — MIT License adopted to encourage community contributions
 
-- Redistribute source or release binaries (including course material mirrors)
-- Publish forked or extracted components as standalone projects
-- Use Synapse in commercial spin-offs or funded products
+See [CHANGELOG.md](../CHANGELOG.md) for the exact release when the license changed.
 
-For research collaborations or institutional licenses, open a
-[license request issue](https://github.com/QuantumHacker10/Synapse/issues/new?template=license_request.yml).
+## Codecov setup (maintainers)
 
-## Why not MIT / Apache today?
+To enable the dynamic coverage badge:
 
-The proprietary license protects novel pipelines (G-DNN, L-DNN, living laws, NEAT-G
-integration) during early product development. Restrictions may be relaxed once business
-and community goals are aligned.
+1. Sign in at [codecov.io](https://codecov.io) with GitHub
+2. Add repository `QuantumHacker10/Synapse`
+3. Add repository secret `CODECOV_TOKEN` in **Settings → Secrets → Actions**
+4. Push to `main` — CI uploads coverage from `build.yml`
 
-## Open-source alternatives under consideration
-
-| License | Pros | Cons |
-|---|---|---|
-| **MIT** | Maximum adoption; simple contribution story | Minimal patent protection |
-| **Apache 2.0** | Patent grant; corporate-friendly | Slightly more legal overhead |
-| **Dual license** | Core open + commercial add-ons | Requires clear module boundaries |
-
-A future move to open source would likely:
-
-1. Announce intent in CHANGELOG and README
-2. Retag or branch from a known `v*` release
-3. Update CONTRIBUTING to welcome public forks
-4. Keep trademarks (Synapse OMNIA, Synapse Studio) protected
-
-## Contact
-
-- [License request issue template](https://github.com/QuantumHacker10/Synapse/issues/new?template=license_request.yml)
-- [General issues](https://github.com/QuantumHacker10/Synapse/issues)
+The badge in README updates automatically after the first successful upload.

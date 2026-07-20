@@ -2,9 +2,9 @@
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
-[![Coverage](https://img.shields.io/badge/coverage-reported-blue)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
+[![Coverage](https://codecov.io/gh/QuantumHacker10/Synapse/graph/badge.svg)](https://codecov.io/gh/QuantumHacker10/Synapse)
 [![Latest Release](https://img.shields.io/github/v/release/QuantumHacker10/Synapse?label=release)](https://github.com/QuantumHacker10/Synapse/releases)
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
 
 **Synapse OMNIA** is a **3D simulation engine**: a digital world you observe, modify, and
@@ -20,6 +20,12 @@ Where classic 3D tools *freeze* objects and *replay* immutable rules, Synapse *l
 > **Linux x64**, and **macOS arm64** via CI / `scripts/publish-all.sh`.
 
 **Landing page:** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases:** [Download v1.2](https://github.com/QuantumHacker10/Synapse/releases)
+
+## Demo
+
+![Synapse Studio — simulation engine demo](docs/media/synapse-demo.gif)
+
+*Synapse Studio viewport: neural SDF geometry (G-DNN), dynamic lighting (L-DNN), and a live simulation world. [Full video (MP4)](docs/media/synapse-demo.mp4). Re-record locally with `bash scripts/render-demo-media.sh` after capturing a real Studio screenshot.*
 
 ## Table of contents
 
@@ -202,12 +208,7 @@ Automatically deployed to [GitHub Pages](https://quantumhacker10.github.io/Synap
 
 ## License
 
-**Proprietary license — all rights reserved.** This repository is not open source.
+**MIT License** — see [`LICENSE`](LICENSE) and [`COPYRIGHT`](COPYRIGHT).
 
-Without written permission: copying, forking, redistribution, plagiarism, derivative
-works, and commercial use are prohibited. Viewing the source and running official
-[Releases](https://github.com/QuantumHacker10/Synapse/releases) binaries is permitted
-for **personal, non-commercial, and academic/research evaluation**.
-
-See [`LICENSE`](LICENSE), [`COPYRIGHT`](COPYRIGHT), and [`docs/LICENSE-OPTIONS.md`](docs/LICENSE-OPTIONS.md)
-for details and future open-source considerations.
+You may use, modify, and distribute Synapse OMNIA under the MIT License. Contributions
+are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).

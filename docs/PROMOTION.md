@@ -40,6 +40,5 @@ Always link to the official repository and Releases page — not unofficial mirr
 
 ## License reminder
 
-Promotion does not change license terms. Viewing and personal/academic evaluation are
-allowed; forks and redistribution remain prohibited unless explicitly authorized.
-See [LICENSE-OPTIONS.md](LICENSE-OPTIONS.md).
+Synapse OMNIA is under the **MIT License**. You may share demos, fork the repo, and
+redistribute modified builds — include the LICENSE file. See [LICENSE-OPTIONS.md](LICENSE-OPTIONS.md).

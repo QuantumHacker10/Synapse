@@ -10,12 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - English README, CONTRIBUTING, and GitHub issue/PR templates for international contributors.
 - Documentation: [docs/getting-started.md](docs/getting-started.md), [docs/architecture.md](docs/architecture.md), [docs/LICENSE-OPTIONS.md](docs/LICENSE-OPTIONS.md), [docs/PROMOTION.md](docs/PROMOTION.md).
-- CI coverage report generation (ReportGenerator) and README badges (build, analysis, release).
-- Explicit academic/research use clause in LICENSE.
+- Demo media for README and Releases: [docs/media/synapse-demo.gif](docs/media/synapse-demo.gif), [docs/media/synapse-demo.mp4](docs/media/synapse-demo.mp4), [scripts/render-demo-media.sh](scripts/render-demo-media.sh).
+- Codecov integration (`codecov.yml`) and dynamic coverage badge in README.
 
 ### Changed
 
-- Release workflow notes and helper script translated to English; release body links to new docs.
+- **License switched to MIT** — replaces proprietary license; forks and contributions welcome.
+- Release workflow bundles demo media; release notes reference MIT License.
+- CI uploads Cobertura coverage to Codecov (requires `CODECOV_TOKEN` repository secret).
 
 ## [1.2.0] — 2026-07-20
 

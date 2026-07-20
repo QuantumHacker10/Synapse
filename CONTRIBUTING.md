@@ -125,17 +125,20 @@ dotnet format --verify-no-changes   # same as CI
 The [`build.yml`](.github/workflows/build.yml) and [`analysis.yml`](.github/workflows/analysis.yml)
 workflows must pass before merge.
 
+### Codecov (maintainers)
+
+Add repository secret `CODECOV_TOKEN` from [codecov.io](https://codecov.io/gh/QuantumHacker10/Synapse)
+so the dynamic coverage badge in README updates after each CI run.
+
 ## License and contributions
 
-This project is under a **proprietary license** ([LICENSE](LICENSE)). By contributing, you agree that:
+This project is under the **MIT License** ([LICENSE](LICENSE)). By contributing, you agree that:
 
-- you will not copy the code to other repositories without permission;
-- accepted contributions may be integrated under the project license;
-- you do not claim ownership of existing code.
+- your contribution is your original work;
+- you license your contribution under the MIT License;
+- you do not violate third-party rights.
 
-GitHub forks are **prohibited by the license** ([LICENSE](LICENSE)). On a public personal
-repository, GitHub may still show a "Fork" button — that is not legal authorization;
-any unauthorized republication remains a copyright violation.
+Forks and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Questions
 
