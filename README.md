@@ -1,4 +1,4 @@
-# SYNAPSE OMNIA — Moteur de simulation 3D · v1.1
+# SYNAPSE OMNIA — Moteur de simulation 3D · v1.2
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
@@ -12,11 +12,11 @@ comment formes, lois et habitants changent ensemble.
 Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
 Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
-> **Produit v1.1** — Synapse Studio + un runtime unifié (physique, simulation, évolution,
-> assistance créative, rendu temps réel). Build officiel **Windows x64** ; Linux et macOS
-> en compilation locale.
+> **Produit v1.2** — Synapse Studio + runtime unifié (physique industrielle, joints/véhicules,
+> mesh provider, GI GPU-résidente, multiplateforme GLFW/Vulkan). Builds **Windows x64**,
+> **Linux x64** et **macOS arm64** via CI / `scripts/publish-all.sh`.
 
-**Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v1.1](https://github.com/QuantumHacker10/Synapse/releases)
+**Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v1.2](https://github.com/QuantumHacker10/Synapse/releases)
 
 ## Sommaire
 
@@ -54,7 +54,7 @@ Six idées rares réunies dans **un seul moteur de simulation**, pas comme des p
 | Windows (publish) | `glfw3.dll` 3.4+ (voir [glfw3.dll](#glfw3dll)) |
 | LLM (optionnel) | [Ollama](https://ollama.com/) en local, ou clés API cloud (voir [Configuration](#configuration)) |
 
-**Plateformes cibles :** Windows x64 (publish officiel), Linux et macOS via compilation locale.
+**Plateformes cibles :** Windows, Linux et macOS en **natif GLFW + Vulkan** (MoltenVK sur macOS). Publish officiel win-x64 ; Linux/macOS via `dotnet publish -r linux-x64|osx-arm64`. HWND = embed Studio Windows uniquement.
 
 ## Démarrage rapide
 
@@ -99,20 +99,20 @@ Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.
 | Projet | Rôle |
 |---|---|
 | `Synapse.Core` | Fondations mathématiques / physiques (`PhysicsState` 256 octets, algèbre, octree, kd-tree, sécurité) |
-| `Synapse.Physics` | `LivingLawCompiler` — 100 lois texte sur 18 domaines, hot-reload ; solveurs Maxwell, SPH, Lattice-Boltzmann, Schrödinger, N-corps, champs stochastiques |
+| `Synapse.Physics` | `LivingLawCompiler` ; **RigidBodyWorld** (joints, vehicles, CCD, mesh colliders) + **MultiphysicsOrchestrator** ; Maxwell, SPH, LBM… |
 | `Synapse.AI` | `NeatGEvolutionEngine` — évolution NEAT-G, sélection NSGA-II, fitness SDF + irradiance L-DNN |
 | `Synapse.Genomics` | `GeoGenome` — génomes de formes (builder, validation, registry, pool) |
-| `Synapse.Rendering` | Vulkan RHI, G-DNN (SDF), L-DNN (GI neuronale), polygonisation LOD, mesh→SDF, export glTF, styles artistiques |
+| `Synapse.Rendering` | Vulkan RHI, G-DNN (SDF), L-DNN (GI + SSAO), polygonisation LOD **QEM**, mesh→SDF, export glTF |
 | `Synapse.LLM` | `HybridLlmRouter` — ONNX / Ollama / OpenAI / Anthropic / Gemini / Azure + parse lighting/SDF |
 | `Synapse.Simulation` | `SentienceManager` — entités, behavior trees, perception, jumeaux numériques |
 | `Synapse.Infrastructure` | Qualité adaptative, benchmarks, logging et config |
-| `Synapse.Runtime` | `EngineHost` + `FrameOrchestrator` + projets `.synapse`, application des hints LLM→scène |
+| `Synapse.Runtime` | `EngineHost` + `FrameOrchestrator` + **SynapseMeshProvider** + projets `.synapse` |
 | `Synapse.Studio` | **Synapse Studio** — éditeur Avalonia + mode `--engine` GLFW |
 
 ```mermaid
 flowchart LR
   Studio[Synapse Studio] --> Runtime[EngineHost]
-  Runtime --> Physics[Living Laws]
+  Runtime --> Physics[Multiphysics + Living Laws]
   Runtime --> AI[NEAT-G]
   Runtime --> Render[G-DNN + L-DNN Vulkan]
   Runtime --> Sim[Sentience]
@@ -170,7 +170,8 @@ Voir **[CONTRIBUTING.md](CONTRIBUTING.md)** pour le flux Git complet :
 
 - Branches `feat/*` → `develop` → `main` (PR obligatoires sur `main`)
 - [CHANGELOG.md](CHANGELOG.md) pour l'historique des versions
-- Tags `v*` (ex. `v1.1.0`) pour les releases — voir [releases](https://github.com/QuantumHacker10/Synapse/releases)
+- Tags `v*` (ex. `v1.2.0`) pour les releases — voir [releases](https://github.com/QuantumHacker10/Synapse/releases)
+- Publish local multi-RID : `bash scripts/publish-all.sh`
 
 En bref :
 

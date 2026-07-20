@@ -9,8 +9,21 @@ permissions:
   contents: write
 
 jobs:
-  publish-windows:
-    runs-on: windows-latest
+  publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            artifact: Synapse-win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact: Synapse-linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+            artifact: Synapse-osx-arm64
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -19,52 +32,81 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publish Studio win-x64
-        run: |
-          dotnet publish src/Synapse.Studio/Synapse.Studio.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained true `
-            -p:PublishReadyToRun=true `
-            -o artifacts/Synapse-win-x64
+      - name: Publish Studio
+        run: >
+          dotnet publish src/Synapse.Studio/Synapse.Studio.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained true
+          -p:PublishReadyToRun=true
+          -o artifacts/${{ matrix.artifact }}
 
-      - name: Stage notes
+      - name: Stage notes (Windows)
+        if: matrix.rid == 'win-x64'
         shell: pwsh
         run: |
-          Copy-Item README.md artifacts/Synapse-win-x64/
-          Copy-Item LICENSE artifacts/Synapse-win-x64/
-          Copy-Item COPYRIGHT artifacts/Synapse-win-x64/
+          Copy-Item README.md, LICENSE, COPYRIGHT artifacts/${{ matrix.artifact }}/
           @"
-          SYNAPSE OMNIA 1.1 — Moteur de simulation 3D (Windows x64)
-          Proprietary license — all rights reserved. See LICENSE and COPYRIGHT.
-          No copying, forking, or redistribution without written permission.
-          Prerequisites: Vulkan-capable GPU + drivers.
-          Place glfw3.dll next to Synapse.Studio.exe if not already present
-          (see src/Synapse.Studio/native/README.md).
-          Launch: Synapse.Studio.exe
-          Engine-only: Synapse.Studio.exe --engine
-          "@ | Set-Content artifacts/Synapse-win-x64/RELEASE_NOTES.txt
+          SYNAPSE OMNIA 1.2 — Moteur de simulation 3D (Windows x64)
+          Proprietary license — see LICENSE / COPYRIGHT.
+          Prerequisites: Vulkan GPU drivers. Place glfw3.dll beside the exe if needed
+          (src/Synapse.Studio/native/README.md).
+          Launch: Synapse.Studio.exe | Engine: Synapse.Studio.exe --engine
+          "@ | Set-Content artifacts/${{ matrix.artifact }}/RELEASE_NOTES.txt
 
-      - name: Zip artifact
+      - name: Stage notes (Unix)
+        if: matrix.rid != 'win-x64'
+        run: |
+          cp README.md LICENSE COPYRIGHT "artifacts/${{ matrix.artifact }}/"
+          cat > "artifacts/${{ matrix.artifact }}/RELEASE_NOTES.txt" <<'EOF'
+          SYNAPSE OMNIA 1.2 — Moteur de simulation 3D
+          RID: see folder name. Proprietary — see LICENSE / COPYRIGHT.
+          Needs: Vulkan (MoltenVK on macOS) + GLFW (system package or runtimes/*/native).
+          Launch: ./Synapse.Studio | Engine: ./Synapse.Studio --engine
+          EOF
+
+      - name: Zip (Windows)
+        if: matrix.rid == 'win-x64'
         shell: pwsh
-        run: Compress-Archive -Path artifacts/Synapse-win-x64/* -DestinationPath artifacts/Synapse-win-x64.zip -Force
+        run: Compress-Archive -Path artifacts/${{ matrix.artifact }}/* -DestinationPath artifacts/${{ matrix.artifact }}.zip -Force
 
+      - name: Tar (Unix)
+        if: matrix.rid != 'win-x64'
+        run: tar -C artifacts -czf "artifacts/${{ matrix.artifact }}.tar.gz" "${{ matrix.artifact }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            artifacts/${{ matrix.artifact }}.zip
+            artifacts/${{ matrix.artifact }}.tar.gz
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/Synapse-win-x64.zip
+          files: |
+            dist/**/*.zip
+            dist/**/*.tar.gz
           generate_release_notes: true
           body: |
             ## SYNAPSE OMNIA ${{ github.ref_name }}
 
-            Moteur de **simulation 3D** avec **Synapse Studio** — atelier pour observer,
-            modifier et faire évoluer un monde simulé.
+            Moteur de **simulation 3D** multiplateforme (GLFW + Vulkan).
 
-            ### Windows x64
-            - Self-contained .NET 10 publish of **Synapse Studio**
-            - Requires a Vulkan-capable GPU
-            - Optional: `glfw3.dll` beside the exe (see native README)
+            ### Artefacts
+            - **Windows x64** — `.zip` self-contained
+            - **Linux x64** — `.tar.gz` self-contained
+            - **macOS arm64** — `.tar.gz` (MoltenVK)
 
             ### Launch
-            - `Synapse.Studio.exe` — Avalonia studio
-            - `Synapse.Studio.exe --engine` — GLFW engine loop only
+            - Studio Avalonia : `Synapse.Studio` / `Synapse.Studio.exe`
+            - Moteur GLFW seul : `--engine`

@@ -121,6 +121,9 @@ namespace Synapse.Studio.Contracts
         public string? BehaviorProfile { get; set; }
         public string? GenomeId { get; set; }
         public string? LawId { get; set; }
+        public string? MeshPath { get; set; }
+        public bool IsVehicle { get; set; }
+        public bool BakeNeuralSdf { get; set; }
         public ObservableCollection<ComponentType> Components { get; } = new();
         public event PropertyChangedEventHandler? PropertyChanged;
     }

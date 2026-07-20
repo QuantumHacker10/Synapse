@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using GDNN.Core.NEAT;
 using GDNN.Llm;
+using GDNN.Platform;
 using GDNN.Rendering.Engine;
 using GDNN.Rendering.Quality;
 using GDNN.Scene;
@@ -33,6 +34,8 @@ namespace Synapse.Runtime
         private RenderEngine? _renderEngine;
         private LivingLawCompiler? _lawCompiler;
         private PhysicsField? _physicsField;
+        private MultiphysicsOrchestrator? _multiphysics;
+        private SynapseMeshProvider? _meshProvider;
         private SentienceManager? _sentience;
         private HybridLlmRouter? _llmRouter;
         private RuntimeQualityManager? _quality;
@@ -67,6 +70,18 @@ namespace Synapse.Runtime
 
         /// <summary>Living-law compiler, available after <see cref="InitializeModules"/>.</summary>
         public LivingLawCompiler? LawCompiler => _lawCompiler;
+
+        /// <summary>Industrial multiphysics orchestrator (rigid bodies + living laws + continuum).</summary>
+        public MultiphysicsOrchestrator? Multiphysics => _multiphysics;
+
+        /// <summary>Rigid-body world driven each physics tick.</summary>
+        public RigidBodyWorld? RigidWorld => _multiphysics?.RigidWorld;
+
+        /// <summary>Synapse Omnia mesh provider (load → cook → optional G-DNN bake).</summary>
+        public SynapseMeshProvider? MeshProvider => _meshProvider;
+
+        /// <summary>Native platform capabilities (GLFW / Vulkan / HWND).</summary>
+        public PlatformCapabilities PlatformCaps { get; private set; } = NativePlatform.Probe();
 
         /// <summary>Multi-provider LLM router.</summary>
         public HybridLlmRouter? LlmRouter => _llmRouter;
@@ -122,6 +137,17 @@ namespace Synapse.Runtime
 
             _lawCompiler = new LivingLawCompiler();
             _physicsField = CreateSeedField(16);
+            _multiphysics = new MultiphysicsOrchestrator(
+                _lawCompiler,
+                _physicsField,
+                new MultiphysicsConfig
+                {
+                    EnabledModules = ContinuumModules.LivingLaws | ContinuumModules.RigidBodies,
+                    FixedTimeStep = 1f / 60f,
+                    MaxSubSteps = 4,
+                    Gravity = new Vector3(0f, -9.81f, 0f)
+                });
+            _meshProvider = new SynapseMeshProvider(_logger);
             _sentience = new SentienceManager();
             _llmRouter = new HybridLlmRouter();
             _llmProviderSummary = LlmProviderBootstrap.Register(_llmRouter, _config, _logger).Summary;
@@ -130,15 +156,33 @@ namespace Synapse.Runtime
 
             _activeLawId = _scene.ActiveLawId ?? "heat_equation";
             EnsureLawCompiled(_activeLawId, _scene.ActiveLawExpression);
+            _multiphysics.SetActiveLaw(_activeLawId);
             ApplySceneToSimulation(_scene);
+            SyncSceneToPhysics();
 
             var twin = new InMemoryDigitalTwin { PhysicalId = "demo-world" };
             twin.SetProperty("Name", _scene.Name);
             twin.SetProperty("EntityType", GDNN.Sentience.EntityType.Environmental.ToString());
             _twins.Register(twin);
 
+            PlatformCaps = NativePlatform.Probe();
             _modulesInitialized = true;
-            _logger.Info("EngineHost", "Modules initialized (Physics, Simulation, LLM, Quality, Twins)");
+            _logger.Info("EngineHost", "Modules initialized (Physics, Simulation, LLM, Quality, Twins, MeshProvider)");
+            _logger.Info("Platform", PlatformCaps.Summary);
+        }
+
+        /// <summary>
+        /// Native multiplatform render init: always uses GLFW as the primary Vulkan WSI
+        /// on Windows, Linux, and macOS (MoltenVK). Prefer this over HWND except for
+        /// Avalonia Studio embedding on Windows.
+        /// </summary>
+        public void InitializeRenderNative(int width, int height, bool enableValidation = true)
+        {
+            PlatformCaps = NativePlatform.Probe();
+            _logger.Info("Platform", PlatformCaps.Summary);
+            if (!PlatformCaps.GlfwAvailable)
+                _logger.Warn("Platform", "GLFW probe failed — RenderEngine will still attempt DllImport resolution");
+            InitializeRender(width, height, enableValidation);
         }
 
         /// <summary>Creates a standalone GLFW render surface.</summary>
@@ -186,7 +230,9 @@ namespace Synapse.Runtime
 
             _activeLawId = _scene.ActiveLawId;
             EnsureLawCompiled(_activeLawId, _scene.ActiveLawExpression);
+            _multiphysics?.SetActiveLaw(_activeLawId);
             ApplySceneToSimulation(_scene);
+            SyncSceneToPhysics();
 
             if (_renderEngine != null)
             {
@@ -224,26 +270,29 @@ namespace Synapse.Runtime
             _logger.Info("EngineHost", $"Scene saved: {path}");
         }
 
-        /// <summary>Applies the active living law to the physics field for one timestep.</summary>
+        /// <summary>
+        /// Advances the industrial multiphysics pipeline (living laws + rigid bodies + optional continuum)
+        /// and writes dynamic transforms back to the scene.
+        /// </summary>
         public void TickPhysics(float dt)
         {
-            if (_lawCompiler == null || _physicsField == null || string.IsNullOrEmpty(_activeLawId))
+            if (_multiphysics == null)
                 return;
 
             var budget = TimeSpan.FromMilliseconds(_config.PhysicsBudgetMs);
-            var start = Environment.TickCount64;
             try
             {
-                _lawCompiler.ApplyLaw(_activeLawId, _physicsField, dt);
-                _physicsField.Time += dt;
-                AverageFieldTemperature = SampleAverageTemperature(_physicsField);
+                _multiphysics.SetActiveLaw(_activeLawId);
+                _multiphysics.Step(dt, budget);
+                AverageFieldTemperature = _multiphysics.LastStats.AverageTemperature;
+                WritePhysicsTransformsToScene();
             }
             catch (Exception ex)
             {
-                _logger.Warn("Physics", $"Law apply failed: {ex.Message}");
+                _logger.Warn("Physics", $"Multiphysics step failed: {ex.Message}");
             }
 
-            if (Environment.TickCount64 - start > budget.TotalMilliseconds)
+            if (_multiphysics.LastStats.TotalMs > budget.TotalMilliseconds)
                 _logger.Debug("Physics", "Exceeded physics budget");
         }
 
@@ -290,6 +339,7 @@ namespace Synapse.Runtime
             {
                 _scene.ActiveLawId = lawId;
                 _scene.ActiveLawExpression = expression;
+                _multiphysics?.SetActiveLaw(lawId);
                 _logger.Info("Physics", $"Law '{lawId}' active ({result.InstructionCount} ops)");
             }
             else
@@ -645,7 +695,15 @@ namespace Synapse.Runtime
         private static float MathHelperDeg2Rad(float deg) => deg * MathF.PI / 180f;
 
         /// <summary>Updates an entity in the scene document and mirrors it to the renderer.</summary>
-        public bool UpdateSceneEntity(Guid id, string name, Vector3 position, Vector3 scale)
+        public bool UpdateSceneEntity(
+            Guid id,
+            string name,
+            Vector3 position,
+            Vector3 scale,
+            string? meshPath = null,
+            bool? isVehicle = null,
+            bool? bakeNeuralSdf = null,
+            bool resyncPhysics = false)
         {
             InitializeModules();
             var entity = _scene.Entities.Find(e => e.Id == id);
@@ -655,6 +713,94 @@ namespace Synapse.Runtime
             entity.Name = name;
             entity.Position = Vec3.From(position);
             entity.Scale = Vec3.From(scale);
+            if (meshPath != null)
+                entity.MeshPath = string.IsNullOrWhiteSpace(meshPath) ? null : meshPath;
+            if (isVehicle.HasValue)
+                entity.IsVehicle = isVehicle.Value;
+            if (bakeNeuralSdf.HasValue)
+                entity.BakeNeuralSdf = bakeNeuralSdf.Value;
+
+            SyncSceneToRenderer();
+            if (resyncPhysics)
+                SyncSceneToPhysics();
+            return true;
+        }
+
+        /// <summary>Adds a hinge joint anchoring <paramref name="bodyId"/> to the world.</summary>
+        public Guid? AddHingeToWorld(Guid bodyId, Vector3? worldAxis = null, float compliance = 0f)
+        {
+            InitializeModules();
+            if (_multiphysics?.RigidWorld.GetBody(bodyId) == null
+                && _scene.Entities.Find(e => e.Id == bodyId) == null)
+                return null;
+
+            var joint = new SceneJointData
+            {
+                Name = "Hinge_World",
+                Type = "Hinge",
+                BodyA = bodyId,
+                BodyB = Guid.Empty,
+                LocalAnchorA = new Vec3(0, 0, 0),
+                LocalAnchorB = Vec3.From(_scene.Entities.Find(e => e.Id == bodyId)?.Position.ToVector3() ?? Vector3.Zero),
+                LocalAxisA = Vec3.From(worldAxis ?? Vector3.UnitY),
+                LocalAxisB = Vec3.From(worldAxis ?? Vector3.UnitY),
+                Compliance = compliance,
+                Stiffness = 1.2f,
+                Damping = 0.15f
+            };
+            _scene.Joints.Add(joint);
+            SyncSceneToPhysics();
+            return joint.Id;
+        }
+
+        /// <summary>Adds a distance (soft rope) joint between two scene entities.</summary>
+        public Guid? AddDistanceJoint(Guid bodyA, Guid bodyB, float? restLength = null, float compliance = 0.01f)
+        {
+            InitializeModules();
+            var ea = _scene.Entities.Find(e => e.Id == bodyA);
+            var eb = _scene.Entities.Find(e => e.Id == bodyB);
+            if (ea == null || eb == null)
+                return null;
+
+            float rest = restLength ?? Vector3.Distance(ea.Position.ToVector3(), eb.Position.ToVector3());
+            var joint = new SceneJointData
+            {
+                Name = "Distance",
+                Type = "Distance",
+                BodyA = bodyA,
+                BodyB = bodyB,
+                RestLength = MathF.Max(0.05f, rest),
+                Stiffness = 1.5f,
+                Damping = 0.4f,
+                Compliance = compliance
+            };
+            _scene.Joints.Add(joint);
+            SyncSceneToPhysics();
+            return joint.Id;
+        }
+
+        /// <summary>Marks an entity as a raycast vehicle chassis and rebuilds physics.</summary>
+        public bool SetEntityAsVehicle(Guid id, bool isVehicle = true)
+        {
+            InitializeModules();
+            var entity = _scene.Entities.Find(e => e.Id == id);
+            if (entity == null)
+                return false;
+            entity.IsVehicle = isVehicle;
+            SyncSceneToPhysics();
+            return true;
+        }
+
+        /// <summary>Assigns a mesh asset path for SynapseMeshProvider cooking.</summary>
+        public bool SetEntityMeshPath(Guid id, string? meshPath, bool bakeNeuralSdf = false)
+        {
+            InitializeModules();
+            var entity = _scene.Entities.Find(e => e.Id == id);
+            if (entity == null)
+                return false;
+            entity.MeshPath = string.IsNullOrWhiteSpace(meshPath) ? null : meshPath;
+            entity.BakeNeuralSdf = bakeNeuralSdf;
+            SyncSceneToPhysics();
             SyncSceneToRenderer();
             return true;
         }
@@ -705,6 +851,149 @@ namespace Synapse.Runtime
             }
         }
 
+        /// <summary>Rebuilds the rigid-body world from the current scene document.</summary>
+        public void SyncSceneToPhysics()
+        {
+            if (_multiphysics == null)
+                return;
+
+            _multiphysics.RigidWorld.Clear();
+            var descs = new List<PhysicsEntityDesc>(_scene.Entities.Count);
+            foreach (var e in _scene.Entities)
+            {
+                descs.Add(new PhysicsEntityDesc
+                {
+                    Id = e.Id,
+                    Name = e.Name,
+                    Type = e.Type,
+                    Position = e.Position.ToVector3(),
+                    Scale = e.Scale.ToVector3(),
+                    IsStatic = e.Type.Equals("Mesh", StringComparison.OrdinalIgnoreCase)
+                        && e.Name.Contains("Ground", StringComparison.OrdinalIgnoreCase),
+                    Mass = 0f,
+                    Restitution = e.Type.Equals("Genome", StringComparison.OrdinalIgnoreCase) ? 0.6f : 0.2f,
+                    Collider = e.Type.Equals("Genome", StringComparison.OrdinalIgnoreCase)
+                        || e.Type.Equals("Character", StringComparison.OrdinalIgnoreCase)
+                        ? ColliderShape.Sphere
+                        : ColliderShape.Box
+                });
+            }
+
+            _multiphysics.SyncFromEntities(descs);
+
+            // Mesh-backed colliders + optional vehicles (Synapse Omnia extensions).
+            foreach (var e in _scene.Entities)
+            {
+                if (!string.IsNullOrWhiteSpace(e.MeshPath) && _meshProvider != null && File.Exists(e.MeshPath))
+                {
+                    try
+                    {
+                        var asset = new GDNN.Rendering.MeshIO.MeshLoader().LoadSync(e.MeshPath);
+                        if (asset != null)
+                        {
+                            string meshId = e.Id.ToString("N");
+                            _meshProvider.RegisterAsset(meshId, asset);
+                            bool isStatic = e.Name.Contains("Ground", StringComparison.OrdinalIgnoreCase);
+                            var bodyType = isStatic ? BodyType.Static : BodyType.Dynamic;
+                            var cooked = _meshProvider.CookCollider(meshId, bodyType);
+                            if (cooked != null)
+                            {
+                                _multiphysics.RigidWorld.RemoveBody(e.Id);
+                                var replacement = new RigidBody
+                                {
+                                    Id = e.Id,
+                                    Name = e.Name,
+                                    Type = bodyType,
+                                    Collider = cooked,
+                                    Position = e.Position.ToVector3()
+                                };
+                                if (bodyType == BodyType.Dynamic)
+                                    replacement.SetMass(MathF.Max(0.1f, e.Scale.X * e.Scale.Y * e.Scale.Z));
+                                else
+                                    replacement.SetMass(0f);
+                                _multiphysics.RigidWorld.AddBody(replacement);
+                            }
+
+                            if (e.BakeNeuralSdf)
+                                _ = _meshProvider.BakeNeuralSdfAsync(meshId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn("MeshProvider", $"Mesh bind failed for '{e.Name}': {ex.Message}");
+                    }
+                }
+
+                if (e.IsVehicle)
+                {
+                    var chassis = _multiphysics.RigidWorld.GetBody(e.Id);
+                    if (chassis != null)
+                    {
+                        chassis.Type = BodyType.Dynamic;
+                        if (chassis.InverseMass <= 0f)
+                            chassis.SetMass(1200f);
+                        _multiphysics.RigidWorld.AddVehicle(VehicleController.CreateDefaultCar(chassis.Id));
+                    }
+                }
+            }
+
+            // Restore persisted joints after bodies exist.
+            foreach (var j in _scene.Joints)
+            {
+                if (!Enum.TryParse<JointType>(j.Type, ignoreCase: true, out var jt))
+                    jt = JointType.Hinge;
+
+                _multiphysics.RigidWorld.AddJoint(new PhysicsJoint
+                {
+                    Id = j.Id == Guid.Empty ? Guid.NewGuid() : j.Id,
+                    Name = j.Name,
+                    Type = jt,
+                    BodyA = j.BodyA,
+                    BodyB = j.BodyB,
+                    LocalAnchorA = j.LocalAnchorA.ToVector3(),
+                    LocalAnchorB = j.LocalAnchorB.ToVector3(),
+                    LocalAxisA = j.LocalAxisA.ToVector3(),
+                    LocalAxisB = j.LocalAxisB.ToVector3(),
+                    RestLength = j.RestLength,
+                    Stiffness = j.Stiffness,
+                    Damping = j.Damping,
+                    Compliance = j.Compliance,
+                    MinLimit = j.MinLimit,
+                    MaxLimit = j.MaxLimit
+                });
+            }
+
+            _logger.Info("Physics",
+                $"Rigid world synced ({_multiphysics.RigidWorld.Bodies.Count} bodies, " +
+                $"{_multiphysics.RigidWorld.Joints.Count} joints, {_multiphysics.RigidWorld.Vehicles.Count} vehicles)");
+        }
+
+        private void WritePhysicsTransformsToScene()
+        {
+            if (_multiphysics == null)
+                return;
+
+            bool dirty = false;
+            foreach (var e in _scene.Entities)
+            {
+                var body = _multiphysics.RigidWorld.GetBody(e.Id);
+                if (body == null || body.Type != BodyType.Dynamic)
+                    continue;
+
+                var p = body.Position;
+                if (MathF.Abs(p.X - e.Position.X) > 1e-4f
+                    || MathF.Abs(p.Y - e.Position.Y) > 1e-4f
+                    || MathF.Abs(p.Z - e.Position.Z) > 1e-4f)
+                {
+                    e.Position = Vec3.From(p);
+                    dirty = true;
+                }
+            }
+
+            if (dirty && _renderInitialized)
+                SyncSceneToRenderer();
+        }
+
         private void EnsureLawCompiled(string? lawId, string? expression)
         {
             if (_lawCompiler == null || string.IsNullOrWhiteSpace(lawId))
@@ -753,21 +1042,6 @@ namespace Synapse.Runtime
             return field;
         }
 
-        private static float SampleAverageTemperature(PhysicsField field)
-        {
-            float sum = 0;
-            int n = 0;
-            int step = Math.Max(1, field.GridSize / 4);
-            for (int z = 0; z < field.GridSize; z += step)
-                for (int y = 0; y < field.GridSize; y += step)
-                    for (int x = 0; x < field.GridSize; x += step)
-                    {
-                        sum += field.Temperature[x, y, z];
-                        n++;
-                    }
-            return n == 0 ? 0 : sum / n;
-        }
-
         private static QualityPreset ParseQuality(string name) =>
             Enum.TryParse<QualityPreset>(name, true, out var p) ? p : QualityPreset.High;
 
@@ -807,6 +1081,7 @@ namespace Synapse.Runtime
             _evolutionCts?.Dispose();
             if (_evolution != null)
                 await _evolution.DisposeAsync();
+            _multiphysics?.Dispose();
             _llmRouter?.Dispose();
             _quality?.Dispose();
             _renderEngine?.Dispose();
