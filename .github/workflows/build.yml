@@ -34,7 +34,7 @@ jobs:
         path: '**/coverage.cobertura.xml'
 
     - name: Upload to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v7
       if: always()
       with:
         files: '**/coverage.cobertura.xml'
