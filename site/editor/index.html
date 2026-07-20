@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Synapse Web Editor</title>
+  <link rel="stylesheet" href="editor.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <strong>Synapse Web Editor v2.1</strong>
+    <span id="law-label">Loi : heat_equation</span>
+    <span id="entity-label">4 entité(s)</span>
+  </header>
+  <main class="layout">
+    <aside id="hierarchy" class="panel"><h3>Scène</h3><p>Demo Scene</p></aside>
+    <canvas id="viewport" width="960" height="540"></canvas>
+    <aside id="inspector" class="panel"><h3>Loi active</h3><p>heat_equation</p></aside>
+  </main>
+  <script id="synapse-scene" type="application/json">{"sceneName":"Demo Scene","glbUrl":"demo.glb","activeLawId":"heat_equation","entityCount":4,"editorVersion":"2.1.0","generator":"SYNAPSE OMNIA"}</script>
+  <script src="editor.js"></script>
+</body>
+</html>

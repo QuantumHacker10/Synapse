@@ -122,11 +122,60 @@ public sealed class V2FeatureTests
         session.IsHost.Should().BeTrue();
         await session.BroadcastScenePatchAsync(new byte[] { 1, 2, 3 });
 
-        await using var vr = VrSessionFactory.Create();
+        using var logger = new SynapseLogger(null, LogLevel.Error, consoleEnabled: false);
+        var vr = VrSessionFactory.Create(logger);
+        vr.RuntimeName.Should().NotBeNullOrEmpty();
         (await vr.TryInitializeAsync()).Should().BeFalse();
 
         var preview = WebPreviewBuilder.FromScene("Demo", "scene.glb", "heat_equation", 4);
-        WebPreviewBuilder.ToHtml(preview).Should().Contain("Demo");
+        WebPreviewBuilder.ToHtml(preview).Should().Contain("Synapse Web Editor");
+    }
+
+    [Fact]
+    public async Task MultiPeerHub_AcceptsLocalConnection()
+    {
+        using var logger = new SynapseLogger(null, LogLevel.Error, consoleEnabled: false);
+        await using var host = SimulationPeerHub.CreateMultiPeerHub(logger);
+        await host.StartHostAsync(port: 0);
+        host.ListenPort.Should().BeGreaterThan(0);
+
+        await using var client = SimulationPeerHub.CreateMultiPeerHub(logger);
+        await client.ConnectAsync("127.0.0.1", host.ListenPort);
+        await Task.Delay(50);
+        host.PeerCount.Should().BeGreaterOrEqualTo(2);
+    }
+
+    [Fact]
+    public async Task WebEditorBuilder_WritesSiteBundle()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"synapse-web-{Guid.NewGuid():N}");
+        var bundle = WebEditorBuilder.FromScene("Demo", "scene.glb", "heat_equation", 4);
+        await WebEditorBuilder.WriteSiteAsync(dir, bundle);
+        File.Exists(Path.Combine(dir, "index.html")).Should().BeTrue();
+        File.Exists(Path.Combine(dir, "editor.js")).Should().BeTrue();
+        Directory.Delete(dir, true);
+    }
+
+    [Fact]
+    public void MonolithSplits_ProduceExpectedFiles()
+    {
+        var simDir = ResolveRepoPath("src/Synapse.Simulation");
+        Directory.GetFiles(simDir, "EntityBehaviorSystem.*.cs").Length.Should().BeGreaterThan(10);
+        var physDir = ResolveRepoPath("src/Synapse.Physics");
+        Directory.GetFiles(physDir, "LivingLawLibrary.*.cs").Length.Should().BeGreaterThan(5);
+    }
+
+    private static string ResolveRepoPath(string relative)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null)
+        {
+            var candidate = Path.Combine(dir.FullName, relative);
+            if (Directory.Exists(candidate))
+                return candidate;
+            dir = dir.Parent;
+        }
+        return Path.GetFullPath(relative);
     }
 
     [Fact]

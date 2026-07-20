@@ -1,40 +1,36 @@
-# Captures d'écran — Synapse Studio
+# Captures d'écran — Synapse Studio v2.1
 
-Visuels représentatifs de l'interface Synapse Studio v1.3.
+Visuels **PNG** représentatifs de l'interface Synapse Studio.
 
-> Les SVG ci-dessous sont des maquettes vectorielles fidèles à la disposition réelle de Studio.
-> Pour des captures PNG depuis votre installation, lancez Studio et utilisez votre outil de capture d'écran.
+> Les PNG sont générés via `scripts/generate-studio-screenshots.py` (layout fidèle à Studio v2).
+> Pour des captures live depuis votre installation :
+> `dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse`
 
 ## Vue principale
 
-Interface complète : hiérarchie de scène, viewport Vulkan 3D, inspecteur, performance et console LLM.
+Interface complète : hiérarchie de scène, viewport Vulkan 3D, inspecteur, barre de performance et console LLM.
 
-![Vue principale de Synapse Studio](studio-main-view.svg)
+![Vue principale de Synapse Studio](studio-main-view.png)
 
 ## Rendu G-DNN + L-DNN
 
 Viewport en mode rendu : forme SDF neuronale (G-DNN), illumination globale (L-DNN), SSAO et brouillard.
 
-![Rendu neural temps réel](studio-rendering.svg)
+![Rendu neural temps réel](studio-rendering.png)
 
-## Capturer vos propres screenshots
+## Régénérer les PNG
 
 ```bash
-# Lancer Studio avec la scène d'exemple
-dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse
-
-# Windows : Win+Shift+S
-# Linux   : gnome-screenshot ou Flameshot
-# macOS   : Cmd+Shift+4
+python3 scripts/generate-studio-screenshots.py
 ```
-
-Placez les PNG dans ce dossier et mettez à jour ce README.
 
 ## Éléments visibles
 
 | Zone | Description |
 |---|---|
-| Panneau gauche | Hiérarchie des entités (Mesh, Character, Genome) |
+| Panneau gauche | Hiérarchie des entités (Mesh, Agent, Genome) |
 | Viewport central | Rendu Vulkan embarqué avec grille et gizmos |
 | Panneau droit | Inspecteur (propriétés, loi physique active) |
 | Barre inférieure | IPS, charge physique, preset L-DNN, console LLM |
+
+Les SVG originaux (`studio-main-view.svg`, `studio-rendering.svg`) restent disponibles comme source vectorielle.

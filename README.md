@@ -6,7 +6,7 @@
 [![codecov](https://codecov.io/gh/QuantumHacker10/Synapse/graph/badge.svg)](https://codecov.io/gh/QuantumHacker10/Synapse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
-[![Tests](https://img.shields.io/badge/tests-258%20passing-brightgreen)](tests/Synapse.Tests)
+[![Tests](https://img.shields.io/badge/tests-261%20passing-brightgreen)](tests/Synapse.Tests)
 
 **Synapse OMNIA** est un **outil de simulation 3D** : un monde numérique que l'on observe,
 modifie et fait évoluer — pas un moteur de jeu, ni une boîte à monter des niveaux.
@@ -189,7 +189,7 @@ flowchart LR
 
 Atelier pour explorer et piloter la simulation :
 
-![Vue principale de Synapse Studio](docs/screenshots/studio-main-view.svg)
+![Vue principale de Synapse Studio](docs/screenshots/studio-main-view.png)
 
 - **Vue 3D temps réel** — viewport Vulkan embarqué (Windows HWND) avec grille, gizmos et outils d'édition (sélection, déplacement, rotation)
 - **Projets `.synapse`** — ouvrir, sauver et organiser vos scènes
@@ -205,8 +205,8 @@ Les agents sentients ne sont pas des PNJ de jeu : ils perçoivent, mémorisent e
 
 | Vue | Description |
 |---|---|
-| [Studio — vue principale](docs/screenshots/studio-main-view.svg) | Hiérarchie, viewport, inspecteur, console LLM |
-| [Rendu G-DNN + L-DNN](docs/screenshots/studio-rendering.svg) | SDF neural, GI hybride, SSAO, brouillard |
+| [Studio — vue principale](docs/screenshots/studio-main-view.png) | Hiérarchie, viewport, inspecteur, console LLM |
+| [Rendu G-DNN + L-DNN](docs/screenshots/studio-rendering.png) | SDF neural, GI hybride, SSAO, brouillard |
 
 Voir [docs/screenshots/README.md](docs/screenshots/README.md) pour capturer vos propres PNG.
 

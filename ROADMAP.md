@@ -16,7 +16,15 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] Fondations P2P, VR (OpenXR stub), preview web
 - [x] Tutoriels écrits + guide benchmarks (docs/)
 
-## v2.1 — Prochaine release
+## v2.1 — Actuel (2026-07)
+
+- [x] Captures PNG Studio dans README (`docs/screenshots/*.png`)
+- [x] Découpage `LivingLawLibrary.cs` et `EntityBehaviorSystem.cs`
+- [x] P2P multi-pairs (`MultiPeerSimulationHub`)
+- [x] OpenXR session production (`OpenXrVulkanSession`)
+- [x] Éditeur web WebGPU (`site/editor/`, `WebEditorBuilder`)
+
+## v2.2 — Prochaine release
 
 ### Communauté
 - [ ] Tutoriels vidéo (YouTube)

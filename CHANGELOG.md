@@ -6,6 +6,14 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+### Ajouté (v2.1)
+
+- **Captures PNG Studio** — `docs/screenshots/*.png`, script `generate-studio-screenshots.py`
+- **Découpage monolithes** — `LivingLawLibrary` (12 fichiers), `EntityBehaviorSystem` (36 fichiers)
+- **P2P multi-pairs** — `MultiPeerSimulationHub` (TCP localhost)
+- **OpenXR production** — `OpenXrVulkanSession` avec détection loader
+- **Éditeur web WASM/WebGPU** — `WebEditorBuilder`, site `site/editor/`
+
 ## [2.0.0] — 2026-07-20
 
 Release **Synapse OMNIA 2.0** : maturité produit, écosystème extensible et réduction des freins à l'adoption.
