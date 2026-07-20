@@ -26,11 +26,4 @@ See [CHANGELOG.md](../CHANGELOG.md) for the exact release when the license chang
 
 ## Codecov setup (maintainers)
 
-To enable the dynamic coverage badge:
-
-1. Sign in at [codecov.io](https://codecov.io) with GitHub
-2. Add repository `QuantumHacker10/Synapse`
-3. Add repository secret `CODECOV_TOKEN` in **Settings → Secrets → Actions**
-4. Push to `main` — CI uploads coverage from `build.yml`
-
-The badge in README updates automatically after the first successful upload.
+See **[docs/CODECOV_SETUP.md](CODECOV_SETUP.md)** — OIDC upload (no secret) or `CODECOV_TOKEN` via `scripts/setup-codecov-secret.sh`.
