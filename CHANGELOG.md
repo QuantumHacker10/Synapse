@@ -6,29 +6,35 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [1.3.0] — 2026-07-20
+
+Release **Synapse OMNIA 1.3** : robustesse, découpage des monolithes, analyseurs et inspecteur live Studio.
+
 ### Ajouté
 
-- **GETTING_STARTED.md** — guide de démarrage rapide avec exemples concrets (CLI, scènes `.synapse`, intégration C#).
-- **docs/API.md** — référence des APIs publiques par module.
-- **docs/ARCHITECTURE.md** — diagrammes Mermaid (pipeline, modules, CI/CD).
-- **docs/screenshots/** — maquettes SVG Studio (vue principale, rendu G-DNN/L-DNN).
+- **Mode inspecteur live** dans Synapse Studio (onglet Live) : flux NEAT-G et living laws en temps réel.
+- **Tests de régression** NEAT-G (`NeatGEvolutionEngineTests`) et Vulkan (`VulkanRhiDeviceTests`).
+- **Scripts** `scripts/split-monoliths.py` pour découper les gros fichiers C# par `#region` ou type top-level.
+- **GETTING_STARTED.md**, **docs/API.md**, **docs/ARCHITECTURE.md**, **docs/screenshots/** (maquettes SVG Studio).
 - **ROADMAP.md**, **COMMUNITY.md**, **CODE_OF_CONDUCT.md**, **SECURITY.md**.
-- **NOTICE** — avis standard (crédits, marques).
-- **THIRD_PARTY_NOTICES.md** — inventaire des licences des dépendances NuGet et natives.
-- **LICENSE_HISTORY.md** — historique des changements de licence (MIT → propriétaire → MIT).
-- **13 tests unitaires** pour `PhysicsState` (`PhysicsStateStructTests.cs`).
-- Templates GitHub : issues (bug, feature), discussions (Q&A, idées).
 - CI : workflow **CodeQL**, **Dependabot**, job **test-macos**, upload **Codecov**, audit NuGet.
-- `coverlet.runsettings`, `codecov.yml`, `scripts/verify-licenses.sh`.
-- Badges README : Analysis, CodeQL, Codecov, Tests.
+- `SynapseProduct` — version produit centralisée depuis `Directory.Build.props`.
 
 ### Modifié
 
-- README enrichi : exemples C#, captures d'écran, liens communauté, badges CI étendus.
-- **PhysicsState.cs** (276 Ko) découpé en **26 fichiers** modulaires sous `Synapse.Core/` (`Vector3D.cs`, `PhysicsStateCore.cs`, `UnitConverter.cs`, etc.).
-- Positionnement recentré sur l'**outil de simulation 3D** (pas un moteur de jeu) : agents sentients ≠ PNJ, observateur ≠ joueur.
-- Vocabulaire runtime : `EntityType.Sentient` / `Observer`, scène `Agent` (legacy `Character` accepté), `CreateAgent` / `CreateObserver`.
-- Interface Studio, README et site vitrine alignés sur ce positionnement.
+- **Logs structurés** : remplacement des `catch { }` silencieux par `SynapseLogger` (AI, Rendering, LLM, Simulation, Physics, Genomics).
+- **Découpage monolithes** : `NeatGEvolutionEngine` (65 fichiers), `VulkanRhiDevice` (9), `Solvers` (56).
+- **Analyseurs** : CA1062/CA2007 réactivés sur `Synapse.Core` et `Synapse.Runtime`.
+- **`LivingLawCompiler`** : `LawEventSystem` câblé (compilation, hot-reload, version tree).
+- **`EngineHost`** : événements inspecteur (`InspectorFeedEntryAdded`), évolution live par génération.
+- Documentation, README, site vitrine et Studio alignés sur **v1.3** et **248 tests**.
+
+### Technique
+
+- Version produit **1.3.0** (`Directory.Build.props`).
+- Tag Git : `v1.3.0`.
+
+---
 
 ## [1.2.0] — 2026-07-20
 
@@ -99,5 +105,6 @@ Première release produit **Synapse OMNIA 1.1** : Synapse Studio, moteur de simu
 - **.NET 10** / C# 14, Vulkan (Windows HWND + GLFW, Linux, macOS MoltenVK).
 - Tag Git : [`v1.1.0`](https://github.com/QuantumHacker10/Synapse/releases/tag/v1.1.0).
 
+[1.3.0]: https://github.com/QuantumHacker10/Synapse/releases/tag/v1.3.0
 [1.2.0]: https://github.com/QuantumHacker10/Synapse/releases/tag/v1.2.0
 [1.1.0]: https://github.com/QuantumHacker10/Synapse/releases/tag/v1.1.0

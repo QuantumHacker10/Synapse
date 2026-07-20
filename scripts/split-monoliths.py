@@ -129,22 +129,10 @@ def split_by_top_level_types(source: Path, output_prefix: str, output_dir: Path)
 def main() -> int:
     jobs = [
         (
-            ROOT / "src/Synapse.AI/NeatGEvolutionEngine.cs",
-            "NeatGEvolutionEngine",
-            ROOT / "src/Synapse.AI",
-            split_by_regions,
-        ),
-        (
-            ROOT / "src/Synapse.Rendering/VulkanRhiDevice.cs",
-            "VulkanRhiDevice",
-            ROOT / "src/Synapse.Rendering",
-            split_by_top_level_types,
-        ),
-        (
-            ROOT / "src/Synapse.Physics/Solvers.cs",
-            "Solvers",
+            ROOT / "src/Synapse.Physics/LivingLawCompiler.cs",
+            "LivingLawCompiler",
             ROOT / "src/Synapse.Physics",
-            split_by_top_level_types,
+            split_by_regions,
         ),
     ]
 

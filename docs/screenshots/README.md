@@ -1,6 +1,6 @@
 # Captures d'écran — Synapse Studio
 
-Visuels représentatifs de l'interface Synapse Studio v1.2.
+Visuels représentatifs de l'interface Synapse Studio v1.3.
 
 > Les SVG ci-dessous sont des maquettes vectorielles fidèles à la disposition réelle de Studio.
 > Pour des captures PNG depuis votre installation, lancez Studio et utilisez votre outil de capture d'écran.

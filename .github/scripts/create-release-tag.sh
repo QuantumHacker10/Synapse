@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Crée un tag annoté de release et le pousse sur origin.
-# Usage : ./.github/scripts/create-release-tag.sh v1.2.0 "Synapse OMNIA 1.2.0"
+# Usage : ./.github/scripts/create-release-tag.sh v1.3.0 "Synapse OMNIA 1.3.0"
 set -euo pipefail
 
 TAG="${1:?Usage: create-release-tag.sh vX.Y.Z [message]}"

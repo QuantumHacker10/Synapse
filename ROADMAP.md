@@ -2,7 +2,7 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v1.2 — Actuel (2026-07)
+## v1.3 — Actuel (2026-07)
 
 - [x] Synapse Studio (Avalonia + viewport Vulkan)
 - [x] Physique industrielle (rigid bodies, joints, CCD, mesh collision)
@@ -12,20 +12,24 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] HybridLlmRouter (ONNX, Ollama, cloud)
 - [x] Multiplateforme (Windows, Linux, macOS)
 - [x] CI : tests, Coverlet, CodeQL, release automatique
+- [x] Captures d'écran Studio dans le README (`docs/screenshots/`)
+- [x] Découpage monolithes AI / Rendering / Physics (`NeatGEvolutionEngine.*`, `VulkanRhiDevice.*`, `Solvers.*`)
+- [x] Logs structurés (plus de `catch` silencieux)
+- [x] Mode inspecteur live Studio (NEAT-G + living laws)
+- [x] macOS dans la matrice de tests CI
+- [x] Dependabot + workflows CodeQL
 
-## v1.3 — Prochaine release
+## v1.4 — Prochaine release
 
 ### Documentation & communauté
-- [ ] Captures d'écran Studio dans le README
 - [ ] Tutoriels vidéo (YouTube)
 - [ ] Serveur Discord communautaire
 - [ ] Contributing guide enrichi (architecture, revue de code)
 
 ### Qualité & maintenance
-- [ ] Découpage progressif des monolithes (Physics, AI, Rendering)
-- [ ] Couverture de code > 40 % (seuil CI)
-- [ ] macOS dans la matrice de tests CI
-- [ ] Dependabot + mises à jour Avalonia trimestrielles
+- [ ] Découpage `LivingLawCompiler.cs` (dernier monolithe majeur)
+- [ ] Couverture de code > 40 % (seuil CI ; actuellement ~30 % via Codecov)
+- [ ] Mises à jour Avalonia trimestrielles (Dependabot)
 
 ### Moteur
 - [ ] Import FBX/USD
@@ -33,7 +37,7 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [ ] Export scène glTF complet (entités + matériaux L-DNN)
 - [ ] Mode headless pour benchmarks automatisés
 
-## v1.4 — Moyen terme
+## v1.5 — Moyen terme
 
 ### Rendu
 - [ ] Path tracing L-DNN teacher offline (batch)

@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GDNN.Rendering.ArtPipeline;
+using Synapse.Infrastructure;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
 using Synapse.Runtime;
@@ -62,7 +63,7 @@ namespace Synapse.Studio.ViewModels
             MegascansStatus = $"Bibliothèque : {_megascans.Config.LibraryRootPath}";
             LlmStatusText = _host.LlmProviderSummary;
             AboutText =
-                "SYNAPSE OMNIA 1.2 — Outil de simulation 3D\n\n" +
+                $"{SynapseProduct.Name} {SynapseProduct.Version} — Outil de simulation 3D\n\n" +
                 "Pas un moteur de jeu : un monde numérique que l'on observe, modifie et fait évoluer.\n" +
                 "Formes apprises (G-DNN), lois physiques réécrivables, évolution NEAT-G, " +
                 "agents sentients (perception et décisions — pas des PNJ scriptés), " +
