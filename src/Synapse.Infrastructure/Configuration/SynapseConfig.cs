@@ -22,6 +22,9 @@ namespace Synapse.Infrastructure.Configuration
         public string? BenchmarkConfigPath { get; set; }
         public string? BenchmarkOutputPath { get; set; }
         public string? ExportScenePath { get; set; }
+        public string? ScreenshotPath { get; set; }
+        public string? WanSessionCode { get; set; }
+        public int WanPort { get; set; } = 7777;
         public string LogLevel { get; set; } = "Information";
         public LlmConfig Llm { get; set; } = new();
         public string ProjectsDirectory { get; set; } =
@@ -153,6 +156,16 @@ namespace Synapse.Infrastructure.Configuration
                         break;
                     case "--export-scene":
                         config.ExportScenePath = Next();
+                        break;
+                    case "--screenshot":
+                        config.ScreenshotPath = Next();
+                        break;
+                    case "--wan-code":
+                        config.WanSessionCode = Next();
+                        break;
+                    case "--wan-port":
+                        if (int.TryParse(Next(), out var wanPort))
+                            config.WanPort = wanPort;
                         break;
                     case "--quality":
                         var q = Next();

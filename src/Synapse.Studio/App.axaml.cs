@@ -23,20 +23,15 @@ namespace Synapse.Studio
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                Config = SynapseConfig.Load(args: Environment.GetCommandLineArgs());
-                Logger = new SynapseLogger(
-                    System.IO.Path.Combine(
-                        System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
-                        "Synapse", "logs"),
-                    System.Enum.TryParse<LogLevel>(Config.LogLevel, true, out var lvl) ? lvl : LogLevel.Information);
-
-                Host = new EngineHost(Config, Logger);
-                Host.InitializeModules();
-                Orchestrator = new FrameOrchestrator(Host, Logger);
+                var (host, orchestrator, logger, config) = Bootstrap(Environment.GetCommandLineArgs());
+                Host = host;
+                Orchestrator = orchestrator;
+                Logger = logger;
+                Config = config;
 
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = new MainWindowViewModel(Host, Orchestrator, Logger, Config)
+                    DataContext = new MainWindowViewModel(host, orchestrator, logger, config)
                 };
 
                 desktop.Exit += async (_, _) =>
@@ -48,6 +43,26 @@ namespace Synapse.Studio
             }
 
             base.OnFrameworkInitializationCompleted();
+        }
+
+        public static (EngineHost Host, FrameOrchestrator Orchestrator, ISynapseLogger Logger, SynapseConfig Config)
+            Bootstrap(string[] args)
+        {
+            var config = SynapseConfig.Load(args: args);
+            var logger = new SynapseLogger(
+                System.IO.Path.Combine(
+                    System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData),
+                    "Synapse", "logs"),
+                System.Enum.TryParse<LogLevel>(config.LogLevel, true, out var lvl) ? lvl : LogLevel.Information,
+                consoleEnabled: !StudioRuntime.IsScreenshotMode);
+
+            var host = new EngineHost(config, logger);
+            host.InitializeModules();
+            if (!string.IsNullOrWhiteSpace(config.ScenePath))
+                host.LoadSceneAsync(config.ScenePath).GetAwaiter().GetResult();
+
+            var orchestrator = new FrameOrchestrator(host, logger);
+            return (host, orchestrator, logger, config);
         }
     }
 }

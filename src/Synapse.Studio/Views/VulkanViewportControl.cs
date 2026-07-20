@@ -29,6 +29,9 @@ namespace Synapse.Studio.Views
 
         protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
+            if (StudioRuntime.IsScreenshotMode)
+                return new PlatformHandle(IntPtr.Zero, "HEADLESS");
+
             if (OperatingSystem.IsWindows())
             {
                 try

@@ -1,24 +1,24 @@
-# Captures d'écran — Synapse Studio v2.1
+# Captures d'écran — Synapse Studio v2.2
 
 Visuels **PNG** représentatifs de l'interface Synapse Studio.
 
-> Les PNG sont générés via `scripts/generate-studio-screenshots.py` (layout fidèle à Studio v2).
-> Pour des captures live depuis votre installation :
-> `dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse`
+## Captures disponibles
 
-## Vue principale
+| Fichier | Source |
+|---|---|
+| `studio-main-view.png` | Script Python (`generate-studio-screenshots.py`) |
+| `studio-rendering.png` | Script Python |
+| `studio-live.png` | Capture live Avalonia headless (`--screenshot`) |
 
-Interface complète : hiérarchie de scène, viewport Vulkan 3D, inspecteur, barre de performance et console LLM.
+## Capture live (v2.2)
 
-![Vue principale de Synapse Studio](studio-main-view.png)
+```bash
+dotnet run --project src/Synapse.Studio -- --screenshot docs/screenshots/studio-live.png --headless
+```
 
-## Rendu G-DNN + L-DNN
+Utilise **Avalonia Headless + Skia** pour produire un PNG fidèle à l'interface Studio (sans fenêtre visible).
 
-Viewport en mode rendu : forme SDF neuronale (G-DNN), illumination globale (L-DNN), SSAO et brouillard.
-
-![Rendu neural temps réel](studio-rendering.png)
-
-## Régénérer les PNG
+## Régénérer les maquettes Python
 
 ```bash
 python3 scripts/generate-studio-screenshots.py

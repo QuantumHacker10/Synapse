@@ -26,7 +26,28 @@ namespace Synapse.Studio
                 return;
             }
 
+            if (TryGetScreenshotPath(args, out var screenshotPath))
+            {
+                Environment.ExitCode = StudioScreenshotCapture.Capture(screenshotPath, args);
+                return;
+            }
+
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+
+        private static bool TryGetScreenshotPath(string[] args, out string path)
+        {
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i] == "--screenshot" && i + 1 < args.Length)
+                {
+                    path = args[i + 1];
+                    return true;
+                }
+            }
+
+            path = "";
+            return false;
         }
 
         public static AppBuilder BuildAvaloniaApp()

@@ -24,22 +24,26 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] OpenXR session production (`OpenXrVulkanSession`)
 - [x] Éditeur web WebGPU (`site/editor/`, `WebEditorBuilder`)
 
-## v2.2 — Prochaine release
+## v2.2 — Actuel (2026-07)
+
+- [x] Captures PNG live Studio (`--screenshot`, Avalonia Headless + Skia)
+- [x] OpenXR swapchain Vulkan réel (`OpenXrVulkanSwapchain`)
+- [x] P2P WAN (NAT rendezvous UDP + chiffrement AES-GCM)
+- [x] Éditeur web glTF interactif (`site/editor/`, WebGPU)
+
+## v2.2+ — Prochaine release
 
 ### Communauté
 - [ ] Tutoriels vidéo (YouTube)
 - [ ] Serveur Discord communautaire actif
-- [ ] Captures PNG réelles Studio dans le README
 
 ### Qualité
-- [ ] Découpage `LivingLawLibrary.cs` et `EntityBehaviorSystem.cs`
 - [ ] Couverture de code > 50 %
 - [ ] Import USD binaire (USDC)
 
 ### Moteur
 - [ ] Blueprint éditable temps réel dans Studio
 - [ ] Plugin marketplace hébergé
-- [ ] Éditeur web WASM + WebGPU (preview interactif)
 
 ## v2.5 — Moyen terme
 

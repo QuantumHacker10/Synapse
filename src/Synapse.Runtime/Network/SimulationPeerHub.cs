@@ -53,9 +53,9 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
 
     public MultiPeerSimulationHub(ISynapseLogger logger) => _logger = logger;
 
-    public async Task StartHostAsync(int port = 0, CancellationToken ct = default)
+    public async Task StartHostAsync(int port = 0, bool publicBind = false, CancellationToken ct = default)
     {
-        _listener = new TcpListener(IPAddress.Loopback, port);
+        _listener = new TcpListener(publicBind ? IPAddress.Any : IPAddress.Loopback, port);
         _listener.Start();
         IsHost = true;
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);

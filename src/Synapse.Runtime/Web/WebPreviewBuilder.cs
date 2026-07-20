@@ -4,26 +4,31 @@ using Synapse.Infrastructure;
 
 namespace Synapse.Web;
 
-/// <summary>WebGPU WASM editor bundle (v2.1).</summary>
+/// <summary>WebGPU WASM editor bundle (v2.2).</summary>
 public sealed class WebEditorBundle
 {
     public required string SceneName { get; init; }
     public required string GlbUrl { get; init; }
+    public string GltfUrl { get; init; } = "demo.gltf";
     public string? ActiveLawId { get; init; }
     public int EntityCount { get; init; }
-    public string EditorVersion { get; init; } = "2.1.0";
+    public string EditorVersion { get; init; } = "2.2.0";
 }
 
 public static class WebEditorBuilder
 {
-    public static WebEditorBundle FromScene(string sceneName, string glbUrl, string? lawId, int entityCount) =>
-        new()
+    public static WebEditorBundle FromScene(string sceneName, string glbUrl, string? lawId, int entityCount, string? gltfUrl = null)
+    {
+        ArgumentNullException.ThrowIfNull(glbUrl);
+        return new()
         {
             SceneName = sceneName,
             GlbUrl = glbUrl,
+            GltfUrl = gltfUrl ?? glbUrl.Replace(".glb", ".gltf"),
             ActiveLawId = lawId,
             EntityCount = entityCount
         };
+    }
 
     public static string ToHtml(WebEditorBundle bundle)
     {
@@ -32,6 +37,7 @@ public static class WebEditorBuilder
         {
             bundle.SceneName,
             bundle.GlbUrl,
+            bundle.GltfUrl,
             bundle.ActiveLawId,
             bundle.EntityCount,
             bundle.EditorVersion,

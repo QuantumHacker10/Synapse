@@ -6,6 +6,26 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [2.2.0] — 2026-07-20
+
+Release **Synapse OMNIA 2.2** : captures Studio live, P2P WAN chiffré, OpenXR swapchain et éditeur web glTF interactif.
+
+### Ajouté
+
+- **Captures PNG live Studio** — `--screenshot`, Avalonia Headless + Skia (`StudioScreenshotCapture`)
+- **OpenXR swapchain Vulkan** — `OpenXrVulkanSwapchain` (acquire/release/submit), intégré à `VrSession`
+- **P2P WAN** — `NatTraversalCoordinator` (UDP rendezvous), `WanSimulationPeerHub` (AES-GCM via PBKDF2)
+- **Éditeur web glTF interactif** — `site/editor/` (WebGPU, hiérarchie, inspecteur), `demo.gltf`
+- **5 tests v2.2** — chiffrement, swapchain, WAN, web, VR (266 tests au total)
+
+### Modifié
+
+- Version produit **2.2.0** (`Directory.Build.props`)
+- CLI : `--screenshot`, `--wan-session`, `--wan-port`
+- `MultiPeerSimulationHub.StartHostAsync(publicBind: true)` pour bind WAN
+
+## [2.1.0] — 2026-07-20
+
 ### Ajouté (v2.1)
 
 - **Captures PNG Studio** — `docs/screenshots/*.png`, script `generate-studio-screenshots.py`
