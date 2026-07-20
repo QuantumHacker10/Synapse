@@ -139,6 +139,8 @@ namespace Synapse.Runtime
             if (_modulesInitialized)
                 return;
 
+            SimulationReproducibility.SetSeed(_config.SimulationSeed);
+
             _lawCompiler = new LivingLawCompiler();
             WireLawInspectorEvents(_lawCompiler);
             _physicsField = CreateSeedField(16);
@@ -333,6 +335,16 @@ namespace Synapse.Runtime
                 return;
             _quality.ReportFrame(frameMs, 0, 0, frameMs);
             _quality.Update(dt);
+        }
+
+        /// <summary>Activates a built-in law from the library by id.</summary>
+        public CompilationResult ApplyLaw(string lawId)
+        {
+            InitializeModules();
+            var entry = _lawCompiler!.Library.GetLaw(lawId);
+            if (entry == null)
+                return CompilationResult.Fail($"Unknown law '{lawId}'.", new[] { $"Law id '{lawId}' not in library." });
+            return CompileLaw(lawId, entry.Expression);
         }
 
         /// <summary>Hot-reloads or compiles a living law and marks it active on success.</summary>

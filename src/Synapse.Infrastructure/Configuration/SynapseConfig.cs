@@ -17,6 +17,14 @@ namespace Synapse.Infrastructure.Configuration
         public float PhysicsBudgetMs { get; set; } = 4.0f;
         public float SimulationBudgetMs { get; set; } = 4.0f;
         public bool Headless { get; set; }
+        public int SimulationSeed { get; set; } = 42;
+        public string? PluginDirectory { get; set; }
+        public string? BenchmarkConfigPath { get; set; }
+        public string? BenchmarkOutputPath { get; set; }
+        public string? ExportScenePath { get; set; }
+        public string? ScreenshotPath { get; set; }
+        public string? WanSessionCode { get; set; }
+        public int WanPort { get; set; } = 7777;
         public string LogLevel { get; set; } = "Information";
         public LlmConfig Llm { get; set; } = new();
         public string ProjectsDirectory { get; set; } =
@@ -90,6 +98,12 @@ namespace Synapse.Infrastructure.Configuration
             var scene = Environment.GetEnvironmentVariable("SYNAPSE_SCENE");
             if (!string.IsNullOrWhiteSpace(scene))
                 config.ScenePath = scene;
+            var seed = Environment.GetEnvironmentVariable("SYNAPSE_SEED");
+            if (int.TryParse(seed, out var simulationSeed))
+                config.SimulationSeed = simulationSeed;
+            var plugins = Environment.GetEnvironmentVariable("SYNAPSE_PLUGINS");
+            if (!string.IsNullOrWhiteSpace(plugins))
+                config.PluginDirectory = plugins;
 
             config.Llm.OpenAiApiKey ??= Environment.GetEnvironmentVariable("OPENAI_API_KEY");
             config.Llm.AnthropicApiKey ??= Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
@@ -126,6 +140,32 @@ namespace Synapse.Infrastructure.Configuration
                         break;
                     case "--headless":
                         config.Headless = true;
+                        break;
+                    case "--seed":
+                        if (int.TryParse(Next(), out var seed))
+                            config.SimulationSeed = seed;
+                        break;
+                    case "--plugin-dir":
+                        config.PluginDirectory = Next();
+                        break;
+                    case "--benchmark":
+                        config.BenchmarkConfigPath = Next();
+                        break;
+                    case "--benchmark-out":
+                        config.BenchmarkOutputPath = Next();
+                        break;
+                    case "--export-scene":
+                        config.ExportScenePath = Next();
+                        break;
+                    case "--screenshot":
+                        config.ScreenshotPath = Next();
+                        break;
+                    case "--wan-code":
+                        config.WanSessionCode = Next();
+                        break;
+                    case "--wan-port":
+                        if (int.TryParse(Next(), out var wanPort))
+                            config.WanPort = wanPort;
                         break;
                     case "--quality":
                         var q = Next();

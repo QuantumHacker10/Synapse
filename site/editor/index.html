@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Synapse Web Editor</title>
+  <link rel="stylesheet" href="editor.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <strong>Synapse Web Editor v2.2</strong>
+    <span id="law-label">Loi : heat_equation</span>
+    <span id="entity-label">—</span>
+    <button id="export-btn" type="button">Exporter glTF</button>
+  </header>
+  <main class="layout">
+    <aside id="hierarchy" class="panel"></aside>
+    <canvas id="viewport"></canvas>
+    <aside id="inspector" class="panel"></aside>
+  </main>
+  <script id="synapse-scene" type="application/json">{"sceneName":"Demo Scene","gltfUrl":"demo.gltf","activeLawId":"heat_equation","entityCount":2,"editorVersion":"2.2.0","generator":"SYNAPSE OMNIA"}</script>
+  <script src="editor.js"></script>
+</body>
+</html>

@@ -6,6 +6,57 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [2.2.0] — 2026-07-20
+
+Release **Synapse OMNIA 2.2** : captures Studio live, P2P WAN chiffré, OpenXR swapchain et éditeur web glTF interactif.
+
+### Ajouté
+
+- **Captures PNG live Studio** — `--screenshot`, Avalonia Headless + Skia (`StudioScreenshotCapture`)
+- **OpenXR swapchain Vulkan** — `OpenXrVulkanSwapchain` (acquire/release/submit), intégré à `VrSession`
+- **P2P WAN** — `NatTraversalCoordinator` (UDP rendezvous), `WanSimulationPeerHub` (AES-GCM via PBKDF2)
+- **Éditeur web glTF interactif** — `site/editor/` (WebGPU, hiérarchie, inspecteur), `demo.gltf`
+- **5 tests v2.2** — chiffrement, swapchain, WAN, web, VR (266 tests au total)
+
+### Modifié
+
+- Version produit **2.2.0** (`Directory.Build.props`)
+- CLI : `--screenshot`, `--wan-session`, `--wan-port`
+- `MultiPeerSimulationHub.StartHostAsync(publicBind: true)` pour bind WAN
+
+## [2.1.0] — 2026-07-20
+
+### Ajouté (v2.1)
+
+- **Captures PNG Studio** — `docs/screenshots/*.png`, script `generate-studio-screenshots.py`
+- **Découpage monolithes** — `LivingLawLibrary` (12 fichiers), `EntityBehaviorSystem` (36 fichiers)
+- **P2P multi-pairs** — `MultiPeerSimulationHub` (TCP localhost)
+- **OpenXR production** — `OpenXrVulkanSession` avec détection loader
+- **Éditeur web WASM/WebGPU** — `WebEditorBuilder`, site `site/editor/`
+
+## [2.0.0] — 2026-07-20
+
+Release **Synapse OMNIA 2.0** : maturité produit, écosystème extensible et réduction des freins à l'adoption.
+
+### Ajouté
+
+- **API plugins C#** (`Synapse.Plugins`) — chargement sandboxé via `AssemblyLoadContext`, flag `--plugin-dir`
+- **Benchmarks headless** — `BenchmarkRunner`, `--benchmark`, suite `samples/benchmarks/default.json`
+- **Reproductibilité** — `SimulationSeed`, variable `SYNAPSE_SEED`, flag `--seed`
+- **Import FBX ASCII + USD USDA** — `FbxAsciiLoader`, `UsdAsciiLoader`
+- **Export scène glTF** — `SceneGlTFExporter`, flag `--export-scene`
+- **Blueprint runtime** — `BlueprintRuntimeExecutor` (exécution graphe en simulation)
+- **Marketplace lois** — format `.synapse-law`, `LawMarketplace`
+- **Fondations v2** — P2P local (`Synapse.Network`), VR stub OpenXR (`Synapse.VR`), preview web (`Synapse.Web`)
+- **Découpage `LivingLawCompiler`** — 68 fichiers modulaires (script `split-monoliths.py` corrigé)
+- **10 tests v2** — couverture Codecov portée à **40 %**
+
+### Modifié
+
+- Version produit **2.0.0** (`Directory.Build.props`)
+- CLI enrichi : `--benchmark`, `--benchmark-out`, `--export-scene`, `--plugin-dir`, `--seed`
+- Seuil Codecov projet : **40 %** (patch 30 %)
+
 ## [1.3.0] — 2026-07-20
 
 Release **Synapse OMNIA 1.3** : robustesse, découpage des monolithes, analyseurs et inspecteur live Studio.

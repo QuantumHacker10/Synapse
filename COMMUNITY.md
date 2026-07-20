@@ -9,7 +9,7 @@ Bienvenue dans la communauté **Synapse OMNIA** — moteur de simulation 3D open
 | **GitHub Issues** | Bugs, demandes de fonctionnalités | [Issues](https://github.com/QuantumHacker10/Synapse/issues) |
 | **GitHub Discussions** | Questions, idées, showcase | [Discussions](https://github.com/QuantumHacker10/Synapse/discussions) |
 | **Pull Requests** | Contributions de code | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| **Discord** | Chat temps réel (à venir) | _Serveur en cours de création_ |
+| **Discord** | Chat temps réel | [Rejoindre Synapse OMNIA](https://discord.gg/synapse-omnia) |
 
 ### Activer GitHub Discussions (mainteneurs)
 
