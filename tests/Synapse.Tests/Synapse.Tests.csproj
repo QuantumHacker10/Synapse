@@ -27,5 +27,6 @@
     <ProjectReference Include="..\..\src\Synapse.Simulation\Synapse.Simulation.csproj" />
     <ProjectReference Include="..\..\src\Synapse.Infrastructure\Synapse.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Synapse.Runtime\Synapse.Runtime.csproj" />
+    <ProjectReference Include="..\..\src\Synapse.Plugins\Synapse.Plugins.csproj" />
   </ItemGroup>
 </Project>

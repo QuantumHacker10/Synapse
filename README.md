@@ -1,4 +1,4 @@
-# SYNAPSE OMNIA — Outil de simulation 3D · v1.3
+# SYNAPSE OMNIA — Outil de simulation 3D · v2.0
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
@@ -6,7 +6,7 @@
 [![codecov](https://codecov.io/gh/QuantumHacker10/Synapse/graph/badge.svg)](https://codecov.io/gh/QuantumHacker10/Synapse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
-[![Tests](https://img.shields.io/badge/tests-248%20passing-brightgreen)](tests/Synapse.Tests)
+[![Tests](https://img.shields.io/badge/tests-258%20passing-brightgreen)](tests/Synapse.Tests)
 
 **Synapse OMNIA** est un **outil de simulation 3D** : un monde numérique que l'on observe,
 modifie et fait évoluer — pas un moteur de jeu, ni une boîte à monter des niveaux.
@@ -16,11 +16,11 @@ comment formes, lois et agents sentients changent ensemble.
 Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
 Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
-> **Produit v1.3** — Synapse Studio + runtime unifié (physique industrielle, joints/véhicules,
-> mesh provider, GI GPU-résidente, multiplateforme GLFW/Vulkan, agents sentients, inspecteur live). Builds **Windows x64**,
-> **Linux x64** et **macOS arm64** via CI / `scripts/publish-all.sh`.
+> **Produit v2.0** — Synapse Studio + runtime unifié, **plugins C#**, benchmarks headless reproductibles,
+> import FBX/USD, export scène glTF, blueprint runtime, marketplace `.synapse-law`,
+> `LivingLawCompiler` modularisé (68 fichiers). Builds **Windows x64**, **Linux x64** et **macOS arm64**.
 
-**Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v1.3](https://github.com/QuantumHacker10/Synapse/releases)
+**Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v2.0](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
 
 ## Sommaire
 
@@ -81,6 +81,9 @@ dotnet run --project src/Synapse.Studio -- --engine
 
 # Charger la scène d'exemple
 dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse
+
+# Benchmark headless reproductible (v2)
+dotnet run --project src/Synapse.Studio -- --benchmark samples/benchmarks/default.json --seed 42 --headless
 ```
 
 ### Exemple : intégrer le runtime en C#

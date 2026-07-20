@@ -23,7 +23,10 @@ def split_by_regions(source: Path, output_prefix: str, output_dir: Path) -> int:
     header = lines[: namespace_idx + 1]
     footer = ["}"]
 
-    body = lines[namespace_idx + 1 : -1]
+    body_start = namespace_idx + 1
+    if body_start < len(lines) and lines[body_start].strip() == "{":
+        body_start += 1
+    body = lines[body_start : -1]
     regions: list[tuple[str, list[str]]] = []
     current_name: str | None = None
     current_lines: list[str] = []
@@ -69,14 +72,19 @@ def split_by_top_level_types(source: Path, output_prefix: str, output_dir: Path)
     header = lines[: namespace_idx + 1]
     footer = ["}"]
 
-    body = lines[namespace_idx + 1 : -1]
+    body_start = namespace_idx + 1
+    if body_start < len(lines) and lines[body_start].strip() == "{":
+        body_start += 1
+    body = lines[body_start : -1]
     chunks: list[tuple[str, list[str]]] = []
     current_name: str | None = None
     current_lines: list[str] = []
+    pending_prefix: list[str] = []
     depth = 0
 
     type_pattern = re.compile(
-        r"^\s*(?:\[.*\]\s*)*(?:public|internal|private|protected)?\s*(?:sealed\s+|static\s+|partial\s+)*"
+        r"^\s*(?:\[.*\]\s*)*(?:public|internal|private|protected)?\s*"
+        r"(?:readonly\s+|sealed\s+|static\s+|partial\s+)*"
         r"(?:class|struct|enum|interface|record)\s+(\w+)"
     )
     section_pattern = re.compile(r"^//\s*=+")
@@ -93,16 +101,20 @@ def split_by_top_level_types(source: Path, output_prefix: str, output_dir: Path)
             continue
 
         match = type_pattern.match(line)
-        if match and depth == 0:
-            flush()
+        if match and depth == 0 and current_name is None:
             current_name = match.group(1)
-            current_lines = [line]
+            current_lines = pending_prefix + [line]
+            pending_prefix = []
             depth = line.count("{") - line.count("}")
             continue
 
         if current_name is not None:
             current_lines.append(line)
             depth += line.count("{") - line.count("}")
+            if depth == 0:
+                flush()
+        else:
+            pending_prefix.append(line)
 
     flush()
 
@@ -132,7 +144,7 @@ def main() -> int:
             ROOT / "src/Synapse.Physics/LivingLawCompiler.cs",
             "LivingLawCompiler",
             ROOT / "src/Synapse.Physics",
-            split_by_regions,
+            split_by_top_level_types,
         ),
     ]
 

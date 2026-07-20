@@ -10,5 +10,5 @@ public static class SynapseProduct
     public static string Version =>
         typeof(SynapseProduct).Assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-        ?? "1.3.0";
+        ?? "2.0.0";
 }

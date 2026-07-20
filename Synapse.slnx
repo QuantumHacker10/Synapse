@@ -10,6 +10,7 @@
     <Project Path="src/Synapse.Runtime/Synapse.Runtime.csproj" />
     <Project Path="src/Synapse.Simulation/Synapse.Simulation.csproj" />
     <Project Path="src/Synapse.Studio/Synapse.Studio.csproj" />
+    <Project Path="src/Synapse.Plugins/Synapse.Plugins.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Synapse.Tests/Synapse.Tests.csproj" />

@@ -2,42 +2,38 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v1.3 — Actuel (2026-07)
+## v2.0 — Actuel (2026-07)
 
-- [x] Synapse Studio (Avalonia + viewport Vulkan)
-- [x] Physique industrielle (rigid bodies, joints, CCD, mesh collision)
-- [x] G-DNN + L-DNN (SDF neuronaux, GI GPU-résidente)
-- [x] Living laws (100 lois, hot-reload)
-- [x] NEAT-G (évolution de formes)
-- [x] HybridLlmRouter (ONNX, Ollama, cloud)
-- [x] Multiplateforme (Windows, Linux, macOS)
-- [x] CI : tests, Coverlet, CodeQL, release automatique
-- [x] Captures d'écran Studio dans le README (`docs/screenshots/`)
-- [x] Découpage monolithes AI / Rendering / Physics (`NeatGEvolutionEngine.*`, `VulkanRhiDevice.*`, `Solvers.*`)
-- [x] Logs structurés (plus de `catch` silencieux)
-- [x] Mode inspecteur live Studio (NEAT-G + living laws)
-- [x] macOS dans la matrice de tests CI
-- [x] Dependabot + workflows CodeQL
+- [x] API plugin C# (chargement DLL sandboxé)
+- [x] Mode headless benchmarks automatisés
+- [x] Reproductibilité simulation (`SYNAPSE_SEED`)
+- [x] Import FBX ASCII + USD USDA
+- [x] Export scène glTF (entités + métadonnées Synapse)
+- [x] Blueprint runtime (exécution graphe en simulation)
+- [x] Marketplace lois (`.synapse-law`)
+- [x] Découpage `LivingLawCompiler.cs` (68 fichiers)
+- [x] Couverture de code > 40 % (seuil CI Codecov)
+- [x] Fondations P2P, VR (OpenXR stub), preview web
+- [x] Tutoriels écrits + guide benchmarks (docs/)
 
-## v1.4 — Prochaine release
+## v2.1 — Prochaine release
 
-### Documentation & communauté
+### Communauté
 - [ ] Tutoriels vidéo (YouTube)
-- [ ] Serveur Discord communautaire
-- [ ] Contributing guide enrichi (architecture, revue de code)
+- [ ] Serveur Discord communautaire actif
+- [ ] Captures PNG réelles Studio dans le README
 
-### Qualité & maintenance
-- [ ] Découpage `LivingLawCompiler.cs` (dernier monolithe majeur)
-- [ ] Couverture de code > 40 % (seuil CI ; actuellement ~30 % via Codecov)
-- [ ] Mises à jour Avalonia trimestrielles (Dependabot)
+### Qualité
+- [ ] Découpage `LivingLawLibrary.cs` et `EntityBehaviorSystem.cs`
+- [ ] Couverture de code > 50 %
+- [ ] Import USD binaire (USDC)
 
 ### Moteur
-- [ ] Import FBX/USD
-- [ ] Blueprint runtime (exécution graphe en simulation)
-- [ ] Export scène glTF complet (entités + matériaux L-DNN)
-- [ ] Mode headless pour benchmarks automatisés
+- [ ] Blueprint éditable temps réel dans Studio
+- [ ] Plugin marketplace hébergé
+- [ ] Éditeur web WASM + WebGPU (preview interactif)
 
-## v1.5 — Moyen terme
+## v2.5 — Moyen terme
 
 ### Rendu
 - [ ] Path tracing L-DNN teacher offline (batch)
@@ -54,13 +50,12 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [ ] Behavior trees éditables dans Studio
 - [ ] Jumeaux numériques persistants (export/import)
 
-## v2.0 — Long terme
+## v3.0 — Long terme
 
-- [ ] API plugin C# (chargement DLL sandboxé)
-- [ ] Réseau P2P (simulations collaboratives)
-- [ ] Support VR (OpenXR + Vulkan)
-- [ ] Éditeur web (WASM + WebGPU preview)
-- [ ] Marketplace d'assets et de lois (.synapse-law)
+- [ ] Réseau P2P complet (simulations collaboratives multi-pairs)
+- [ ] Support VR OpenXR production
+- [ ] Éditeur web complet (WASM + WebGPU)
+- [ ] Marketplace d'assets et de lois avec signatures
 
 ## Comment contribuer à la roadmap
 

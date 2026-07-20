@@ -32,6 +32,7 @@
     <ProjectReference Include="..\Synapse.Simulation\Synapse.Simulation.csproj" />
     <ProjectReference Include="..\Synapse.Genomics\Synapse.Genomics.csproj" />
     <ProjectReference Include="..\Synapse.Infrastructure\Synapse.Infrastructure.csproj" />
+    <ProjectReference Include="..\Synapse.Plugins\Synapse.Plugins.csproj" />
   </ItemGroup>
 
   <ItemGroup>

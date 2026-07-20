@@ -1,0 +1,8 @@
+{
+  "name": "default",
+  "warmupFrames": 20,
+  "measureFrames": 100,
+  "simulationSeed": 42,
+  "scenePath": "samples/demo.synapse",
+  "activeLawId": "heat_equation"
+}
