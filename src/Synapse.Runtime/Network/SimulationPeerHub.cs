@@ -130,7 +130,8 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
         _cts?.Cancel();
         if (_acceptTask != null)
         {
-            try { await _acceptTask.ConfigureAwait(false); }
+            try
+            { await _acceptTask.ConfigureAwait(false); }
             catch (OperationCanceledException) { }
         }
         foreach (var peer in _peers.Values)

@@ -76,7 +76,8 @@ public sealed class PluginHost : IDisposable
     {
         foreach (var (plugin, context) in _loaded)
         {
-            try { plugin.OnUnload(); }
+            try
+            { plugin.OnUnload(); }
             catch (Exception ex) { _logger.Warn("Plugins", $"Unload error: {ex.Message}"); }
             context.Unload();
         }
