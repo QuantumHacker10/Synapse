@@ -24,14 +24,44 @@ jobs:
       run: dotnet build Synapse.slnx --no-restore --configuration Release
 
     - name: Test
-      run: dotnet test Synapse.slnx --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+      run: dotnet test Synapse.slnx --no-build --configuration Release --verbosity normal --settings coverlet.runsettings --collect:"XPlat Code Coverage"
 
-    - name: Upload coverage
+    - name: Upload coverage artifact
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: coverage-report
         path: '**/coverage.cobertura.xml'
+
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v5
+      if: always()
+      with:
+        files: '**/coverage.cobertura.xml'
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Audit NuGet vulnerabilities
+      run: dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerability-report.txt; if grep -q "has the following vulnerable" vulnerability-report.txt; then echo "::warning::Vulnerable packages detected — see vulnerability-report.txt"; fi
+
+  test-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore Synapse.slnx
+
+    - name: Build
+      run: dotnet build Synapse.slnx --no-restore --configuration Release
+
+    - name: Test
+      run: dotnet test Synapse.slnx --no-build --configuration Release --verbosity normal
 
   publish-windows:
     runs-on: windows-latest

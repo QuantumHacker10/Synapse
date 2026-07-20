@@ -3,9 +3,10 @@
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
 [![CodeQL](https://github.com/QuantumHacker10/Synapse/actions/workflows/codeql.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/QuantumHacker10/Synapse/graph/badge.svg)](https://codecov.io/gh/QuantumHacker10/Synapse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
-[![Tests](https://img.shields.io/badge/tests-225%2B%20passing-brightgreen)](tests/Synapse.Tests)
+[![Tests](https://img.shields.io/badge/tests-238%2B%20passing-brightgreen)](tests/Synapse.Tests)
 
 **Synapse OMNIA** est un moteur de **simulation 3D** : un monde numérique que l'on observe,
 modifie et fait évoluer — pas une boîte à monter des niveaux de jeu.
@@ -30,6 +31,7 @@ Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 - [Architecture](#architecture)
 - [Pipeline G-DNN + L-DNN](#pipeline-g-dnn--l-dnn)
 - [Synapse Studio](#synapse-studio)
+- [Captures d'écran](#captures-décran)
 - [Publish](#publish-windows-x64)
 - [Tests & CI](#tests--ci)
 - [Contribuer](#contribuer)
@@ -184,6 +186,8 @@ flowchart LR
 
 Atelier pour explorer et piloter la simulation :
 
+![Vue principale de Synapse Studio](docs/screenshots/studio-main-view.svg)
+
 - **Vue 3D temps réel** — viewport Vulkan embarqué (Windows HWND) avec grille, gizmos et outils d'édition (sélection, déplacement, rotation)
 - **Projets `.synapse`** — ouvrir, sauver et organiser vos scènes
 - **Lois physiques** — réécrire les règles du monde sans arrêter la simulation
@@ -191,6 +195,15 @@ Atelier pour explorer et piloter la simulation :
 - **Console créative** — décrire une scène en langage naturel et voir le monde réagir
 - **Outils d'édition** — blueprints graphiques, sculpt, import d'assets Megascans
 - **Tableau de bord** — cadence (IPS), charge physique/sim, qualité adaptative et GI L-DNN
+
+## Captures d'écran
+
+| Vue | Description |
+|---|---|
+| [Studio — vue principale](docs/screenshots/studio-main-view.svg) | Hiérarchie, viewport, inspecteur, console LLM |
+| [Rendu G-DNN + L-DNN](docs/screenshots/studio-rendering.svg) | SDF neural, GI hybride, SSAO, brouillard |
+
+Voir [docs/screenshots/README.md](docs/screenshots/README.md) pour capturer vos propres PNG.
 
 ## Publish (Windows x64)
 
@@ -210,15 +223,21 @@ Suite xUnit + FluentAssertions sous [`tests/Synapse.Tests`](tests/Synapse.Tests)
 
 | Workflow | Rôle |
 |---|---|
-| [`build.yml`](.github/workflows/build.yml) | Ubuntu — tests + Coverlet ; Windows/Linux — publish artefacts |
+| [`build.yml`](.github/workflows/build.yml) | Linux + macOS tests, Coverlet + Codecov, publish win/linux |
 | [`analysis.yml`](.github/workflows/analysis.yml) | Analyseurs Roslyn + `dotnet format --verify-no-changes` |
 | [`codeql.yml`](.github/workflows/codeql.yml) | Analyse de sécurité CodeQL (C#) |
 | [`release.yml`](.github/workflows/release.yml) | Matrix win/linux/osx sur tag `v*` |
 | [`pages.yml`](.github/workflows/pages.yml) | Déploiement du site vitrine sur GitHub Pages |
 
+Couverture de code : `coverlet.runsettings` + upload Codecov. Audit dépendances : `scripts/verify-licenses.sh`.
+
 ## Contribuer
 
-Voir **[CONTRIBUTING.md](CONTRIBUTING.md)** pour le flux Git complet :
+Voir **[CONTRIBUTING.md](CONTRIBUTING.md)** pour le flux Git complet et **[COMMUNITY.md](COMMUNITY.md)** pour les canaux de communication.
+
+- **[ROADMAP.md](ROADMAP.md)** — vision et priorités publiques
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — code de conduite
+- **[SECURITY.md](SECURITY.md)** — signalement de vulnérabilités
 
 - Branches `feat/*` → `develop` → `main` (PR obligatoires sur `main`)
 - [CHANGELOG.md](CHANGELOG.md) pour l'historique des versions
@@ -232,7 +251,9 @@ En bref :
 3. Mettre à jour le CHANGELOG si le changement est visible
 4. Ouvrir une pull request vers `develop`
 
-Les issues et discussions GitHub sont ouvertes pour bugs, idées et questions d'architecture.
+Les [issues](https://github.com/QuantumHacker10/Synapse/issues) et [discussions](https://github.com/QuantumHacker10/Synapse/discussions) GitHub sont ouvertes pour bugs, idées et questions d'architecture.
+
+> **Mainteneurs :** activer Issues et Discussions dans **Settings → General → Features** si ce n'est pas déjà fait.
 
 ## Site
 

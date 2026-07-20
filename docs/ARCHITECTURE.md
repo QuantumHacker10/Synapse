@@ -196,7 +196,8 @@ flowchart LR
     Tag[Tag v*] --> Release[release.yml]
     Site[Push site/**] --> Pages[pages.yml]
 
-    Build --> TestLinux[test-linux + Coverlet]
+    Build --> TestLinux[test-linux + Coverlet + Codecov]
+    Build --> TestMacOS[test-macos]
     Build --> PubWin[publish-windows]
     Build --> PubLinux[publish-linux]
     Build --> Cert[industrial-certification]
@@ -210,14 +211,26 @@ flowchart LR
 
 ## Taille des modules (indicatif)
 
-Les fichiers monolithiques suivants concentrent la logique de recherche. Un découpage progressif est recommandé pour la maintenance :
+Le monolithe `PhysicsState.cs` (276 Ko) a été découpé en **26 fichiers** modulaires :
+
+| Fichier | Contenu |
+|---|---|
+| `PhysicalConstants.cs` | Constantes CODATA 2018 |
+| `PhysicsEnums.cs` | Énumérations (FieldLayer, UnitSystem, etc.) |
+| `Vector3D.cs`, `Tensor3D.cs`, `QuaternionD.cs` | Algèbre 3D |
+| `GeometryPrimitives.cs` | AABB, Ray, Plane, Frustum |
+| `AutoDiff.cs` | Différentiation automatique forward-mode |
+| `PhysicsStateCore.cs` | Struct PhysicsState (256 octets) + opérateurs |
+| `UnitConverter.cs`, `MaterialDatabase.cs` | Conversions et matériaux |
+| `OctreeNode.cs`, `KdTree.cs`, `GridHash.cs` | Structures spatiales |
+
+Autres monolithes à découper progressivement :
 
 | Fichier | Taille | Contenu principal |
 |---|---:|---|
 | `NeatGEvolutionEngine.cs` | ~870 KB | Évolution NEAT-G |
 | `VulkanRhiDevice.cs` | ~377 KB | Device Vulkan |
 | `LivingLawCompiler.cs` | ~293 KB | Compilateur de lois |
-| `PhysicsState.cs` | ~276 KB | Types fondamentaux + PhysicsState |
 | `Solvers.cs` | ~292 KB | Solveurs numériques |
 
 Voir [CONTRIBUTING.md](../CONTRIBUTING.md) pour les conventions de contribution.
