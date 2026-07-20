@@ -48,7 +48,7 @@ jobs:
           Copy-Item README.md, LICENSE, COPYRIGHT artifacts/${{ matrix.artifact }}/
           @"
           SYNAPSE OMNIA 1.2 — Moteur de simulation 3D (Windows x64)
-          Proprietary license — see LICENSE / COPYRIGHT.
+          MIT License — open source. See LICENSE and COPYRIGHT.
           Prerequisites: Vulkan GPU drivers. Place glfw3.dll beside the exe if needed
           (src/Synapse.Studio/native/README.md).
           Launch: Synapse.Studio.exe | Engine: Synapse.Studio.exe --engine
@@ -60,7 +60,7 @@ jobs:
           cp README.md LICENSE COPYRIGHT "artifacts/${{ matrix.artifact }}/"
           cat > "artifacts/${{ matrix.artifact }}/RELEASE_NOTES.txt" <<'EOF'
           SYNAPSE OMNIA 1.2 — Moteur de simulation 3D
-          RID: see folder name. Proprietary — see LICENSE / COPYRIGHT.
+          RID: see folder name. MIT License — see LICENSE / COPYRIGHT.
           Needs: Vulkan (MoltenVK on macOS) + GLFW (system package or runtimes/*/native).
           Launch: ./Synapse.Studio | Engine: ./Synapse.Studio --engine
           EOF

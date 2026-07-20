@@ -1,153 +1,21 @@
-SYNAPSE OMNIA — Licence Propriétaire
-All Rights Reserved / Tous droits réservés
+MIT License
 
-Copyright (c) 2026 QuantumHacker10 — SYNAPSE OMNIA / Synapse Engine
-https://github.com/QuantumHacker10/Synapse
+Copyright (c) 2026 QuantumHacker10
 
-================================================================================
-AVIS IMPORTANT
-================================================================================
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-Ce logiciel et l'ensemble de ses composants (code source, binaires, assets,
-documentation, marques et dénominations) sont la propriété exclusive de leurs
-auteur(s) et titulaires de droits. Cette licence N'EST PAS une licence open
-source. Toute utilisation non expressément autorisée ci-dessous est INTERDITE.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-Pour toute demande d'autorisation (usage commercial, intégration, partenariat,
-reproduction) : ouvrir une issue GitHub ou contacter le dépôt officiel.
-
-================================================================================
-1. PROPRIÉTÉ INTELLECTUELLE
-================================================================================
-
-Le « Logiciel » désigne l'intégralité du dépôt SYNAPSE OMNIA / Synapse Engine,
-incluant sans limitation :
-
-  • le code source et les binaires compilés ;
-  • la documentation, le site vitrine et les fichiers de configuration ;
-  • les algorithmes, architectures, pipelines (G-DNN, L-DNN, living laws, etc.) ;
-  • les noms, logos et marques « SYNAPSE », « SYNAPSE OMNIA », « Synapse Engine »,
-    « Synapse Studio » et dérivés.
-
-Tous droits de reproduction, représentation, modification, adaptation,
-distribution et exploitation sont réservés, sauf autorisation écrite préalable
-du titulaire des droits.
-
-================================================================================
-2. INTERDICTIONS
-================================================================================
-
-Sauf autorisation écrite expresse, il est STRICTEMENT INTERDIT de :
-
-  a) COPIER — reproduire tout ou partie du code, de la documentation ou des
-     assets, sous quelque forme que ce soit ;
-
-  b) FORKER — créer un dépôt dérivé, un miroir, un fork GitHub/GitLab ou toute
-     republication du source ou des releases ;
-
-  c) PLAGIAT — présenter le Logiciel, ses idées, algorithmes ou implémentations
-     comme les vôtres ; supprimer ou altérer les mentions de copyright ;
-
-  d) REDISTRIBUER — publier, vendre, louer, céder, sous-licencier ou mettre à
-     disposition le Logiciel ou des extraits à des tiers ;
-
-  d) DÉRIVÉS — créer des œuvres dérivées, des ports, des clones ou des produits
-     concurrents basés sur le source, les binaires ou la documentation ;
-
-  e) RÉINGÉNIERIE — décompiler, désassembler ou tenter d'extraire le code source
-     à partir des binaires, sauf dans les limites impératives imposées par la loi
-     applicable et uniquement après notification écrite préalable ;
-
-  f) EXTRACTION — extraire des composants (modules, shaders, lois physiques,
-     modèles, prompts système) pour les réutiliser ailleurs ;
-
-  g) USAGE COMMERCIAL — exploiter le Logiciel ou ses composants à des fins
-     commerciales, de formation payante ou de SaaS sans accord écrit.
-
-================================================================================
-3. USAGES AUTORISÉS (LIMITÉS)
-================================================================================
-
-Sans autorisation supplémentaire, vous pouvez UNIQUEMENT :
-
-  1. CONSULTER le dépôt public à des fins d'information et d'évaluation
-     personnelle, sans copier ni reproduire le code ;
-
-  2. TÉLÉCHARGER et EXÉCUTER les binaires publiés sur la page GitHub Releases
-     officielle (https://github.com/QuantumHacker10/Synapse/releases), à titre
-     strictement personnel et non commercial, sans modification ni redistribution ;
-
-  3. SIGNALER des bugs ou proposer des améliorations via les issues GitHub
-     officielles, sous réserve que vous ne revendiquiez aucun droit de propriété
-     sur le Logiciel existant.
-
-Toute autre usage requiert un accord écrit du titulaire des droits.
-
-================================================================================
-4. CONTRIBUTIONS
-================================================================================
-
-Toute contribution (pull request, patch, suggestion de code) acceptée par le
-maintainer est réputée cédée ou concédée sous licence exclusive au titulaire
-des droits, sauf accord écrit contraire. En soumettant une contribution, vous
-déclarez en être l'auteur original et ne pas violer les droits de tiers.
-
-Les contributeurs autorisés (collaborateurs du dépôt) restent soumis à cette
-licence pour toute utilisation externe du code.
-
-================================================================================
-5. MARQUES
-================================================================================
-
-Les noms « SYNAPSE OMNIA », « Synapse Engine », « Synapse Studio » et les
-identifiants associés sont des marques du projet. Leur usage sans autorisation
-écrite est interdit, y compris dans des dépôts tiers, produits dérivés ou
-communications commerciales.
-
-================================================================================
-6. ABSENCE DE GARANTIE
-================================================================================
-
-LE LOGICIEL EST FOURNI « EN L'ÉTAT », SANS GARANTIE D'AUCUNE SORTE, EXPRESSE OU
-IMPLICITE, Y COMPRIS SANS LIMITATION LES GARANTIES DE QUALITÉ MARCHANDE,
-D'ADÉQUATION À UN USAGE PARTICULIER ET D'ABSENCE DE CONTREFAÇON.
-
-EN AUCUN CAS LES AUTEURS OU TITULAIRES DES DROITS NE POURRONT ÊTRE TENUS
-RESPONSABLES DE TOUT DOMMAGE DIRECT, INDIRECT, ACCESSoire, SPÉCIAL OU
-CONSÉCUTIF RÉSULTANT DE L'UTILISATION OU DE L'IMPOSSIBILITÉ D'UTILISER LE
-LOGICIEL.
-
-================================================================================
-7. VIOLATIONS ET SANCTIONS
-================================================================================
-
-Toute violation de cette licence constitue une contrefaçon des droits de
-propriété intellectuelle. Le titulaire se réserve le droit de :
-
-  • retirer l'accès au dépôt ou aux releases ;
-  • demander la suppression de copies ou forks non autorisés ;
-  • engager toute action civile ou pénale prévue par la loi applicable
-    (notamment le droit d'auteur et le droit des marques).
-
-================================================================================
-8. DROIT APPLICABLE
-================================================================================
-
-Cette licence est régie par le droit français. Tout litige relatif à son
-interprétation ou à son exécution relève de la compétence exclusive des
-tribunaux français, sous réserve des dispositions impératives du pays du
-contrevenant le cas échéant.
-
-================================================================================
-9. CONTACT
-================================================================================
-
-Dépôt officiel : https://github.com/QuantumHacker10/Synapse
-Issues         : https://github.com/QuantumHacker10/Synapse/issues
-
-================================================================================
-
-English summary (non-binding): This is proprietary software. No copying,
-forking, redistribution, plagiarism, or derivative works without written
-permission. Official release binaries may be used for personal, non-commercial
-evaluation only. All rights reserved.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

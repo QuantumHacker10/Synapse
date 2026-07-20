@@ -1,7 +1,7 @@
 # SYNAPSE OMNIA — Moteur de simulation 3D · v1.2
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
 
 **Synapse OMNIA** est un moteur de **simulation 3D** : un monde numérique que l'on observe,
@@ -190,11 +190,8 @@ Déployée automatiquement sur [GitHub Pages](https://quantumhacker10.github.io/
 
 ## Licence
 
-**Licence propriétaire — tous droits réservés.** Ce dépôt n'est pas open source.
-
-Interdit sans autorisation écrite : copie, fork, redistribution, plagiat, œuvres
-dérivées et usage commercial. Consultation du source et exécution des binaires
-[Releases](https://github.com/QuantumHacker10/Synapse/releases) officiels
-autorisées uniquement à titre personnel et non commercial.
+**Licence MIT — open source.** Vous pouvez utiliser, modifier, distribuer et créer
+des œuvres dérivées du code source, y compris à des fins commerciales, sous réserve
+de conserver l'avis de copyright et la licence.
 
 Voir [`LICENSE`](LICENSE) et [`COPYRIGHT`](COPYRIGHT).
