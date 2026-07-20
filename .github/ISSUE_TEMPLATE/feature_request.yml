@@ -1,0 +1,50 @@
+name: Feature Request
+description: Proposer une nouvelle fonctionnalité
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Décrivez la fonctionnalité souhaitée. Consultez [ROADMAP.md](https://github.com/QuantumHacker10/Synapse/blob/main/ROADMAP.md) pour la vision du projet.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème ou besoin
+      description: Quel cas d'usage cette fonctionnalité résout-elle ?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution proposée
+      description: Comment imaginez-vous la fonctionnalité ?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priorité perçue
+      options:
+        - Critique (bloquant)
+        - Importante
+        - Souhaitable
+        - Nice-to-have
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: J'ai vérifié que cette fonctionnalité n'est pas déjà dans la roadmap
+          required: true
+        - label: Je suis prêt(e) à contribuer une implémentation
+          required: false

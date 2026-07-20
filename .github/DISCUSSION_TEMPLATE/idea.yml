@@ -1,0 +1,33 @@
+title: "Idée : "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Proposez une idée pour Synapse OMNIA. Les idées validées sont ajoutées à [ROADMAP.md](https://github.com/QuantumHacker10/Synapse/blob/main/ROADMAP.md).
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Description de l'idée
+    validations:
+      required: true
+
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Cas d'usage
+      description: Qui en bénéficierait et dans quel contexte ?
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Domaine
+      options:
+        - Rendu (G-DNN / L-DNN)
+        - Physique / simulation
+        - Studio UI
+        - IA / LLM / NEAT-G
+        - DevOps / CI
+        - Documentation / communauté
+
+labels: ["enhancement"]

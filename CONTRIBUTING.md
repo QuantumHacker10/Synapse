@@ -44,8 +44,10 @@ La branche `main` doit rester stable. Configuration cible :
 - **1 revue** minimum avant merge
 - **CI verte** — checks requis :
   - `test-linux`
+  - `test-macos`
   - `publish-windows`
   - `analyze`
+  - `CodeQL` (optionnel mais recommandé)
 - **Branches à jour** — rebase ou merge de `main` avant merge de la PR
 - **Pas de force-push** sur `main`
 

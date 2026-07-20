@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Synapse Studio  vue principale">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="viewport" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a2332"/>
+      <stop offset="100%" stop-color="#0f1520"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#58a6ff"/>
+      <stop offset="100%" stop-color="#a371f7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Window chrome -->
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1280" height="36" fill="#21262d"/>
+  <circle cx="18" cy="18" r="6" fill="#ff5f57"/>
+  <circle cx="38" cy="18" r="6" fill="#febc2e"/>
+  <circle cx="58" cy="18" r="6" fill="#28c840"/>
+  <text x="640" y="23" text-anchor="middle" fill="#c9d1d9" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600">Synapse Studio  Demo Scene</text>
+
+  <!-- Menu bar -->
+  <rect x="0" y="36" width="1280" height="28" fill="#161b22"/>
+  <text x="16" y="54" fill="#8b949e" font-family="Inter, system-ui, sans-serif" font-size="12">Fichier</text>
+  <text x="72" y="54" fill="#8b949e" font-family="Inter, system-ui, sans-serif" font-size="12">Édition</text>
+  <text x="130" y="54" fill="#8b949e" font-family="Inter, system-ui, sans-serif" font-size="12">Simulation</text>
+  <text x="210" y="54" fill="#8b949e" font-family="Inter, system-ui, sans-serif" font-size="12">Rendu</text>
+  <text x="268" y="54" fill="#8b949e" font-family="Inter, system-ui, sans-serif" font-size="12">LLM</text>
+
+  <!-- Left panel  Scene hierarchy -->
+  <rect x="0" y="64" width="220" height="656" fill="#161b22"/>
+  <text x="16" y="88" fill="#c9d1d9" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">SCÈNE</text>
+  <rect x="12" y="98" width="196" height="24" rx="4" fill="#21262d"/>
+  <text x="24" y="114" fill="#58a6ff" font-family="Inter, system-ui, sans-serif" font-size="11">¸ Ground (Mesh)</text>
+  <text x="24" y="138" fill="#8b949e" font-family="Inter, system-ui, sans-serif" font-size="11">  Agent_Alpha (Character)</text>
+  <text x="24" y="158" fill="#8b949e" font-family="Inter, system-ui, sans-serif" font-size="11">  Agent_Beta (Character)</text>
+  <text x="24" y="178" fill="#a371f7" font-family="Inter, system-ui, sans-serif" font-size="11">  NeuralForm (Genome)</text>
+
+  <!-- 3D Viewport -->
+  <rect x="220" y="64" width="740" height="520" fill="url(#viewport)"/>
+  <!-- Grid -->
+  <g opacity="0.15" stroke="#58a6ff" stroke-width="0.5">
+    <line x1="220" y1="324" x2="960" y2="324"/>
+    <line x1="590" y1="64" x2="590" y2="584"/>
+    <line x1="220" y1="454" x2="960" y2="454"/>
+    <line x1="460" y1="64" x2="460" y2="584"/>
+    <line x1="720" y1="64" x2="720" y2="584"/>
+  </g>
+  <!-- Neural SDF form (G-DNN) -->
+  <ellipse cx="590" cy="280" rx="80" ry="90" fill="none" stroke="url(#accent)" stroke-width="2" opacity="0.8"/>
+  <ellipse cx="590" cy="280" rx="50" ry="60" fill="#a371f7" opacity="0.15"/>
+  <!-- Ground plane -->
+  <polygon points="300,420 880,420 960,480 220,480" fill="#21262d" opacity="0.6"/>
+  <!-- Gizmo -->
+  <line x1="590" y1="280" x2="590" y2="220" stroke="#ff5f57" stroke-width="2"/>
+  <line x1="590" y1="280" x2="650" y2="280" stroke="#28c840" stroke-width="2"/>
+  <line x1="590" y1="280" x2="560" y2="330" stroke="#58a6ff" stroke-width="2"/>
+  <!-- Viewport label -->
+  <text x="240" y="88" fill="#484f58" font-family="Inter, system-ui, sans-serif" font-size="10">Viewport Vulkan  G-DNN + L-DNN</text>
+
+  <!-- Right panel  Inspector -->
+  <rect x="960" y="64" width="320" height="656" fill="#161b22"/>
+  <text x="976" y="88" fill="#c9d1d9" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">INSPECTEUR</text>
+  <text x="976" y="114" fill="#8b949e" font-family="Inter, system-ui, sans-serif" font-size="11">Entité : NeuralForm</text>
+  <text x="976" y="134" fill="#8b949e" font-family="Inter, system-ui, sans-serif" font-size="11">Type : Genome</text>
+  <text x="976" y="154" fill="#8b949e" font-family="Inter, system-ui, sans-serif" font-size="11">Génome : demo-sdf</text>
+  <rect x="976" y="170" width="288" height="1" fill="#30363d"/>
+  <text x="976" y="194" fill="#c9d1d9" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">LOI PHYSIQUE</text>
+  <text x="976" y="214" fill="#58a6ff" font-family="Inter, system-ui, sans-serif" font-size="11">heat_equation</text>
+  <text x="976" y="234" fill="#484f58" font-family="Inter, system-ui, sans-serif" font-size="10">dT/dt = alpha * laplacian(T)</text>
+
+  <!-- Bottom panel  Performance + LLM -->
+  <rect x="220" y="584" width="740" height="136" fill="#0d1117"/>
+  <rect x="220" y="584" width="740" height="1" fill="#30363d"/>
+  <text x="236" y="608" fill="#c9d1d9" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">PERFORMANCE</text>
+  <text x="236" y="628" fill="#3fb950" font-family="Inter, system-ui, sans-serif" font-size="11">IPS: 60  |  Physique: 2.1 ms  |  GI L-DNN: Full  |  Entités: 2</text>
+  <text x="236" y="656" fill="#c9d1d9" font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="600">CONSOLE LLM</text>
+  <rect x="236" y="664" width="700" height="44" rx="6" fill="#21262d" stroke="#30363d"/>
+  <text x="248" y="692" fill="#484f58" font-family="Inter, system-ui, sans-serif" font-size="11">Décrivez une scène de forêt brumeuse au crépuscule...</text>
+</svg>

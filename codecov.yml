@@ -1,0 +1,19 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 30%
+        threshold: 2%
+    patch:
+      default:
+        target: 20%
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false
+
+ignore:
+  - "tests/**"
+  - "site/**"
+  - "scripts/**"

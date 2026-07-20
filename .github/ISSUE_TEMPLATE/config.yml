@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions & entraide
+    url: https://github.com/QuantumHacker10/Synapse/discussions/categories/q-a
+    about: Poser une question technique (GitHub Discussions)
+  - name: Roadmap & vision
+    url: https://github.com/QuantumHacker10/Synapse/discussions/categories/roadmap
+    about: Discuter des priorités et de la direction du projet
+  - name: Guide de contribution
+    url: https://github.com/QuantumHacker10/Synapse/blob/main/CONTRIBUTING.md
+    about: Flux Git, conventions, CI

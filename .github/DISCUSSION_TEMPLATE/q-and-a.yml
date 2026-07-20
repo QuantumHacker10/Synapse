@@ -1,0 +1,26 @@
+title: "Question : "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Posez votre question technique ici. Consultez [GETTING_STARTED.md](https://github.com/QuantumHacker10/Synapse/blob/main/GETTING_STARTED.md) et [docs/API.md](https://github.com/QuantumHacker10/Synapse/blob/main/docs/API.md) avant de poster.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte
+      description: OS, version Synapse, ce que vous essayez de faire
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: Ce que vous avez déjà essayé
+
+labels: ["question"]
