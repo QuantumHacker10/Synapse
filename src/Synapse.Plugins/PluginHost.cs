@@ -7,7 +7,6 @@ using System.Runtime.Loader;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Synapse.Core.Maturity;
 using Synapse.Infrastructure.Logging;
 using Synapse.Runtime;
 
@@ -39,8 +38,8 @@ public sealed class PluginManifest
 /// <summary>
 /// Loads and manages Synapse plugins in isolated <see cref="AssemblyLoadContext"/> instances.
 /// ALC isolation enables unload; it does not sandbox filesystem, network, or process access.
+/// EarlyAccess surface (see <c>FeatureMaturityCatalog</c> "Plugins.CSharp").
 /// </summary>
-[SynapseExperimental("Plugins.CSharp", "ALC isolation is not a security sandbox; use PluginTrustMode.RequireManifest for production.")]
 public sealed class PluginHost : IDisposable
 {
     public const int MaxPlugins = 64;
