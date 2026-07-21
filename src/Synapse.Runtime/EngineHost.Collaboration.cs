@@ -95,7 +95,9 @@ public sealed partial class EngineHost
 
         var hub = new WanSimulationPeerHub(_logger, sessionCode, rendezvousPort: 0);
         hub.ScenePatchReceived += OnWanPatchReceived;
-        await hub.StartHostAsync(port > 0 ? port : _config.WanPort, ct).ConfigureAwait(false);
+        // port <= 0 => ephemeral TCP bind (safe for parallel tests / lab).
+        int listenPort = port > 0 ? port : 0;
+        await hub.StartHostAsync(listenPort, ct).ConfigureAwait(false);
         _wanHub = hub;
         _wanStatus =
             $"WAN host : {sessionCode} tcp={hub.ListenPort} rdv={hub.RendezvousPort} " +
@@ -211,7 +213,8 @@ public sealed partial class EngineHost
 
         if (_config.WanHost)
         {
-            await StartWanHostAsync(_config.WanSessionCode, _config.WanPort, ct).ConfigureAwait(false);
+            int listen = _config.WanPort > 0 ? _config.WanPort : 0;
+            await StartWanHostAsync(_config.WanSessionCode, listen, ct).ConfigureAwait(false);
             return;
         }
 
@@ -226,7 +229,8 @@ public sealed partial class EngineHost
         {
             // Lab convenience: if join fails with no peer, auto-host the room.
             _logger.Warn("Network", $"WAN join failed ({ex.Message}) — falling back to host mode");
-            await StartWanHostAsync(_config.WanSessionCode, _config.WanPort, ct).ConfigureAwait(false);
+            int listen = _config.WanPort > 0 ? _config.WanPort : 0;
+            await StartWanHostAsync(_config.WanSessionCode, listen, ct).ConfigureAwait(false);
         }
     }
 
