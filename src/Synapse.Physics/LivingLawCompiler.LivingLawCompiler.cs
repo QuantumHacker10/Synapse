@@ -175,7 +175,20 @@ namespace Synapse.Physics
             var law = _library.GetLaw(lawId);
             if (law == null)
                 return CompilationResult.Fail($"Law '{lawId}' not found", new[] { $"Law '{lawId}' not found in library" });
-            return Compile(law.Expression, lawId);
+
+            string normalized = LawExpressionNormalizer.NormalizeForCompilation(law.Expression);
+            var result = Compile(normalized, lawId);
+            if (result.Success)
+                return result;
+
+            if (Enum.TryParse<LawCategory>(law.Category, ignoreCase: true, out var category))
+            {
+                string fallback = LawExpressionNormalizer.NormalizeForCompilation(
+                    LawApplicatorMapper.FallbackExpression(category));
+                result = Compile(fallback, lawId);
+            }
+
+            return result;
         }
 
         /// <summary>Hot-reload: modify a law expression and recompile without stopping.</summary>
@@ -253,17 +266,13 @@ namespace Synapse.Physics
             var law = _library.GetLaw(lawId);
             if (law == null)
                 return "generic";
-            return law.Category.ToLowerInvariant() switch
-            {
-                "thermaldynamics" or "thermal" => "heat",
-                "wavedynamics" or "wave" or "acoustic" => "wave",
-                "elasticity" or "solid" => "elasticity",
-                "fluiddynamics" or "fluid" or "navier_stokes" => "incompressible_ns",
-                "electrodynamics" or "em" or "electromagnetic" => "electromagnetic",
-                "gravitation" or "gravity" => "gravity",
-                _ => "generic"
-            };
+
+            Enum.TryParse<LawCategory>(law.Category, ignoreCase: true, out var category);
+            return LawApplicatorMapper.Resolve(law.Category, category);
         }
+
+        /// <summary>Number of laws available in the runtime library.</summary>
+        public int CatalogLawCount => _library.AllEntries.Count;
 
         /// <summary>Validate a law expression.</summary>
         public ValidationResult Validate(string expression, string? lawId = null)

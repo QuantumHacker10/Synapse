@@ -72,6 +72,9 @@ namespace Synapse.Runtime
         /// <summary>Living-law compiler, available after <see cref="InitializeModules"/>.</summary>
         public LivingLawCompiler? LawCompiler => _lawCompiler;
 
+        /// <summary>Number of physical laws available in the runtime catalog.</summary>
+        public int CatalogLawCount => _lawCompiler?.CatalogLawCount ?? 0;
+
         /// <summary>Industrial multiphysics orchestrator (rigid bodies + living laws + continuum).</summary>
         public MultiphysicsOrchestrator? Multiphysics => _multiphysics;
 

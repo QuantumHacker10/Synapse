@@ -8,6 +8,16 @@ using GDNN.Scene;
 
 namespace GDNN.Rendering.Bridge
 {
+    /// <summary>How the L-DNN bridge last populated its G-buffer.</summary>
+    public enum GiGBufferFillMode
+    {
+        None,
+        Constants,
+        ProceduralPreview,
+        GpuResident,
+        GpuReadback
+    }
+
     /// <summary>
     /// Thin integration layer between deferred rendering and <see cref="LDNNRenderer"/>.
     /// Owns G-Buffer proxies, camera/light state, static GI caching, and LLM lighting apply.
@@ -30,6 +40,9 @@ namespace GDNN.Rendering.Bridge
         private int _aoGbufferVersion = -1;
         private readonly GpuResidentGiPipeline _residentGi = new();
         private bool _lastFillWasConstants;
+
+        /// <summary>Tracks the most recent G-buffer population strategy.</summary>
+        public GiGBufferFillMode LastFillMode { get; private set; } = GiGBufferFillMode.None;
 
         /// <summary>Monotonic frame counter from the underlying L-DNN renderer.</summary>
         public int FrameIndex => _ldnn?.FrameIndex ?? 0;
@@ -170,6 +183,7 @@ namespace GDNN.Rendering.Bridge
         {
             _gbufferVersion++;
             _lastFillWasConstants = false;
+            LastFillMode = GiGBufferFillMode.GpuReadback;
             if (depthData != null && depthData.Length == _gbuffer.Depth.Length)
                 Array.Copy(depthData, _gbuffer.Depth, depthData.Length);
             if (normalData != null && normalData.Length == _gbuffer.Normals.Length)
@@ -206,6 +220,7 @@ namespace GDNN.Rendering.Bridge
         {
             _gbufferVersion++;
             _lastFillWasConstants = true;
+            LastFillMode = GiGBufferFillMode.Constants;
             int count = _width * _height;
             for (int i = 0; i < count; i++)
             {
@@ -221,6 +236,115 @@ namespace GDNN.Rendering.Bridge
         }
 
         /// <summary>
+        /// Fills the G-buffer with a lightweight procedural preview (ground + sphere)
+        /// so L-DNN can compute spatial GI without a GPU readback path.
+        /// </summary>
+        public void FillGBufferProceduralPreview()
+        {
+            _gbufferVersion++;
+            _lastFillWasConstants = false;
+            LastFillMode = GiGBufferFillMode.ProceduralPreview;
+
+            var forward = _cameraState.Forward;
+            if (forward.LengthSquared() < 1e-6f)
+                forward = Vector3.UnitZ;
+            forward = Vector3.Normalize(forward);
+
+            var right = _cameraState.Right;
+            if (right.LengthSquared() < 1e-6f)
+                right = Vector3.UnitX;
+            right = Vector3.Normalize(right);
+
+            var up = Vector3.Normalize(Vector3.Cross(right, forward));
+            float aspect = _width > 0 ? (float)_width / _height : 16f / 9f;
+            float tanHalfFov = MathF.Tan(_cameraState.FieldOfView * 0.5f);
+
+            var sphereCenter = new Vector3(0f, 0.55f, 0f);
+            const float sphereRadius = 0.45f;
+
+            for (int y = 0; y < _height; y++)
+            {
+                float v = (_height > 1 ? y / (float)(_height - 1) : 0.5f) * 2f - 1f;
+                for (int x = 0; x < _width; x++)
+                {
+                    float u = (_width > 1 ? x / (float)(_width - 1) : 0.5f) * 2f - 1f;
+                    var rayDir = Vector3.Normalize(forward + right * (u * tanHalfFov * aspect) + up * (-v * tanHalfFov));
+                    int idx = y * _width + x;
+
+                    if (TryTracePreviewScene(_cameraState.Position, rayDir, sphereCenter, sphereRadius,
+                            out float depth, out Vector3 normal, out Vector3 albedo))
+                    {
+                        _gbuffer.Depth[idx] = depth;
+                        _gbuffer.Normals[idx] = normal;
+                        _gbuffer.Albedo[idx] = albedo;
+                    }
+                    else
+                    {
+                        _gbuffer.Depth[idx] = _cameraState.FarPlane;
+                        _gbuffer.Normals[idx] = Vector3.UnitY;
+                        _gbuffer.Albedo[idx] = new Vector3(0.02f, 0.025f, 0.03f);
+                    }
+
+                    _gbuffer.Velocity[idx] = Vector2.Zero;
+                    _gbuffer.MaterialProps[idx] = new Vector4(0.35f, 0.08f, 0f, 0f);
+                    _gbuffer.Specular[idx] = new Vector3(0.06f);
+                    _gbuffer.Emissive[idx] = Vector3.Zero;
+                }
+            }
+
+            _residentGi.UpdateFromGBuffer(_gbuffer);
+        }
+
+        private static bool TryTracePreviewScene(
+            Vector3 origin,
+            Vector3 dir,
+            Vector3 sphereCenter,
+            float sphereRadius,
+            out float depth,
+            out Vector3 normal,
+            out Vector3 albedo)
+        {
+            depth = 0f;
+            normal = Vector3.UnitY;
+            albedo = Vector3.One;
+
+            float nearest = float.MaxValue;
+            bool hit = false;
+
+            if (MathF.Abs(dir.Y) > 1e-5f)
+            {
+                float tPlane = -origin.Y / dir.Y;
+                if (tPlane > 0.01f && tPlane < nearest)
+                {
+                    nearest = tPlane;
+                    hit = true;
+                    normal = Vector3.UnitY;
+                    albedo = new Vector3(0.22f, 0.24f, 0.28f);
+                }
+            }
+
+            var oc = origin - sphereCenter;
+            float b = Vector3.Dot(oc, dir);
+            float c = oc.LengthSquared() - sphereRadius * sphereRadius;
+            float disc = b * b - c;
+            if (disc >= 0f)
+            {
+                float t = -b - MathF.Sqrt(disc);
+                if (t > 0.01f && t < nearest)
+                {
+                    nearest = t;
+                    hit = true;
+                    var p = origin + dir * t;
+                    normal = Vector3.Normalize(p - sphereCenter);
+                    albedo = new Vector3(0.72f, 0.45f, 0.38f);
+                }
+            }
+
+            depth = hit ? nearest : 0f;
+            return hit;
+        }
+
+        /// <summary>
         /// Restores the last GPU-origin G-buffer into the bridge without a new Vulkan readback.
         /// Returns false when no resident buffer exists.
         /// </summary>
@@ -231,6 +355,7 @@ namespace GDNN.Rendering.Bridge
             _residentGi.CopyResidentTo(_gbuffer);
             _gbufferVersion++;
             _lastFillWasConstants = false;
+            LastFillMode = GiGBufferFillMode.GpuResident;
             return true;
         }
 
@@ -248,6 +373,7 @@ namespace GDNN.Rendering.Bridge
                 snapshot.Specular);
             _residentGi.UpdateFromSnapshot(snapshot);
             _lastFillWasConstants = false;
+            LastFillMode = GiGBufferFillMode.GpuReadback;
         }
 
         /// <summary>

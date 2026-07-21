@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GDNN.Rendering.ArtPipeline;
+using GDNN.Rendering.Bridge;
 using Synapse.Infrastructure;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
@@ -314,8 +315,15 @@ namespace Synapse.Studio.ViewModels
             else if (!EvolutionStatus.StartsWith("Terminé", StringComparison.Ordinal))
                 EvolutionStatus = "Inactif";
 
-            var giGpu = _host.RenderEngine?.SceneRenderer?.GiUsesGpuReadback ?? false;
-            GiStatus = giGpu ? "GI : lecture G-buffer GPU active" : "GI : constantes de repli";
+            var fillMode = _host.RenderEngine?.SceneRenderer?.LastGiFillMode ?? GiGBufferFillMode.None;
+            GiStatus = fillMode switch
+            {
+                GiGBufferFillMode.GpuReadback => "GI : lecture G-buffer GPU active",
+                GiGBufferFillMode.GpuResident => "GI : G-buffer GPU résident",
+                GiGBufferFillMode.ProceduralPreview => "GI : preview procédurale L-DNN",
+                GiGBufferFillMode.Constants => "GI : constantes de repli",
+                _ => "GI : lecture GPU en attente"
+            };
         }
 
         [RelayCommand]
