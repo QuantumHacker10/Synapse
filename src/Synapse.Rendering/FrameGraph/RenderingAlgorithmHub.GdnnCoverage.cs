@@ -217,13 +217,15 @@ namespace GDNN.Rendering.FrameGraph
             for (int i = 0; i < dists.Length; i++)
                 StreamRing.TryWrite(dists[i]);
             StreamRing.Flush();
-            while (StreamRing.TryRead(out _)) { /* drain */ }
+            while (StreamRing.TryRead(out _))
+            { /* drain */ }
 
             for (int i = 0; i < Math.Min(dists.Length, SyncScratch.Capacity); i++)
                 SyncScratch.TryWrite(dists[i], TimeSpan.FromMilliseconds(1));
             if (SyncScratch.HasPendingData)
                 SyncScratch.SwapBuffers();
-            while (SyncScratch.TryRead(out _, TimeSpan.FromMilliseconds(1))) { /* drain */ }
+            while (SyncScratch.TryRead(out _, TimeSpan.FromMilliseconds(1)))
+            { /* drain */ }
 
             // SIMD VectorOps / MatrixOps / IntrinsicsHelper.
             Span<float> packed = stackalloc float[9];

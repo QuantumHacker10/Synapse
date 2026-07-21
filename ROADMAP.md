@@ -2,7 +2,7 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-**Maturité :** v2.2 = accès anticipé / R&D avancée — voir [docs/MATURITY.md](docs/MATURITY.md).
+**Maturité :** v2.3 = accès anticipé / R&D avancée — voir [docs/MATURITY.md](docs/MATURITY.md).
 Les items « Experimental » ne sont **pas** des capacités production.
 
 ## v2.2 — Actuel (2026-07)

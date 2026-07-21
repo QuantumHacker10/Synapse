@@ -907,8 +907,12 @@ namespace GDNN.Rendering.FrameGraph
                 var p = mesh.Positions[i];
                 var n = i < mesh.Normals.Length ? mesh.Normals[i] : Vector3.UnitY;
                 int o = i * 6;
-                verts[o] = p.X; verts[o + 1] = p.Y; verts[o + 2] = p.Z;
-                verts[o + 3] = n.X; verts[o + 4] = n.Y; verts[o + 5] = n.Z;
+                verts[o] = p.X;
+                verts[o + 1] = p.Y;
+                verts[o + 2] = p.Z;
+                verts[o + 3] = n.X;
+                verts[o + 4] = n.Y;
+                verts[o + 5] = n.Z;
             }
 
             var indices = new uint[mesh.Indices.Length];
@@ -1080,15 +1084,21 @@ namespace GDNN.Rendering.FrameGraph
 
             if (_meshletPagePath != null)
             {
-                try { File.Delete(_meshletPagePath); } catch { /* ignore */ }
+                try
+                { File.Delete(_meshletPagePath); }
+                catch { /* ignore */ }
             }
             if (_polyCacheDir != null)
             {
-                try { Directory.Delete(_polyCacheDir, recursive: true); } catch { /* ignore */ }
+                try
+                { Directory.Delete(_polyCacheDir, recursive: true); }
+                catch { /* ignore */ }
             }
             if (_assetStreamRoot != null)
             {
-                try { Directory.Delete(_assetStreamRoot, recursive: true); } catch { /* ignore */ }
+                try
+                { Directory.Delete(_assetStreamRoot, recursive: true); }
+                catch { /* ignore */ }
             }
         }
     }

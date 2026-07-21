@@ -33,8 +33,10 @@ namespace GDNN.Rendering.Shaders
 
             uint tCam = b.TStruct(tM4, tM4);
             b.DecBlock(tCam);
-            b.DecMemberOffset(tCam, 0, 0); b.DecMemberMatrix(tCam, 0);
-            b.DecMemberOffset(tCam, 1, 64); b.DecMemberMatrix(tCam, 1);
+            b.DecMemberOffset(tCam, 0, 0);
+            b.DecMemberMatrix(tCam, 0);
+            b.DecMemberOffset(tCam, 1, 64);
+            b.DecMemberMatrix(tCam, 1);
 
             uint pInV3 = b.TPtr(Spirv.Input, tV3);
             uint pInV2 = b.TPtr(Spirv.Input, tV2);
@@ -47,20 +49,32 @@ namespace GDNN.Rendering.Shaders
 
             b.BeginMain(tVoid, fragment: false);
 
-            uint inPos = b.Var(pInV3, Spirv.Input); b.DecLocation(inPos, 0);
-            uint inNrm = b.Var(pInV3, Spirv.Input); b.DecLocation(inNrm, 1);
-            uint inUV = b.Var(pInV2, Spirv.Input); b.DecLocation(inUV, 2);
-            uint inCol = b.Var(pInV3, Spirv.Input); b.DecLocation(inCol, 3);
+            uint inPos = b.Var(pInV3, Spirv.Input);
+            b.DecLocation(inPos, 0);
+            uint inNrm = b.Var(pInV3, Spirv.Input);
+            b.DecLocation(inNrm, 1);
+            uint inUV = b.Var(pInV2, Spirv.Input);
+            b.DecLocation(inUV, 2);
+            uint inCol = b.Var(pInV3, Spirv.Input);
+            b.DecLocation(inCol, 3);
 
-            uint oPos = b.Var(pOutV3, Spirv.Output); b.DecLocation(oPos, 0);
-            uint oNrm = b.Var(pOutV3, Spirv.Output); b.DecLocation(oNrm, 1);
-            uint oUV = b.Var(pOutV2, Spirv.Output); b.DecLocation(oUV, 2);
-            uint oCol = b.Var(pOutV3, Spirv.Output); b.DecLocation(oCol, 3);
-            uint oVel = b.Var(pOutV2, Spirv.Output); b.DecLocation(oVel, 4);
-            uint glPos = b.Var(pOutV4, Spirv.Output); b.DecBuiltIn(glPos, 0); // Position
+            uint oPos = b.Var(pOutV3, Spirv.Output);
+            b.DecLocation(oPos, 0);
+            uint oNrm = b.Var(pOutV3, Spirv.Output);
+            b.DecLocation(oNrm, 1);
+            uint oUV = b.Var(pOutV2, Spirv.Output);
+            b.DecLocation(oUV, 2);
+            uint oCol = b.Var(pOutV3, Spirv.Output);
+            b.DecLocation(oCol, 3);
+            uint oVel = b.Var(pOutV2, Spirv.Output);
+            b.DecLocation(oVel, 4);
+            uint glPos = b.Var(pOutV4, Spirv.Output);
+            b.DecBuiltIn(glPos, 0); // Position
 
-            uint cam = b.Var(pUCam, Spirv.Uniform); b.DecSetBinding(cam, 0, 0);
-            uint modelU = b.Var(pUM4, Spirv.Uniform); b.DecSetBinding(modelU, 0, 1);
+            uint cam = b.Var(pUCam, Spirv.Uniform);
+            b.DecSetBinding(cam, 0, 0);
+            uint modelU = b.Var(pUM4, Spirv.Uniform);
+            b.DecSetBinding(modelU, 0, 1);
 
             uint glsl = b.GlslId;
             b.Label();
@@ -159,22 +173,36 @@ namespace GDNN.Rendering.Shaders
 
             b.BeginMain(tVoid, fragment: true);
 
-            uint inPos = b.Var(pInV3, Spirv.Input); b.DecLocation(inPos, 0);
-            uint inNrm = b.Var(pInV3, Spirv.Input); b.DecLocation(inNrm, 1);
-            uint inUV = b.Var(pInV2, Spirv.Input); b.DecLocation(inUV, 2);
-            uint inCol = b.Var(pInV3, Spirv.Input); b.DecLocation(inCol, 3);
-            uint inVel = b.Var(pInV2, Spirv.Input); b.DecLocation(inVel, 4);
+            uint inPos = b.Var(pInV3, Spirv.Input);
+            b.DecLocation(inPos, 0);
+            uint inNrm = b.Var(pInV3, Spirv.Input);
+            b.DecLocation(inNrm, 1);
+            uint inUV = b.Var(pInV2, Spirv.Input);
+            b.DecLocation(inUV, 2);
+            uint inCol = b.Var(pInV3, Spirv.Input);
+            b.DecLocation(inCol, 3);
+            uint inVel = b.Var(pInV2, Spirv.Input);
+            b.DecLocation(inVel, 4);
 
-            uint oAlb = b.Var(pOutV4, Spirv.Output); b.DecLocation(oAlb, 0);
-            uint oNrm = b.Var(pOutV4, Spirv.Output); b.DecLocation(oNrm, 1);
-            uint oPos = b.Var(pOutV4, Spirv.Output); b.DecLocation(oPos, 2);
-            uint oMat = b.Var(pOutV4, Spirv.Output); b.DecLocation(oMat, 3);
-            uint oVel = b.Var(pOutV4, Spirv.Output); b.DecLocation(oVel, 4);
+            uint oAlb = b.Var(pOutV4, Spirv.Output);
+            b.DecLocation(oAlb, 0);
+            uint oNrm = b.Var(pOutV4, Spirv.Output);
+            b.DecLocation(oNrm, 1);
+            uint oPos = b.Var(pOutV4, Spirv.Output);
+            b.DecLocation(oPos, 2);
+            uint oMat = b.Var(pOutV4, Spirv.Output);
+            b.DecLocation(oMat, 3);
+            uint oVel = b.Var(pOutV4, Spirv.Output);
+            b.DecLocation(oVel, 4);
 
-            uint ubo = b.Var(pUMat, Spirv.Uniform); b.DecSetBinding(ubo, 0, 2);
-            uint texAlb = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(texAlb, 0, 3);
-            uint texNrm = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(texNrm, 0, 4);
-            uint texOrm = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(texOrm, 0, 5);
+            uint ubo = b.Var(pUMat, Spirv.Uniform);
+            b.DecSetBinding(ubo, 0, 2);
+            uint texAlb = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(texAlb, 0, 3);
+            uint texNrm = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(texNrm, 0, 4);
+            uint texOrm = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(texOrm, 0, 5);
 
             uint glsl = b.GlslId;
             b.Label();
@@ -241,9 +269,14 @@ namespace GDNN.Rendering.Shaders
         {
             // Pack extra lights as [dx,dy,dz, r,g,b, intensity, range] × N (max 3 extras → 4 total).
             Span<float> lights = stackalloc float[32];
-            lights[0] = lx; lights[1] = ly; lights[2] = lz;
-            lights[3] = 1f; lights[4] = 0.97f; lights[5] = 0.92f;
-            lights[6] = lightIntensity; lights[7] = 0f; // range 0 = directional
+            lights[0] = lx;
+            lights[1] = ly;
+            lights[2] = lz;
+            lights[3] = 1f;
+            lights[4] = 0.97f;
+            lights[5] = 0.92f;
+            lights[6] = lightIntensity;
+            lights[7] = 0f; // range 0 = directional
             int lightCount = 1;
             if (!extraLights.IsEmpty)
             {
@@ -280,9 +313,12 @@ namespace GDNN.Rendering.Shaders
             // Cascade0/1/2 VP + vec4 splits (x=near, y=mid, z=cascadeCount, w=unused).
             uint tLight = b.TStruct(tM4, tM4, tM4, tV4);
             b.DecBlock(tLight);
-            b.DecMemberOffset(tLight, 0, 0); b.DecMemberMatrix(tLight, 0);
-            b.DecMemberOffset(tLight, 1, 64); b.DecMemberMatrix(tLight, 1);
-            b.DecMemberOffset(tLight, 2, 128); b.DecMemberMatrix(tLight, 2);
+            b.DecMemberOffset(tLight, 0, 0);
+            b.DecMemberMatrix(tLight, 0);
+            b.DecMemberOffset(tLight, 1, 64);
+            b.DecMemberMatrix(tLight, 1);
+            b.DecMemberOffset(tLight, 2, 128);
+            b.DecMemberMatrix(tLight, 2);
             b.DecMemberOffset(tLight, 3, 192);
 
             uint pInV2 = b.TPtr(Spirv.Input, tV2);
@@ -295,19 +331,32 @@ namespace GDNN.Rendering.Shaders
 
             b.BeginMain(tVoid, fragment: true);
 
-            uint inUV = b.Var(pInV2, Spirv.Input); b.DecLocation(inUV, 0);
-            uint tex0 = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(tex0, 0, 0);
-            uint tex1 = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(tex1, 0, 1);
-            uint tex2 = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(tex2, 0, 2);
-            uint tex3 = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(tex3, 0, 3);
-            uint tex4 = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(tex4, 0, 4);
-            uint tex5 = b.Var(pSD, Spirv.UniformConstant); b.DecSetBinding(tex5, 0, 5);
-            uint lightUbo = b.Var(pULight, Spirv.Uniform); b.DecSetBinding(lightUbo, 0, 6);
-            uint texAo = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(texAo, 0, 7);
-            uint texFog = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(texFog, 0, 8);
-            uint texC1 = b.Var(pSD, Spirv.UniformConstant); b.DecSetBinding(texC1, 0, 9);
-            uint texC2 = b.Var(pSD, Spirv.UniformConstant); b.DecSetBinding(texC2, 0, 10);
-            uint outC = b.Var(pOutV4, Spirv.Output); b.DecLocation(outC, 0);
+            uint inUV = b.Var(pInV2, Spirv.Input);
+            b.DecLocation(inUV, 0);
+            uint tex0 = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(tex0, 0, 0);
+            uint tex1 = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(tex1, 0, 1);
+            uint tex2 = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(tex2, 0, 2);
+            uint tex3 = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(tex3, 0, 3);
+            uint tex4 = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(tex4, 0, 4);
+            uint tex5 = b.Var(pSD, Spirv.UniformConstant);
+            b.DecSetBinding(tex5, 0, 5);
+            uint lightUbo = b.Var(pULight, Spirv.Uniform);
+            b.DecSetBinding(lightUbo, 0, 6);
+            uint texAo = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(texAo, 0, 7);
+            uint texFog = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(texFog, 0, 8);
+            uint texC1 = b.Var(pSD, Spirv.UniformConstant);
+            b.DecSetBinding(texC1, 0, 9);
+            uint texC2 = b.Var(pSD, Spirv.UniformConstant);
+            b.DecSetBinding(texC2, 0, 10);
+            uint outC = b.Var(pOutV4, Spirv.Output);
+            b.DecLocation(outC, 0);
 
             uint glsl = b.GlslId;
             b.Label();
@@ -521,11 +570,16 @@ namespace GDNN.Rendering.Shaders
             uint pSI = b.TPtr(Spirv.UniformConstant, tSImg);
 
             b.BeginMain(tVoid, fragment: true);
-            uint inUV = b.Var(pInV2, Spirv.Input); b.DecLocation(inUV, 0);
-            uint tex0 = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(tex0, 0, 0);
-            uint texVel = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(texVel, 0, 1);
-            uint texHist = b.Var(pSI, Spirv.UniformConstant); b.DecSetBinding(texHist, 0, 2);
-            uint outC = b.Var(pOutV4, Spirv.Output); b.DecLocation(outC, 0);
+            uint inUV = b.Var(pInV2, Spirv.Input);
+            b.DecLocation(inUV, 0);
+            uint tex0 = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(tex0, 0, 0);
+            uint texVel = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(texVel, 0, 1);
+            uint texHist = b.Var(pSI, Spirv.UniformConstant);
+            b.DecSetBinding(texHist, 0, 2);
+            uint outC = b.Var(pOutV4, Spirv.Output);
+            b.DecLocation(outC, 0);
 
             uint glsl = b.GlslId;
             b.Label();
@@ -765,8 +819,12 @@ namespace GDNN.Rendering.Shaders
             public uint TVoid() { uint id = Id(); Emit(_types, 19, id); return id; }
             public uint TBool()
             {
-                if (_boolType.HasValue) return _boolType.Value;
-                uint id = Id(); Emit(_types, 20, id); _boolType = id; return id;
+                if (_boolType.HasValue)
+                    return _boolType.Value;
+                uint id = Id();
+                Emit(_types, 20, id);
+                _boolType = id;
+                return id;
             }
             public uint TIntU() { uint id = Id(); Emit(_types, 21, id, 32, 0); return id; }
             public uint TFloat() { uint id = Id(); Emit(_types, 22, id, 32); return id; }
@@ -867,7 +925,8 @@ namespace GDNN.Rendering.Shaders
                 var w = new List<uint> { 0x07230203, 0x00010000, 0x0008000B, _bound, 0 };
                 w.AddRange(_cap);
                 w.AddRange(_ext);
-                if (_mem) Emit(w, 14, 0, 1);
+                if (_mem)
+                    Emit(w, 14, 0, 1);
                 w.AddRange(_entry);
                 w.AddRange(_mode);
                 w.AddRange(_dec);
