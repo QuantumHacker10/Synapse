@@ -1,5 +1,6 @@
 ﻿@page "/"
 @inject IJSRuntime Js
+@inject HttpClient Http
 
 <PageTitle>Synapse Web Studio</PageTitle>
 
@@ -72,9 +73,26 @@
 
         try
         {
+            // Prefer scene published beside the app by EngineHost.ExportWebStudioAsync.
+            try
+            {
+                var json = await Http.GetStringAsync("scene.synapse.json");
+                var parsed = WasmSceneDocument.TryParse(json);
+                if (parsed != null)
+                {
+                    _scene = parsed;
+                    _status = $"Scène chargée — {_scene.Name} ({_scene.Entities.Count} entités)";
+                }
+            }
+            catch
+            {
+                // Fall back to embedded demo when no published scene is present.
+            }
+
             var ok = await Js.InvokeAsync<bool>("synapseWebGpu.init", "synapse-viewport");
             _gpuReady = ok;
-            _status = ok ? "WebGPU prêt — éditez la scène." : "WebGPU indisponible — édition JSON seule.";
+            if (string.IsNullOrWhiteSpace(_status) || _status.StartsWith("Initialisation", StringComparison.Ordinal))
+                _status = ok ? "WebGPU prêt — éditez la scène." : "WebGPU indisponible — édition JSON seule.";
             if (ok)
                 await RefreshViewportAsync();
         }

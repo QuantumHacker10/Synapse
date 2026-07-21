@@ -15,6 +15,8 @@ namespace Synapse.Runtime
         public float SimulationMs { get; set; }
         public float RenderMs { get; set; }
         public float QualityMs { get; set; }
+        public float VrMs { get; set; }
+        public float CollaborationMs { get; set; }
         public bool IsPaused { get; set; }
         public string QualityPreset { get; set; } = "High";
         public int EntityCount { get; set; }
@@ -23,6 +25,10 @@ namespace Synapse.Runtime
         public int EvolutionGeneration { get; set; }
         public double BestFitness { get; set; }
         public string? LastRuntimeError { get; set; }
+        public bool VrActive { get; set; }
+        public bool WanActive { get; set; }
+        public string VrStatus { get; set; } = "";
+        public string WanStatus { get; set; } = "";
     }
 
     public sealed class FrameOrchestrator : IDisposable
@@ -77,7 +83,13 @@ namespace Synapse.Runtime
                     _fpsTimer.Restart();
                 }
 
-                float physicsMs = 0, simMs = 0, renderMs = 0, qualityMs = 0;
+                float physicsMs = 0, simMs = 0, renderMs = 0, qualityMs = 0, vrMs = 0, collabMs = 0;
+
+                {
+                    var sw = Stopwatch.StartNew();
+                    await _host.TickVrBeginAsync(cancellationToken).ConfigureAwait(false);
+                    vrMs += (float)sw.Elapsed.TotalMilliseconds;
+                }
 
                 if (!_paused)
                 {
@@ -98,6 +110,19 @@ namespace Synapse.Runtime
 
                 {
                     var sw = Stopwatch.StartNew();
+                    await _host.TickVrEndAsync(cancellationToken).ConfigureAwait(false);
+                    vrMs += (float)sw.Elapsed.TotalMilliseconds;
+                }
+
+                if (!_paused)
+                {
+                    var sw = Stopwatch.StartNew();
+                    await _host.TickCollaborationAsync(cancellationToken).ConfigureAwait(false);
+                    collabMs = (float)sw.Elapsed.TotalMilliseconds;
+                }
+
+                {
+                    var sw = Stopwatch.StartNew();
                     _host.TickQuality(dt, renderMs);
                     qualityMs = (float)sw.Elapsed.TotalMilliseconds;
                 }
@@ -111,6 +136,8 @@ namespace Synapse.Runtime
                     SimulationMs = simMs,
                     RenderMs = renderMs,
                     QualityMs = qualityMs,
+                    VrMs = vrMs,
+                    CollaborationMs = collabMs,
                     IsPaused = _paused,
                     QualityPreset = _host.QualityPresetName,
                     EntityCount = _host.EntityCount,
@@ -118,7 +145,11 @@ namespace Synapse.Runtime
                     FieldTemperatureAvg = _host.AverageFieldTemperature,
                     EvolutionGeneration = _host.EvolutionGeneration,
                     BestFitness = _host.BestFitness,
-                    LastRuntimeError = _host.LastRuntimeError
+                    LastRuntimeError = _host.LastRuntimeError,
+                    VrActive = _host.IsVrActive,
+                    WanActive = _host.IsWanConnected,
+                    VrStatus = _host.VrStatusText,
+                    WanStatus = _host.WanStatusText
                 };
 
                 return LastStats;

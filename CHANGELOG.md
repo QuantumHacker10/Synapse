@@ -20,6 +20,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ### Modifié
 
+- **VR / WAN / Web** : features de première classe branchées sur `EngineHost`, `FrameOrchestrator` et Studio (menus Collab, status bar, patches scène)
 - **VR / WAN / Web** promus **EarlyAccess** (chemins natifs branchés ; pas encore Supported)
 - Positionnement honnête **accès anticipé / R&D** (README, ROADMAP, site, SECURITY)
 - **GLB** : chunks bornés + plafonds fichier / data URI

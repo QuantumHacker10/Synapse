@@ -4,6 +4,7 @@ using System.Reflection;
 using FluentAssertions;
 using Synapse.Core.Maturity;
 using Synapse.Network;
+using Synapse.Plugins;
 using Synapse.VR;
 using Synapse.Web;
 using Xunit;
@@ -29,15 +30,21 @@ public sealed class FeatureMaturityCatalogTests
     }
 
     [Fact]
-    public void ExperimentalTypes_CarrySynapseExperimentalAttribute()
+    public void FirstClassSurfaces_AreNotMarkedExperimental()
     {
-        AssertExperimental(typeof(OpenXrVulkanSwapchain), "VR.OpenXR");
-        AssertExperimental(typeof(OpenXrVulkanSession), "VR.OpenXR");
-        AssertExperimental(typeof(NatTraversalCoordinator), "Network.WAN");
-        AssertExperimental(typeof(WanSimulationPeerHub), "Network.WAN");
+        typeof(OpenXrVulkanSwapchain).GetCustomAttribute<SynapseExperimentalAttribute>().Should().BeNull();
+        typeof(OpenXrVulkanSession).GetCustomAttribute<SynapseExperimentalAttribute>().Should().BeNull();
+        typeof(NatTraversalCoordinator).GetCustomAttribute<SynapseExperimentalAttribute>().Should().BeNull();
+        typeof(WanSimulationPeerHub).GetCustomAttribute<SynapseExperimentalAttribute>().Should().BeNull();
+        typeof(WebEditorBuilder).GetCustomAttribute<SynapseExperimentalAttribute>().Should().BeNull();
+        typeof(WasmStudioPublisher).GetCustomAttribute<SynapseExperimentalAttribute>().Should().BeNull();
+    }
+
+    [Fact]
+    public void RemainingExperimentalTypes_CarrySynapseExperimentalAttribute()
+    {
         AssertExperimental(typeof(MultiPeerSimulationHub), "Network.P2P");
-        AssertExperimental(typeof(WebEditorBuilder), "Web.Editor");
-        AssertExperimental(typeof(Synapse.Plugins.PluginHost), "Plugins.CSharp");
+        AssertExperimental(typeof(PluginHost), "Plugins.CSharp");
     }
 
     [Fact]
@@ -48,7 +55,7 @@ public sealed class FeatureMaturityCatalogTests
     }
 
     [Fact]
-    public void NatCoordinator_DeclaresLoopbackOnly()
+    public void NatCoordinator_DeclaresLoopbackOnlyUntilStun()
     {
         using var logger = new Synapse.Infrastructure.Logging.SynapseLogger(null, Synapse.Infrastructure.Logging.LogLevel.Error, consoleEnabled: false);
         using var nat = new NatTraversalCoordinator(logger, "maturity-test");

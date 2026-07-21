@@ -1,14 +1,11 @@
 using System;
-using Synapse.Core.Maturity;
 
 namespace Synapse.VR;
 
 /// <summary>
 /// OpenXR-style Vulkan swapchain wrapper. Supports native image handles from
 /// <see cref="NativeOpenXrRuntime"/> or synthetic lab handles for simulate mode.
-/// See <c>docs/MATURITY.md</c> (<c>VR.OpenXR</c>).
 /// </summary>
-[SynapseExperimental("VR.OpenXR", "Native or synthetic swapchain image handles depending on OpenXR path.")]
 public sealed class OpenXrVulkanSwapchain : IDisposable
 {
     private readonly object _gate = new();

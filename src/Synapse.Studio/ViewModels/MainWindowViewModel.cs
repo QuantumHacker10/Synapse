@@ -53,6 +53,14 @@ namespace Synapse.Studio.ViewModels
             _host.ViewportEditor.ToolMode = ViewportToolMode.Translate;
             _host.ViewportEntitySelected += OnViewportEntitySelected;
             _host.InspectorFeedEntryAdded += OnInspectorFeedEntry;
+            _host.CollaborationPatchApplied += OnCollaborationPatchApplied;
+
+            WanSessionCode = config.WanSessionCode ?? "synapse-room";
+            WanPort = config.WanPort;
+            WanRendezvousPort = config.WanRendezvousPort;
+            VrStatusText = _host.VrStatusText;
+            WanStatusText = _host.WanStatusText;
+            WebStatusText = _host.WebStatusText;
 
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
             _uiTimer.Tick += (_, _) => RefreshStatus();
@@ -130,6 +138,13 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private string physicsToolsStatus = "Physique Omnia : mesh · joints · véhicule";
         [ObservableProperty] private bool isInspectorModeEnabled;
         [ObservableProperty] private string inspectorFeedStatus = "Mode inspecteur inactif";
+        [ObservableProperty] private string wanSessionCode = "synapse-room";
+        [ObservableProperty] private int wanPort = 7777;
+        [ObservableProperty] private int wanRendezvousPort;
+        [ObservableProperty] private string vrStatusText = "VR : off";
+        [ObservableProperty] private string wanStatusText = "WAN : off";
+        [ObservableProperty] private string webStatusText = "Web : prêt";
+        [ObservableProperty] private string collaborationStatus = "Collaboration inactive";
         private Guid? _jointPartnerId;
         private const int MaxInspectorFeedEntries = 500;
 
@@ -316,6 +331,22 @@ namespace Synapse.Studio.ViewModels
 
             var giGpu = _host.RenderEngine?.SceneRenderer?.GiUsesGpuReadback ?? false;
             GiStatus = giGpu ? "GI : lecture G-buffer GPU active" : "GI : constantes de repli";
+
+            VrStatusText = _host.VrStatusText;
+            WanStatusText = _host.WanStatusText;
+            WebStatusText = _host.WebStatusText;
+            CollaborationStatus = _host.IsWanConnected
+                ? $"WAN patches ↑{_host.WanPatchesSent} ↓{_host.WanPatchesReceived} | VR {(_host.IsVrActive ? "on" : "off")}"
+                : (_host.IsVrActive ? $"VR actif ({s.VrMs:F1} ms)" : "Collaboration inactive");
+        }
+
+        private void OnCollaborationPatchApplied(string peerId)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                RefreshEntities();
+                CollaborationStatus = $"Patch reçu de {peerId[..Math.Min(8, peerId.Length)]}…";
+            });
         }
 
         [RelayCommand]
@@ -718,6 +749,117 @@ namespace Synapse.Studio.ViewModels
         }
 
         [RelayCommand]
+        private async Task EnableVrAsync()
+        {
+            try
+            {
+                CollaborationStatus = "Démarrage OpenXR…";
+                bool ok = await _host.EnableVrAsync();
+                VrStatusText = _host.VrStatusText;
+                CollaborationStatus = ok ? "VR activé" : "VR indisponible";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "VR enable failed", ex);
+                CollaborationStatus = $"Erreur VR — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task DisableVrAsync()
+        {
+            await _host.DisableVrAsync();
+            VrStatusText = _host.VrStatusText;
+            CollaborationStatus = "VR arrêté";
+        }
+
+        [RelayCommand]
+        private async Task StartWanHostAsync()
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(WanSessionCode))
+                {
+                    CollaborationStatus = "Code de session requis";
+                    return;
+                }
+
+                CollaborationStatus = "Hébergement WAN…";
+                await _host.StartWanHostAsync(WanSessionCode.Trim(), WanPort);
+                WanStatusText = _host.WanStatusText;
+                WanRendezvousPort = _host.WanHub?.RendezvousPort ?? 0;
+                CollaborationStatus = $"Hôte prêt — rdv UDP {WanRendezvousPort}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "WAN host failed", ex);
+                CollaborationStatus = $"Erreur WAN host — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task JoinWanAsync()
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(WanSessionCode))
+                {
+                    CollaborationStatus = "Code de session requis";
+                    return;
+                }
+
+                CollaborationStatus = "Connexion WAN…";
+                await _host.JoinWanAsync(WanSessionCode.Trim(), WanRendezvousPort);
+                WanStatusText = _host.WanStatusText;
+                CollaborationStatus = "Connecté au pair WAN";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "WAN join failed", ex);
+                CollaborationStatus = $"Erreur WAN join — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task StopWanAsync()
+        {
+            await _host.StopWanAsync();
+            WanStatusText = _host.WanStatusText;
+            CollaborationStatus = "WAN arrêté";
+        }
+
+        [RelayCommand]
+        private async Task ExportWebStudioAsync()
+        {
+            try
+            {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var folder = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                {
+                    Title = "Exporter Synapse Web Studio (WASM)",
+                    AllowMultiple = false
+                });
+                var path = folder.Count > 0 ? folder[0].TryGetLocalPath() : null;
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                CollaborationStatus = "Publication Web Studio…";
+                var result = await _host.ExportWebStudioAsync(path);
+                WebStatusText = _host.WebStatusText;
+                CollaborationStatus = result.UsedDotnetPublish
+                    ? $"WASM publié — {result.OutputDirectory}"
+                    : $"Site WebGPU — {result.OutputDirectory}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Web export failed", ex);
+                CollaborationStatus = $"Erreur export web — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
         private void About() => ShowAboutText = true;
 
         [RelayCommand]
@@ -879,6 +1021,7 @@ namespace Synapse.Studio.ViewModels
             _uiTimer.Stop();
             _host.ViewportEntitySelected -= OnViewportEntitySelected;
             _host.InspectorFeedEntryAdded -= OnInspectorFeedEntry;
+            _host.CollaborationPatchApplied -= OnCollaborationPatchApplied;
             _megascans.Dispose();
             GC.SuppressFinalize(this);
         }

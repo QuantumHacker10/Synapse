@@ -5,15 +5,14 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Synapse.Core.Maturity;
 using Synapse.Infrastructure;
 
 namespace Synapse.Web;
 
 /// <summary>
 /// Publishes the Blazor WASM Studio and writes a scene bundle for static hosting.
+/// Bridged by <see cref="Synapse.Runtime.EngineHost.ExportWebStudioAsync"/>.
 /// </summary>
-[SynapseExperimental("Web.Editor", "Blazor WASM Studio publish + static scene bundle.")]
 public static class WasmStudioPublisher
 {
     private static readonly JsonSerializerOptions SceneJsonOptions = new() { WriteIndented = true };

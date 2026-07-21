@@ -27,7 +27,7 @@ namespace Synapse.Runtime
     /// via <see cref="TickPhysics"/>, <see cref="TickSimulationAsync"/>, and
     /// <see cref="TickRender"/>.
     /// </summary>
-    public sealed class EngineHost : IAsyncDisposable
+    public sealed partial class EngineHost : IAsyncDisposable
     {
         private readonly SynapseConfig _config;
         private readonly ISynapseLogger _logger;
@@ -1269,13 +1269,14 @@ namespace Synapse.Runtime
             };
         }
 
-        /// <summary>Releases evolution, LLM, quality, and render resources.</summary>
+        /// <summary>Releases evolution, LLM, quality, collaboration, and render resources.</summary>
         public async ValueTask DisposeAsync()
         {
             CancelEvolution();
             _evolutionCts?.Dispose();
             if (_evolution != null)
                 await _evolution.DisposeAsync();
+            await DisposeCollaborationAsync().ConfigureAwait(false);
             _multiphysics?.Dispose();
             _llmRouter?.Dispose();
             _quality?.Dispose();

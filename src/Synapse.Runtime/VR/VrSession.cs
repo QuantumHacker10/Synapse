@@ -2,7 +2,6 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Synapse.Core.Maturity;
 using Synapse.Infrastructure.Logging;
 
 namespace Synapse.VR;
@@ -10,9 +9,8 @@ namespace Synapse.VR;
 /// <summary>
 /// OpenXR session lifecycle. Prefers a native Silk.NET OpenXR session when a loader/runtime
 /// is available; falls back to synthetic lab mode only when <c>SYNAPSE_VR_SIMULATE=1</c>.
-/// See <c>docs/MATURITY.md</c> (<c>VR.OpenXR</c>).
+/// Owned by <see cref="Synapse.Runtime.EngineHost"/> and ticked by <see cref="Synapse.Runtime.FrameOrchestrator"/>.
 /// </summary>
-[SynapseExperimental("VR.OpenXR", "Native OpenXR via Silk.NET when loader/runtime present; simulate mode for lab.")]
 public interface IVrSession : IAsyncDisposable
 {
     bool IsAvailable { get; }
@@ -31,7 +29,6 @@ public interface IVrSession : IAsyncDisposable
 }
 
 /// <summary>OpenXR session: native Silk.NET path, optional synthetic simulate fallback.</summary>
-[SynapseExperimental("VR.OpenXR", "Native OpenXR via Silk.NET when loader/runtime present; simulate mode for lab.")]
 public sealed class OpenXrVulkanSession : IVrSession
 {
     private readonly ISynapseLogger? _logger;

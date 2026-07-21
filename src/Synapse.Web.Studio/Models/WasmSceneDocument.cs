@@ -31,12 +31,69 @@ public sealed class WasmSceneDocument
     {
         try
         {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            // Prefer dedicated WASM shape; also accept Runtime SceneDocument JSON.
+            if (root.TryGetProperty("entities", out var entitiesEl) ||
+                root.TryGetProperty("Entities", out entitiesEl))
+            {
+                var scene = new WasmSceneDocument
+                {
+                    Name = ReadString(root, "name", "Name") ?? "Untitled",
+                    Version = ReadString(root, "version", "Version") ?? "2.2",
+                    ActiveLawId = ReadString(root, "activeLawId", "ActiveLawId")
+                };
+
+                foreach (var e in entitiesEl.EnumerateArray())
+                {
+                    var id = ReadString(e, "id", "Id") ?? Guid.NewGuid().ToString("N");
+                    var pos = ReadVec3(e, "position", "Position");
+                    var scale = ReadVec3(e, "scale", "Scale", new WasmVec3(1, 1, 1));
+                    scene.Entities.Add(new WasmEntity
+                    {
+                        Id = id,
+                        Name = ReadString(e, "name", "Name") ?? "Entity",
+                        Type = ReadString(e, "type", "Type") ?? "Mesh",
+                        Position = pos,
+                        Scale = scale
+                    });
+                }
+
+                return scene;
+            }
+
             return JsonSerializer.Deserialize(json, WasmSceneJsonContext.Default.WasmSceneDocument);
         }
         catch
         {
             return null;
         }
+    }
+
+    private static string? ReadString(JsonElement el, string camel, string pascal)
+    {
+        if (el.TryGetProperty(camel, out var v) || el.TryGetProperty(pascal, out v))
+            return v.ValueKind == JsonValueKind.String ? v.GetString() : v.ToString();
+        return null;
+    }
+
+    private static WasmVec3 ReadVec3(JsonElement parent, string camel, string pascal, WasmVec3? fallback = null)
+    {
+        if (!parent.TryGetProperty(camel, out var v) && !parent.TryGetProperty(pascal, out v))
+            return fallback ?? new WasmVec3();
+
+        if (v.ValueKind == JsonValueKind.Array && v.GetArrayLength() >= 3)
+            return new WasmVec3(v[0].GetSingle(), v[1].GetSingle(), v[2].GetSingle());
+
+        float x = 0, y = 0, z = 0;
+        if (v.TryGetProperty("x", out var xv) || v.TryGetProperty("X", out xv))
+            x = xv.GetSingle();
+        if (v.TryGetProperty("y", out var yv) || v.TryGetProperty("Y", out yv))
+            y = yv.GetSingle();
+        if (v.TryGetProperty("z", out var zv) || v.TryGetProperty("Z", out zv))
+            z = zv.GetSingle();
+        return new WasmVec3(x, y, z);
     }
 
     public string ToJson() => JsonSerializer.Serialize(this, WasmSceneJsonContext.Default.WasmSceneDocument);

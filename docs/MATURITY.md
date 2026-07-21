@@ -24,9 +24,9 @@ Ce document est la source de vérité des claims. Le catalogue code miroir est
 | `IO.GlTF` | Export glTF / import mesh | **EarlyAccess** | FBX ASCII + USDA limités |
 | `Plugins.CSharp` | Plugins C# | **EarlyAccess** | ALC isolé ≠ sandbox; `SYNAPSE_PLUGIN_TRUST=require-manifest` |
 | `Network.P2P` | P2P multi-pairs | **Experimental** | Labo TCP + framing exact ; pas collaboratif production |
-| `Network.WAN` | WAN NAT + AES-GCM | **EarlyAccess** | STUN + rendez-vous UDP + hole-punch ; NAT symétrique peut encore nécessiter un relay |
-| `VR.OpenXR` | OpenXR swapchain | **EarlyAccess** | Session native Silk.NET ; `SYNAPSE_VR_SIMULATE=1` pour lab synthétique |
-| `Web.Editor` | Éditeur web WASM | **EarlyAccess** | `Synapse.Web.Studio` Blazor WASM + `--export-web` |
+| `Network.WAN` | WAN NAT + AES-GCM | **EarlyAccess** | Branché EngineHost + Studio (STUN, hole-punch, patches scène) |
+| `VR.OpenXR` | OpenXR swapchain | **EarlyAccess** | Branché EngineHost + FrameOrchestrator + menu Studio |
+| `Web.Editor` | Éditeur web WASM | **EarlyAccess** | Blazor Studio + export menu / `--export-web` + `scene.synapse.json` |
 
 ### Légende des tiers
 
@@ -39,8 +39,8 @@ Ce document est la source de vérité des claims. Le catalogue code miroir est
 ## Ce que v2.2 assume honnêtement
 
 - Studio + runtime local pour explorer scènes, lois vivantes, agents et benchmarks.
-- Surfaces VR / WAN / web marquées `[SynapseExperimental]` mais désormais branchées sur des
-  chemins natifs (OpenXR Silk.NET, STUN/NAT, Blazor WASM) — encore EarlyAccess, pas Supported.
+- Surfaces VR / WAN / web branchées dans EngineHost, FrameOrchestrator et Studio (EarlyAccess).
+  Plus marquées `[SynapseExperimental]` (réservé aux scaffolds restants comme P2P lab).
 - Pas de promesse de path tracing certifié, FEM production, ou simulation collaborative WAN.
 
 ## Prochaines priorités de durcissement

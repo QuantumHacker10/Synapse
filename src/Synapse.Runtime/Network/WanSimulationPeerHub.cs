@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Synapse.Core.Maturity;
 using Synapse.Infrastructure.Logging;
 
 namespace Synapse.Network;
@@ -23,9 +22,8 @@ public sealed record NatPeerEndpoint(
 /// <summary>
 /// NAT traversal coordinator: STUN mapped-address discovery, UDP rendezvous registration,
 /// and bidirectional UDP hole-punching. Falls back to loopback-only when STUN is unreachable
-/// (offline CI). See <c>docs/MATURITY.md</c> (<c>Network.WAN</c>).
+/// (offline CI). Bridged by <see cref="Synapse.Runtime.EngineHost"/>.
 /// </summary>
-[SynapseExperimental("Network.WAN", "STUN + UDP hole-punch + rendezvous; symmetric NAT may still need a relay.")]
 public sealed class NatTraversalCoordinator : IDisposable
 {
     private static readonly ConcurrentDictionary<string, NatPeerEndpoint> RegisteredPeers = new(StringComparer.Ordinal);
@@ -300,9 +298,8 @@ public sealed class NatTraversalCoordinator : IDisposable
 
 /// <summary>
 /// Encrypted P2P hub with STUN-backed NAT traversal + AES-GCM.
-/// See <c>docs/MATURITY.md</c> (<c>Network.WAN</c>).
+/// Owned by <see cref="Synapse.Runtime.EngineHost"/> for Studio/CLI collaboration.
 /// </summary>
-[SynapseExperimental("Network.WAN", "STUN + hole-punch + AES-GCM; symmetric NAT may need an external relay.")]
 public sealed class WanSimulationPeerHub : IAsyncDisposable
 {
     private readonly ISynapseLogger _logger;
@@ -340,9 +337,10 @@ public sealed class WanSimulationPeerHub : IAsyncDisposable
             $"WAN encrypted host on port {_inner.ListenPort} (rendezvous={_nat.RendezvousPort}, mapped={_nat.MappedEndpoint}, loopback={_nat.IsLoopbackOnly})");
     }
 
-    public async Task JoinAsync(CancellationToken ct = default)
+    public async Task JoinAsync(int? remoteRendezvousPort = null, CancellationToken ct = default)
     {
-        using var clientNat = new NatTraversalCoordinator(_logger, _sessionCode, _nat.RendezvousPort);
+        int port = remoteRendezvousPort is > 0 ? remoteRendezvousPort.Value : _nat.RendezvousPort;
+        using var clientNat = new NatTraversalCoordinator(_logger, _sessionCode, port);
         await clientNat.DiscoverPublicEndpointAsync(ct).ConfigureAwait(false);
         var peer = await clientNat.DiscoverPeerAsync(ct).ConfigureAwait(false);
         if (peer == null || peer.TcpPort == 0)
@@ -351,13 +349,12 @@ public sealed class WanSimulationPeerHub : IAsyncDisposable
 
         await clientNat.HolePunchAsync(peer, ct: ct).ConfigureAwait(false);
 
-        // Prefer mapped public address; for same-host lab (loopback advertisement) use loopback.
         var connectHost = peer.Address.Equals(IPAddress.Any) || peer.Address.Equals(IPAddress.IPv6Any)
             ? IPAddress.Loopback.ToString()
             : peer.Address.ToString();
 
         await _inner.ConnectAsync(connectHost, peer.TcpPort, ct).ConfigureAwait(false);
-        _logger.Info("Network", $"WAN join connected to {connectHost}:{peer.TcpPort}");
+        _logger.Info("Network", $"WAN join connected to {connectHost}:{peer.TcpPort} (rdv={port})");
     }
 
     public async Task BroadcastScenePatchAsync(ReadOnlyMemory<byte> patch, CancellationToken ct = default)

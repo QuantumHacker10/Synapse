@@ -54,11 +54,11 @@ public static class FeatureMaturityCatalog
         new("Network.P2P", "P2P multi-pairs", MaturityTier.Experimental,
             "TCP localhost / labo avec framing exact; pas un réseau collaboratif production."),
         new("Network.WAN", "P2P WAN (NAT + AES-GCM)", MaturityTier.EarlyAccess,
-            "STUN (RFC 5389) + rendez-vous UDP + hole-punch + AES-GCM; NAT symétrique peut encore nécessiter un relay."),
+            "Intégré à EngineHost/Studio : STUN + rendez-vous + hole-punch + patches scène ; NAT symétrique peut encore nécessiter un relay."),
         new("VR.OpenXR", "OpenXR / swapchain Vulkan", MaturityTier.EarlyAccess,
-            "Session native Silk.NET OpenXR (XR_MND_headless / runtime); SYNAPSE_VR_SIMULATE=1 pour lab synthétique."),
+            "Intégré à EngineHost/FrameOrchestrator/Studio ; Silk.NET natif + SYNAPSE_VR_SIMULATE=1."),
         new("Web.Editor", "Éditeur web WASM / WebGPU", MaturityTier.EarlyAccess,
-            "Synapse.Web.Studio (Blazor WASM) + --export-web; WebGPU canvas et import/export scène/glTF."),
+            "Synapse.Web.Studio + ExportWebStudioAsync / menu Studio ; scene.synapse.json partagé."),
     ];
 
     public static IEnumerable<FeatureMaturityEntry> OfTier(MaturityTier tier)
