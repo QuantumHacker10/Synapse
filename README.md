@@ -1,4 +1,4 @@
-# SYNAPSE OMNIA — Outil de simulation 3D · v2.2
+# SYNAPSE OMNIA — Outil de simulation 3D · v2.3
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
@@ -6,7 +6,7 @@
 [![codecov](https://codecov.io/gh/QuantumHacker10/Synapse/graph/badge.svg)](https://codecov.io/gh/QuantumHacker10/Synapse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
-[![Tests](https://img.shields.io/badge/tests-266%20passing-brightgreen)](tests/Synapse.Tests)
+[![Tests](https://img.shields.io/badge/tests-281%20passing-brightgreen)](tests/Synapse.Tests)
 
 **Synapse OMNIA** est un **outil de simulation 3D** : un monde numérique que l'on observe,
 modifie et fait évoluer — pas un moteur de jeu, ni une boîte à monter des niveaux.
@@ -16,12 +16,12 @@ comment formes, lois et agents sentients changent ensemble.
 Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
 Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
-> **Produit v2.2** — Synapse Studio + runtime unifié, **plugins C#**, benchmarks headless reproductibles,
-> import FBX/USD, export scène glTF, blueprint runtime, marketplace `.synapse-law`,
-> P2P WAN chiffré, OpenXR swapchain Vulkan, éditeur web glTF interactif, captures Studio live.
-> Builds **Windows x64**, **Linux x64** et **macOS arm64**.
+> **Produit v2.3** — multi-plateforme natif milieu de gamme (Vulkan 1.2, AVX2/NEON, 6 RID),
+> import **USDC**, blueprints **éditables en live**, couverture tests **~50 %**,
+> plugins C#, benchmarks headless, P2P WAN, OpenXR, éditeur web glTF.
+> Builds **Windows / Linux / macOS** × **x64 / arm64**.
 
-**Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v2.2](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
+**Configuration minimale :** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **Site :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
 
 ## Sommaire
 
@@ -53,14 +53,17 @@ Six idées rares réunies dans **un seul outil de simulation**, pas comme des pl
 
 ## Prérequis
 
+Voir le détail : **[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)** (matériel milieu de gamme, RID, SIMD).
+
 | Composant | Version / détail |
 |---|---|
 | [.NET SDK](https://dotnet.microsoft.com/download) | **10.0.300** (voir [`global.json`](global.json)) |
-| GPU | Pilote **Vulkan** à jour (NVIDIA, AMD, Intel ; MoltenVK sur macOS) |
-| Windows (publish) | `glfw3.dll` 3.4+ (voir [glfw3.dll](#glfw3dll)) |
+| GPU | **Vulkan 1.1+** (1.2 recommandé) — NVIDIA, AMD, Intel iGPU ; MoltenVK sur macOS |
+| CPU | x64/Arm64 — baseline **AVX2 / NEON** (AVX-512 optionnel) |
+| GLFW | 3.3+ (`glfw3.dll` / `libglfw.so.3` / `libglfw.3.dylib`) |
 | LLM (optionnel) | [Ollama](https://ollama.com/) en local, ou clés API cloud (voir [Configuration](#configuration)) |
 
-**Plateformes cibles :** Windows, Linux et macOS en **natif GLFW + Vulkan** (MoltenVK sur macOS). Publish officiel win-x64 ; Linux/macOS via `dotnet publish -r linux-x64|osx-arm64`. HWND = embed Studio Windows uniquement.
+**Plateformes cibles :** `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-arm64`, `osx-x64` — natif GLFW + Vulkan. HWND = embed Studio Windows uniquement.
 
 ## Démarrage rapide
 
@@ -212,13 +215,17 @@ Les agents sentients ne sont pas des PNJ de jeu : ils perçoivent, mémorisent e
 
 Voir [docs/screenshots/README.md](docs/screenshots/README.md) pour capturer vos propres PNG (`--screenshot` ou script Python).
 
-## Publish (Windows x64)
+## Publish (multi-plateforme)
 
 ```bash
-dotnet publish src/Synapse.Studio/Synapse.Studio.csproj -c Release -r win-x64 --self-contained true -o artifacts/Synapse-win-x64
+# Une RID
+dotnet publish src/Synapse.Studio/Synapse.Studio.csproj -c Release -r linux-x64 --self-contained true -o artifacts/Synapse-linux-x64
+
+# Toutes les RID natives (win/linux/osx × x64/arm64)
+bash scripts/publish-all.sh
 ```
 
-Les tags `v*` déclenchent [`.github/workflows/release.yml`](.github/workflows/release.yml) et publient un zip win-x64 sur GitHub Releases.
+Voir [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md). Les tags `v*` déclenchent [`.github/workflows/release.yml`](.github/workflows/release.yml) (6 artefacts).
 
 ## Tests & CI
 
@@ -233,7 +240,7 @@ Suite xUnit + FluentAssertions sous [`tests/Synapse.Tests`](tests/Synapse.Tests)
 | [`build.yml`](.github/workflows/build.yml) | Linux + macOS tests, Coverlet + Codecov, publish win/linux |
 | [`analysis.yml`](.github/workflows/analysis.yml) | Analyseurs Roslyn + `dotnet format --verify-no-changes` |
 | [`codeql.yml`](.github/workflows/codeql.yml) | Analyse de sécurité CodeQL (C#) |
-| [`release.yml`](.github/workflows/release.yml) | Matrix win/linux/osx sur tag `v*` |
+| [`release.yml`](.github/workflows/release.yml) | Matrix 6 RID (win/linux/osx × x64/arm64) sur tag `v*` |
 | [`pages.yml`](.github/workflows/pages.yml) | Déploiement du site vitrine sur GitHub Pages |
 
 Couverture de code : `coverlet.runsettings` + upload Codecov. Audit dépendances : `scripts/verify-licenses.sh`.

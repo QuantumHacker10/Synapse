@@ -30,11 +30,8 @@ public sealed class UsdAsciiLoader
                 return Task.FromResult(result);
             }
 
-            if (ext == ".usdc")
-            {
-                result.ErrorMessage = "Binary USD (usdc) requires v2.1; use USDA ASCII for now.";
-                return Task.FromResult(result);
-            }
+            if (ext == ".usdc" || (ext == ".usd" && IsBinaryUsd(filePath)))
+                return new UsdBinaryLoader().LoadAsync(filePath, config, ct);
 
             var text = File.ReadAllText(filePath);
             var points = ParsePointsArray(text);
@@ -141,5 +138,20 @@ public sealed class UsdAsciiLoader
         }
 
         return indices;
+    }
+
+    private static bool IsBinaryUsd(string filePath)
+    {
+        try
+        {
+            Span<byte> header = stackalloc byte[8];
+            using var fs = File.OpenRead(filePath);
+            int read = fs.Read(header);
+            return read == 8 && UsdBinaryLoader.IsUsdc(header);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

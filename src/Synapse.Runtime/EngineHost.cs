@@ -52,6 +52,12 @@ namespace Synapse.Runtime
         private bool _simulationPlaying = true;
         private string _llmProviderSummary = "LLM not initialized";
         private readonly ViewportEditorState _viewportEditor = new();
+        private BlueprintRuntimeExecutor? _blueprintExecutor;
+        private string? _liveBlueprintName;
+        private Guid? _liveBlueprintAgentId;
+
+        /// <summary>When true, blueprint graph edits hot-reload the live agent tree without respawning.</summary>
+        public bool BlueprintLiveEdit { get; set; } = true;
 
         /// <summary>Viewport gizmo/grid/selection state for Studio.</summary>
         public ViewportEditorState ViewportEditor => _viewportEditor;
@@ -310,6 +316,8 @@ namespace Synapse.Runtime
                 return;
             try
             {
+                if (_blueprintExecutor is { IsRunning: true })
+                    await _blueprintExecutor.TickAsync(dt, cancellationToken).ConfigureAwait(false);
                 await _sentience.UpdateAsync(dt).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -643,9 +651,56 @@ namespace Synapse.Runtime
                 Position = Vec3.From(position),
                 BehaviorProfile = document.Name
             });
+            _liveBlueprintName = document.Name;
+            _liveBlueprintAgentId = entity.EntityId;
+            _blueprintExecutor ??= new BlueprintRuntimeExecutor(this, _logger);
+            _blueprintExecutor.Load(document);
             SyncSceneToRenderer();
             return entity;
         }
+
+        /// <summary>
+        /// Hot-reloads a blueprint into the running simulation: recompiles the behavior tree in place
+        /// and refreshes the live <see cref="BlueprintRuntimeExecutor"/> graph without spawning a new agent.
+        /// </summary>
+        public bool HotReloadBlueprint(BlueprintDocument document)
+        {
+            ArgumentNullException.ThrowIfNull(document);
+            InitializeModules();
+            var (ok, msg) = document.Validate();
+            if (!ok)
+            {
+                _logger.Warn("Blueprint", $"Live edit rejected: {msg}");
+                return false;
+            }
+
+            var blueprint = document.CompileToBehaviorTreeBlueprint();
+            var tree = _sentience!.Compiler.CompileFromBlueprint(document.Name, blueprint);
+            _sentience.RegisterBehaviorTree(document.Name, tree);
+
+            // Update existing agents that were spawned from this blueprint (cloned trees).
+            foreach (var entity in _sentience.GetAllEntities())
+            {
+                var treeName = entity.BehaviorTree?.Name;
+                if (treeName == null)
+                    continue;
+                if (treeName == document.Name ||
+                    treeName.StartsWith(document.Name + "_", StringComparison.Ordinal) ||
+                    (_liveBlueprintAgentId is Guid id && entity.EntityId == id))
+                {
+                    entity.BehaviorTree = tree.Clone();
+                }
+            }
+
+            _liveBlueprintName = document.Name;
+            _blueprintExecutor ??= new BlueprintRuntimeExecutor(this, _logger);
+            _blueprintExecutor.Load(document);
+            _logger.Info("Blueprint", $"Live hot-reload OK: '{document.Name}'");
+            return true;
+        }
+
+        /// <summary>Stops the live blueprint graph executor (behavior trees keep running on agents).</summary>
+        public void StopLiveBlueprintExecutor() => _blueprintExecutor?.Stop();
 
         /// <summary>Sets the selected entity for viewport gizmos.</summary>
         public void SetViewportSelection(Guid entityId) => _viewportEditor.SelectedEntityId = entityId;

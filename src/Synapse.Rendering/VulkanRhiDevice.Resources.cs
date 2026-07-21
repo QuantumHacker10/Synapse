@@ -96,7 +96,7 @@ namespace GDNN.RHI.Vulkan
             {
                 var ptr = _device.GetDeviceProcAddr(name);
                 if (ptr == IntPtr.Zero)
-                    ptr = GetProcAddress("vulkan-1.dll", namePtr);
+                    ptr = GetProcAddress("vulkan-1", namePtr);
                 if (ptr != IntPtr.Zero)
                     return Marshal.GetDelegateForFunctionPointer<T>(ptr);
             }
@@ -378,11 +378,11 @@ namespace GDNN.RHI.Vulkan
             _vkCmdBindDescriptorSets = Marshal.GetDelegateForFunctionPointer<CmdBindDescriptorSetsDel>(load("vkCmdBindDescriptorSets"));
         }
 
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern VulkanResult vkBeginCommandBuffer(IntPtr commandBuffer, ref VkCommandBufferBeginInfo pBeginInfo);
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern VulkanResult vkEndCommandBuffer(IntPtr commandBuffer);
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern void vkCmdPipelineBarrier(IntPtr cmdBuffer, PipelineStageFlag srcStageMask, PipelineStageFlag dstStageMask, uint dependencyFlags, uint memoryBarrierCount, IntPtr pMemoryBarriers, uint bufferMemoryBarrierCount, IntPtr pBufferMemoryBarriers, uint imageMemoryBarrierCount, IntPtr pImageMemoryBarriers);
 
         [StructLayout(LayoutKind.Sequential)]

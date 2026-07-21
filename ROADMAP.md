@@ -2,7 +2,15 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.0 — Actuel (2026-07)
+## v2.3 — Actuel (2026-07)
+
+- [x] Multi-plateforme natif élargi (6 RID, Vulkan 1.2 mid-range, AVX2/NEON baseline)
+- [x] Configuration minimale documentée (`docs/REQUIREMENTS.md`)
+- [x] Import USD binaire (USDC) — mesh-pack Synapse + best-effort OpenUSD
+- [x] Blueprint éditable temps réel dans Studio (hot-reload live)
+- [x] Couverture de code cible **50 %** (Codecov)
+
+## v2.0 — Livré (2026-07)
 
 - [x] API plugin C# (chargement DLL sandboxé)
 - [x] Mode headless benchmarks automatisés
@@ -16,7 +24,7 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] Fondations P2P, VR (OpenXR stub), preview web
 - [x] Tutoriels écrits + guide benchmarks (docs/)
 
-## v2.1 — Actuel (2026-07)
+## v2.1 — Livré (2026-07)
 
 - [x] Captures PNG Studio dans README (`docs/screenshots/*.png`)
 - [x] Découpage `LivingLawLibrary.cs` et `EntityBehaviorSystem.cs`
@@ -24,26 +32,26 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] OpenXR session production (`OpenXrVulkanSession`)
 - [x] Éditeur web WebGPU (`site/editor/`, `WebEditorBuilder`)
 
-## v2.2 — Actuel (2026-07)
+## v2.2 — Livré (2026-07)
 
 - [x] Captures PNG live Studio (`--screenshot`, Avalonia Headless + Skia)
 - [x] OpenXR swapchain Vulkan réel (`OpenXrVulkanSwapchain`)
 - [x] P2P WAN (NAT rendezvous UDP + chiffrement AES-GCM)
 - [x] Éditeur web glTF interactif (`site/editor/`, WebGPU)
 
-## v2.2+ — Prochaine release
+## v2.3+ — Prochaine release
 
 ### Communauté
 - [ ] Tutoriels vidéo (YouTube)
 - [ ] Serveur Discord communautaire actif
 
 ### Qualité
-- [ ] Couverture de code > 50 %
-- [ ] Import USD binaire (USDC)
+- [ ] Couverture de code > 60 %
+- [ ] Import USDC composition arcs (références OpenUSD complètes)
 
 ### Moteur
-- [ ] Blueprint éditable temps réel dans Studio
 - [ ] Plugin marketplace hébergé
+- [ ] Path tracing L-DNN teacher offline (batch)
 
 ## v2.5 — Moyen terme
 

@@ -1317,12 +1317,13 @@ namespace GDNN.Rendering.MeshIO
         private readonly ObjLoader _objLoader = new();
         private readonly FbxAsciiLoader _fbxLoader = new();
         private readonly UsdAsciiLoader _usdLoader = new();
+        private readonly UsdBinaryLoader _usdcLoader = new();
         private readonly GlTFExporter _gltfExporter = new();
         private readonly Dictionary<string, MeshAsset> _cache = new();
         private readonly object _cacheLock = new();
 
         public IReadOnlyList<string> SupportedFormats { get; } =
-            new[] { ".gltf", ".glb", ".obj", ".fbx", ".stl", ".ply", ".usd", ".usda" };
+            new[] { ".gltf", ".glb", ".obj", ".fbx", ".stl", ".ply", ".usd", ".usda", ".usdc" };
 
         public int CacheSize { get { lock (_cacheLock) { return _cache.Count; } } }
 
@@ -1341,7 +1342,7 @@ namespace GDNN.Rendering.MeshIO
         public bool CanLoad(string filePath)
         {
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
-            return ext is ".gltf" or ".glb" or ".obj" or ".fbx" or ".stl" or ".ply" or ".usd" or ".usda";
+            return ext is ".gltf" or ".glb" or ".obj" or ".fbx" or ".stl" or ".ply" or ".usd" or ".usda" or ".usdc";
         }
 
         public async Task<MeshLoadResult> LoadAsync(string filePath, MeshLoadConfig? config = null, CancellationToken ct = default)
@@ -1360,6 +1361,7 @@ namespace GDNN.Rendering.MeshIO
                 ".gltf" or ".glb" => await _gltfLoader.LoadAsync(filePath, config, ct),
                 ".obj" => await _objLoader.LoadAsync(filePath, config, ct),
                 ".fbx" => await _fbxLoader.LoadAsync(filePath, config, ct),
+                ".usdc" => await _usdcLoader.LoadAsync(filePath, config, ct),
                 ".usd" or ".usda" => await _usdLoader.LoadAsync(filePath, config, ct),
                 _ => new MeshLoadResult { ErrorMessage = $"Unsupported format: {ext}" }
             };

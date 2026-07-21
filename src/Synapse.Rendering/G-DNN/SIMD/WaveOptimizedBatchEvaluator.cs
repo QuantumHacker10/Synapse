@@ -23,8 +23,8 @@ public sealed class WaveBatchConfig
     /// <summary>Enable FMA (fused multiply-add) operations where available.</summary>
     public bool EnableFMA { get; set; } = true;
 
-    /// <summary>Enable AVX-512 for wider SIMD processing.</summary>
-    public bool EnableAVX512 { get; set; } = true;
+    /// <summary>Enable AVX-512 for wider SIMD processing. Off by default — mid-range baseline is AVX2/NEON.</summary>
+    public bool EnableAVX512 { get; set; } = GDNN.Platform.CpuCapabilityProbe.UseAvx512;
 
     /// <summary>Batch size for processing.</summary>
     public int BatchSize { get; set; } = 256;
