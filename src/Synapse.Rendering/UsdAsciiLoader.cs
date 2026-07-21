@@ -10,12 +10,33 @@ using System.Threading.Tasks;
 
 namespace GDNN.Rendering.MeshIO;
 
-/// <summary>Minimal USDA (ASCII USD) mesh importer for simple triangle meshes.</summary>
+/// <summary>Minimal USDA (ASCII USD) mesh importer with composition-arc resolution.</summary>
 public sealed class UsdAsciiLoader
 {
     private static readonly Regex PointTuple = new(@"\(([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\)", RegexOptions.Compiled);
 
     public Task<MeshLoadResult> LoadAsync(string filePath, MeshLoadConfig? config = null, CancellationToken ct = default)
+    {
+        config ??= new MeshLoadConfig();
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+        if (ext is not (".usd" or ".usda" or ".usdc"))
+        {
+            return Task.FromResult(new MeshLoadResult { ErrorMessage = "Expected .usd, .usda or .usdc extension." });
+        }
+
+        if (ext == ".usdc" || (ext == ".usd" && IsBinaryUsd(filePath)))
+            return new UsdBinaryLoader().LoadAsync(filePath, config, ct);
+
+        // Composition walk for USDA (and ASCII .usd): resolve references then merge meshes.
+        return UsdCompositionResolver.LoadWithCompositionAsync(
+            filePath,
+            LoadLeafMeshAsync,
+            config,
+            ct);
+    }
+
+    /// <summary>Loads a single file's local mesh without following composition arcs.</summary>
+    internal Task<MeshLoadResult> LoadLeafMeshAsync(string filePath, MeshLoadConfig? config, CancellationToken ct)
     {
         config ??= new MeshLoadConfig();
         var result = new MeshLoadResult();
@@ -24,16 +45,21 @@ public sealed class UsdAsciiLoader
         try
         {
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
-            if (ext is not (".usd" or ".usda" or ".usdc"))
-            {
-                result.ErrorMessage = "Expected .usd, .usda or .usdc extension.";
-                return Task.FromResult(result);
-            }
-
             if (ext == ".usdc" || (ext == ".usd" && IsBinaryUsd(filePath)))
                 return new UsdBinaryLoader().LoadAsync(filePath, config, ct);
 
             var text = File.ReadAllText(filePath);
+            // References-only stage files are valid during composition.
+            if (UsdCompositionResolver.ExtractReferencePaths(text).Count > 0 &&
+                text.IndexOf("point3f[] points", StringComparison.Ordinal) < 0)
+            {
+                result.Success = true;
+                result.Asset = new MeshAsset { Name = Path.GetFileNameWithoutExtension(filePath) };
+                sw.Stop();
+                result.LoadTime = sw.Elapsed;
+                return Task.FromResult(result);
+            }
+
             var points = ParsePointsArray(text);
             var indices = ParseFaceIndices(text);
 

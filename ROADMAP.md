@@ -9,6 +9,10 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] Import USD binaire (USDC) — mesh-pack Synapse + best-effort OpenUSD
 - [x] Blueprint éditable temps réel dans Studio (hot-reload live)
 - [x] Couverture de code cible **50 %** (Codecov)
+- [x] QA publish smoke **6 RID** (CI `publish-smoke`)
+- [x] Import USDC/USDA **composition arcs** (references / payloads / subLayers)
+- [x] Couverture cible **60 %** Physics/Runtime (Codecov)
+- [x] Durcissement sécurité plugins (path jail + allowlist) et P2P (auth HMAC + decrypt-or-drop)
 
 ## v2.0 — Livré (2026-07)
 
@@ -46,12 +50,13 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [ ] Serveur Discord communautaire actif
 
 ### Qualité
-- [ ] Couverture de code > 60 %
-- [ ] Import USDC composition arcs (références OpenUSD complètes)
+- [ ] Couverture de code > 70 %
+- [ ] Validation GPU manuelle matrice iGPU/discret (Windows/Linux/macOS)
 
 ### Moteur
 - [ ] Plugin marketplace hébergé
 - [ ] Path tracing L-DNN teacher offline (batch)
+- [ ] Composition USD transforms (Xform ops) + payloads asynchrones
 
 ## v2.5 — Moyen terme
 

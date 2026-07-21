@@ -74,3 +74,12 @@ Linux/linux-x64: GLFW=ok, Vulkan=ok, SIMD=avx2, primary=GLFW
 ```
 
 Si Vulkan ou GLFW manque, Studio reste utilisable pour l’édition (scène, lois, blueprints, LLM) ; le viewport 3D et le mode `--engine` nécessitent un loader Vulkan résolvable.
+
+## QA multi-RID (smoke)
+
+```bash
+# Publish les 6 RID et vérifie la présence de l’entrypoint (sans lancer Vulkan)
+bash scripts/smoke-publish-rids.sh
+```
+
+CI : job `publish-smoke` dans `.github/workflows/build.yml`.

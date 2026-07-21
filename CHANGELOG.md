@@ -6,6 +6,23 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [2.3.1] — 2026-07-21
+
+Durcissement **production-ready early** : QA multi-RID, composition USD, couverture 60 %, sécurité plugins/P2P.
+
+### Ajouté
+
+- **CI publish-smoke** — matrice 6 RID (`build.yml`) + `scripts/smoke-publish-rids.sh`
+- **USD composition arcs** — `UsdCompositionResolver` (references / payloads / subLayers), samples `composed_root.usda` / `composed_usdc.usda`
+- **Sécurité plugins** — path jail, blocage UNC/URL, `plugins.allow` SHA-256, deps limitées au dossier plugin
+- **Sécurité P2P** — salt par session, AAD AES-GCM, handshake HMAC, `publicBind` exige auth, decrypt-or-drop WAN, MaxPeers, `ReadExactly` framing
+- **Tests** — LivingLawCompiler API, LawRegistry lifecycle, RigidBody lifecycle, EngineHost scène, production hardening
+
+### Modifié
+
+- Codecov projet **60 %** (patch 40 %)
+- Roadmap v2.3 items prod cochés
+
 ## [2.3.0] — 2026-07-21
 
 Release **Synapse OMNIA 2.3** : multi-plateforme milieu de gamme, USDC, blueprints live, couverture ~50 %.
