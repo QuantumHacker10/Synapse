@@ -92,7 +92,8 @@ Le workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) pub
 
 | Tag | Description |
 |---|---|
-| `v2.7.0` | OpenUSD PBR textures avancées (voir docs/PRODUCTION.md) |
+| `v2.8.0` | UsdSkel SkelAnimation clips (voir docs/PRODUCTION.md) |
+| `v2.7.0` | OpenUSD PBR textures avancées |
 | `v2.6.0` | STUN/TURN + OpenUSD materials/skel/variants |
 | `v2.5.0` | Production VR / WAN / OpenUSD DCC |
 | `v2.4.0` | Production-ready desktop |

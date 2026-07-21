@@ -6,6 +6,21 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [2.8.0] — 2026-07-21
+
+**UsdSkel animation clips** — `SkelAnimation` timeSamples + évaluation TRS.
+
+### Ajouté
+
+- **`MeshAnimationClip` / `MeshJointCurve`** sur `MeshAsset`
+- **`UsdSkelAnimationParser`** — `def SkelAnimation`, translations/rotations/scales (static + `.timeSamples`), `skel:animationSource`
+- Échantillonnage linéaire / slerp (`Evaluate` / `EvaluateLocalMatrices`)
+- Sample `samples/meshes/skel_anim_wave.usda`
+
+### Modifié
+
+- Version **2.8.0**, docs production / roadmap
+
 ## [2.7.0] — 2026-07-21
 
 **OpenUSD textures avancées** — cartes PBR UsdUVTexture + UVs `primvars:st`.

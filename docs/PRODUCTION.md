@@ -1,39 +1,29 @@
-# Production readiness — Synapse OMNIA 2.7
+# Production readiness — Synapse OMNIA 2.8
 
 This document defines what **production-ready** means for Synapse today and how to verify it.
 
-## Definition (2.7)
+## Definition (2.8)
 
 | Surface | Status |
 |---|---|
 | Studio edit + living laws + blueprints live | **Production** |
 | Headless sim / benchmarks / scene I/O / glTF export | **Production** |
 | Multi-RID publish (`win\|linux\|osx` × `x64\|arm64`) | **Production** (CI smoke) |
-| Local plugins (`--plugin-dir` + jail + optional allowlist / marketplace) | **Production** |
+| Local plugins | **Production** |
 | Authenticated LAN/WAN P2P + STUN/TURN | **Production** |
-| Vulkan viewport (real GPU + GLFW/MoltenVK) | **Production** when health says `interactive-ready` |
-| OpenXR / VR | **Production** — native Vulkan2 or labeled simulated |
-| OpenUSD DCC import | **Production** — composition, xforms, materials+PBR textures, skeletons, variants |
+| Vulkan viewport | **Production** when `interactive-ready` |
+| OpenXR / VR | **Production** |
+| OpenUSD DCC | **Production** — composition, xforms, PBR textures, skeletons, **SkelAnimation clips**, variants |
 
-## OpenUSD textures
+## UsdSkel animation clips
 
-USDA `UsdPreviewSurface` inputs may `.connect` to `UsdUVTexture` shaders (`asset inputs:file = @path@`):
+USDA `def SkelAnimation "Name"` with:
 
-| PreviewSurface input | MeshMaterial slot |
-|---|---|
-| diffuseColor / baseColor | AlbedoTexturePath |
-| normal | NormalTexturePath |
-| metallic / roughness / occlusionRoughnessMetallic | MetallicRoughnessTexturePath |
-| occlusion | AOTexturePath |
-| emissiveColor | EmissiveTexturePath |
-| displacement / height | HeightTexturePath |
-| clearcoat / specularColor / opacity | Clearcoat / Specular / Opacity texture paths |
+- `token[] joints`
+- `float3[] translations` / `quatf[] rotations` / `float3[] scales` (static or `.timeSamples = { t: [...] }`)
+- Skeleton link via `rel skel:animationSource = </Name>`
 
-Relative `@./textures/…@` paths resolve against the USDA directory. Mesh UVs from `primvars:st`.
-
-## WAN + STUN/TURN
-
-See prior 2.6 notes: `--stun-server`, `--turn-server`, `--turn-user`, `--turn-password`.
+Loaded into `MeshAsset.AnimationClips` (`MeshAnimationClip`). Sample with `Evaluate(time)` / `EvaluateLocalMatrices(time)` (lerp + slerp).
 
 ## Verify before shipping
 
@@ -46,5 +36,5 @@ dotnet run --project src/Synapse.Studio -c Release -- --health
 
 ## Honest release claim
 
-Synapse **2.7** is production-ready for desktop simulation tooling including OpenUSD PBR texture maps.
-It does not replace a full Pixar USD runtime (UDIM tiles, MDL, GPU texture streaming, or animation clips).
+Synapse **2.8** is production-ready for desktop simulation tooling including UsdSkel animation clip import/sampling.
+It does not claim full UsdSkel blend shapes, sparse topology animation, or a complete Pixar USD runtime.

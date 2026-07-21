@@ -2,7 +2,13 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.7 — Actuel (2026-07) — OpenUSD textures PBR
+## v2.8 — Actuel (2026-07) — UsdSkel animation clips
+
+- [x] `SkelAnimation` (translations / rotations / scales + timeSamples)
+- [x] `skel:animationSource` + évaluation TRS sur `MeshAnimationClip`
+- [x] Sample `skel_anim_wave.usda`
+
+## v2.7 — Livré (2026-07) — OpenUSD textures PBR
 
 - [x] UsdUVTexture → albedo / normal / ORM / emissive / AO / height (+ clearcoat/specular/opacity)
 - [x] UVs `primvars:st` sur mesh USDA
@@ -84,7 +90,7 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 ### Moteur
 - [ ] Plugin marketplace hébergé distant
 - [ ] Path tracing L-DNN teacher offline (batch)
-- [ ] OpenUSD animation clips / texture streaming GPU
+- [ ] OpenUSD UDIM / MDL / GPU texture streaming
 
 ## v2.8 — Moyen terme
 

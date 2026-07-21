@@ -200,6 +200,9 @@ public static class UsdCompositionResolver
             if (merged.Skeleton == null && leaf.Asset.Skeleton != null)
                 merged.Skeleton = leaf.Asset.Skeleton;
 
+            foreach (var clip in leaf.Asset.AnimationClips)
+                merged.AnimationClips.Add(clip);
+
             bool invertOk = Matrix4x4.Invert(world, out var inv);
             var nMat = invertOk ? Matrix4x4.Transpose(inv) : Matrix4x4.Identity;
 

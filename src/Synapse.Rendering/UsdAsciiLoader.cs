@@ -106,14 +106,16 @@ public sealed class UsdAsciiLoader
         {
             var matsOnly = UsdMaterialParser.ParseMaterials(text, baseDirectory);
             var skelOnly = UsdSkeletonParser.ParseSkeleton(text, config);
-            if (matsOnly.Count > 0 || skelOnly != null)
+            var clipsOnly = UsdSkelAnimationParser.ParseClips(text);
+            if (matsOnly.Count > 0 || skelOnly != null || clipsOnly.Count > 0)
             {
                 result.Success = true;
                 result.Asset = new MeshAsset
                 {
                     Name = assetName,
                     Materials = matsOnly,
-                    Skeleton = skelOnly
+                    Skeleton = skelOnly,
+                    AnimationClips = clipsOnly
                 };
                 return result;
             }
@@ -159,6 +161,7 @@ public sealed class UsdAsciiLoader
             primitive.ActiveAttributes |= VertexAttribute.BoneWeights | VertexAttribute.BoneIndices;
 
         asset.Skeleton = UsdSkeletonParser.ParseSkeleton(text, config);
+        asset.AnimationClips.AddRange(UsdSkelAnimationParser.ParseClips(text));
         asset.Primitives.Add(primitive);
         asset.Bounds = new BoundingBox3D
         {

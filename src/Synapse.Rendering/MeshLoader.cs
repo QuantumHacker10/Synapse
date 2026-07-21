@@ -166,6 +166,7 @@ namespace GDNN.Rendering.MeshIO
         public List<MeshPrimitive> Primitives { get; set; } = new();
         public List<MeshMaterial> Materials { get; set; } = new();
         public MeshSkeleton? Skeleton { get; set; }
+        public List<MeshAnimationClip> AnimationClips { get; set; } = new();
         public BoundingBox3D Bounds { get; set; }
         public int TotalVertexCount => Primitives.Sum(p => p.Vertices.Count);
         public int TotalIndexCount => Primitives.Sum(p => p.Indices.Count);
