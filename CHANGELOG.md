@@ -6,9 +6,19 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+### Ajouté
+
+- **Matrice de maturité** — [`docs/MATURITY.md`](docs/MATURITY.md), `FeatureMaturityCatalog`, attribut `[SynapseExperimental]`
+- **Scène lab** — `samples/lab-heat-agents.synapse` (loi heat, agents, joint hinge) + tests de chargement CI
+
+### Modifié
+
+- Positionnement honnête **accès anticipé / R&D** (README, ROADMAP, site, SECURITY) : VR / P2P WAN / web = **Experimental** (scaffolds), pas production
+- Commentaires et logs VR/Network/Web alignés sur la réalité (swapchain synthétique, NAT loopback)
+
 ## [2.2.0] — 2026-07-20
 
-Release **Synapse OMNIA 2.2** : captures Studio live, P2P WAN chiffré, OpenXR swapchain et éditeur web glTF interactif.
+Release **Synapse OMNIA 2.2** : captures Studio live, scaffolds P2P WAN / OpenXR / éditeur web (voir maturité).
 
 ### Ajouté
 

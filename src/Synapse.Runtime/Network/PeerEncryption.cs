@@ -1,9 +1,13 @@
+using System;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace Synapse.Network;
 
-/// <summary>AES-GCM encryption for P2P simulation payloads (v2.2).</summary>
+/// <summary>
+/// AES-GCM helpers for experimental P2P payloads (v2.2).
+/// Crypto primitives are fine; the WAN transport around them is still lab-only.
+/// </summary>
 public sealed class PeerEncryption : IDisposable
 {
     private readonly byte[] _key;

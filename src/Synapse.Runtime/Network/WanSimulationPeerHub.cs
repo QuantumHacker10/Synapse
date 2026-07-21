@@ -1,11 +1,20 @@
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Synapse.Core.Maturity;
 using Synapse.Infrastructure.Logging;
 
 namespace Synapse.Network;
 
-/// <summary>UDP rendezvous + hole-punch coordinator for WAN P2P (v2.2).</summary>
+/// <summary>
+/// EXPERIMENTAL — UDP rendezvous scaffold for WAN P2P (v2.2).
+/// Binds and discovers peers on <see cref="IPAddress.Loopback"/> only; not real NAT traversal.
+/// See <c>docs/MATURITY.md</c> (<c>Network.WAN</c>).
+/// </summary>
+[SynapseExperimental("Network.WAN", "UDP rendezvous is loopback-only; not production NAT traversal.")]
 public sealed class NatTraversalCoordinator : IDisposable
 {
     private readonly UdpClient _udp;
@@ -20,6 +29,9 @@ public sealed class NatTraversalCoordinator : IDisposable
         _udp = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
         RendezvousPort = rendezvousPort;
     }
+
+    /// <summary>Always true in v2.2: relay and discovery use loopback endpoints only.</summary>
+    public bool IsLoopbackOnly => true;
 
     public int RendezvousPort { get; }
 
@@ -104,7 +116,11 @@ public sealed class NatTraversalCoordinator : IDisposable
     }
 }
 
-/// <summary>WAN-capable encrypted P2P hub (NAT traversal + AES-GCM).</summary>
+/// <summary>
+/// EXPERIMENTAL — encrypted P2P hub with loopback NAT scaffold + AES-GCM (v2.2).
+/// Encryption is real; WAN/NAT claims are not. See <c>docs/MATURITY.md</c>.
+/// </summary>
+[SynapseExperimental("Network.WAN", "AES-GCM ok; NAT rendezvous is loopback lab scaffolding.")]
 public sealed class WanSimulationPeerHub : IAsyncDisposable
 {
     private readonly ISynapseLogger _logger;

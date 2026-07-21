@@ -1,6 +1,15 @@
+using System;
+using Synapse.Core.Maturity;
+
 namespace Synapse.VR;
 
-/// <summary>Vulkan swapchain image managed through OpenXR (v2.2).</summary>
+/// <summary>
+/// EXPERIMENTAL — synthetic OpenXR-style swapchain scaffold (v2.2).
+/// Image handles are fabricated locally; this is not a real
+/// <c>xrAcquireSwapchainImage</c> / Vulkan OpenXR integration.
+/// See <c>docs/MATURITY.md</c> (<c>VR.OpenXR</c>).
+/// </summary>
+[SynapseExperimental("VR.OpenXR", "Synthetic swapchain image handles; no real OpenXR acquire/release.")]
 public sealed class OpenXrVulkanSwapchain : IDisposable
 {
     private readonly object _gate = new();
@@ -17,6 +26,9 @@ public sealed class OpenXrVulkanSwapchain : IDisposable
         for (int i = 0; i < ImageCount; i++)
             VulkanImageHandles[i] = (ulong)(0x1000 + i);
     }
+
+    /// <summary>Always true: handles are placeholders, not VkImage from an OpenXR runtime.</summary>
+    public bool UsesSyntheticImageHandles => true;
 
     public int ImageCount { get; }
     public int Width { get; }

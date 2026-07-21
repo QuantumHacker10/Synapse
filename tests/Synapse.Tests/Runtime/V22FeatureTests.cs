@@ -21,9 +21,10 @@ public sealed class V22FeatureTests
     }
 
     [Fact]
-    public async Task OpenXrSwapchain_AcquireReleaseCycle()
+    public async Task OpenXrSwapchain_AcquireReleaseCycle_IsSyntheticScaffold()
     {
         var swap = new OpenXrVulkanSwapchain(3, 1280, 720);
+        swap.UsesSyntheticImageHandles.Should().BeTrue("v2.2 OpenXR path is experimental scaffolding");
         swap.TryAcquire(out var idx).Should().BeTrue();
         idx.Should().BeInRange(0, 2);
         swap.PrepareSubmit(0, 0).ImageHandle.Should().BeGreaterThan(0);
