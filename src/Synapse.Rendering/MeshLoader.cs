@@ -311,6 +311,14 @@ namespace GDNN.Rendering.MeshIO
                 var ext = Path.GetExtension(filePath).ToLowerInvariant();
                 result.Asset.SourceFormat = ext == ".glb" ? MeshFileType.glTFBinary : MeshFileType.glTF;
 
+                const long maxGltfBytes = 256L * 1024 * 1024;
+                var info = new FileInfo(filePath);
+                if (info.Length > maxGltfBytes)
+                {
+                    result.ErrorMessage = $"glTF file exceeds {maxGltfBytes} byte limit.";
+                    return result;
+                }
+
                 byte[] fileData = await File.ReadAllBytesAsync(filePath, ct);
                 GlTFRoot? root;
 
@@ -388,27 +396,35 @@ namespace GDNN.Rendering.MeshIO
                 return null;
 
             uint totalLength = BitConverter.ToUInt32(data, 8);
+            if (totalLength > data.Length || totalLength < 12)
+                return null;
+
             int offset = 12;
             byte[]? jsonChunk = null;
             byte[]? binChunk = null;
+            const int maxChunkBytes = 256 * 1024 * 1024;
 
-            while (offset < totalLength)
+            while (offset + 8 <= totalLength && offset + 8 <= data.Length)
             {
-                if (offset + 8 > data.Length)
-                    break;
                 uint chunkLength = BitConverter.ToUInt32(data, offset);
                 uint chunkType = BitConverter.ToUInt32(data, offset + 4);
                 offset += 8;
 
-                if (chunkType == 0x4E4F534A) // JSON
-                    jsonChunk = new byte[chunkLength];
-                else if (chunkType == 0x004E4942) // BIN
-                    binChunk = new byte[chunkLength];
+                if (chunkLength > maxChunkBytes)
+                    return null;
+                if (offset + chunkLength > totalLength || offset + chunkLength > data.Length)
+                    return null;
 
-                if (jsonChunk != null && chunkType == 0x4E4F534A)
+                if (chunkType == 0x4E4F534A) // JSON
+                {
+                    jsonChunk = new byte[chunkLength];
                     Buffer.BlockCopy(data, offset, jsonChunk, 0, (int)chunkLength);
-                else if (binChunk != null && chunkType == 0x004E4942)
+                }
+                else if (chunkType == 0x004E4942) // BIN
+                {
+                    binChunk = new byte[chunkLength];
                     Buffer.BlockCopy(data, offset, binChunk, 0, (int)chunkLength);
+                }
 
                 offset += (int)chunkLength;
             }
@@ -443,8 +459,19 @@ namespace GDNN.Rendering.MeshIO
                     {
                         string header = buffer.Uri.Substring(0, commaIdx);
                         string data = buffer.Uri.Substring(commaIdx + 1);
+                        // Cap decoded payload (~256 MiB base64 expands ~3/4).
+                        const int maxBase64Chars = (256 * 1024 * 1024 * 4) / 3;
+                        if (data.Length > maxBase64Chars)
+                            throw new InvalidDataException("glTF data URI exceeds size limit.");
                         if (header.Contains("base64"))
-                            return Convert.FromBase64String(data);
+                        {
+                            var decoded = Convert.FromBase64String(data);
+                            if (buffer.ByteLength is > 0 && decoded.Length < buffer.ByteLength)
+                                throw new InvalidDataException("glTF data URI shorter than declared byteLength.");
+                            if (decoded.Length > 256 * 1024 * 1024)
+                                throw new InvalidDataException("glTF decoded data URI exceeds size limit.");
+                            return decoded;
+                        }
                     }
                 }
 

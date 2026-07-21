@@ -2,47 +2,45 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.0 — Actuel (2026-07)
-
-- [x] API plugin C# (chargement DLL sandboxé)
-- [x] Mode headless benchmarks automatisés
-- [x] Reproductibilité simulation (`SYNAPSE_SEED`)
-- [x] Import FBX ASCII + USD USDA
-- [x] Export scène glTF (entités + métadonnées Synapse)
-- [x] Blueprint runtime (exécution graphe en simulation)
-- [x] Marketplace lois (`.synapse-law`)
-- [x] Découpage `LivingLawCompiler.cs` (68 fichiers)
-- [x] Couverture de code > 40 % (seuil CI Codecov)
-- [x] Fondations P2P, VR (OpenXR stub), preview web
-- [x] Tutoriels écrits + guide benchmarks (docs/)
-
-## v2.1 — Actuel (2026-07)
-
-- [x] Captures PNG Studio dans README (`docs/screenshots/*.png`)
-- [x] Découpage `LivingLawLibrary.cs` et `EntityBehaviorSystem.cs`
-- [x] P2P multi-pairs (`MultiPeerSimulationHub`)
-- [x] OpenXR session production (`OpenXrVulkanSession`)
-- [x] Éditeur web WebGPU (`site/editor/`, `WebEditorBuilder`)
+**Maturité :** v2.2 = accès anticipé / R&D avancée — voir [docs/MATURITY.md](docs/MATURITY.md).
+Les items « Experimental » ne sont **pas** des capacités production.
 
 ## v2.2 — Actuel (2026-07)
 
-- [x] Captures PNG live Studio (`--screenshot`, Avalonia Headless + Skia)
-- [x] OpenXR swapchain Vulkan réel (`OpenXrVulkanSwapchain`)
-- [x] P2P WAN (NAT rendezvous UDP + chiffrement AES-GCM)
-- [x] Éditeur web glTF interactif (`site/editor/`, WebGPU)
+### Early access (cœur local)
+- [x] Synapse Studio + runtime unifié (cible Windows x64 + Vulkan)
+- [x] API plugin C# (chargement DLL sandboxé, surface encore mince)
+- [x] Mode headless benchmarks + reproductibilité (`SYNAPSE_SEED`)
+- [x] Import FBX ASCII + USD USDA (limité)
+- [x] Export scène glTF (entités + métadonnées Synapse)
+- [x] Blueprint runtime (exécution graphe en simulation)
+- [x] Marketplace lois (`.synapse-law`)
+- [x] Captures PNG Studio (`--screenshot`, Avalonia Headless + Skia)
+- [x] Matrice de maturité honnête (`docs/MATURITY.md`, `FeatureMaturityCatalog`)
+- [x] Scène lab `samples/lab-heat-agents.synapse` exercée en tests
 
-## v2.2+ — Prochaine release
+### Experimental (scaffolds — ne pas vendre comme production)
+- [x] P2P multi-pairs TCP labo (`MultiPeerSimulationHub`)
+- [x] P2P WAN scaffold (rendez-vous **loopback** + AES-GCM)
+- [x] OpenXR scaffold (détection loader + swapchain **synthétique**)
+- [x] Éditeur web glTF / WebGPU preview (`site/editor/`)
 
-### Communauté
+## v2.3 — Durcissement (prochaine priorité)
+
+### Qualité
+- [ ] Promouvoir au moins une surface cœur en tier **Supported** (Windows+GPU validé)
+- [ ] Couverture de code > 50 %
+- [ ] Réduction nette des warnings analyseurs sur Runtime / Physics / Core
+- [ ] Plus de scènes `samples/` couvertes en CI (joints, lois, agents)
+
+### Honnêteté produit
+- [ ] Retirer ou remplacer les scaffolds Experimental avant toute claim « production »
 - [ ] Tutoriels vidéo (YouTube)
 - [ ] Serveur Discord communautaire actif
 
-### Qualité
-- [ ] Couverture de code > 50 %
-- [ ] Import USD binaire (USDC)
-
 ### Moteur
 - [ ] Blueprint éditable temps réel dans Studio
+- [ ] Import USD binaire (USDC)
 - [ ] Plugin marketplace hébergé
 
 ## v2.5 — Moyen terme
@@ -62,11 +60,11 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [ ] Behavior trees éditables dans Studio
 - [ ] Jumeaux numériques persistants (export/import)
 
-## v3.0 — Long terme
+## v3.0 — Long terme (vraies intégrations)
 
-- [ ] Réseau P2P complet (simulations collaboratives multi-pairs)
-- [ ] Support VR OpenXR production
-- [ ] Éditeur web complet (WASM + WebGPU)
+- [ ] Réseau P2P collaboratif multi-pairs **hors labo** (remplace le scaffold WAN)
+- [ ] Support VR OpenXR **natif** (swapchain Vulkan réel, pas synthétique)
+- [ ] Éditeur web complet (WASM + WebGPU) au-delà du preview
 - [ ] Marketplace d'assets et de lois avec signatures
 
 ## Comment contribuer à la roadmap

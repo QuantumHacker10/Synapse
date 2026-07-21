@@ -1,22 +1,48 @@
+using System;
+
 namespace Synapse.VR;
 
-/// <summary>Vulkan swapchain image managed through OpenXR (v2.2).</summary>
+/// <summary>
+/// OpenXR-style Vulkan swapchain wrapper. Supports native image handles from
+/// <see cref="NativeOpenXrRuntime"/> or synthetic lab handles for simulate mode.
+/// </summary>
 public sealed class OpenXrVulkanSwapchain : IDisposable
 {
     private readonly object _gate = new();
     private int _currentIndex;
     private bool _acquired;
+    private readonly bool _synthetic;
 
-    public OpenXrVulkanSwapchain(int imageCount, int width, int height, ulong vulkanFormat = 44 /* VK_FORMAT_B8G8R8A8_SRGB */)
+    private OpenXrVulkanSwapchain(int imageCount, int width, int height, ulong[] handles, bool synthetic, ulong vulkanFormat)
     {
-        ImageCount = Math.Max(2, imageCount);
+        ImageCount = Math.Max(1, imageCount);
         Width = width;
         Height = height;
         VulkanFormat = vulkanFormat;
+        _synthetic = synthetic;
         VulkanImageHandles = new ulong[ImageCount];
         for (int i = 0; i < ImageCount; i++)
-            VulkanImageHandles[i] = (ulong)(0x1000 + i);
+        {
+            VulkanImageHandles[i] = i < handles.Length && handles[i] != 0
+                ? handles[i]
+                : (synthetic ? (ulong)(0x1000 + i) : (0xA000_0000UL + (ulong)i));
+        }
     }
+
+    public static OpenXrVulkanSwapchain CreateSynthetic(int imageCount, int width, int height, ulong vulkanFormat = 44)
+        => new(imageCount, width, height, Array.Empty<ulong>(), synthetic: true, vulkanFormat);
+
+    public static OpenXrVulkanSwapchain FromNative(int imageCount, int width, int height, ulong[] nativeHandles, ulong vulkanFormat = 44)
+        => new(imageCount, width, height, nativeHandles ?? Array.Empty<ulong>(), synthetic: false, vulkanFormat);
+
+    /// <summary>Compatibility ctor — creates a synthetic swapchain (lab / tests).</summary>
+    public OpenXrVulkanSwapchain(int imageCount, int width, int height, ulong vulkanFormat = 44 /* VK_FORMAT_B8G8R8A8_SRGB */)
+        : this(imageCount, width, height, Array.Empty<ulong>(), synthetic: true, vulkanFormat)
+    {
+    }
+
+    /// <summary>True when handles are fabricated locally (simulate mode), not from an OpenXR runtime.</summary>
+    public bool UsesSyntheticImageHandles => _synthetic;
 
     public int ImageCount { get; }
     public int Width { get; }
@@ -40,6 +66,18 @@ public sealed class OpenXrVulkanSwapchain : IDisposable
             _acquired = true;
             imageIndex = _currentIndex;
             return true;
+        }
+    }
+
+    /// <summary>Marks a native-acquired swapchain image as current (index from xrAcquireSwapchainImage).</summary>
+    public void MarkAcquired(int imageIndex)
+    {
+        lock (_gate)
+        {
+            if (imageIndex < 0 || imageIndex >= ImageCount)
+                throw new ArgumentOutOfRangeException(nameof(imageIndex));
+            _currentIndex = imageIndex;
+            _acquired = true;
         }
     }
 

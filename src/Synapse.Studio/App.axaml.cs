@@ -60,6 +60,7 @@ namespace Synapse.Studio
             host.InitializeModules();
             if (!string.IsNullOrWhiteSpace(config.ScenePath))
                 host.LoadSceneAsync(config.ScenePath).GetAwaiter().GetResult();
+            host.ApplyOptionalCollaborationFromConfigAsync().GetAwaiter().GetResult();
 
             var orchestrator = new FrameOrchestrator(host, logger);
             return (host, orchestrator, logger, config);

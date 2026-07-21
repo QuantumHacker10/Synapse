@@ -6,9 +6,37 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+### Ajouté
+
+- **Tests de couverture** — CLI/env config, ScenePatchCodec, STUN/NAT, validation SceneDocument, collaboration EngineHost/orchestrator, VR fail-closed, PeerEncryption, WasmStudioPublisher, plugins/sentience/infra
+- **OpenXR natif** — `NativeOpenXrRuntime` (Silk.NET), session réelle + fallback `SYNAPSE_VR_SIMULATE=1`
+- **NAT réel** — client STUN RFC 5389, rendez-vous UDP, hole-punch, hub WAN AES-GCM
+- **Studio web WASM** — projet `Synapse.Web.Studio` (Blazor), `--export-web` / `WasmStudioPublisher`
+- **Matrice de maturité** — [`docs/MATURITY.md`](docs/MATURITY.md), `FeatureMaturityCatalog`, attribut `[SynapseExperimental]`
+- **Scène lab** — `samples/lab-heat-agents.synapse` (loi heat, agents, joint hinge) + tests de chargement CI
+- **Plugin trust** — `PluginTrustMode.RequireManifest` + `plugin.synapse.json` (SHA-256), env `SYNAPSE_PLUGIN_TRUST`
+- **Tests de durcissement** — mmap, marketplace, VR, WAN, GPU upload, scènes/blueprints hostiles
+- **Budgets blueprint** — spawns / LLM / nœuds par tick ; arrêt sur boucle / edge manquante
+- **Runtime diagnostics** — `LastRuntimeError`, `RuntimeErrorCount`, `IsLawDegraded`
+
+### Modifié
+
+- **VR / WAN / Web** : features de première classe branchées sur `EngineHost`, `FrameOrchestrator` et Studio (menus Collab, status bar, patches scène)
+- **VR / WAN / Web** promus **EarlyAccess** (chemins natifs branchés ; pas encore Supported)
+- Positionnement honnête **accès anticipé / R&D** (README, ROADMAP, site, SECURITY)
+- **GLB** : chunks bornés + plafonds fichier / data URI
+- **ZeroCopyBuffer / MappedBuffer** : mmap réel, pin handle, `checked`, `createIfMissing`
+- **AssetStreamer / GpuUpload** : fail-closed + hash d'intégrité
+- **LawMarketplace / Plugins / P2P / WAN / VR** : trust, framing, registre, simulate gate
+- **SceneDocument / Blueprint** : validation structurelle ; JSON corrompu = exception
+- **FrameOrchestrator** : ticks non réentrants
+- **LLM** : Gemini `x-goog-api-key`, OpenAI retry/dispose/cap, `MaxLatencyMs`, sessions path-safe
+- **Studio** : erreurs projet / blueprint / Megascans / LLM / viewport
+- **SSRF** : DNS optionnel (activé sur downloads) ; PostProcess borné
+
 ## [2.2.0] — 2026-07-20
 
-Release **Synapse OMNIA 2.2** : captures Studio live, P2P WAN chiffré, OpenXR swapchain et éditeur web glTF interactif.
+Release **Synapse OMNIA 2.2** : captures Studio live, scaffolds P2P WAN / OpenXR / éditeur web (voir maturité).
 
 ### Ajouté
 

@@ -104,7 +104,8 @@ Sauvegardez-le (ex. `scenes/ma-scene.synapse`) puis :
 dotnet run --project src/Synapse.Studio -- --scene scenes/ma-scene.synapse
 ```
 
-Voir [`samples/demo.synapse`](samples/demo.synapse) pour une scène complète avec entités, génome et agents.
+Voir [`samples/demo.synapse`](samples/demo.synapse) et [`samples/lab-heat-agents.synapse`](samples/lab-heat-agents.synapse)
+(loi heat + agents + joint) pour des scènes d'exemple. Maturité produit : [`docs/MATURITY.md`](docs/MATURITY.md).
 
 ## 6. Utiliser le moteur en code C#
 

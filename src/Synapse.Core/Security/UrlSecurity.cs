@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -22,7 +23,8 @@ namespace Synapse.Core.Security
         public static Uri ValidateOutboundUri(
             string url,
             bool allowLoopbackHttp = true,
-            IReadOnlyCollection<string>? extraAllowedHosts = null)
+            IReadOnlyCollection<string>? extraAllowedHosts = null,
+            bool resolveDns = false)
         {
             if (string.IsNullOrWhiteSpace(url))
                 throw new ArgumentException("URL is empty.", nameof(url));
@@ -52,6 +54,27 @@ namespace Synapse.Core.Security
 
             if (!allowed)
                 throw new ArgumentException($"Host '{uri.Host}' is not on the allowlist.", nameof(url));
+
+            if (resolveDns && !IsLoopback(uri) && !IPAddress.TryParse(uri.Host, out _))
+            {
+                try
+                {
+                    var addresses = Dns.GetHostAddresses(uri.Host);
+                    if (addresses.Length == 0)
+                        throw new ArgumentException($"Host '{uri.Host}' did not resolve.", nameof(url));
+
+                    foreach (var address in addresses)
+                    {
+                        if (IsBlockedIp(address))
+                            throw new ArgumentException(
+                                $"Host '{uri.Host}' resolves to a blocked address ({address}).", nameof(url));
+                    }
+                }
+                catch (SocketException ex)
+                {
+                    throw new ArgumentException($"Host '{uri.Host}' DNS resolution failed.", nameof(url), ex);
+                }
+            }
 
             return uri;
         }
@@ -83,26 +106,44 @@ namespace Synapse.Core.Security
         private static bool IsBlockedHost(string host)
         {
             if (IPAddress.TryParse(host, out var ip))
+                return IsBlockedIp(ip);
+            return false;
+        }
+
+        private static bool IsBlockedIp(IPAddress ip)
+        {
+            if (IPAddress.IsLoopback(ip))
+                return false;
+
+            if (ip.AddressFamily == AddressFamily.InterNetwork)
+            {
+                var bytes = ip.GetAddressBytes();
+                if (bytes[0] == 10)
+                    return true;
+                if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
+                    return true;
+                if (bytes[0] == 192 && bytes[1] == 168)
+                    return true;
+                if (bytes[0] == 169 && bytes[1] == 254)
+                    return true;
+                if (bytes[0] == 0)
+                    return true;
+                if (bytes[0] == 127)
+                    return false;
+            }
+
+            if (ip.AddressFamily == AddressFamily.InterNetworkV6)
             {
                 if (IPAddress.IsLoopback(ip))
                     return false;
-                if (ip.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    var bytes = ip.GetAddressBytes();
-                    if (bytes[0] == 10)
-                        return true;
-                    if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
-                        return true;
-                    if (bytes[0] == 192 && bytes[1] == 168)
-                        return true;
-                    if (bytes[0] == 169 && bytes[1] == 254)
-                        return true;
-                    if (bytes[0] == 0)
-                        return true;
-                }
-
-                if (ip.AddressFamily == AddressFamily.InterNetworkV6 && !IPAddress.IsLoopback(ip))
+                if (ip.IsIPv6LinkLocal || ip.IsIPv6SiteLocal)
                     return true;
+                var bytes = ip.GetAddressBytes();
+                if ((bytes[0] & 0xFE) == 0xFC) // fc00::/7 unique local
+                    return true;
+                if (bytes[0] == 0xFE && (bytes[1] & 0xC0) == 0x80) // fe80::/10
+                    return true;
+                return false;
             }
 
             return false;

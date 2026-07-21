@@ -1,10 +1,16 @@
+using System;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Synapse.Infrastructure;
 
 namespace Synapse.Web;
 
-/// <summary>WebGPU WASM editor bundle (v2.2).</summary>
+/// <summary>
+/// WebGPU / glTF editor preview bundle + WASM Studio publish path.
+/// Bridged by <see cref="Synapse.Runtime.EngineHost.ExportWebStudioAsync"/>.
+/// </summary>
 public sealed class WebEditorBundle
 {
     public required string SceneName { get; init; }
@@ -15,6 +21,7 @@ public sealed class WebEditorBundle
     public string EditorVersion { get; init; } = "2.2.0";
 }
 
+/// <summary>Builder for the web glTF preview site and WASM export fallback.</summary>
 public static class WebEditorBuilder
 {
     public static WebEditorBundle FromScene(string sceneName, string glbUrl, string? lawId, int entityCount, string? gltfUrl = null)

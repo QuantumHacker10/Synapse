@@ -27,7 +27,7 @@ namespace Synapse.Runtime
     /// via <see cref="TickPhysics"/>, <see cref="TickSimulationAsync"/>, and
     /// <see cref="TickRender"/>.
     /// </summary>
-    public sealed class EngineHost : IAsyncDisposable
+    public sealed partial class EngineHost : IAsyncDisposable
     {
         private readonly SynapseConfig _config;
         private readonly ISynapseLogger _logger;
@@ -51,10 +51,23 @@ namespace Synapse.Runtime
         private bool _evolutionInProgress;
         private bool _simulationPlaying = true;
         private string _llmProviderSummary = "LLM not initialized";
+        private string? _lastRuntimeError;
+        private long _runtimeErrorCount;
         private readonly ViewportEditorState _viewportEditor = new();
+        private readonly List<Task> _backgroundWork = new();
+        private readonly object _backgroundGate = new();
 
         /// <summary>Viewport gizmo/grid/selection state for Studio.</summary>
         public ViewportEditorState ViewportEditor => _viewportEditor;
+
+        /// <summary>Most recent hot-path failure message (physics/simulation/IO), if any.</summary>
+        public string? LastRuntimeError => _lastRuntimeError;
+
+        /// <summary>Monotonic count of hot-path failures since process start.</summary>
+        public long RuntimeErrorCount => Interlocked.Read(ref _runtimeErrorCount);
+
+        /// <summary>True when the active law runs a degraded numeric stub instead of the requested expression.</summary>
+        public bool IsLawDegraded { get; private set; }
 
         /// <summary>Creates a host bound to application config and logging.</summary>
         public EngineHost(SynapseConfig config, ISynapseLogger logger)
@@ -296,7 +309,7 @@ namespace Synapse.Runtime
             }
             catch (Exception ex)
             {
-                _logger.Warn("Physics", $"Multiphysics step failed: {ex.Message}");
+                RecordRuntimeError("Physics", $"Multiphysics step failed: {ex.Message}");
             }
 
             if (_multiphysics.LastStats.TotalMs > budget.TotalMilliseconds)
@@ -314,7 +327,7 @@ namespace Synapse.Runtime
             }
             catch (Exception ex)
             {
-                _logger.Warn("Simulation", $"Tick failed: {ex.Message}");
+                RecordRuntimeError("Simulation", $"Tick failed: {ex.Message}");
             }
         }
 
@@ -395,12 +408,14 @@ namespace Synapse.Runtime
             }
             catch (Exception ex)
             {
-                _logger.Warn("LLM", $"Chat failed (providers may be offline): {ex.Message}");
+                RecordRuntimeError("LLM", $"Chat failed (providers may be offline): {ex.Message}");
                 return new LlmResponse
                 {
-                    Content = $"[Synapse offline reply] No LLM provider available. Configure Ollama at {_config.Llm.OllamaBaseUrl} or set API keys. Echo: {prompt}",
-                    Provider = "Offline",
-                    Model = "none"
+                    Content = string.Empty,
+                    Provider = "Unavailable",
+                    Model = "none",
+                    FinishReason = FinishReason.Error,
+                    ErrorMessage = $"No LLM provider available. Configure Ollama at {_config.Llm.OllamaBaseUrl} or set API keys. ({ex.Message})"
                 };
             }
         }
@@ -946,11 +961,18 @@ namespace Synapse.Runtime
             // Mesh-backed colliders + optional vehicles (Synapse Omnia extensions).
             foreach (var e in _scene.Entities)
             {
-                if (!string.IsNullOrWhiteSpace(e.MeshPath) && _meshProvider != null && File.Exists(e.MeshPath))
+                if (!string.IsNullOrWhiteSpace(e.MeshPath) && _meshProvider != null)
                 {
                     try
                     {
-                        var asset = new GDNN.Rendering.MeshIO.MeshLoader().LoadSync(e.MeshPath);
+                        var resolvedMesh = ResolveSceneMeshPath(e.MeshPath);
+                        if (resolvedMesh == null || !File.Exists(resolvedMesh))
+                        {
+                            RecordRuntimeError("MeshProvider", $"Mesh path not found for '{e.Name}': {e.MeshPath}");
+                            continue;
+                        }
+
+                        var asset = new GDNN.Rendering.MeshIO.MeshLoader().LoadSync(resolvedMesh);
                         if (asset != null)
                         {
                             string meshId = e.Id.ToString("N");
@@ -977,12 +999,15 @@ namespace Synapse.Runtime
                             }
 
                             if (e.BakeNeuralSdf)
-                                _ = _meshProvider.BakeNeuralSdfAsync(meshId);
+                            {
+                                var bake = _meshProvider.BakeNeuralSdfAsync(meshId);
+                                TrackBackground(bake);
+                            }
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn("MeshProvider", $"Mesh bind failed for '{e.Name}': {ex.Message}");
+                        RecordRuntimeError("MeshProvider", $"Mesh bind failed for '{e.Name}': {ex.Message}");
                     }
                 }
 
@@ -1076,15 +1101,82 @@ namespace Synapse.Runtime
             else
                 result = _lawCompiler.CompileFromLibrary(lawId);
 
-            // Built-in library strings are human-readable and often fail the bytecode parser.
-            // Install a stable numeric form so applicators can still run under that law id.
+            // Prefer exact expression; if it fails, install a numeric stub under the same id
+            // but mark the law as degraded so callers/UI can surface the honesty gap.
             if (!result.Success)
-                result = _lawCompiler.Compile("T", lawId);
+            {
+                var fallback = _lawCompiler.Compile("T", lawId);
+                if (fallback.Success)
+                {
+                    IsLawDegraded = true;
+                    RecordRuntimeError("Physics",
+                        $"Law '{lawId}' expression failed ({result.Message}); using degraded numeric stub 'T'.");
+                    result = fallback;
+                    _activeLawId = lawId;
+                    return result;
+                }
 
-            if (result.Success)
-                _activeLawId = lawId;
+                RecordRuntimeError("Physics", $"Law '{lawId}' activation failed: {result.Message}");
+                return result;
+            }
 
+            IsLawDegraded = false;
+            _activeLawId = lawId;
             return result;
+        }
+
+        private void RecordRuntimeError(string category, string message)
+        {
+            _lastRuntimeError = $"{category}: {message}";
+            Interlocked.Increment(ref _runtimeErrorCount);
+            _logger.Warn(category, message);
+        }
+
+        private void TrackBackground(Task task)
+        {
+            lock (_backgroundGate)
+            {
+                _backgroundWork.RemoveAll(t => t.IsCompleted);
+                _backgroundWork.Add(task);
+            }
+
+            _ = task.ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                    RecordRuntimeError("Background", t.Exception?.GetBaseException().Message ?? "faulted");
+            }, TaskScheduler.Default);
+        }
+
+        private string? ResolveSceneMeshPath(string meshPath)
+        {
+            if (string.IsNullOrWhiteSpace(meshPath) || meshPath.Contains("..", StringComparison.Ordinal))
+                return null;
+
+            if (Path.IsPathRooted(meshPath))
+            {
+                var full = Path.GetFullPath(meshPath);
+                var projects = Path.GetFullPath(_config.ProjectsDirectory);
+                try
+                {
+                    return Synapse.Core.Security.PathSecurity.EnsureUnderRoot(projects, full);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    return null;
+                }
+            }
+
+            var assets = Path.Combine(_config.ProjectsDirectory, "assets");
+            if (!Directory.Exists(assets))
+                assets = _config.ProjectsDirectory;
+            try
+            {
+                return Synapse.Core.Security.PathSecurity.CombineUnderRoot(assets, meshPath);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return null;
+            }
         }
 
         private void WireLawInspectorEvents(LivingLawCompiler compiler)
@@ -1177,13 +1269,14 @@ namespace Synapse.Runtime
             };
         }
 
-        /// <summary>Releases evolution, LLM, quality, and render resources.</summary>
+        /// <summary>Releases evolution, LLM, quality, collaboration, and render resources.</summary>
         public async ValueTask DisposeAsync()
         {
             CancelEvolution();
             _evolutionCts?.Dispose();
             if (_evolution != null)
                 await _evolution.DisposeAsync();
+            await DisposeCollaborationAsync().ConfigureAwait(false);
             _multiphysics?.Dispose();
             _llmRouter?.Dispose();
             _quality?.Dispose();

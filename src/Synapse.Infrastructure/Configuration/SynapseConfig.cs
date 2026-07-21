@@ -25,6 +25,12 @@ namespace Synapse.Infrastructure.Configuration
         public string? ScreenshotPath { get; set; }
         public string? WanSessionCode { get; set; }
         public int WanPort { get; set; } = 7777;
+        public bool WanHost { get; set; }
+        /// <summary>Remote rendezvous UDP port when joining an external WAN host (0 = in-process).</summary>
+        public int WanRendezvousPort { get; set; }
+        public string? ExportWebPath { get; set; }
+        /// <summary>When true, EngineHost starts OpenXR after module init.</summary>
+        public bool EnableVr { get; set; }
         public string LogLevel { get; set; } = "Information";
         public LlmConfig Llm { get; set; } = new();
         public string ProjectsDirectory { get; set; } =
@@ -104,6 +110,13 @@ namespace Synapse.Infrastructure.Configuration
             var plugins = Environment.GetEnvironmentVariable("SYNAPSE_PLUGINS");
             if (!string.IsNullOrWhiteSpace(plugins))
                 config.PluginDirectory = plugins;
+            var wan = Environment.GetEnvironmentVariable("SYNAPSE_WAN_SESSION");
+            if (!string.IsNullOrWhiteSpace(wan))
+                config.WanSessionCode = wan;
+            var vr = Environment.GetEnvironmentVariable("SYNAPSE_VR");
+            if (string.Equals(vr, "1", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(vr, "true", StringComparison.OrdinalIgnoreCase))
+                config.EnableVr = true;
 
             config.Llm.OpenAiApiKey ??= Environment.GetEnvironmentVariable("OPENAI_API_KEY");
             config.Llm.AnthropicApiKey ??= Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
@@ -161,11 +174,27 @@ namespace Synapse.Infrastructure.Configuration
                         config.ScreenshotPath = Next();
                         break;
                     case "--wan-code":
+                    case "--wan-session":
                         config.WanSessionCode = Next();
                         break;
                     case "--wan-port":
                         if (int.TryParse(Next(), out var wanPort))
                             config.WanPort = wanPort;
+                        break;
+                    case "--wan-host":
+                        config.WanHost = true;
+                        break;
+                    case "--wan-rdv":
+                    case "--wan-rendezvous":
+                        if (int.TryParse(Next(), out var rdv))
+                            config.WanRendezvousPort = rdv;
+                        break;
+                    case "--export-web":
+                        config.ExportWebPath = Next();
+                        break;
+                    case "--vr":
+                    case "--enable-vr":
+                        config.EnableVr = true;
                         break;
                     case "--quality":
                         var q = Next();
