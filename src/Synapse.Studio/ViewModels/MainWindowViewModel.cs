@@ -15,7 +15,9 @@ using GDNN.Rendering.Bridge;
 using Synapse.Infrastructure;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
+using Synapse.Plugins;
 using Synapse.Runtime;
+using Synapse.Simulation.DigitalTwins;
 using Synapse.Studio.Contracts;
 using EntityType = Synapse.Studio.Contracts.EntityType;
 using SceneEntity = Synapse.Studio.Contracts.SceneEntity;
@@ -32,6 +34,7 @@ namespace Synapse.Studio.ViewModels
         private readonly FrameOrchestrator _orchestrator;
         private readonly ISynapseLogger _logger;
         private readonly SynapseConfig _config;
+        private readonly PluginHost? _pluginHost;
         private readonly DispatcherTimer _uiTimer;
         private readonly MegascansBridge _megascans = new();
         private readonly SculptSession _sculpt = new();
@@ -39,12 +42,13 @@ namespace Synapse.Studio.ViewModels
         private string? _projectPath;
         private bool _disposed;
 
-        public MainWindowViewModel(EngineHost host, FrameOrchestrator orchestrator, ISynapseLogger logger, SynapseConfig config)
+        public MainWindowViewModel(EngineHost host, FrameOrchestrator orchestrator, ISynapseLogger logger, SynapseConfig config, PluginHost? pluginHost = null)
         {
             _host = host;
             _orchestrator = orchestrator;
             _logger = logger;
             _config = config;
+            _pluginHost = pluginHost;
 
             RefreshEntities();
             RefreshLaws();
@@ -71,6 +75,13 @@ namespace Synapse.Studio.ViewModels
             SculptStatus = "Pinceau prêt";
             MegascansStatus = $"Bibliothèque : {_megascans.Config.LibraryRootPath}";
             LlmStatusText = _host.LlmProviderSummary;
+
+            TryLoadMarketplaceCatalog();
+            RefreshMarketplacePackages();
+            RefreshTwins();
+            RefreshPlugins();
+            MarketplaceStatus = _host.MarketplaceStatusText;
+            TwinStatusText = _host.TwinStatusText;
             AboutText =
                 $"{SynapseProduct.Name} {SynapseProduct.Version} — Outil de simulation 3D\n\n" +
                 "Pas un moteur de jeu : un monde numérique que l'on observe, modifie et fait évoluer.\n" +
@@ -95,6 +106,9 @@ namespace Synapse.Studio.ViewModels
         public ObservableCollection<ChatMessageRecord> ChatMessages { get; } = new();
         public ObservableCollection<string> BlueprintNodes { get; } = new();
         public ObservableCollection<LiveInspectorEntry> InspectorFeed { get; } = new();
+        public ObservableCollection<TwinListEntry> Twins { get; } = new();
+        public ObservableCollection<PluginListEntry> Plugins { get; } = new();
+        public ObservableCollection<LawCatalogEntry> MarketplacePackages { get; } = new();
 
         [ObservableProperty] private SceneEntity? selectedEntity;
         [ObservableProperty] private EntityType newEntityType = EntityType.Empty;
@@ -150,6 +164,12 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private string wanStatusText = "WAN : off";
         [ObservableProperty] private string webStatusText = "Web : prêt";
         [ObservableProperty] private string collaborationStatus = "Collaboration inactive";
+        [ObservableProperty] private string marketplaceStatus = "Marketplace : prêt";
+        [ObservableProperty] private string twinStatusText = "Jumeaux : —";
+        [ObservableProperty] private string pluginStatusText = "Plugins : aucun";
+        [ObservableProperty] private string behaviorTreeText = "";
+        [ObservableProperty] private bool hasAgentSelection;
+        [ObservableProperty] private TwinListEntry? selectedTwin;
         private Guid? _jointPartnerId;
         private const int MaxInspectorFeedEntries = 500;
 
@@ -170,7 +190,20 @@ namespace Synapse.Studio.ViewModels
                 EntityMeshPath = "";
                 EntityIsVehicle = false;
                 EntityBakeNeuralSdf = false;
+                BehaviorTreeText = "";
+                HasAgentSelection = false;
                 return;
+            }
+
+            if (value.Type == EntityType.Agent)
+            {
+                BehaviorTreeText = _host.GetAgentBehaviorTreeText(value.Id) ?? "(aucun arbre de comportement)";
+                HasAgentSelection = true;
+            }
+            else
+            {
+                BehaviorTreeText = "";
+                HasAgentSelection = false;
             }
 
             EntityName = value.Name;
@@ -265,6 +298,9 @@ namespace Synapse.Studio.ViewModels
 
         [RelayCommand]
         private void SetViewportToolSelect() => ViewportTool = ViewportToolMode.Select;
+
+        [RelayCommand]
+        private void SetViewportToolScale() => ViewportTool = ViewportToolMode.Scale;
 
         partial void OnSelectedLawIdChanged(string? value)
         {
@@ -419,6 +455,9 @@ namespace Synapse.Studio.ViewModels
             CollaborationStatus = _host.IsWanConnected
                 ? $"WAN patches ↑{_host.WanPatchesSent} ↓{_host.WanPatchesReceived} | VR {(_host.IsVrActive ? "on" : "off")}"
                 : (_host.IsVrActive ? $"VR actif ({s.VrMs:F1} ms)" : "Collaboration inactive");
+
+            MarketplaceStatus = _host.MarketplaceStatusText;
+            TwinStatusText = _host.TwinStatusText;
         }
 
         private void OnCollaborationPatchApplied(string peerId)
@@ -1107,6 +1146,343 @@ namespace Synapse.Studio.ViewModels
                 _logger.Error("Studio", "Megascans import failed", ex);
                 MegascansStatus = $"Erreur import — {ex.Message}";
             }
+        }
+
+        [RelayCommand]
+        private async Task ImportLawPackageAsync()
+        {
+            try
+            {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+                {
+                    Title = "Importer un package de loi (.synapse-law)",
+                    AllowMultiple = false,
+                    FileTypeFilter = new[]
+                    {
+                        new FilePickerFileType("Synapse Law") { Patterns = new[] { "*.synapse-law" } }
+                    }
+                });
+                var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                var package = await _host.ImportLawPackageAsync(path);
+                MarketplaceStatus = _host.MarketplaceStatusText;
+                RefreshLaws();
+                RefreshMarketplacePackages();
+                _logger.Info("Studio", $"Imported law package {package.Id}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Law import failed", ex);
+                MarketplaceStatus = $"Erreur import loi — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task ExportActiveLawPackageAsync()
+        {
+            try
+            {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Exporter la loi active (.synapse-law)",
+                    DefaultExtension = "synapse-law",
+                    SuggestedFileName = $"{_host.ActiveLawId ?? "law"}.synapse-law",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("Synapse Law") { Patterns = new[] { "*.synapse-law" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                await _host.ExportActiveLawPackageAsync(path);
+                MarketplaceStatus = _host.MarketplaceStatusText;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Law export failed", ex);
+                MarketplaceStatus = $"Erreur export loi — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task ExportSceneGlTFAsync()
+        {
+            try
+            {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Exporter la scène en glTF",
+                    DefaultExtension = "gltf",
+                    SuggestedFileName = "scene.gltf",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("glTF") { Patterns = new[] { "*.gltf" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                var result = await _host.ExportSceneGlTFAsync(path);
+                CollaborationStatus = result.Success
+                    ? $"glTF exporté — {result.EntityCount} entités → {Path.GetFileName(path)}"
+                    : $"Échec export glTF — {result.ErrorMessage}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "glTF export failed", ex);
+                CollaborationStatus = $"Erreur export glTF — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task ExportBestGenomeAsync()
+        {
+            try
+            {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Exporter le meilleur génome (JSON)",
+                    DefaultExtension = "json",
+                    SuggestedFileName = "best-genome.json",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("JSON") { Patterns = new[] { "*.json" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                await _host.ExportBestGenomeAsync(path);
+                EvolutionStatus = $"Génome exporté → {Path.GetFileName(path)}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Genome export failed", ex);
+                EvolutionStatus = $"Erreur export génome — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private void RefreshBehaviorTree()
+        {
+            if (SelectedEntity == null || SelectedEntity.Type != EntityType.Agent)
+            {
+                BehaviorTreeText = "";
+                HasAgentSelection = false;
+                return;
+            }
+
+            BehaviorTreeText = _host.GetAgentBehaviorTreeText(SelectedEntity.Id) ?? "(aucun arbre de comportement)";
+            HasAgentSelection = true;
+        }
+
+        [RelayCommand]
+        private async Task SynchronizeTwinsAsync()
+        {
+            try
+            {
+                await _host.SynchronizeTwinsAsync();
+                TwinStatusText = _host.TwinStatusText;
+                RefreshTwins();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Twin sync failed", ex);
+                TwinStatusText = $"Erreur sync jumeaux — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task ExportSelectedTwinAsync()
+        {
+            try
+            {
+                if (SelectedTwin == null)
+                {
+                    TwinStatusText = "Sélectionnez un jumeau à exporter.";
+                    return;
+                }
+
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Exporter un snapshot de jumeau (JSON)",
+                    DefaultExtension = "json",
+                    SuggestedFileName = $"twin-{SelectedTwin.DisplayLine}.json",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("JSON") { Patterns = new[] { "*.json" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                await _host.ExportTwinSnapshotAsync(SelectedTwin.Id, path);
+                TwinStatusText = _host.TwinStatusText;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Twin export failed", ex);
+                TwinStatusText = $"Erreur export jumeau — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private void RegisterSceneTwin()
+        {
+            if (SelectedEntity == null)
+            {
+                TwinStatusText = "Sélectionnez une entité à jumeler.";
+                return;
+            }
+
+            var twin = _host.RegisterTwin(SelectedEntity.Name);
+            TwinStatusText = _host.TwinStatusText;
+            RefreshTwins();
+            _logger.Info("Studio", $"Registered twin {twin.Id} for {SelectedEntity.Name}");
+        }
+
+        [RelayCommand]
+        private async Task LoadPluginsFromDirectoryAsync()
+        {
+            try
+            {
+                if (_pluginHost == null)
+                {
+                    PluginStatusText = "Plugins indisponibles (host non initialisé).";
+                    return;
+                }
+
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                {
+                    Title = "Dossier de plugins Synapse",
+                    AllowMultiple = false
+                });
+                var path = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                int count = _pluginHost.LoadFromDirectory(path, _host);
+                RefreshPlugins();
+                PluginStatusText = $"{count} plugin(s) chargé(s) depuis {Path.GetFileName(path)} · total {_pluginHost.LoadedPlugins.Count}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Plugin load failed", ex);
+                PluginStatusText = $"Erreur chargement plugins — {ex.Message}";
+            }
+        }
+
+        private void TryLoadMarketplaceCatalog()
+        {
+            try
+            {
+                var dir = ResolveSampleDirectory(Path.Combine("samples", "laws"));
+                if (dir != null)
+                {
+                    // LoadMarketplaceCatalog is sync-over-async internally; run it off the UI
+                    // SynchronizationContext to avoid a continuation deadlock at construction.
+                    Task.Run(() => _host.LoadMarketplaceCatalog(dir)).GetAwaiter().GetResult();
+                }
+                MarketplaceStatus = _host.MarketplaceStatusText;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Studio", $"Marketplace catalog load failed: {ex.Message}");
+            }
+        }
+
+        private void RefreshMarketplacePackages()
+        {
+            MarketplacePackages.Clear();
+            foreach (var package in _host.ListMarketplaceLaws())
+            {
+                MarketplacePackages.Add(new LawCatalogEntry
+                {
+                    Id = package.Id,
+                    Name = package.Name,
+                    Category = package.Category,
+                    Description = package.Description,
+                    Expression = package.Expression
+                });
+            }
+        }
+
+        private void RefreshTwins()
+        {
+            var selectedId = SelectedTwin?.Id;
+            Twins.Clear();
+            foreach (var twin in _host.ListTwins())
+            {
+                Twins.Add(new TwinListEntry
+                {
+                    Id = twin.Id,
+                    PhysicalId = twin.PhysicalId,
+                    Status = twin.SynchronizationStatus.ToString()
+                });
+            }
+            if (selectedId.HasValue)
+                SelectedTwin = Twins.FirstOrDefault(t => t.Id == selectedId.Value);
+        }
+
+        private void RefreshPlugins()
+        {
+            Plugins.Clear();
+            if (_pluginHost == null)
+            {
+                PluginStatusText = "Plugins indisponibles (host non initialisé).";
+                return;
+            }
+
+            foreach (var meta in _pluginHost.LoadedPlugins)
+            {
+                Plugins.Add(new PluginListEntry
+                {
+                    Id = meta.Id,
+                    Name = meta.Name,
+                    Version = meta.Version
+                });
+            }
+            PluginStatusText = Plugins.Count == 0
+                ? "Plugins : aucun chargé"
+                : $"Plugins : {Plugins.Count} chargé(s)";
+        }
+
+        private static string? ResolveSampleDirectory(string relative)
+        {
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null)
+            {
+                var candidate = Path.Combine(dir.FullName, relative);
+                if (Directory.Exists(candidate))
+                    return candidate;
+                dir = dir.Parent;
+            }
+            return null;
         }
 
         public void Dispose()
