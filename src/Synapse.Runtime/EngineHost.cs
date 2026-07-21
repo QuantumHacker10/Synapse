@@ -378,6 +378,17 @@ namespace Synapse.Runtime
                 .ToList();
         }
 
+        /// <summary>Full catalog metadata for Studio law picker (100+ reference laws).</summary>
+        public IReadOnlyList<(string Id, string Name, string Category, string Description, string Expression)> ListLawCatalog()
+        {
+            InitializeModules();
+            return _lawCompiler!.Library.AllEntries
+                .Select(e => (e.Id, e.Name, e.Category, e.Description, e.Expression))
+                .OrderBy(e => e.Category, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
         /// <summary>Routes a single user prompt through the hybrid LLM stack (local first, then cloud).</summary>
         public async Task<LlmResponse?> ChatAsync(string prompt, CancellationToken cancellationToken = default)
         {

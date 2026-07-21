@@ -172,23 +172,40 @@ namespace Synapse.Physics
         /// <summary>Load and compile a law from the library.</summary>
         public CompilationResult CompileFromLibrary(string lawId)
         {
+            var probe = ProbeCompileFromLibrary(lawId);
+            if (!probe.Success)
+                return CompilationResult.Fail(probe.Error ?? "Compilation failed", new[] { probe.Error ?? "Compilation failed" });
+
+            if (_compiledCache.TryGetValue(lawId, out var bytecode) && bytecode != null)
+                return CompilationResult.Ok("Compiled", bytecode, bytecode.InstructionCount, 0);
+
+            return CompilationResult.Fail("Bytecode cache miss after successful probe", new[] { "Bytecode cache miss" });
+        }
+
+        /// <summary>Probes direct vs fallback compilation for benchmarking and diagnostics.</summary>
+        public LawCompilationProbe ProbeCompileFromLibrary(string lawId)
+        {
             var law = _library.GetLaw(lawId);
             if (law == null)
-                return CompilationResult.Fail($"Law '{lawId}' not found", new[] { $"Law '{lawId}' not found in library" });
+                return new LawCompilationProbe(lawId, "", false, false, $"Law '{lawId}' not found in library");
 
+            _compiledCache.Remove(lawId);
             string normalized = LawExpressionNormalizer.NormalizeForCompilation(law.Expression);
-            var result = Compile(normalized, lawId);
-            if (result.Success)
-                return result;
+            var direct = Compile(normalized, lawId);
+            if (direct.Success)
+                return new LawCompilationProbe(lawId, law.Category, true, false);
 
-            if (Enum.TryParse<LawCategory>(law.Category, ignoreCase: true, out var category))
-            {
-                string fallback = LawExpressionNormalizer.NormalizeForCompilation(
-                    LawApplicatorMapper.FallbackExpression(category));
-                result = Compile(fallback, lawId);
-            }
+            _compiledCache.Remove(lawId);
+            if (!Enum.TryParse<LawCategory>(law.Category, ignoreCase: true, out var category))
+                return new LawCompilationProbe(lawId, law.Category, false, false, direct.Message);
 
-            return result;
+            string fallback = LawExpressionNormalizer.NormalizeForCompilation(
+                LawApplicatorMapper.FallbackExpression(category));
+            var fallbackResult = Compile(fallback, lawId);
+            if (fallbackResult.Success)
+                return new LawCompilationProbe(lawId, law.Category, true, true);
+
+            return new LawCompilationProbe(lawId, law.Category, false, false, fallbackResult.Message);
         }
 
         /// <summary>Hot-reload: modify a law expression and recompile without stopping.</summary>

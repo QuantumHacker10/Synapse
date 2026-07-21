@@ -98,6 +98,18 @@ namespace Synapse.Studio.Contracts
         public float Distance { get; set; }
     }
 
+    public sealed class LawCatalogEntry
+    {
+        public string Id { get; init; } = "";
+        public string Name { get; init; } = "";
+        public string Category { get; init; } = "";
+        public string Description { get; init; } = "";
+        public string Expression { get; init; } = "";
+
+        public string DisplayLine => $"{Id} — {Name}";
+        public string CategoryLabel => string.IsNullOrWhiteSpace(Category) ? "—" : Category;
+    }
+
     public sealed class SceneEntity : INotifyPropertyChanged
     {
         private string _name = "Entity";
