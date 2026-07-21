@@ -238,12 +238,19 @@ namespace GDNN.Rendering.MeshIO
         public float Opacity { get; set; } = 1.0f;
         public float AlphaCutoff { get; set; }
         public bool DoubleSided { get; set; }
+        public float Clearcoat { get; set; }
+        public float ClearcoatRoughness { get; set; }
+        public float Ior { get; set; } = 1.5f;
+        public float Occlusion { get; set; } = 1.0f;
         public string AlbedoTexturePath { get; set; } = "";
         public string NormalTexturePath { get; set; } = "";
         public string MetallicRoughnessTexturePath { get; set; } = "";
         public string EmissiveTexturePath { get; set; } = "";
         public string AOTexturePath { get; set; } = "";
         public string HeightTexturePath { get; set; } = "";
+        public string ClearcoatTexturePath { get; set; } = "";
+        public string SpecularTexturePath { get; set; } = "";
+        public string OpacityTexturePath { get; set; } = "";
     }
 
     /// <summary>Result of a mesh loading operation.</summary>

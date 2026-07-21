@@ -2,7 +2,13 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.6 — Actuel (2026-07) — STUN/TURN + OpenUSD DCC
+## v2.7 — Actuel (2026-07) — OpenUSD textures PBR
+
+- [x] UsdUVTexture → albedo / normal / ORM / emissive / AO / height (+ clearcoat/specular/opacity)
+- [x] UVs `primvars:st` sur mesh USDA
+- [x] Sample `textured_pbr.usda`
+
+## v2.6 — Livré (2026-07) — STUN/TURN + OpenUSD DCC
 
 - [x] STUN Binding + TURN Allocate/Permission/ChannelData
 - [x] OpenUSD materials (UsdPreviewSurface) / skeletons / variantSets
@@ -78,7 +84,7 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 ### Moteur
 - [ ] Plugin marketplace hébergé distant
 - [ ] Path tracing L-DNN teacher offline (batch)
-- [ ] OpenUSD materials textures / UsdSkel animation clips
+- [ ] OpenUSD animation clips / texture streaming GPU
 
 ## v2.8 — Moyen terme
 

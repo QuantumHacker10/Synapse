@@ -66,7 +66,12 @@ public sealed class UsdAsciiLoader
                 return Task.FromResult(result);
             }
 
-            result = LoadLeafFromText(text, Path.GetFileNameWithoutExtension(filePath), config, applyLocalXform);
+            result = LoadLeafFromText(
+                text,
+                Path.GetFileNameWithoutExtension(filePath),
+                config,
+                applyLocalXform,
+                Path.GetDirectoryName(Path.GetFullPath(filePath)));
         }
         catch (Exception ex)
         {
@@ -83,12 +88,14 @@ public sealed class UsdAsciiLoader
         string text,
         string assetName,
         MeshLoadConfig? config,
-        bool applyLocalXform)
+        bool applyLocalXform,
+        string? baseDirectory = null)
     {
         config ??= new MeshLoadConfig();
         var result = new MeshLoadResult();
         var points = ParsePointsArray(text);
         var indices = ParseFaceIndices(text);
+        var uvs = ParseUvArray(text);
         if (applyLocalXform)
         {
             var local = UsdXform.ParseLocalMatrix(text);
@@ -97,8 +104,7 @@ public sealed class UsdAsciiLoader
 
         if (points.Count == 0)
         {
-            // Materials/skeleton-only stages are valid.
-            var matsOnly = UsdMaterialParser.ParseMaterials(text);
+            var matsOnly = UsdMaterialParser.ParseMaterials(text, baseDirectory);
             var skelOnly = UsdSkeletonParser.ParseSkeleton(text, config);
             if (matsOnly.Count > 0 || skelOnly != null)
             {
@@ -123,7 +129,7 @@ public sealed class UsdAsciiLoader
         }
 
         var asset = new MeshAsset { Name = assetName };
-        var materials = UsdMaterialParser.ParseMaterials(text);
+        var materials = UsdMaterialParser.ParseMaterials(text, baseDirectory);
         asset.Materials.AddRange(materials);
         var binding = UsdMaterialParser.ParseBindingPath(text);
         int matIndex = UsdMaterialParser.ResolveMaterialIndex(materials, binding);
@@ -134,8 +140,18 @@ public sealed class UsdAsciiLoader
             MaterialIndex = matIndex,
             ActiveAttributes = VertexAttribute.Position | VertexAttribute.Normal
         };
-        foreach (var p in points)
-            primitive.Vertices.Add(new MeshVertex { Position = p, Normal = Vector3.UnitY });
+        for (int i = 0; i < points.Count; i++)
+        {
+            var v = new MeshVertex { Position = points[i], Normal = Vector3.UnitY };
+            if (i < uvs.Count)
+            {
+                v.TexCoord0 = uvs[i];
+                primitive.ActiveAttributes |= VertexAttribute.TexCoord0;
+            }
+
+            primitive.Vertices.Add(v);
+        }
+
         primitive.Indices.AddRange(indices);
 
         UsdSkeletonParser.ApplySkinPrimvars(text, primitive.Vertices, config);
@@ -154,6 +170,45 @@ public sealed class UsdAsciiLoader
         result.Success = true;
         result.Asset = asset;
         return result;
+    }
+
+    private static List<Vector2> ParseUvArray(string text)
+    {
+        var uvs = new List<Vector2>();
+        // Common authors: texCoord2f[] / float2[] primvars:st
+        string[] markers =
+        {
+            "texCoord2f[] primvars:st = [",
+            "float2[] primvars:st = [",
+            "float2[] primvars:UVMap = [",
+            "texCoord2f[] primvars:UVMap = ["
+        };
+        int start = -1;
+        foreach (var marker in markers)
+        {
+            int idx = text.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0)
+            {
+                start = idx + marker.Length;
+                break;
+            }
+        }
+
+        if (start < 0)
+            return uvs;
+        int end = text.IndexOf(']', start);
+        if (end < start)
+            return uvs;
+        var body = text[start..end];
+        var pair = new Regex(@"\(\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*\)", RegexOptions.Compiled);
+        foreach (Match match in pair.Matches(body))
+        {
+            if (float.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var u) &&
+                float.TryParse(match.Groups[2].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
+                uvs.Add(new Vector2(u, v));
+        }
+
+        return uvs;
     }
 
     private static List<Vector3> ParsePointsArray(string text)

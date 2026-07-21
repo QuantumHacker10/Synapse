@@ -6,6 +6,21 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [2.7.0] — 2026-07-21
+
+**OpenUSD textures avancées** — cartes PBR UsdUVTexture + UVs `primvars:st`.
+
+### Ajouté
+
+- **UsdUVTexture** connectées à UsdPreviewSurface (`diffuseColor`, `normal`, metallic/roughness/occlusion, emissive, displacement)
+- Slots `MeshMaterial` : clearcoat / specular / opacity + chemins résolus relatifs au USDA
+- UVs `texCoord2f[]` / `float2[] primvars:st`
+- Sample `samples/meshes/textured_pbr.usda` (+ placeholders `textures/`)
+
+### Modifié
+
+- Version **2.7.0**, docs production / roadmap
+
 ## [2.6.0] — 2026-07-21
 
 **STUN/TURN + OpenUSD DCC complet** — NAT symétrique, materials / skeletons / variants.
