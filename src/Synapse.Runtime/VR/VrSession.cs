@@ -1,9 +1,18 @@
+using System;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using Synapse.Core.Maturity;
 using Synapse.Infrastructure.Logging;
 
 namespace Synapse.VR;
 
-/// <summary>Production OpenXR session lifecycle with Vulkan backend (v2.2).</summary>
+/// <summary>
+/// EXPERIMENTAL — OpenXR session lifecycle scaffold with synthetic Vulkan swapchain (v2.2).
+/// Detects a loader when present, but does not drive a real XR frame loop.
+/// See <c>docs/MATURITY.md</c> (<c>VR.OpenXR</c>).
+/// </summary>
+[SynapseExperimental("VR.OpenXR", "Loader probe + synthetic swapchain; not a production OpenXR session.")]
 public interface IVrSession : IAsyncDisposable
 {
     bool IsAvailable { get; }
@@ -20,6 +29,8 @@ public interface IVrSession : IAsyncDisposable
     Task PollEventsAsync(CancellationToken cancellationToken = default);
 }
 
+/// <summary>EXPERIMENTAL OpenXR session: loader detection only, synthetic swapchain images.</summary>
+[SynapseExperimental("VR.OpenXR", "Loader probe + synthetic swapchain; not a production OpenXR session.")]
 public sealed class OpenXrVulkanSession : IVrSession
 {
     private readonly ISynapseLogger? _logger;
@@ -41,7 +52,8 @@ public sealed class OpenXrVulkanSession : IVrSession
             IsRunning = true;
             RuntimeName = Environment.GetEnvironmentVariable("XR_RUNTIME") ?? "OpenXR-Loader";
             Swapchain = new OpenXrVulkanSwapchain(imageCount: 3, width, height);
-            _logger?.Info("VR", $"OpenXR + Vulkan swapchain {width}x{height} ({RuntimeName})");
+            _logger?.Warn("VR",
+                $"EXPERIMENTAL OpenXR scaffold active ({width}x{height}, {RuntimeName}) — synthetic swapchain, not production XR");
             _initialized = true;
             return Task.FromResult(true);
         }
@@ -62,7 +74,7 @@ public sealed class OpenXrVulkanSession : IVrSession
         if (!Swapchain.TryAcquire(out var index))
             _logger?.Warn("VR", "Swapchain acquire skipped (already acquired)");
         else
-            _logger?.Debug("VR", $"Acquire swapchain image {index}");
+            _logger?.Debug("VR", $"Acquire synthetic swapchain image {index}");
 
         return Task.CompletedTask;
     }
@@ -74,7 +86,7 @@ public sealed class OpenXrVulkanSession : IVrSession
 
         var frame = Swapchain.PrepareSubmit(vulkanQueueFamily: 0, vulkanQueue: 0);
         _frameCounter++;
-        _logger?.Debug("VR", $"Submit XR frame #{_frameCounter} image={frame.ImageHandle:x}");
+        _logger?.Debug("VR", $"Submit synthetic XR frame #{_frameCounter} image={frame.ImageHandle:x}");
         Swapchain.Release();
         return Task.CompletedTask;
     }
