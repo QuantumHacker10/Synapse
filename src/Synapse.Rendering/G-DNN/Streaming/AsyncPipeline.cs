@@ -1063,7 +1063,8 @@ namespace GDNN.Streaming
             const int maxBytes = 64 * 1024 * 1024;
             return new DelegateStage<string, byte[]>(async (url, ct) =>
             {
-                var uri = Synapse.Core.Security.UrlSecurity.ValidateOutboundUri(url, allowLoopbackHttp: false);
+                var uri = Synapse.Core.Security.UrlSecurity.ValidateOutboundUri(
+                    url, allowLoopbackHttp: false, resolveDns: true);
                 using var client = Synapse.Core.Security.UrlSecurity.CreateSafeHttpClient(TimeSpan.FromSeconds(30));
                 using var response = await client.GetAsync(uri, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, ct)
                     .ConfigureAwait(false);

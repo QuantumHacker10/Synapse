@@ -49,6 +49,7 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
 {
     private readonly ISynapseLogger _logger;
     private readonly ConcurrentDictionary<string, PeerConnection> _peers = new();
+    private readonly ConcurrentBag<Task> _receiveTasks = new();
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
     private Task? _acceptTask;
@@ -76,13 +77,25 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
 
     public async Task ConnectAsync(string host, int port, CancellationToken ct = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(host);
+        if (port is <= 0 or > 65535)
+            throw new ArgumentOutOfRangeException(nameof(port));
+
         var client = new TcpClient();
-        await client.ConnectAsync(host, port, ct).ConfigureAwait(false);
-        var peerId = Guid.NewGuid().ToString("N");
-        var conn = new PeerConnection(peerId, client);
-        _peers[peerId] = conn;
-        _ = ReceiveLoopAsync(conn, ct);
-        _logger.Info("Network", $"Connected to peer at {host}:{port}");
+        try
+        {
+            await client.ConnectAsync(host, port, ct).ConfigureAwait(false);
+            var peerId = Guid.NewGuid().ToString("N");
+            var conn = new PeerConnection(peerId, client);
+            client = null; // ownership transferred
+            _peers[peerId] = conn;
+            _receiveTasks.Add(ReceiveLoopAsync(conn, _cts?.Token ?? ct));
+            _logger.Info("Network", $"Connected to peer at {host}:{port}");
+        }
+        finally
+        {
+            client?.Dispose();
+        }
     }
 
     public async Task BroadcastScenePatchAsync(ReadOnlyMemory<byte> patch, CancellationToken ct = default)
@@ -102,10 +115,14 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
                 var peerId = Guid.NewGuid().ToString("N");
                 var conn = new PeerConnection(peerId, client);
                 _peers[peerId] = conn;
-                _ = ReceiveLoopAsync(conn, ct);
+                _receiveTasks.Add(ReceiveLoopAsync(conn, ct));
                 _logger.Info("Network", $"Peer joined: {peerId} (total {_peers.Count + 1})");
             }
             catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (ObjectDisposedException)
             {
                 break;
             }
@@ -124,7 +141,7 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
                 ScenePatchReceived?.Invoke(peer.PeerId, payload);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.Warn("Network", $"Peer {peer.PeerId} disconnected: {ex.Message}");
         }
@@ -143,21 +160,37 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
             try
             { await _acceptTask.ConfigureAwait(false); }
             catch (OperationCanceledException) { }
+            catch (ObjectDisposedException) { }
         }
+
+        foreach (var task in _receiveTasks)
+        {
+            try
+            { await task.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false); }
+            catch (Exception)
+            {
+                // Best-effort drain.
+            }
+        }
+
         foreach (var peer in _peers.Values)
             peer.Dispose();
         _peers.Clear();
         _listener?.Stop();
+        _cts?.Dispose();
     }
 
     private sealed class PeerConnection : IDisposable
     {
+        private readonly TcpClient _client;
         private readonly NetworkStream _stream;
         private readonly SemaphoreSlim _sendLock = new(1, 1);
+        private bool _disposed;
 
         public PeerConnection(string peerId, TcpClient client)
         {
             PeerId = peerId;
+            _client = client;
             _stream = client.GetStream();
         }
 
@@ -199,7 +232,15 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
             return buffer;
         }
 
-        public void Dispose() => _stream.Dispose();
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+            _sendLock.Dispose();
+            _stream.Dispose();
+            _client.Dispose();
+        }
     }
 }
 

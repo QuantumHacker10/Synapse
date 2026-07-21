@@ -87,14 +87,18 @@ public sealed class PluginHost : IDisposable
 
     public bool LoadPluginAssembly(string assemblyPath, EngineHost host)
     {
-        try
+        PluginLoadContext? context = null;
+        lock (_loaded)
         {
             if (_loaded.Count >= MaxPlugins)
             {
                 _logger.Warn("Plugins", $"Cannot load {assemblyPath}: plugin limit reached.");
                 return false;
             }
+        }
 
+        try
+        {
             var full = Path.GetFullPath(assemblyPath);
             if (!File.Exists(full) || !full.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
             {
@@ -105,7 +109,7 @@ public sealed class PluginHost : IDisposable
             if (!VerifyTrust(full))
                 return false;
 
-            var context = new PluginLoadContext(full);
+            context = new PluginLoadContext(full);
             var assembly = context.LoadFromAssemblyPath(full);
             var pluginType = assembly.GetTypes()
                 .FirstOrDefault(t => typeof(ISynapsePlugin).IsAssignableFrom(t) && t is { IsAbstract: false, IsInterface: false });
@@ -118,16 +122,33 @@ public sealed class PluginHost : IDisposable
             }
 
             if (Activator.CreateInstance(pluginType) is not ISynapsePlugin plugin)
+            {
+                context.Unload();
                 return false;
+            }
 
             var pluginDir = Path.GetDirectoryName(full) ?? AppContext.BaseDirectory;
             plugin.OnLoad(new PluginHostContext { Host = host, PluginDirectory = pluginDir });
-            _loaded.Add((plugin, context));
+            lock (_loaded)
+            {
+                if (_loaded.Count >= MaxPlugins)
+                {
+                    try { plugin.OnUnload(); } catch { /* ignore */ }
+                    context.Unload();
+                    return false;
+                }
+                _loaded.Add((plugin, context));
+            }
+            context = null;
             _logger.Info("Plugins", $"Loaded {plugin.Metadata.Name} v{plugin.Metadata.Version}");
             return true;
         }
         catch (Exception ex)
         {
+            if (context != null)
+            {
+                try { context.Unload(); } catch { /* ignore */ }
+            }
             _logger.Error("Plugins", $"Failed to load {assemblyPath}: {ex.Message}");
             return false;
         }
@@ -135,14 +156,20 @@ public sealed class PluginHost : IDisposable
 
     public void Dispose()
     {
-        foreach (var (plugin, context) in _loaded)
+        List<(ISynapsePlugin Plugin, PluginLoadContext Context)> snapshot;
+        lock (_loaded)
+        {
+            snapshot = _loaded.ToList();
+            _loaded.Clear();
+        }
+
+        foreach (var (plugin, context) in snapshot)
         {
             try
             { plugin.OnUnload(); }
             catch (Exception ex) { _logger.Warn("Plugins", $"Unload error: {ex.Message}"); }
             context.Unload();
         }
-        _loaded.Clear();
     }
 
     private bool VerifyTrust(string assemblyPath)

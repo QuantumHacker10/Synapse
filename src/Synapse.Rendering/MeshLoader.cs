@@ -311,6 +311,14 @@ namespace GDNN.Rendering.MeshIO
                 var ext = Path.GetExtension(filePath).ToLowerInvariant();
                 result.Asset.SourceFormat = ext == ".glb" ? MeshFileType.glTFBinary : MeshFileType.glTF;
 
+                const long maxGltfBytes = 256L * 1024 * 1024;
+                var info = new FileInfo(filePath);
+                if (info.Length > maxGltfBytes)
+                {
+                    result.ErrorMessage = $"glTF file exceeds {maxGltfBytes} byte limit.";
+                    return result;
+                }
+
                 byte[] fileData = await File.ReadAllBytesAsync(filePath, ct);
                 GlTFRoot? root;
 
@@ -451,8 +459,19 @@ namespace GDNN.Rendering.MeshIO
                     {
                         string header = buffer.Uri.Substring(0, commaIdx);
                         string data = buffer.Uri.Substring(commaIdx + 1);
+                        // Cap decoded payload (~256 MiB base64 expands ~3/4).
+                        const int maxBase64Chars = (256 * 1024 * 1024 * 4) / 3;
+                        if (data.Length > maxBase64Chars)
+                            throw new InvalidDataException("glTF data URI exceeds size limit.");
                         if (header.Contains("base64"))
-                            return Convert.FromBase64String(data);
+                        {
+                            var decoded = Convert.FromBase64String(data);
+                            if (buffer.ByteLength is > 0 && decoded.Length < buffer.ByteLength)
+                                throw new InvalidDataException("glTF data URI shorter than declared byteLength.");
+                            if (decoded.Length > 256 * 1024 * 1024)
+                                throw new InvalidDataException("glTF decoded data URI exceeds size limit.");
+                            return decoded;
+                        }
                     }
                 }
 

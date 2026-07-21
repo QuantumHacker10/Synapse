@@ -185,7 +185,7 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
         _viewHandleHeld = false;
 
         // Allocate aligned memory.
-        int allocSize = capacity + alignment; // Extra space for alignment.
+        int allocSize = checked(capacity + alignment); // Extra space for alignment.
         _rawPointer = (byte*)NativeMemory.AlignedAlloc((nuint)allocSize, (nuint)alignment);
 
         // Align the pointer.
@@ -286,8 +286,10 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
     public Span<T> GetSpan<T>(int byteOffset, int count) where T : struct
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        int requiredBytes = count * Unsafe.SizeOf<T>();
-        if (byteOffset < 0 || byteOffset + requiredBytes > _capacity)
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count));
+        int requiredBytes = checked(count * Unsafe.SizeOf<T>());
+        if (byteOffset < 0 || checked(byteOffset + requiredBytes) > _capacity)
             throw new ArgumentOutOfRangeException(nameof(byteOffset));
 
         return new Span<T>(_pointer + byteOffset, count);
@@ -299,8 +301,10 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
     public ReadOnlySpan<T> GetReadOnlySpan<T>(int byteOffset, int count) where T : struct
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        int requiredBytes = count * Unsafe.SizeOf<T>();
-        if (byteOffset < 0 || byteOffset + requiredBytes > _capacity)
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count));
+        int requiredBytes = checked(count * Unsafe.SizeOf<T>());
+        if (byteOffset < 0 || checked(byteOffset + requiredBytes) > _capacity)
             throw new ArgumentOutOfRangeException(nameof(byteOffset));
 
         return new ReadOnlySpan<T>(_pointer + byteOffset, count);
@@ -740,6 +744,7 @@ public sealed unsafe class MappedBuffer : IDisposable
     private byte* _basePointer;
     private readonly int _size;
     private readonly string _filePath;
+    private readonly bool _createIfMissing;
     private bool _disposed;
     private bool _isOpen;
     private bool _viewHandleHeld;
@@ -779,6 +784,7 @@ public sealed unsafe class MappedBuffer : IDisposable
 
         _filePath = filePath;
         _size = size;
+        _createIfMissing = createIfMissing;
         _isOpen = false;
     }
 
@@ -793,6 +799,8 @@ public sealed unsafe class MappedBuffer : IDisposable
 
         if (!File.Exists(_filePath))
         {
+            if (!_createIfMissing)
+                throw new FileNotFoundException("Mapped file does not exist.", _filePath);
             using var fs = File.Create(_filePath);
             fs.SetLength(_size);
         }

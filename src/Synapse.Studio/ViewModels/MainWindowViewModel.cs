@@ -486,7 +486,11 @@ namespace Synapse.Studio.ViewModels
                 : prompt;
 
             var response = await _host.ChatAsync(routedPrompt);
-            string content = response?.Content ?? "(aucune réponse)";
+            string content = response == null
+                ? "(aucune réponse)"
+                : response.IsError
+                    ? $"(erreur LLM) {response.ErrorMessage ?? "provider indisponible"}"
+                    : response.Content;
             ChatMessages.Add(new ChatMessageRecord
             {
                 Role = "Assistant",
@@ -773,24 +777,38 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task SaveBlueprintAsync()
         {
-            var window = GetMainWindow();
-            if (window?.StorageProvider == null)
-                return;
-            var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            try
             {
-                Title = "Enregistrer le blueprint",
-                DefaultExtension = "blueprint.json",
-                SuggestedFileName = "agent.blueprint.json",
-                FileTypeChoices = new[]
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
                 {
-                    new FilePickerFileType("Blueprint") { Patterns = new[] { "*.blueprint.json", "*.json" } }
+                    Title = "Enregistrer le blueprint",
+                    DefaultExtension = "blueprint.json",
+                    SuggestedFileName = "agent.blueprint.json",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("Blueprint") { Patterns = new[] { "*.blueprint.json", "*.json" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (path == null)
+                    return;
+                var (ok, msg) = _blueprint.Validate();
+                if (!ok)
+                {
+                    BlueprintStatus = $"Validation échouée — {msg}";
+                    return;
                 }
-            });
-            var path = file?.TryGetLocalPath();
-            if (path == null)
-                return;
-            await _blueprint.SaveAsync(path);
-            BlueprintStatus = $"Enregistré : {path}";
+                await _blueprint.SaveAsync(path);
+                BlueprintStatus = $"Enregistré : {path}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Save blueprint failed", ex);
+                BlueprintStatus = $"Erreur enregistrement — {ex.Message}";
+            }
         }
 
         [RelayCommand]
@@ -815,34 +833,42 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task ImportMegascansAsync()
         {
-            var window = GetMainWindow();
-            if (window?.StorageProvider == null)
-                return;
-
-            string? path = MegascansPath;
-            if (string.IsNullOrWhiteSpace(path))
+            try
             {
-                var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+
+                string? path = MegascansPath;
+                if (string.IsNullOrWhiteSpace(path))
                 {
-                    Title = "Dossier d'asset Megascans",
-                    AllowMultiple = false
-                });
-                path = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
-            }
+                    var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                    {
+                        Title = "Dossier d'asset Megascans",
+                        AllowMultiple = false
+                    });
+                    path = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+                }
 
-            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                {
+                    MegascansStatus = "Aucun dossier sélectionné";
+                    return;
+                }
+
+                MegascansPath = path;
+                MegascansStatus = "Import en cours…";
+                var entry = await _megascans.ImportAssetAsync(path);
+                MegascansStatus = entry.ImportSucceeded
+                    ? $"OK — {entry.Asset?.Name} ({entry.ImportDuration.TotalMilliseconds:F0} ms)"
+                    : $"Échec — {string.Join("; ", entry.Warnings)}";
+                _logger.Info("Megascans", MegascansStatus);
+            }
+            catch (Exception ex)
             {
-                MegascansStatus = "Aucun dossier sélectionné";
-                return;
+                _logger.Error("Studio", "Megascans import failed", ex);
+                MegascansStatus = $"Erreur import — {ex.Message}";
             }
-
-            MegascansPath = path;
-            MegascansStatus = "Import en cours…";
-            var entry = await _megascans.ImportAssetAsync(path);
-            MegascansStatus = entry.ImportSucceeded
-                ? $"OK — {entry.Asset?.Name} ({entry.ImportDuration.TotalMilliseconds:F0} ms)"
-                : $"Échec — {string.Join("; ", entry.Warnings)}";
-            _logger.Info("Megascans", MegascansStatus);
         }
 
         public void Dispose()

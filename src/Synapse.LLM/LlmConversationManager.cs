@@ -79,7 +79,9 @@ namespace GDNN.Llm
         /// <returns>The session ID.</returns>
         public string CreateSession(string? systemPrompt = null, string? sessionId = null)
         {
-            var id = sessionId ?? Guid.NewGuid().ToString("N");
+            var id = string.IsNullOrWhiteSpace(sessionId)
+                ? Guid.NewGuid().ToString("N")
+                : Synapse.Core.Security.PathSecurity.RequireSafeAssetId(sessionId);
             var session = new ConversationSession
             {
                 Id = id,
@@ -231,12 +233,19 @@ namespace GDNN.Llm
         /// </summary>
         /// <param name="sessionId">Session ID.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+
+        private string ResolveSessionPath(string sessionId)
+        {
+            var safeId = Synapse.Core.Security.PathSecurity.RequireSafeAssetId(sessionId);
+            return Synapse.Core.Security.PathSecurity.CombineUnderRoot(_storagePath, safeId + ".json");
+        }
+
         public async Task SaveSessionAsync(string sessionId, CancellationToken cancellationToken = default)
         {
             if (!_sessions.TryGetValue(sessionId, out var session))
                 return;
 
-            var filePath = Path.Combine(_storagePath, $"{sessionId}.json");
+            var filePath = ResolveSessionPath(sessionId);
             var json = ExportJson(sessionId);
             await File.WriteAllTextAsync(filePath, json, cancellationToken);
         }
@@ -249,7 +258,7 @@ namespace GDNN.Llm
         /// <returns>True if loaded successfully.</returns>
         public async Task<bool> LoadSessionAsync(string sessionId, CancellationToken cancellationToken = default)
         {
-            var filePath = Path.Combine(_storagePath, $"{sessionId}.json");
+            var filePath = ResolveSessionPath(sessionId);
             if (!File.Exists(filePath))
                 return false;
 
@@ -280,7 +289,7 @@ namespace GDNN.Llm
         {
             if (_sessions.TryRemove(sessionId, out _))
             {
-                var filePath = Path.Combine(_storagePath, $"{sessionId}.json");
+                var filePath = ResolveSessionPath(sessionId);
                 if (File.Exists(filePath))
                     File.Delete(filePath);
                 return true;
