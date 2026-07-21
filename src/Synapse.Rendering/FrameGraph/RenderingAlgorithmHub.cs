@@ -527,6 +527,12 @@ namespace GDNN.Rendering.FrameGraph
                 LastVisibleMeshlets = Math.Max(LastVisibleMeshlets, keys.Count);
                 foreach (var key in keys)
                     _ = MeshletStreamer.GetOrLoad(key);
+
+                // Feed resident streamed clusters into the present raster path on ticks where the
+                // densify polygonizer did NOT already rebuild _lastRasterTarget (%3==1). Without
+                // this, off-core meshlet streaming only warmed the LRU cache and never reached screen.
+                if (keys.Count > 0 && (_gdnnTick % 3) != 1)
+                    TryRasterizeStreamedClusters(view);
             }
 
             Geometry.ClearCommands();
@@ -883,6 +889,90 @@ namespace GDNN.Rendering.FrameGraph
             var stats = SoftwareRasterizer.Rasterize(cpuTarget, mesh, meshlets, view);
             LastSoftwareRasterPixels = stats.TrianglesRasterized;
             return cpuTarget;
+        }
+
+        /// <summary>
+        /// Builds a composite <see cref="NeuralPolygonMesh"/> + <see cref="NeuralMeshlet"/> list from
+        /// up to 48 resident streamed clusters and rasterizes them into <see cref="_lastRasterTarget"/>
+        /// so off-core meshlet streaming feeds the present path (fog / GI / G-buffer inject).
+        /// </summary>
+        private void TryRasterizeStreamedClusters(in CameraView view)
+        {
+            if (MeshletStreamer == null)
+                return;
+
+            try
+            {
+                int level = LastNeuralLod >= 0 ? LastNeuralLod : 0;
+                var keys = MeshletStreamer.QueryVisible(view, level);
+                if (keys.Count == 0)
+                    return;
+
+                var positions = new System.Collections.Generic.List<Vector3>();
+                var normals = new System.Collections.Generic.List<Vector3>();
+                var indices = new System.Collections.Generic.List<int>();
+                var meshlets = new System.Collections.Generic.List<NeuralMeshlet>();
+
+                int taken = 0;
+                foreach (var key in keys)
+                {
+                    if (taken >= 48)
+                        break;
+                    if (!MeshletStreamer.TryGetResident(key, out var cluster))
+                        continue;
+                    if (cluster.VertexCount == 0 || cluster.TriangleCount == 0)
+                        continue;
+
+                    int baseVertex = positions.Count;
+                    for (int i = 0; i < cluster.Positions.Length; i++)
+                    {
+                        positions.Add(cluster.Positions[i]);
+                        normals.Add(i < cluster.Normals.Length ? cluster.Normals[i] : Vector3.UnitY);
+                    }
+
+                    var vertexIndices = new int[cluster.VertexCount];
+                    for (int i = 0; i < vertexIndices.Length; i++)
+                        vertexIndices[i] = baseVertex + i;
+
+                    var local = cluster.LocalIndices;
+                    for (int i = 0; i < local.Length; i++)
+                        indices.Add(baseVertex + local[i]);
+
+                    meshlets.Add(new NeuralMeshlet
+                    {
+                        VertexIndices = vertexIndices,
+                        LocalIndices = local,
+                        Bounds = cluster.Bounds,
+                        ConeAxis = cluster.ConeAxis,
+                        ConeCutoff = cluster.ConeCutoff
+                    });
+                    taken++;
+                }
+
+                if (meshlets.Count == 0 || indices.Count == 0)
+                    return;
+
+                var mesh = new NeuralPolygonMesh
+                {
+                    Positions = positions.ToArray(),
+                    Normals = normals.ToArray(),
+                    Indices = indices.ToArray()
+                };
+
+                int rastW = Math.Clamp(_lastCullWidth / 2, 256, 512);
+                int rastH = Math.Clamp(_lastCullHeight / 2, 256, 512);
+                RasterTarget target = RasterizeMeshlets(mesh, meshlets, view, rastW, rastH);
+                LastRasterCoveredPixels = target.CountCoveredPixels();
+                _lastRasterTarget = target;
+                _lastMeshlets = meshlets;
+                _lastRasterMesh = mesh;
+                LastVisibleMeshlets = Math.Max(LastVisibleMeshlets, meshlets.Count);
+                QueuePresentMesh(mesh, unchecked((long)_gdnnTick * 2654435761L));
+            }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("AlgorithmHub", "Streamed cluster raster tick skipped.", ex);
+            }
         }
 
         private void QueuePresentMesh(NeuralPolygonMesh mesh, long version)

@@ -105,7 +105,7 @@ Tickés chaque frame (ou one-shot résident) depuis `AlgorithmSystemsPass` → `
 | Polygonization | `NeuralGeometryPipeline` (+ `PolygonizationCache` disque), `NeuralPolygonizer`, `NeuralMeshletBuilder`, `NeuralPolygonLodChain`, `NeuralClusterRenderer`, `SoftwareRasterizer`, `MeshletStreamer` | Meshlets → **fog** + **G-buffer inject** |
 | Evaluation | `NeuralLodSelector`, `SceneEvaluator` (+ assets → `AABBTree`/`RayMarcher`), `SurfaceEvaluator`, `HierarchicalSdfCache`, `GradientCalculator`, `StochasticSphereTracer`, `WarpSpace` | Trace ray scène ; Warp skin sample |
 | SIMD | `BatchSdfEvaluator`, `WaveOptimizedBatchEvaluator`, `BatchOps`, `MathFunctions`, `IntrinsicsHelper`, `MatrixOps`, `VectorOps` | Batch distances / normalize |
-| Streaming | `AssetStreamer` (+ `AssetCache`), `AsyncPipeline`, `CompressionUtils`, `MeshletStreamer` | Request `gdnn_live` placeholder LZ4 |
+| Streaming | `AssetStreamer` (+ `AssetCache`), `AsyncPipeline`, `CompressionUtils`, `MeshletStreamer` | Request `gdnn_live` placeholder LZ4 ; **clusters résidents rasterisés → present path** (`TryRasterizeStreamedClusters`) |
 | Threading | `JobSystem`, `ParallelEvaluator`, `SynchronizedBuffer`, `WorkStealingPool` | Parallel SDF reduce + steal jobs |
 | Memory | `StackAllocator`, `ZeroCopyBuffer`, `NativeBuffer`, `MemoryTracker`, `SpanExtensions`, `StreamingBuffer` | Scratch SDF / ring buffers |
 | Spatial | `Octree`, `LooseOctree`, `SpatialHash`, `ConcurrentSpatialHash`, `AABBTree` | Insert cam + QueryAABB |
@@ -151,8 +151,8 @@ des ressources Vulkan ; `RenderEngine` appelle `ExecuteFrame` qui orchestre le g
 
 | Tech | Barre UE5.8 | Present path Synapse (session) | ~% impact on-screen vs UE5 |
 |---|---|---|---|
-| **G-DNN → Nanite** | Mesh shaders GPU, virtualized micropoly, continuous LOD, depth+material resolve | Dense meshlets (poly grid 20–36) + visibility buffer **256–512²** (GPU prefer / CPU fallback) → **G-buffer inject** + cluster albedo into GI/fog ; LOD neural + frustum/backface | **~18–25%** (lit geometry looks cluster-tiled; pas de vrai micropoly hardware / streaming pages UE) |
-| **L-DNN → Lumen** | Surface cache + software RT cascades, multi-bounce, specular | Hybrid SSGI (8 rays) + **6** radiance cascades + neural refine + multi-bounce proxy ; GI **domine** l’ambient plat ; AO/fog/GI upload **chaque frame** ; SSR proxy renforcé | **~20–28%** (ombres indirectes visibles ; pas de surface cache UE / RT hardware) |
+| **G-DNN → Nanite** | Mesh shaders GPU, virtualized micropoly, continuous LOD, depth+material resolve | Dense meshlets (poly grid 20–36) + visibility buffer **256–512²** (GPU prefer / CPU fallback) → **G-buffer inject** + cluster albedo into GI/fog ; **`MeshletStreamer` clusters résidents rasterisés dans le present path** (jusqu’à 48 clusters/tick hors densify) ; LOD neural + frustum/backface | **~22–30%** (streamed clusters now reach the screen; pas de vrai micropoly hardware / streaming pages UE) |
+| **L-DNN → Lumen** | Surface cache + software RT cascades, multi-bounce, specular | Hybrid SSGI (8 rays) + **6** radiance cascades **consommées directement** (`SampleScreenCascade`) + probe cache **semé** depuis les cascades + neural refine + multi-bounce proxy ; **`TemporalStabilizer` filtre le champ GI** frame-to-frame ; GI **domine** l’ambient plat ; AO/fog/GI upload **chaque frame** ; SSR proxy renforcé | **~28–35%** (cascades + probes indirects visibles et temporellement stables ; pas de surface cache UE / RT hardware) |
 
 **Ce qui bloque encore la parité vraie** : pas de mesh-shader primary-device Nanite, pas de visibility-buffer material resolve GPU full-res, pas de Lumen surface cache / hardware ray tracing, Hybrid GI encore CPU-heavy (pas un compute GI resident chaque frame sur le device swapchain), second device optionnel pour meshlets/SDF.
 
