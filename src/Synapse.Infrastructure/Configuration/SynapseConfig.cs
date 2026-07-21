@@ -25,6 +25,11 @@ namespace Synapse.Infrastructure.Configuration
         public string? ScreenshotPath { get; set; }
         public string? WanSessionCode { get; set; }
         public int WanPort { get; set; } = 7777;
+        /// <summary>UDP rendezvous host (IP or hostname). Default loopback for same-machine QA.</summary>
+        public string WanRendezvousHost { get; set; } = "127.0.0.1";
+        public int WanRendezvousPort { get; set; } = 7778;
+        /// <summary>When true with <see cref="WanSessionCode"/>, join an existing host instead of hosting.</summary>
+        public bool WanJoin { get; set; }
         public string LogLevel { get; set; } = "Information";
         public LlmConfig Llm { get; set; } = new();
         public string ProjectsDirectory { get; set; } =
@@ -166,6 +171,16 @@ namespace Synapse.Infrastructure.Configuration
                     case "--wan-port":
                         if (int.TryParse(Next(), out var wanPort))
                             config.WanPort = wanPort;
+                        break;
+                    case "--wan-rendezvous":
+                        config.WanRendezvousHost = Next() ?? config.WanRendezvousHost;
+                        break;
+                    case "--wan-rendezvous-port":
+                        if (int.TryParse(Next(), out var wanRvPort))
+                            config.WanRendezvousPort = wanRvPort;
+                        break;
+                    case "--wan-join":
+                        config.WanJoin = true;
                         break;
                     case "--quality":
                         var q = Next();

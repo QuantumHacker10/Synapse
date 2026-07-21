@@ -28,15 +28,27 @@ public sealed class UsdAsciiLoader
             return new UsdBinaryLoader().LoadAsync(filePath, config, ct);
 
         // Composition walk for USDA (and ASCII .usd): resolve references then merge meshes.
+        // Leaf loads skip local xform — the resolver applies cumulative parent×local stacks.
         return UsdCompositionResolver.LoadWithCompositionAsync(
             filePath,
-            LoadLeafMeshAsync,
+            (path, cfg, token) => LoadLeafMeshAsync(path, cfg, applyLocalXform: false, token),
             config,
             ct);
     }
 
     /// <summary>Loads a single file's local mesh without following composition arcs.</summary>
-    public Task<MeshLoadResult> LoadLeafMeshAsync(string filePath, MeshLoadConfig? config, CancellationToken ct)
+    public Task<MeshLoadResult> LoadLeafMeshAsync(string filePath, MeshLoadConfig? config, CancellationToken ct) =>
+        LoadLeafMeshAsync(filePath, config, applyLocalXform: true, ct);
+
+    /// <summary>
+    /// Loads a single file's local mesh. When <paramref name="applyLocalXform"/> is false,
+    /// xformOps are left for <see cref="UsdCompositionResolver"/> cumulative stacks.
+    /// </summary>
+    public Task<MeshLoadResult> LoadLeafMeshAsync(
+        string filePath,
+        MeshLoadConfig? config,
+        bool applyLocalXform,
+        CancellationToken ct)
     {
         config ??= new MeshLoadConfig();
         var result = new MeshLoadResult();
@@ -62,11 +74,10 @@ public sealed class UsdAsciiLoader
 
             var points = ParsePointsArray(text);
             var indices = ParseFaceIndices(text);
-            var translate = ParseTranslate(text);
-            if (translate != Vector3.Zero)
+            if (applyLocalXform)
             {
-                for (int i = 0; i < points.Count; i++)
-                    points[i] += translate;
+                var local = UsdXform.ParseLocalMatrix(text);
+                UsdXform.ApplyToPoints(points, local);
             }
 
             if (points.Count == 0)
@@ -173,29 +184,8 @@ public sealed class UsdAsciiLoader
     }
 
     /// <summary>Parses <c>double3 xformOp:translate = (x, y, z)</c> or <c>float3 xformOp:translate</c>.</summary>
-    public static Vector3 ParseTranslate(string text)
-    {
-        var marker = "xformOp:translate";
-        int idx = text.IndexOf(marker, StringComparison.Ordinal);
-        if (idx < 0)
-            return Vector3.Zero;
-        int eq = text.IndexOf('=', idx);
-        if (eq < 0)
-            return Vector3.Zero;
-        int open = text.IndexOf('(', eq);
-        int close = open >= 0 ? text.IndexOf(')', open) : -1;
-        if (open < 0 || close < open)
-            return Vector3.Zero;
-        var body = text.Substring(open + 1, close - open - 1);
-        var parts = body.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length < 3)
-            return Vector3.Zero;
-        if (float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x) &&
-            float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y) &&
-            float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
-            return new Vector3(x, y, z);
-        return Vector3.Zero;
-    }
+    public static Vector3 ParseTranslate(string text) =>
+        UsdXform.ParseVec3Op(text, "xformOp:translate");
 
     private static bool IsBinaryUsd(string filePath)
     {

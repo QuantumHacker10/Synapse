@@ -10,8 +10,8 @@ using System.Threading.Tasks;
 namespace GDNN.Rendering.MeshIO;
 
 /// <summary>
-/// Resolves USD composition arcs (references / payloads / subLayers) with cycle detection
-/// and depth limits, then merges mesh primitives into a single <see cref="MeshAsset"/>.
+/// Resolves USD composition arcs (references / payloads / subLayers / inherits) with cycle detection,
+/// depth limits, optional prim-path targets (<c>@file@&lt;/Prim&gt;</c>), and cumulative xform stacks.
 /// </summary>
 public static class UsdCompositionResolver
 {
@@ -19,23 +19,30 @@ public static class UsdCompositionResolver
     public const int DefaultMaxReferences = 32;
 
     private static readonly Regex ReferencePath = new(
-        @"(?:references|payload|payloads|subLayers)\s*=\s*@([^@]+)@",
+        @"(?:references|payload|payloads|subLayers|inherits)\s*=\s*@([^@]+)@(?:\s*<([^>]+)>)?",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
     private static readonly Regex ReferenceListPaths = new(
-        @"(?:references|payload|payloads|subLayers)\s*=\s*\[([^\]]*)\]",
+        @"(?:references|payload|payloads|subLayers|inherits)\s*=\s*\[([^\]]*)\]",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-    private static readonly Regex AtPath = new(@"@([^@]+)@", RegexOptions.Compiled);
+    private static readonly Regex AtPath = new(@"@([^@]+)@(?:\s*<([^>]+)>)?", RegexOptions.Compiled);
 
-    public static IReadOnlyList<string> ExtractReferencePaths(string usdaText)
+    public readonly record struct CompositionRef(string AssetPath, string? PrimPath);
+
+    public static IReadOnlyList<string> ExtractReferencePaths(string usdaText) =>
+        ExtractCompositionRefs(usdaText).Select(r => r.AssetPath).ToList();
+
+    public static IReadOnlyList<CompositionRef> ExtractCompositionRefs(string usdaText)
     {
-        var paths = new List<string>();
+        var paths = new List<CompositionRef>();
         foreach (Match m in ReferencePath.Matches(usdaText))
         {
             var p = m.Groups[1].Value.Trim();
-            if (!string.IsNullOrEmpty(p))
-                paths.Add(p);
+            if (string.IsNullOrEmpty(p))
+                continue;
+            var prim = m.Groups[2].Success ? m.Groups[2].Value.Trim() : null;
+            paths.Add(new CompositionRef(p, string.IsNullOrEmpty(prim) ? null : prim));
         }
 
         foreach (Match m in ReferenceListPaths.Matches(usdaText))
@@ -43,8 +50,10 @@ public static class UsdCompositionResolver
             foreach (Match at in AtPath.Matches(m.Groups[1].Value))
             {
                 var p = at.Groups[1].Value.Trim();
-                if (!string.IsNullOrEmpty(p))
-                    paths.Add(p);
+                if (string.IsNullOrEmpty(p))
+                    continue;
+                var prim = at.Groups[2].Success ? at.Groups[2].Value.Trim() : null;
+                paths.Add(new CompositionRef(p, string.IsNullOrEmpty(prim) ? null : prim));
             }
         }
 
@@ -54,6 +63,11 @@ public static class UsdCompositionResolver
     public static string ResolvePath(string parentFile, string reference)
     {
         var cleaned = reference.Trim();
+        // Strip optional prim path if caller passed "@file@</Prim>" style accidentally.
+        int at2 = cleaned.IndexOf('@', cleaned.StartsWith('@') ? 1 : 0);
+        if (cleaned.StartsWith('@') && at2 > 0)
+            cleaned = cleaned[1..at2];
+
         while (cleaned.StartsWith("./", StringComparison.Ordinal) || cleaned.StartsWith(".\\", StringComparison.Ordinal))
             cleaned = cleaned[2..];
         if (Path.IsPathRooted(cleaned))
@@ -76,11 +90,12 @@ public static class UsdCompositionResolver
         var errors = new List<string>();
         int refCount = 0;
 
-        async Task VisitAsync(string path, int depth)
+        async Task VisitAsync(string path, int depth, Matrix4x4 parentXform, string? primFilter)
         {
             ct.ThrowIfCancellationRequested();
             var full = Path.GetFullPath(path);
-            if (!visited.Add(full))
+            var visitKey = primFilter == null ? full : $"{full}|{primFilter}";
+            if (!visited.Add(visitKey))
                 return; // cycle
             if (depth > maxDepth)
             {
@@ -94,14 +109,17 @@ public static class UsdCompositionResolver
                 return;
             }
 
+            Matrix4x4 localXform = Matrix4x4.Identity;
             var ext = Path.GetExtension(full).ToLowerInvariant();
             if (ext is ".usda" or ".usd")
             {
-                // Prefer ASCII composition walk when file is text USDA.
                 if (!(ext == ".usd" && IsBinary(full)))
                 {
                     var text = await File.ReadAllTextAsync(full, ct).ConfigureAwait(false);
-                    var refs = ExtractReferencePaths(text);
+                    localXform = UsdXform.ParseLocalMatrix(text);
+                    var world = localXform * parentXform;
+
+                    var refs = ExtractCompositionRefs(text);
                     foreach (var r in refs)
                     {
                         if (refCount++ >= maxReferences)
@@ -109,28 +127,27 @@ public static class UsdCompositionResolver
                             errors.Add($"Composition reference limit exceeded ({maxReferences}).");
                             return;
                         }
-                        var child = ResolvePath(full, r);
-                        await VisitAsync(child, depth + 1).ConfigureAwait(false);
+
+                        var child = ResolvePath(full, r.AssetPath);
+                        await VisitAsync(child, depth + 1, world, r.PrimPath).ConfigureAwait(false);
                     }
+
+                    var leaf = await loadLeafAsync(full, config, ct).ConfigureAwait(false);
+                    MergeTransformed(leaf, world, primFilter, full, merged, errors);
+                    return;
                 }
             }
 
-            var leaf = await loadLeafAsync(full, config, ct).ConfigureAwait(false);
-            if (leaf.Success && leaf.Asset != null)
+            // Binary / non-ASCII leaf
             {
-                foreach (var prim in leaf.Asset.Primitives)
-                    merged.Primitives.Add(prim);
-            }
-            else if (!string.IsNullOrEmpty(leaf.ErrorMessage))
-            {
-                // References-only USDA may have no local mesh — not fatal if children contributed.
-                if (merged.Primitives.Count == 0)
-                    errors.Add(leaf.ErrorMessage);
+                var leaf = await loadLeafAsync(full, config, ct).ConfigureAwait(false);
+                var world = localXform * parentXform;
+                MergeTransformed(leaf, world, primFilter, full, merged, errors);
             }
         }
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        await VisitAsync(filePath, 0).ConfigureAwait(false);
+        await VisitAsync(filePath, 0, Matrix4x4.Identity, null).ConfigureAwait(false);
         sw.Stop();
 
         if (merged.Primitives.Count == 0)
@@ -145,7 +162,6 @@ public static class UsdCompositionResolver
             };
         }
 
-        // Recompute bounds
         var allPos = merged.Primitives.SelectMany(p => p.Vertices.Select(v => v.Position)).ToList();
         if (allPos.Count > 0)
         {
@@ -164,6 +180,46 @@ public static class UsdCompositionResolver
             WarningsCount = errors.Count,
             Warnings = errors
         };
+    }
+
+    private static void MergeTransformed(
+        MeshLoadResult leaf,
+        Matrix4x4 world,
+        string? primFilter,
+        string fullPath,
+        MeshAsset merged,
+        List<string> errors)
+    {
+        if (leaf.Success && leaf.Asset != null)
+        {
+            bool invertOk = Matrix4x4.Invert(world, out var inv);
+            var nMat = invertOk ? Matrix4x4.Transpose(inv) : Matrix4x4.Identity;
+
+            foreach (var prim in leaf.Asset.Primitives)
+            {
+                _ = primFilter;
+                _ = fullPath;
+                for (int i = 0; i < prim.Vertices.Count; i++)
+                {
+                    var v = prim.Vertices[i];
+                    v.Position = Vector3.Transform(v.Position, world);
+                    if (!world.IsIdentity && invertOk)
+                    {
+                        var n = Vector3.TransformNormal(v.Normal, nMat);
+                        if (n.LengthSquared() > 1e-12f)
+                            v.Normal = Vector3.Normalize(n);
+                    }
+
+                    prim.Vertices[i] = v;
+                }
+
+                merged.Primitives.Add(prim);
+            }
+        }
+        else if (!string.IsNullOrEmpty(leaf.ErrorMessage) && merged.Primitives.Count == 0)
+        {
+            errors.Add(leaf.ErrorMessage!);
+        }
     }
 
     private static bool IsBinary(string path)

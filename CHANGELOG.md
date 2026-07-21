@@ -6,6 +6,22 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [2.5.0] — 2026-07-21
+
+**Production-ready VR / WAN / OpenUSD DCC** — OpenXR natif+simulé, NAT hors-loopback, xform stacks complets.
+
+### Ajouté
+
+- **OpenXR Vulkan2 natif** — `OpenXrNative` + session/swapchain réels via `XR_KHR_vulkan_enable2` ; fallback simulé labellisé (`IsSimulated`)
+- **WAN NAT** — rendezvous UDP sur `IPAddress.Any`, `PEER|session|ip|port`, CLI `--wan-rendezvous` / `--wan-rendezvous-port` / `--wan-join`
+- **OpenUSD DCC** — `UsdXform` (translate / rotateXYZ / scale / transform + xformOpOrder), inherits, cibles `@file@</Prim>`, matrices parent×local
+- Sample `samples/meshes/composed_xform.usda`
+
+### Modifié
+
+- Version **2.5.0**, `docs/PRODUCTION.md` (matrice 2.5)
+- Health notes alignées sur surfaces désormais production
+
 ## [2.4.0] — 2026-07-21
 
 **Production-ready desktop** — dispose sûr, health check, docs alignées, plugins Studio, marketplace local, honesty VR/WAN.

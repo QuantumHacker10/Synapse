@@ -144,10 +144,28 @@ namespace Synapse.Studio
 
                 if (!string.IsNullOrWhiteSpace(config.WanSessionCode))
                 {
-                    // Loopback NAT QA / LAN-authenticated hub — see docs/PRODUCTION.md
-                    wan = new WanSimulationPeerHub(logger, config.WanSessionCode);
-                    wan.StartHostAsync(config.WanPort).GetAwaiter().GetResult();
-                    Console.WriteLine($"[WAN] Authenticated loopback host on {wan.ListenPort} (session QA)");
+                    if (!System.Net.IPAddress.TryParse(config.WanRendezvousHost, out var rvHost))
+                        rvHost = System.Net.IPAddress.Loopback;
+
+                    wan = new WanSimulationPeerHub(
+                        logger,
+                        config.WanSessionCode,
+                        rendezvousAddress: rvHost,
+                        rendezvousPort: config.WanRendezvousPort,
+                        hostRelay: !config.WanJoin);
+
+                    if (config.WanJoin)
+                    {
+                        wan.JoinAsync(rvHost, config.WanRendezvousPort).GetAwaiter().GetResult();
+                        Console.WriteLine($"[WAN] Joined via rendezvous {rvHost}:{config.WanRendezvousPort}");
+                    }
+                    else
+                    {
+                        wan.StartHostAsync(config.WanPort).GetAwaiter().GetResult();
+                        Console.WriteLine(
+                            $"[WAN] Authenticated host on 0.0.0.0:{wan.ListenPort} " +
+                            $"(rendezvous {rvHost}:{config.WanRendezvousPort})");
+                    }
                 }
 
                 if (!string.IsNullOrWhiteSpace(config.ExportScenePath))

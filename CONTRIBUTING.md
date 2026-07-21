@@ -16,7 +16,7 @@ Merci de votre intérêt pour **Synapse OMNIA**, outil de simulation 3D. Ce guid
 ### Flux recommandé
 
 ```text
-feat/ma-fonctionnalite ──PR──► develop ──PR──► main ──tag──► v2.4.0
+feat/ma-fonctionnalite ──PR──► develop ──PR──► main ──tag──► v2.5.0
 ```
 
 1. Partir de `develop` à jour : `git checkout develop && git pull`
@@ -82,8 +82,8 @@ Le projet suit [Semantic Versioning](https://semver.org/) :
 ```bash
 git checkout main
 git pull
-git tag -a v2.4.0 -m "Synapse OMNIA 2.4.0"
-git push origin v2.4.0
+git tag -a v2.5.0 -m "Synapse OMNIA 2.5.0"
+git push origin v2.5.0
 ```
 
 Le workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) publie automatiquement les artefacts multi-RID sur GitHub Releases.
@@ -92,7 +92,8 @@ Le workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) pub
 
 | Tag | Description |
 |---|---|
-| `v2.4.0` | Production-ready desktop (voir docs/PRODUCTION.md) |
+| `v2.5.0` | Production VR / WAN / OpenUSD DCC (voir docs/PRODUCTION.md) |
+| `v2.4.0` | Production-ready desktop |
 | `v2.3.x` | Multi-plateforme mid-range + USDC + blueprints live |
 
 ## CHANGELOG

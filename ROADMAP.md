@@ -2,7 +2,14 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.4 — Actuel (2026-07) — production-ready desktop
+## v2.5 — Actuel (2026-07) — production VR / WAN / OpenUSD
+
+- [x] OpenXR Vulkan2 natif + fallback simulé production (`IsSimulated`)
+- [x] WAN NAT hors-loopback (UDP Any + IP:port + CLI join/rendezvous)
+- [x] OpenUSD DCC : composition + xformOp TRS/transform + inherits / prim-path
+- [x] `docs/PRODUCTION.md` 2.5
+
+## v2.4 — Livré (2026-07) — production-ready desktop
 
 - [x] Checklist production (`docs/PRODUCTION.md`) + `--health`
 - [x] Dispose / fuites / plugins Studio / WAN CLI câblé
@@ -52,7 +59,7 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] P2P WAN (NAT rendezvous UDP + chiffrement AES-GCM)
 - [x] Éditeur web glTF interactif (`site/editor/`, WebGPU)
 
-## v2.4+ — Prochaine release
+## v2.5+ — Prochaine release
 
 ### Communauté
 - [ ] Tutoriels vidéo (YouTube)
@@ -64,11 +71,11 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 
 ### Moteur
 - [ ] Plugin marketplace hébergé distant
-- [ ] OpenXR compositor Vulkan réel (hors handles simulés)
-- [ ] WAN NAT hors-loopback
+- [ ] STUN/TURN optionnel pour NAT symétrique
 - [ ] Path tracing L-DNN teacher offline (batch)
+- [ ] OpenUSD materials / skeletons / variants
 
-## v2.5 — Moyen terme
+## v2.6 — Moyen terme
 
 ### Rendu
 - [ ] Path tracing L-DNN teacher offline (batch)
@@ -87,8 +94,6 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 
 ## v3.0 — Long terme
 
-- [ ] Réseau P2P complet (simulations collaboratives multi-pairs)
-- [ ] Support VR OpenXR production
 - [ ] Éditeur web complet (WASM + WebGPU)
 - [ ] Marketplace d'assets et de lois avec signatures
 

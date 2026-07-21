@@ -1339,9 +1339,9 @@ namespace Synapse.Runtime
                 MeetsMinimumCpu = cpu.MeetsMinimumCpu,
                 ExperimentalNotes =
                 {
-                    "OpenXR swapchain uses simulated image handles until a full XR compositor path is wired.",
-                    "WAN NAT rendezvous binds loopback for local QA; use authenticated MultiPeer on LAN for real peers.",
-                    "USD composition resolves references; translate xformOps are applied; full OpenUSD stacks remain best-effort."
+                    "OpenXR uses native Vulkan2 swapchains when loader+HMD+Vulkan bind succeed; otherwise production simulated images (IsSimulated).",
+                    "WAN NAT rendezvous binds UDP Any and advertises observed peer IP:port; use --wan-rendezvous / --wan-join across LAN or port-forwarded WAN.",
+                    "OpenUSD composition supports refs/payloads/subLayers/inherits, prim-path targets, and xformOp translate/rotateXYZ/scale/transform stacks."
                 }
             };
         }
