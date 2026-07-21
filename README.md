@@ -141,7 +141,7 @@ Placez `glfw3.dll` (GLFW 3.4+) à côté de l'exécutable, ou dans
 | Source | Paramètres |
 |---|---|
 | [`src/Synapse.Studio/appsettings.json`](src/Synapse.Studio/appsettings.json) | Résolution, qualité, budgets physique/sim, LLM par défaut |
-| CLI | `--width`, `--height`, `--scene`, `--quality`, `--validation` / `--no-validation`, `--engine` / `--glfw`, `--health`, `--plugin-dir`, `--wan-code`, `--wan-join`, `--wan-rendezvous`, `--stun-server`, `--turn-server` |
+| CLI | `--width`, `--height`, `--scene`, `--quality`, `--validation` / `--no-validation`, `--engine` / `--glfw`, `--health`, `--plugin-dir`, `--plugin-catalog`, `--plugin-marketplace-url`, `--wan-code`, `--wan-join`, `--wan-rendezvous`, `--stun-server`, `--turn-server` |
 | Variables d'environnement | `SYNAPSE_WIDTH`, `SYNAPSE_HEIGHT`, `SYNAPSE_SCENE`, `SYNAPSE_SIMD_MAX` |
 | LLM (jamais en dur dans le dépôt) | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `AZURE_OPENAI_API_KEY`, `OLLAMA_HOST` |
 
