@@ -78,9 +78,12 @@ namespace Synapse.Physics
             return library;
         }
 
-        public static LawLibrary LoadBuiltIn()
+        /// <summary>Built-in library: core scene laws plus the full reference catalog (100+ laws).</summary>
+        public static LawLibrary LoadBuiltIn() => LawCatalogBridge.LoadFullCatalog();
+
+        /// <summary>Registers the small set of laws used by sample scenes and benchmarks.</summary>
+        internal static void RegisterCoreSimulationLaws(LawLibrary library)
         {
-            var library = new LawLibrary();
             library.Register(new LawEntry
             {
                 Id = "navier_stokes_x",
@@ -191,7 +194,6 @@ namespace Synapse.Physics
                 Constants = new() { { "sigma", 5.670374419e-8f } },
                 ResultDimension = new Dimension(1, 0, -3, 0, 0, 0, 0, 0)
             });
-            return library;
         }
     }
 }

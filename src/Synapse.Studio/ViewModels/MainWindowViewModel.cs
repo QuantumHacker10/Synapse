@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GDNN.Rendering.ArtPipeline;
+using GDNN.Rendering.Bridge;
 using Synapse.Infrastructure;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
@@ -89,7 +90,7 @@ namespace Synapse.Studio.ViewModels
         }
 
         public ObservableCollection<SceneEntity> Entities { get; } = new();
-        public ObservableCollection<string> LawIds { get; } = new();
+        public ObservableCollection<LawCatalogEntry> FilteredLawCatalog { get; } = new();
         public ObservableCollection<EntityType> EntityTypes { get; } = new();
         public ObservableCollection<ChatMessageRecord> ChatMessages { get; } = new();
         public ObservableCollection<string> BlueprintNodes { get; } = new();
@@ -108,6 +109,10 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private bool showAboutText;
         [ObservableProperty] private string aboutText = "";
         [ObservableProperty] private string? selectedLawId;
+        [ObservableProperty] private LawCatalogEntry? selectedLawEntry;
+        [ObservableProperty] private string lawSearchText = "";
+        [ObservableProperty] private string lawCatalogSummary = "";
+        [ObservableProperty] private string selectedLawSummary = "";
         [ObservableProperty] private string lawExpression = "∂T/∂t = α*∇²T";
         [ObservableProperty] private string lawStatus = "Prêt";
         [ObservableProperty] private string chatInput = "";
@@ -263,12 +268,49 @@ namespace Synapse.Studio.ViewModels
 
         partial void OnSelectedLawIdChanged(string? value)
         {
+            if (string.IsNullOrWhiteSpace(value))
+                return;
+            var law = _host.ListLawCatalog().FirstOrDefault(l => l.Id == value);
+            if (string.IsNullOrWhiteSpace(law.Id))
+                return;
+
+            LawExpression = law.Expression;
+            var entry = FindCatalogEntry(value);
+            if (entry != null && !ReferenceEquals(SelectedLawEntry, entry))
+                SelectedLawEntry = entry;
+            UpdateSelectedLawSummary();
+        }
+
+        partial void OnSelectedLawEntryChanged(LawCatalogEntry? value)
+        {
             if (value == null)
                 return;
-            var law = _host.ListLaws().FirstOrDefault(l => l.Id == value);
-            if (law.Id != null)
-                LawExpression = law.Expression;
+            if (!string.Equals(SelectedLawId, value.Id, StringComparison.OrdinalIgnoreCase))
+                SelectedLawId = value.Id;
+            LawExpression = value.Expression;
+            UpdateSelectedLawSummary();
         }
+
+        partial void OnLawSearchTextChanged(string value) => ApplyLawCatalogFilter();
+
+        private readonly List<LawCatalogEntry> _allLawCatalog = new();
+
+        private void UpdateSelectedLawSummary()
+        {
+            if (SelectedLawEntry == null)
+            {
+                SelectedLawSummary = "";
+                return;
+            }
+
+            SelectedLawSummary =
+                $"{SelectedLawEntry.Name}\n" +
+                $"Catégorie : {SelectedLawEntry.CategoryLabel}\n" +
+                $"{SelectedLawEntry.Description}";
+        }
+
+        private LawCatalogEntry? FindCatalogEntry(string id) =>
+            _allLawCatalog.FirstOrDefault(l => string.Equals(l.Id, id, StringComparison.OrdinalIgnoreCase));
 
         [RelayCommand]
         private void RefreshEntities()
@@ -303,10 +345,42 @@ namespace Synapse.Studio.ViewModels
 
         private void RefreshLaws()
         {
-            LawIds.Clear();
-            foreach (var law in _host.ListLaws())
-                LawIds.Add(law.Id);
-            SelectedLawId = _host.ActiveLawId ?? LawIds.FirstOrDefault();
+            _allLawCatalog.Clear();
+            foreach (var law in _host.ListLawCatalog())
+            {
+                _allLawCatalog.Add(new LawCatalogEntry
+                {
+                    Id = law.Id,
+                    Name = law.Name,
+                    Category = law.Category,
+                    Description = law.Description,
+                    Expression = law.Expression
+                });
+            }
+
+            LawCatalogSummary = $"{_allLawCatalog.Count} lois dans le catalogue · actif : {_host.ActiveLawId ?? "—"}";
+            ApplyLawCatalogFilter();
+            SelectedLawId = _host.ActiveLawId ?? _allLawCatalog.FirstOrDefault()?.Id;
+            SelectedLawEntry = FindCatalogEntry(SelectedLawId ?? "") ?? _allLawCatalog.FirstOrDefault();
+            UpdateSelectedLawSummary();
+        }
+
+        private void ApplyLawCatalogFilter()
+        {
+            FilteredLawCatalog.Clear();
+            string q = LawSearchText.Trim();
+            IEnumerable<LawCatalogEntry> query = _allLawCatalog;
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                query = _allLawCatalog.Where(l =>
+                    l.Id.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    l.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    l.Category.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    l.Description.Contains(q, StringComparison.OrdinalIgnoreCase));
+            }
+
+            foreach (var entry in query)
+                FilteredLawCatalog.Add(entry);
         }
 
         private void RefreshStatus()
@@ -329,8 +403,15 @@ namespace Synapse.Studio.ViewModels
             else if (!EvolutionStatus.StartsWith("Terminé", StringComparison.Ordinal))
                 EvolutionStatus = "Inactif";
 
-            var giGpu = _host.RenderEngine?.SceneRenderer?.GiUsesGpuReadback ?? false;
-            GiStatus = giGpu ? "GI : lecture G-buffer GPU active" : "GI : constantes de repli";
+            var fillMode = _host.RenderEngine?.SceneRenderer?.LastGiFillMode ?? GiGBufferFillMode.None;
+            GiStatus = fillMode switch
+            {
+                GiGBufferFillMode.GpuReadback => "GI : lecture G-buffer GPU active",
+                GiGBufferFillMode.GpuResident => "GI : G-buffer GPU résident",
+                GiGBufferFillMode.ProceduralPreview => "GI : preview procédurale L-DNN",
+                GiGBufferFillMode.Constants => "GI : constantes de repli",
+                _ => "GI : lecture GPU en attente"
+            };
 
             VrStatusText = _host.VrStatusText;
             WanStatusText = _host.WanStatusText;
@@ -498,6 +579,21 @@ namespace Synapse.Studio.ViewModels
             LawStatus = result.Success
                 ? $"OK — {result.InstructionCount} ops, {result.CompilationTimeMs} ms"
                 : $"Échec : {result.Message}";
+            LawCatalogSummary = $"{_allLawCatalog.Count} lois · actif : {_host.ActiveLawId ?? id}";
+        }
+
+        [RelayCommand]
+        private void ApplySelectedLaw()
+        {
+            if (SelectedLawEntry == null)
+                return;
+            var result = _host.ApplyLaw(SelectedLawEntry.Id);
+            LawExpression = SelectedLawEntry.Expression;
+            LawStatus = result.Success
+                ? $"Loi active : {SelectedLawEntry.Id} ({result.InstructionCount} ops)"
+                : $"Échec : {result.Message}";
+            LawCatalogSummary = $"{_allLawCatalog.Count} lois · actif : {_host.ActiveLawId ?? SelectedLawEntry.Id}";
+            RefreshStatus();
         }
 
         [RelayCommand]
