@@ -58,7 +58,7 @@ public sealed class V22FeatureTests
     }
 
     [Fact]
-    public void OpenXrSession_FailClosedWithoutSimulateFlag()
+    public async Task OpenXrSession_FailClosedWithoutSimulateFlag()
     {
         var previous = Environment.GetEnvironmentVariable("SYNAPSE_VR_SIMULATE");
         try
@@ -66,7 +66,7 @@ public sealed class V22FeatureTests
             Environment.SetEnvironmentVariable("SYNAPSE_VR_SIMULATE", null);
             using var logger = new SynapseLogger(null, LogLevel.Error, consoleEnabled: false);
             var session = VrSessionFactory.Create(logger);
-            session.TryInitializeAsync().GetAwaiter().GetResult().Should().BeFalse();
+            (await session.TryInitializeAsync()).Should().BeFalse();
             session.IsAvailable.Should().BeFalse();
             session.Swapchain.Should().BeNull();
         }
@@ -77,7 +77,7 @@ public sealed class V22FeatureTests
     }
 
     [Fact]
-    public void OpenXrSession_SimulateModeExposesSyntheticSwapchain()
+    public async Task OpenXrSession_SimulateModeExposesSyntheticSwapchain()
     {
         var previous = Environment.GetEnvironmentVariable("SYNAPSE_VR_SIMULATE");
         try
@@ -85,7 +85,7 @@ public sealed class V22FeatureTests
             Environment.SetEnvironmentVariable("SYNAPSE_VR_SIMULATE", "1");
             using var logger = new SynapseLogger(null, LogLevel.Error, consoleEnabled: false);
             var session = VrSessionFactory.Create(logger);
-            session.TryInitializeAsync(64, 64).GetAwaiter().GetResult().Should().BeTrue();
+            (await session.TryInitializeAsync(64, 64)).Should().BeTrue();
             session.IsAvailable.Should().BeTrue();
             session.Swapchain.Should().NotBeNull();
             session.Swapchain!.UsesSyntheticImageHandles.Should().BeTrue();

@@ -1281,10 +1281,18 @@ namespace GDNN.Streaming
                 return;
             _disposed = true;
 
-            _shutdownCts.Cancel();
-            _processingTask.Wait(TimeSpan.FromSeconds(5));
-            _statsTask.Wait(TimeSpan.FromSeconds(2));
-            _evictionTask.Wait(TimeSpan.FromSeconds(2));
+            try
+            {
+                _shutdownCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already torn down.
+            }
+
+            WaitQuietly(_processingTask, TimeSpan.FromSeconds(5));
+            WaitQuietly(_statsTask, TimeSpan.FromSeconds(2));
+            WaitQuietly(_evictionTask, TimeSpan.FromSeconds(2));
 
             foreach (var entry in _assets.Values)
             {
@@ -1297,6 +1305,22 @@ namespace GDNN.Streaming
             _cache.Dispose();
             _memoryPool.Dispose();
             _pipeline.Dispose();
+        }
+
+        private static void WaitQuietly(Task task, TimeSpan timeout)
+        {
+            try
+            {
+                task.Wait(timeout);
+            }
+            catch (AggregateException ex) when (ex.InnerExceptions.All(e =>
+                e is OperationCanceledException or TaskCanceledException))
+            {
+                // Expected when background loops observe cancellation.
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 

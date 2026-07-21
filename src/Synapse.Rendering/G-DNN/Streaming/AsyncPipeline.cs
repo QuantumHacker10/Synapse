@@ -29,7 +29,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks;
 using Synapse.Infrastructure.Logging;
-using GDNN.Rendering.Compat;
 
 namespace GDNN.Streaming
 {
@@ -1006,21 +1005,48 @@ namespace GDNN.Streaming
                 return;
             _disposed = true;
 
-            _shutdownCts.Cancel();
+            try
+            {
+                _shutdownCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
 
             if (_config.EnableMonitoring)
-            {
-                _monitoringTask?.Wait(TimeSpan.FromSeconds(3));
-            }
+                WaitQuietly(_monitoringTask, TimeSpan.FromSeconds(3));
 
             foreach (var job in _jobs.Values)
             {
-                job.CancellationTokenSource?.Cancel();
-                job.CancellationTokenSource?.Dispose();
+                try
+                {
+                    job.CancellationTokenSource?.Cancel();
+                    job.CancellationTokenSource?.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
             }
 
             _jobSemaphore.Dispose();
             _shutdownCts.Dispose();
+        }
+
+        private static void WaitQuietly(Task? task, TimeSpan timeout)
+        {
+            if (task == null)
+                return;
+            try
+            {
+                task.Wait(timeout);
+            }
+            catch (AggregateException ex) when (ex.InnerExceptions.All(e =>
+                e is OperationCanceledException or TaskCanceledException))
+            {
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 
@@ -1134,25 +1160,25 @@ namespace GDNN.Streaming
                         "GpuUpload: neural asset has no weight payload to stage.");
                 }
 
-                // Round-trip integrity check when compressed weights are present.
+                // Integrity: hash payload; do not assume Brotli — CompressedWeights may be
+                // Brotli floats or MicroMLP FP8 depending on producer.
                 if (asset.CompressedWeights.Length > 0)
                 {
-                    try
+                    if (string.IsNullOrWhiteSpace(asset.Metadata.ContentHash))
                     {
-                        _ = BrotliCompat.Decompress(asset.CompressedWeights);
+                        asset.Metadata.ContentHash = Convert.ToHexString(
+                            System.Security.Cryptography.SHA256.HashData(asset.CompressedWeights));
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        throw new InvalidDataException(
-                            "GpuUpload: compressed weights failed integrity check.", ex);
+                        var actual = Convert.ToHexString(
+                            System.Security.Cryptography.SHA256.HashData(asset.CompressedWeights));
+                        if (!string.Equals(actual, asset.Metadata.ContentHash, StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new InvalidDataException(
+                                "GpuUpload: CompressedWeights content hash mismatch.");
+                        }
                     }
-                }
-
-                if (string.IsNullOrWhiteSpace(asset.Metadata.ContentHash) &&
-                    asset.CompressedWeights.Length > 0)
-                {
-                    asset.Metadata.ContentHash = Convert.ToHexString(
-                        System.Security.Cryptography.SHA256.HashData(asset.CompressedWeights));
                 }
 
                 asset.IsGpuUploadPrepared = true;
