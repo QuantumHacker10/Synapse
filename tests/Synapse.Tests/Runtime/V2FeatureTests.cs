@@ -127,8 +127,8 @@ public sealed class V2FeatureTests
         vr.RuntimeName.Should().NotBeNullOrEmpty();
         (await vr.TryInitializeAsync()).Should().BeFalse();
 
-        var preview = WebPreviewBuilder.FromScene("Demo", "scene.glb", "heat_equation", 4);
-        WebPreviewBuilder.ToHtml(preview).Should().Contain("Synapse Web Editor");
+        var preview = WebEditorBuilder.FromScene("Demo", "scene.glb", "heat_equation", 4);
+        WebEditorBuilder.ToHtml(preview).Should().Contain("Synapse Web Editor");
     }
 
     [Fact]

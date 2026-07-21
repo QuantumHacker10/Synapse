@@ -128,25 +128,3 @@ public static class WebEditorBuilder
         })();
         """;
 }
-
-/// <summary>Legacy preview helper kept for compatibility.</summary>
-public sealed class WebPreviewDescriptor
-{
-    public required string SceneName { get; init; }
-    public required string GlbUrl { get; init; }
-    public string? ActiveLawId { get; init; }
-    public int EntityCount { get; init; }
-}
-
-public static class WebPreviewBuilder
-{
-    public static WebPreviewDescriptor FromScene(string sceneName, string glbUrl, string? lawId, int entityCount) =>
-        new() { SceneName = sceneName, GlbUrl = glbUrl, ActiveLawId = lawId, EntityCount = entityCount };
-
-    public static string ToHtml(WebPreviewDescriptor descriptor)
-    {
-        ArgumentNullException.ThrowIfNull(descriptor);
-        var bundle = WebEditorBuilder.FromScene(descriptor.SceneName, descriptor.GlbUrl, descriptor.ActiveLawId, descriptor.EntityCount);
-        return WebEditorBuilder.ToHtml(bundle);
-    }
-}
