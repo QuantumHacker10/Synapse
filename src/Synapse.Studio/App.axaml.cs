@@ -79,6 +79,7 @@ namespace Synapse.Studio
             host.InitializeModules();
             if (!string.IsNullOrWhiteSpace(config.ScenePath))
                 host.LoadSceneAsync(config.ScenePath).GetAwaiter().GetResult();
+            host.ApplyOptionalCollaborationFromConfigAsync().GetAwaiter().GetResult();
 
             var plugins = new PluginHost(logger);
             if (!string.IsNullOrWhiteSpace(config.PluginDirectory))

@@ -4,9 +4,13 @@
 
 | Version | Supported |
 | ------- | --------- |
+| 2.10.x  | :white_check_mark: |
 | 2.4.x   | :white_check_mark: |
 | 2.3.x   | :white_check_mark: |
 | &lt; 2.3  | :x: |
+
+> **Note maturité :** « Supported » ici = *versions pour lesquelles nous acceptons des
+> rapports de sécurité*, pas « production-ready » pour chaque surface. Voir [docs/MATURITY.md](docs/MATURITY.md) et [docs/PRODUCTION.md](docs/PRODUCTION.md).
 
 ## Reporting a Vulnerability
 

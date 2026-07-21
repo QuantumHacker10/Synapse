@@ -1,0 +1,199 @@
+﻿@page "/"
+@inject IJSRuntime Js
+@inject HttpClient Http
+
+<PageTitle>Synapse Web Studio</PageTitle>
+
+<div class="studio">
+    <header class="toolbar">
+        <strong class="brand">Synapse Web Studio</strong>
+        <span class="meta">@_scene.Name · @_scene.Entities.Count entité(s) · loi @_scene.ActiveLawId</span>
+        <div class="actions">
+            <button type="button" @onclick="LoadDemoAsync">Démo</button>
+            <button type="button" @onclick="AddEntity">+ Entité</button>
+            <button type="button" @onclick="ExportSceneAsync">Export .synapse.json</button>
+            <button type="button" @onclick="ExportGltfAsync">Export glTF</button>
+            <label class="file-btn">
+                Importer
+                <InputFile OnChange="OnFileSelected" accept=".json,.synapse,.gltf" />
+            </label>
+        </div>
+    </header>
+
+    <main class="layout">
+        <aside class="panel">
+            <h3>Hiérarchie</h3>
+            @for (int i = 0; i < _scene.Entities.Count; i++)
+            {
+                var idx = i;
+                var e = _scene.Entities[i];
+                <button type="button" class="node @(idx == _selected ? "selected" : "")" @onclick="() => Select(idx)">
+                    @e.Name <span class="type">@e.Type</span>
+                </button>
+            }
+        </aside>
+
+        <section class="viewport-wrap">
+            <canvas id="synapse-viewport" width="960" height="540"></canvas>
+            <p class="hint">@_status</p>
+        </section>
+
+        <aside class="panel">
+            <h3>Inspecteur</h3>
+            @if (_selected >= 0 && _selected < _scene.Entities.Count)
+            {
+                var e = _scene.Entities[_selected];
+                <label>Nom <input @bind="e.Name" @bind:event="oninput" @bind:after="RefreshViewportAsync" /></label>
+                <label>Type <input @bind="e.Type" @bind:event="oninput" /></label>
+                <label>X <input type="number" step="0.1" @bind="e.Position.X" @bind:event="oninput" @bind:after="RefreshViewportAsync" /></label>
+                <label>Y <input type="number" step="0.1" @bind="e.Position.Y" @bind:event="oninput" @bind:after="RefreshViewportAsync" /></label>
+                <label>Z <input type="number" step="0.1" @bind="e.Position.Z" @bind:event="oninput" @bind:after="RefreshViewportAsync" /></label>
+                <button type="button" class="danger" @onclick="RemoveSelected">Supprimer</button>
+            }
+            else
+            {
+                <p>Aucune sélection</p>
+            }
+            <h3>Loi</h3>
+            <input @bind="_scene.ActiveLawId" @bind:event="oninput" />
+        </aside>
+    </main>
+</div>
+
+@code {
+    private WasmSceneDocument _scene = WasmSceneDocument.CreateDemo();
+    private int _selected;
+    private string _status = "Initialisation WebGPU…";
+    private bool _gpuReady;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            // Prefer scene published beside the app by EngineHost.ExportWebStudioAsync.
+            try
+            {
+                var json = await Http.GetStringAsync("scene.synapse.json");
+                var parsed = WasmSceneDocument.TryParse(json);
+                if (parsed != null)
+                {
+                    _scene = parsed;
+                    _status = $"Scène chargée — {_scene.Name} ({_scene.Entities.Count} entités)";
+                }
+            }
+            catch
+            {
+                // Fall back to embedded demo when no published scene is present.
+            }
+
+            var ok = await Js.InvokeAsync<bool>("synapseWebGpu.init", "synapse-viewport");
+            _gpuReady = ok;
+            if (string.IsNullOrWhiteSpace(_status) || _status.StartsWith("Initialisation", StringComparison.Ordinal))
+                _status = ok ? "WebGPU prêt — éditez la scène." : "WebGPU indisponible — édition JSON seule.";
+            if (ok)
+                await RefreshViewportAsync();
+        }
+        catch (Exception ex)
+        {
+            _status = "WebGPU erreur: " + ex.Message;
+        }
+
+        StateHasChanged();
+    }
+
+    private void Select(int index)
+    {
+        _selected = index;
+        _ = RefreshViewportAsync();
+    }
+
+    private void AddEntity()
+    {
+        _scene.Entities.Add(new WasmEntity
+        {
+            Name = $"Entity_{_scene.Entities.Count + 1}",
+            Position = new WasmVec3(_scene.Entities.Count, 0.5f, 0)
+        });
+        _selected = _scene.Entities.Count - 1;
+        _ = RefreshViewportAsync();
+    }
+
+    private void RemoveSelected()
+    {
+        if (_selected < 0 || _selected >= _scene.Entities.Count)
+            return;
+        _scene.Entities.RemoveAt(_selected);
+        _selected = Math.Clamp(_selected, 0, Math.Max(0, _scene.Entities.Count - 1));
+        _ = RefreshViewportAsync();
+    }
+
+    private async Task LoadDemoAsync()
+    {
+        _scene = WasmSceneDocument.CreateDemo();
+        _selected = 0;
+        await RefreshViewportAsync();
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        await using var stream = e.File.OpenReadStream(maxAllowedSize: 4 * 1024 * 1024);
+        using var reader = new StreamReader(stream);
+        var json = await reader.ReadToEndAsync();
+        var parsed = WasmSceneDocument.TryParse(json);
+        if (parsed == null)
+        {
+            _status = "Import échoué — JSON scène invalide.";
+            return;
+        }
+
+        _scene = parsed;
+        _selected = 0;
+        _status = $"Importé: {_scene.Name}";
+        await RefreshViewportAsync();
+    }
+
+    private async Task ExportSceneAsync()
+    {
+        var json = _scene.ToJson();
+        await Js.InvokeVoidAsync("synapseDownload", $"{Sanitize(_scene.Name)}.synapse.json", json, "application/json");
+        _status = "Export scène JSON téléchargé.";
+    }
+
+    private async Task ExportGltfAsync()
+    {
+        var gltf = _scene.ToGltfJson();
+        await Js.InvokeVoidAsync("synapseDownload", $"{Sanitize(_scene.Name)}.gltf", gltf, "model/gltf+json");
+        _status = "Export glTF téléchargé.";
+    }
+
+    private async Task RefreshViewportAsync()
+    {
+        if (!_gpuReady)
+            return;
+
+        var payload = _scene.Entities.Select(e => new
+        {
+            name = e.Name,
+            type = e.Type,
+            x = e.Position.X,
+            y = e.Position.Y,
+            z = e.Position.Z,
+            sx = e.Scale.X,
+            sy = e.Scale.Y,
+            sz = e.Scale.Z,
+            selected = _scene.Entities.IndexOf(e) == _selected
+        }).ToArray();
+
+        await Js.InvokeVoidAsync("synapseWebGpu.drawScene", payload);
+    }
+
+    private static string Sanitize(string name)
+    {
+        foreach (var c in Path.GetInvalidFileNameChars())
+            name = name.Replace(c, '_');
+        return string.IsNullOrWhiteSpace(name) ? "scene" : name;
+    }
+}

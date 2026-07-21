@@ -3,11 +3,15 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
+using Synapse.Core.Maturity;
 using Synapse.Infrastructure.Logging;
 
 namespace Synapse.Network;
 
-/// <summary>P2P session for collaborative simulations.</summary>
+/// <summary>EXPERIMENTAL — P2P session contract for collaborative simulations (lab only).</summary>
+[SynapseExperimental("Network.P2P", "Local/lab P2P surface; not a production collaborative network.")]
 public interface ISimulationPeerSession : IAsyncDisposable
 {
     string SessionId { get; }
@@ -36,7 +40,11 @@ public sealed class LocalSimulationPeerSession : ISimulationPeerSession
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
-/// <summary>Multi-peer P2P hub for collaborative simulation sessions (v2.1+).</summary>
+/// <summary>
+/// EXPERIMENTAL — multi-peer TCP hub for lab collaborative sessions (v2.1+).
+/// Suitable for localhost experiments; not a production mesh. See <c>docs/MATURITY.md</c>.
+/// </summary>
+[SynapseExperimental("Network.P2P", "TCP multi-peer hub for localhost/lab; not production WAN mesh.")]
 public sealed class MultiPeerSimulationHub : IAsyncDisposable
 {
     public const int DefaultMaxPeers = 8;
@@ -81,18 +89,30 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
 
     public async Task ConnectAsync(string host, int port, CancellationToken ct = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(host);
+        if (port is <= 0 or > 65535)
+            throw new ArgumentOutOfRangeException(nameof(port));
+
         var client = new TcpClient();
-        await client.ConnectAsync(host, port, ct).ConfigureAwait(false);
-        var peerId = Guid.NewGuid().ToString("N");
-        var conn = new PeerConnection(peerId, client);
-        if (_auth != null && !await PerformClientHandshakeAsync(conn, ct).ConfigureAwait(false))
+        try
         {
-            conn.Dispose();
-            throw new InvalidOperationException("P2P auth handshake failed.");
+            await client.ConnectAsync(host, port, ct).ConfigureAwait(false);
+            var peerId = Guid.NewGuid().ToString("N");
+            var conn = new PeerConnection(peerId, client);
+            client = null;
+            if (_auth != null && !await PerformClientHandshakeAsync(conn, ct).ConfigureAwait(false))
+            {
+                conn.Dispose();
+                throw new InvalidOperationException("P2P auth handshake failed.");
+            }
+            _peers[peerId] = conn;
+            _ = ReceiveLoopAsync(conn, _cts?.Token ?? ct);
+            _logger.Info("Network", $"Connected to peer at {host}:{port}");
         }
-        _peers[peerId] = conn;
-        _ = ReceiveLoopAsync(conn, ct);
-        _logger.Info("Network", $"Connected to peer at {host}:{port}");
+        finally
+        {
+            client?.Dispose();
+        }
     }
 
     public async Task BroadcastScenePatchAsync(ReadOnlyMemory<byte> patch, CancellationToken ct = default)
@@ -200,6 +220,7 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
         private readonly SemaphoreSlim _sendLock = new(1, 1);
+        private bool _disposed;
 
         public PeerConnection(string peerId, TcpClient client)
         {
@@ -251,32 +272,18 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
 
         public void Dispose()
         {
+            if (_disposed)
+                return;
+            _disposed = true;
             try
-            {
-                _stream.Dispose();
-            }
-            catch
-            {
-                // ignore
-            }
-
+            { _stream.Dispose(); }
+            catch { /* ignore */ }
             try
-            {
-                _client.Dispose();
-            }
-            catch
-            {
-                // ignore
-            }
-
+            { _client.Dispose(); }
+            catch { /* ignore */ }
             try
-            {
-                _sendLock.Dispose();
-            }
-            catch
-            {
-                // ignore
-            }
+            { _sendLock.Dispose(); }
+            catch { /* ignore */ }
         }
     }
 }

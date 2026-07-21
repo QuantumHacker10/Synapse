@@ -1,0 +1,92 @@
+{
+  "name": "Lab — Heat + Agents",
+  "version": "1.0",
+  "activeLawId": "heat_equation",
+  "activeLawExpression": "dT/dt = alpha * laplacian(T)",
+  "entities": [
+    {
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "name": "Ground",
+      "type": "Mesh",
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "rotation": { "x": 0, "y": 0, "z": 0 },
+      "scale": { "x": 12, "y": 0.25, "z": 12 },
+      "visible": true
+    },
+    {
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "name": "HeatProbe",
+      "type": "Mesh",
+      "position": { "x": 0, "y": 0.5, "z": 0 },
+      "rotation": { "x": 0, "y": 0, "z": 0 },
+      "scale": { "x": 0.6, "y": 0.6, "z": 0.6 },
+      "visible": true,
+      "lawId": "heat_equation"
+    },
+    {
+      "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "name": "Agent_Patrol",
+      "type": "Agent",
+      "position": { "x": 3, "y": 0.1, "z": -1 },
+      "rotation": { "x": 0, "y": 0, "z": 0 },
+      "scale": { "x": 1, "y": 1, "z": 1 },
+      "visible": true,
+      "behaviorProfile": "patrol"
+    },
+    {
+      "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "name": "Agent_Guard",
+      "type": "Agent",
+      "position": { "x": -3, "y": 0.1, "z": 1.5 },
+      "rotation": { "x": 0, "y": 45, "z": 0 },
+      "scale": { "x": 1, "y": 1, "z": 1 },
+      "visible": true,
+      "behaviorProfile": "guard"
+    },
+    {
+      "id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "name": "PendulumBob",
+      "type": "Mesh",
+      "position": { "x": 1.5, "y": 2.2, "z": 0 },
+      "rotation": { "x": 0, "y": 0, "z": 0 },
+      "scale": { "x": 0.35, "y": 0.35, "z": 0.35 },
+      "visible": true
+    },
+    {
+      "id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "name": "NeuralSeed",
+      "type": "Genome",
+      "position": { "x": -1.2, "y": 1.4, "z": -2.5 },
+      "rotation": { "x": 0, "y": 0, "z": 0 },
+      "scale": { "x": 1, "y": 1, "z": 1 },
+      "visible": true,
+      "genomeId": "lab-sdf"
+    }
+  ],
+  "joints": [
+    {
+      "id": "12121212-1212-1212-1212-121212121212",
+      "name": "WorldHinge",
+      "type": "Hinge",
+      "bodyA": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "bodyB": "00000000-0000-0000-0000-000000000000",
+      "localAnchorA": { "x": 0, "y": 0.4, "z": 0 },
+      "localAnchorB": { "x": 1.5, "y": 2.6, "z": 0 },
+      "localAxisA": { "x": 0, "y": 0, "z": 1 },
+      "localAxisB": { "x": 0, "y": 0, "z": 1 },
+      "restLength": 0.4,
+      "stiffness": 1,
+      "damping": 0.05,
+      "compliance": 0,
+      "minLimit": -1.2,
+      "maxLimit": 1.2
+    }
+  ],
+  "camera": {
+    "position": { "x": 0, "y": 2.5, "z": 7 },
+    "yaw": -90,
+    "pitch": -12,
+    "fov": 55
+  },
+  "assets": {}
+}

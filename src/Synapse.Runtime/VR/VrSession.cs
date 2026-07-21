@@ -9,6 +9,7 @@ public interface IVrSession : IAsyncDisposable
     bool IsAvailable { get; }
     bool IsRunning { get; }
     bool IsSimulated { get; }
+    bool UsesNativeOpenXr { get; }
     string RuntimeName { get; }
     OpenXrVulkanSwapchain? Swapchain { get; }
 
@@ -40,6 +41,7 @@ public sealed class OpenXrVulkanSession : IVrSession
     public bool IsAvailable { get; private set; }
     public bool IsRunning { get; private set; }
     public bool IsSimulated { get; private set; }
+    public bool UsesNativeOpenXr { get; private set; }
     public string RuntimeName { get; private set; } = "none";
     public OpenXrVulkanSwapchain? Swapchain { get; private set; }
 
@@ -51,23 +53,35 @@ public sealed class OpenXrVulkanSession : IVrSession
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        bool forceSim = string.Equals(
-            Environment.GetEnvironmentVariable("SYNAPSE_VR_FORCE_SIMULATED"),
-            "1",
-            StringComparison.Ordinal);
+        if (string.Equals(Environment.GetEnvironmentVariable("SYNAPSE_VR_FORCE_SIMULATED"), "1", StringComparison.Ordinal)
+            || string.Equals(Environment.GetEnvironmentVariable("SYNAPSE_VR_SIMULATE"), "1", StringComparison.Ordinal))
+            return Task.FromResult(InitializeSimulated(width, height, "forced-simulated"));
 
-        if (forceSim || !TryLoadOpenXrLoader())
-        {
-            // Production QA path: deterministic simulated swapchain without claiming a live HMD.
-            return Task.FromResult(InitializeSimulated(width, height, forceSim ? "forced-simulated" : "no-loader"));
-        }
+        if (!TryLoadOpenXrLoader())
+            return Task.FromResult(InitializeSimulated(width, height, "no-loader"));
 
         if (TryInitializeNative(width, height, vulkanBinding))
+        {
+            UsesNativeOpenXr = true;
+            IsSimulated = false;
             return Task.FromResult(true);
+        }
 
-        // Loader present but runtime/HMD/Vulkan bind failed — still production-usable via simulated images.
-        _logger?.Warn("VR", "OpenXR native session unavailable — falling back to simulated swapchain");
-        return Task.FromResult(InitializeSimulated(width, height, "OpenXR-Loader (simulated-fallback)"));
+        if (string.Equals(
+            Environment.GetEnvironmentVariable("SYNAPSE_VR_SIMULATE"),
+            "1",
+            StringComparison.Ordinal)
+            || string.Equals(
+                Environment.GetEnvironmentVariable("SYNAPSE_VR_FORCE_SIMULATED"),
+                "1",
+                StringComparison.Ordinal))
+            return Task.FromResult(InitializeSimulated(width, height, "OpenXR-Loader (simulated-fallback)"));
+
+        IsAvailable = false;
+        IsRunning = false;
+        UsesNativeOpenXr = false;
+        Swapchain = null;
+        return Task.FromResult(false);
     }
 
     private bool InitializeSimulated(int width, int height, string runtimeLabel)
@@ -75,6 +89,7 @@ public sealed class OpenXrVulkanSession : IVrSession
         IsAvailable = true;
         IsRunning = true;
         IsSimulated = true;
+        UsesNativeOpenXr = false;
         RuntimeName = runtimeLabel;
         Swapchain = OpenXrVulkanSwapchain.CreateSimulated(3, width, height);
         _initialized = true;
@@ -200,6 +215,7 @@ public sealed class OpenXrVulkanSession : IVrSession
             IsAvailable = true;
             IsRunning = true;
             IsSimulated = false;
+            UsesNativeOpenXr = true;
             RuntimeName = Environment.GetEnvironmentVariable("XR_RUNTIME") ?? "OpenXR-Vulkan2";
             Swapchain = swap;
             _initialized = true;
@@ -312,6 +328,7 @@ public sealed class HeadlessVrSession : IVrSession
     public bool IsAvailable { get; private set; }
     public bool IsRunning { get; private set; }
     public bool IsSimulated => true;
+    public bool UsesNativeOpenXr => false;
     public string RuntimeName { get; private set; } = "headless";
     public OpenXrVulkanSwapchain? Swapchain { get; private set; }
 

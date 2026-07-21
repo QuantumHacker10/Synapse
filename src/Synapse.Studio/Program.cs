@@ -195,6 +195,22 @@ namespace Synapse.Studio
                         return;
                 }
 
+                if (!string.IsNullOrWhiteSpace(config.ExportWebPath))
+                {
+                    var result = host.ExportWebStudioAsync(config.ExportWebPath).GetAwaiter().GetResult();
+                    Console.WriteLine(result.UsedDotnetPublish
+                        ? $"[Export-Web] WASM Studio publié -> {result.OutputDirectory}"
+                        : $"[Export-Web] Fallback WebGPU site -> {result.OutputDirectory}");
+                    if (config.Headless)
+                        return;
+                }
+
+                host.ApplyOptionalCollaborationFromConfigAsync().GetAwaiter().GetResult();
+                if (host.IsWanConnected)
+                    Console.WriteLine($"[WAN] {host.WanStatusText}");
+                if (host.IsVrActive)
+                    Console.WriteLine($"[VR] {host.VrStatusText}");
+
                 if (config.Headless && !string.IsNullOrWhiteSpace(config.BenchmarkConfigPath))
                 {
                     RunBenchmark(args);

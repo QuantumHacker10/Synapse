@@ -6,7 +6,7 @@
 [![codecov](https://codecov.io/gh/QuantumHacker10/Synapse/graph/badge.svg)](https://codecov.io/gh/QuantumHacker10/Synapse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
-[![Tests](https://img.shields.io/badge/tests-310%20passing-brightgreen)](tests/Synapse.Tests)
+[![Tests](https://img.shields.io/badge/tests-310%2B%20passing-brightgreen)](tests/Synapse.Tests)
 
 **Synapse OMNIA** est un **outil de simulation 3D** : un monde numérique que l'on observe,
 modifie et fait évoluer — pas un moteur de jeu, ni une boîte à monter des niveaux.
@@ -18,8 +18,9 @@ Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
 > **Produit v2.10 — production-ready** — OpenUSD MeshIO complet (topology DCC, UDIM/MDL/blend shapes), streaming textures,
 > marketplace plugins distant, STUN/TURN, OpenXR — [docs/PRODUCTION.md](docs/PRODUCTION.md).
+> Matrice honnête EarlyAccess/Experimental : **[docs/MATURITY.md](docs/MATURITY.md)**.
 
-**Config minimale :** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **Production :** [docs/PRODUCTION.md](docs/PRODUCTION.md) · **Site :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
+**Config minimale :** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **Production :** [docs/PRODUCTION.md](docs/PRODUCTION.md) · **Maturité :** [docs/MATURITY.md](docs/MATURITY.md) · **Site :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
 
 ## Sommaire
 
@@ -82,8 +83,9 @@ dotnet run --project src/Synapse.Studio
 # Mode moteur GLFW seul, sans UI (--glfw est un alias)
 dotnet run --project src/Synapse.Studio -- --engine
 
-# Charger la scène d'exemple
+# Charger une scène d'exemple
 dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse
+dotnet run --project src/Synapse.Studio -- --scene samples/lab-heat-agents.synapse
 
 # Benchmark headless reproductible (v2)
 dotnet run --project src/Synapse.Studio -- --benchmark samples/benchmarks/default.json --seed 42 --headless
@@ -160,9 +162,10 @@ dotnet run --project src/Synapse.Studio -- --health
 
 ## Architecture
 
-Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.slnx)), scène d'exemple sous [`samples/`](samples/).
+Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.slnx)), scènes sous [`samples/`](samples/).
 
 Documentation complémentaire :
+- **[docs/MATURITY.md](docs/MATURITY.md)** — ce qui est EarlyAccess vs Experimental (source de vérité)
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — diagrammes Mermaid (pipeline, modules, CI)
 - **[docs/API.md](docs/API.md)** — référence des APIs publiques par module
 
@@ -260,6 +263,7 @@ Couverture de code : `coverlet.runsettings` + upload Codecov. Audit dépendances
 Voir **[CONTRIBUTING.md](CONTRIBUTING.md)** pour le flux Git complet et **[COMMUNITY.md](COMMUNITY.md)** pour les canaux de communication.
 
 - **[ROADMAP.md](ROADMAP.md)** — vision et priorités publiques
+- **[docs/MATURITY.md](docs/MATURITY.md)** — tiers Supported / EarlyAccess / Experimental
 - **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — code de conduite
 - **[SECURITY.md](SECURITY.md)** — signalement de vulnérabilités
 

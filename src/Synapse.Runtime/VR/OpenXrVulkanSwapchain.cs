@@ -39,7 +39,23 @@ public sealed class OpenXrVulkanSwapchain : IDisposable
     public int CurrentIndex => _currentIndex;
     public bool IsAcquired => _acquired;
     public bool IsSimulated { get; }
+    public bool UsesSyntheticImageHandles => IsSimulated;
     public ulong NativeHandle => _nativeSwapchain;
+
+    public static OpenXrVulkanSwapchain FromNative(
+        int imageCount,
+        int width,
+        int height,
+        ulong[] nativeHandles,
+        ulong vulkanFormat = 44)
+        => new(
+            Math.Max(2, imageCount),
+            width,
+            height,
+            vulkanFormat,
+            nativeHandles ?? Array.Empty<ulong>(),
+            0,
+            isSimulated: false);
 
     /// <summary>QA / headless swapchain with stable placeholder VkImage handles.</summary>
     public static OpenXrVulkanSwapchain CreateSimulated(

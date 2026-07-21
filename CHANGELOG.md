@@ -6,6 +6,19 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+### Ajouté
+
+- **Durcissement production (#28)** — `FeatureMaturityCatalog`, `[SynapseExperimental]`, `docs/MATURITY.md`, `Synapse.Web.Studio`, `WasmStudioPublisher`, `ScenePatchCodec`, collaboration `EngineHost`, tests STUN/NAT/collab/VR
+- **Plugin trust** — `PluginTrustMode.RequireManifest` + `plugin.synapse.json`, env `SYNAPSE_PLUGIN_TRUST`
+- **Runtime diagnostics** — `LastRuntimeError`, `RuntimeErrorCount`, `IsLawDegraded`
+- **Scène lab** — `samples/lab-heat-agents.synapse` + tests CI
+
+### Modifié
+
+- **LLM** — Gemini `x-goog-api-key`, OpenAI retry/dispose/cap, sessions path-safe
+- **VR / WAN / Web** — chemins natifs branchés ; matrice maturité honnête (README, ROADMAP, SECURITY)
+- **ZeroCopyBuffer / AssetStreamer / GpuUpload** — fail-closed, hash d'intégrité
+
 ## [2.10.0] — 2026-07-21
 
 **OpenUSD MeshIO production-complete** — topology DCC, normals, multi-mesh, purpose, health smoke.
@@ -149,29 +162,9 @@ Durcissement **production-ready early** : QA multi-RID, composition USD, couvert
 - Codecov projet **60 %** (patch 40 %)
 - Roadmap v2.3 items prod cochés
 
-## [2.3.0] — 2026-07-21
-
-Release **Synapse OMNIA 2.3** : multi-plateforme milieu de gamme, USDC, blueprints live, couverture ~50 %.
-
-### Ajouté
-
-- **Multi-plateforme natif** — RID `win-x64|win-arm64|linux-x64|linux-arm64|osx-arm64|osx-x64` ; Vulkan loader via `NativeLibraryResolver` (`vulkan-1` → `.dll`/`.so`/`.dylib`)
-- **Baseline mid-range** — Vulkan API **1.2**, extensions optionnelles filtrées, scoring GPU (discret > iGPU), features conservatrices
-- **SIMD** — `CpuCapabilityProbe` (AVX2/NEON par défaut ; AVX-512 opt-in `SYNAPSE_ALLOW_AVX512`)
-- **USDC** — `UsdBinaryLoader` (mesh-pack Synapse + extraction best-effort), sample `samples/meshes/tetra.usdc`
-- **Blueprints live** — `EngineHost.HotReloadBlueprint`, exécuteur branché sur le tick sim, édition Studio (Ouvrir/Enregistrer/live checkbox)
-- **docs/REQUIREMENTS.md** — configuration minimale matérielle / logicielle
-- **Tests v2.3** — plateforme, USDC, blueprints, plugins, lois ; Codecov cible **50 %**
-
-### Modifié
-
-- Version produit **2.3.0**
-- `scripts/publish-all.sh` et `release.yml` : 6 RID
-- Roadmap : items USDC / blueprints live / couverture 50 % cochés
-
 ## [2.2.0] — 2026-07-20
 
-Release **Synapse OMNIA 2.2** : captures Studio live, P2P WAN chiffré, OpenXR swapchain et éditeur web glTF interactif.
+Release **Synapse OMNIA 2.2** : captures Studio live, scaffolds P2P WAN / OpenXR / éditeur web (voir maturité).
 
 ### Ajouté
 

@@ -2,6 +2,9 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
+
+**Maturité :** v2.10 = production desktop (OpenUSD MeshIO, STUN/TURN, OpenXR) — voir [docs/PRODUCTION.md](docs/PRODUCTION.md) et [docs/MATURITY.md](docs/MATURITY.md).
+
 ## v2.10 — Actuel (2026-07) — OpenUSD MeshIO production-complete
 
 - [x] `faceVertexCounts` + authored normals + multi-mesh
@@ -86,25 +89,48 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] OpenXR session production (`OpenXrVulkanSession`)
 - [x] Éditeur web WebGPU (`site/editor/`, `WebEditorBuilder`)
 
-## v2.2 — Livré (2026-07)
+## v2.2 — Livré (2026-07) — durcissement production (#28)
 
-- [x] Captures PNG live Studio (`--screenshot`, Avalonia Headless + Skia)
-- [x] OpenXR swapchain Vulkan réel (`OpenXrVulkanSwapchain`)
-- [x] P2P WAN (NAT rendezvous UDP + chiffrement AES-GCM)
-- [x] Éditeur web glTF interactif (`site/editor/`, WebGPU)
+### Early access (cœur local)
+- [x] Synapse Studio + runtime unifié (cible Windows x64 + Vulkan)
+- [x] API plugin C# (chargement DLL sandboxé, surface encore mince)
+- [x] Mode headless benchmarks + reproductibilité (`SYNAPSE_SEED`)
+- [x] Import FBX ASCII + USD USDA (limité)
+- [x] Export scène glTF (entités + métadonnées Synapse)
+- [x] Blueprint runtime (exécution graphe en simulation)
+- [x] Marketplace lois (`.synapse-law`)
+- [x] Captures PNG Studio (`--screenshot`, Avalonia Headless + Skia)
+- [x] Matrice de maturité honnête (`docs/MATURITY.md`, `FeatureMaturityCatalog`)
+- [x] Scène lab `samples/lab-heat-agents.synapse` exercée en tests
+- [x] `FeatureMaturityCatalog` + `docs/MATURITY.md`
+- [x] `Synapse.Web.Studio` (Blazor WASM) + `WasmStudioPublisher`
+- [x] Collaboration runtime (`EngineHost.Collaboration`, `ScenePatchCodec`)
 
-## v2.7+ — Prochaine release
+### Experimental (scaffolds — ne pas vendre comme production)
+- [x] P2P multi-pairs TCP labo (`MultiPeerSimulationHub`)
+- [x] P2P WAN scaffold (rendez-vous + STUN/TURN + AES-GCM)
+- [x] OpenXR scaffold (détection loader + swapchain natif/simulé)
+- [x] Éditeur web glTF / WebGPU preview (`site/editor/`)
 
-### Communauté
+## v2.11+ — Prochaine release
+
+### Qualité
+- [ ] Promouvoir au moins une surface cœur en tier **Supported** (Windows+GPU validé)
+- [ ] Couverture de code > 50 %
+- [ ] Réduction nette des warnings analyseurs sur Runtime / Physics / Core
+- [ ] Plus de scènes `samples/` couvertes en CI (joints, lois, agents)
+
+### Honnêteté produit
+- [ ] Retirer ou remplacer les scaffolds Experimental avant toute claim « production »
 - [ ] Tutoriels vidéo (YouTube)
 - [ ] Serveur Discord communautaire actif
 
 ### Qualité
 - [ ] Validation GPU manuelle matrice iGPU/discret (Windows/Linux/macOS)
 - [ ] Couverture de code > 80 %
+- [ ] Promouvoir au moins une surface cœur en tier **Supported** (Windows+GPU validé)
 
 ### Moteur
-- [ ] Plugin marketplace hébergé distant
 - [ ] Path tracing L-DNN teacher offline (batch)
 - [ ] Native OpenUSD C++/Hydra plugin (optional) / full MDL SDK evaluation
 
@@ -125,9 +151,10 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [ ] Behavior trees éditables dans Studio
 - [ ] Jumeaux numériques persistants (export/import)
 
-## v3.0 — Long terme
+## v3.0 — Long terme (vraies intégrations)
 
-- [ ] Éditeur web complet (WASM + WebGPU)
+- [ ] Éditeur web complet (WASM + WebGPU) au-delà du preview
+- [ ] Réseau P2P collaboratif multi-pairs **hors labo** (remplace le scaffold WAN)
 - [ ] Marketplace d'assets et de lois avec signatures
 
 ## Comment contribuer à la roadmap

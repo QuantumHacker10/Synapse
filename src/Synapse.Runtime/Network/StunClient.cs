@@ -4,11 +4,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using Synapse.Infrastructure.Logging;
 
 namespace Synapse.Network;
 
 /// <summary>RFC 5389 STUN Binding client (XOR-MAPPED-ADDRESS).</summary>
-public static class StunClient
+public sealed class StunClient
 {
     public const uint MagicCookie = 0x2112A442;
     public const ushort BindingRequest = 0x0001;
@@ -17,10 +18,66 @@ public static class StunClient
     public const ushort AttrXorMappedAddress = 0x0020;
     public const ushort AttrSoftware = 0x8022;
     public const ushort AttrErrorCode = 0x0009;
+    public const int DefaultStunPort = 3478;
+
+    public static readonly string[] DefaultServers =
+    [
+        "stun.l.google.com",
+        "stun1.l.google.com",
+        "stun2.l.google.com"
+    ];
+
+    private readonly ISynapseLogger? _logger;
+    private readonly string[] _servers;
+
+    public StunClient(ISynapseLogger? logger = null, string[]? servers = null)
+    {
+        _logger = logger;
+        _servers = servers is { Length: > 0 } ? servers : DefaultServers;
+    }
+
+    /// <summary>
+    /// Sends a STUN Binding Request from <paramref name="udp"/> and returns the XOR-MAPPED-ADDRESS
+    /// (or MAPPED-ADDRESS) advertised by the server.
+    /// </summary>
+    public async Task<IPEndPoint?> DiscoverMappedAddressAsync(
+        UdpClient udp,
+        TimeSpan? timeout = null,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(udp);
+        var wait = timeout ?? TimeSpan.FromSeconds(2);
+
+        foreach (var server in _servers)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                var addresses = await Dns.GetHostAddressesAsync(server, ct).ConfigureAwait(false);
+                var ipv4 = addresses.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+                if (ipv4 is null)
+                    continue;
+
+                var remote = new IPEndPoint(ipv4, DefaultStunPort);
+                var mapped = await QueryServerAsync(udp, remote, wait, ct).ConfigureAwait(false);
+                if (mapped != null)
+                {
+                    _logger?.Info("Network", $"STUN mapped address {mapped} via {server}");
+                    return mapped;
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger?.Debug("Network", $"STUN query to {server} failed: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
 
     public static async Task<IPEndPoint?> QueryMappedAddressAsync(
         string serverHost,
-        int serverPort = 3478,
+        int serverPort = DefaultStunPort,
         TimeSpan? timeout = null,
         CancellationToken ct = default)
     {
@@ -50,7 +107,37 @@ public static class StunClient
         }
     }
 
-    public static byte[] BuildBindingRequest(ReadOnlySpan<byte> transactionId12, string software = "Synapse/2.6")
+    private static async Task<IPEndPoint?> QueryServerAsync(
+        UdpClient udp,
+        IPEndPoint server,
+        TimeSpan timeout,
+        CancellationToken ct)
+    {
+        var txn = new byte[12];
+        RandomNumberGenerator.Fill(txn);
+        var request = BuildBindingRequest(txn);
+        await udp.SendAsync(request, server, ct).ConfigureAwait(false);
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        linked.CancelAfter(timeout);
+        try
+        {
+            while (!linked.IsCancellationRequested)
+            {
+                var result = await udp.ReceiveAsync(linked.Token).ConfigureAwait(false);
+                if (TryParseMappedAddress(result.Buffer, txn, out var mapped))
+                    return mapped;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    public static byte[] BuildBindingRequest(ReadOnlySpan<byte> transactionId12, string software = "Synapse/2.10")
     {
         if (transactionId12.Length != 12)
             throw new ArgumentException("Transaction ID must be 12 bytes.", nameof(transactionId12));
@@ -64,7 +151,6 @@ public static class StunClient
         BinaryPrimitives.WriteUInt32BigEndian(buf.AsSpan(4), MagicCookie);
         transactionId12.CopyTo(buf.AsSpan(8));
 
-        // SOFTWARE attribute
         BinaryPrimitives.WriteUInt16BigEndian(buf.AsSpan(20), AttrSoftware);
         BinaryPrimitives.WriteUInt16BigEndian(buf.AsSpan(22), (ushort)softwareBytes.Length);
         softwareBytes.CopyTo(buf.AsSpan(24));
@@ -73,22 +159,28 @@ public static class StunClient
 
     public static IPEndPoint? TryParseMappedAddress(ReadOnlySpan<byte> message, ReadOnlySpan<byte> expectedTxn)
     {
+        return TryParseMappedAddress(message, expectedTxn, out var mapped) ? mapped : null;
+    }
+
+    public static bool TryParseMappedAddress(ReadOnlySpan<byte> message, ReadOnlySpan<byte> expectedTxn, out IPEndPoint? mapped)
+    {
+        mapped = null;
         if (message.Length < 20)
-            return null;
+            return false;
         ushort msgType = BinaryPrimitives.ReadUInt16BigEndian(message);
         if (msgType != BindingSuccess)
-            return null;
+            return false;
         uint cookie = BinaryPrimitives.ReadUInt32BigEndian(message.Slice(4));
         if (cookie != MagicCookie)
-            return null;
+            return false;
         if (!message.Slice(8, 12).SequenceEqual(expectedTxn))
-            return null;
+            return false;
 
         ushort length = BinaryPrimitives.ReadUInt16BigEndian(message.Slice(2));
         int end = Math.Min(message.Length, 20 + length);
         int offset = 20;
         IPEndPoint? xorMapped = null;
-        IPEndPoint? mapped = null;
+        IPEndPoint? plainMapped = null;
         while (offset + 4 <= end)
         {
             ushort attrType = BinaryPrimitives.ReadUInt16BigEndian(message.Slice(offset));
@@ -101,13 +193,14 @@ public static class StunClient
             if (attrType == AttrXorMappedAddress)
                 xorMapped = ParseAddressAttribute(message.Slice(valueStart, attrLen), xor: true, expectedTxn);
             else if (attrType == AttrMappedAddress)
-                mapped = ParseAddressAttribute(message.Slice(valueStart, attrLen), xor: false, expectedTxn);
+                plainMapped = ParseAddressAttribute(message.Slice(valueStart, attrLen), xor: false, expectedTxn);
 
             int padded = attrLen + (4 - (attrLen % 4)) % 4;
             offset = valueStart + padded;
         }
 
-        return xorMapped ?? mapped;
+        mapped = xorMapped ?? plainMapped;
+        return mapped != null;
     }
 
     /// <summary>Builds a Binding Success with XOR-MAPPED-ADDRESS (for unit tests / mock servers).</summary>
@@ -116,13 +209,13 @@ public static class StunClient
         ArgumentNullException.ThrowIfNull(mapped);
         var buf = new byte[32];
         BinaryPrimitives.WriteUInt16BigEndian(buf.AsSpan(0), BindingSuccess);
-        BinaryPrimitives.WriteUInt16BigEndian(buf.AsSpan(2), 12); // attr length
+        BinaryPrimitives.WriteUInt16BigEndian(buf.AsSpan(2), 12);
         BinaryPrimitives.WriteUInt32BigEndian(buf.AsSpan(4), MagicCookie);
         transactionId12.CopyTo(buf.AsSpan(8));
         BinaryPrimitives.WriteUInt16BigEndian(buf.AsSpan(20), AttrXorMappedAddress);
         BinaryPrimitives.WriteUInt16BigEndian(buf.AsSpan(22), 8);
         buf[24] = 0;
-        buf[25] = 0x01; // IPv4
+        buf[25] = 0x01;
         ushort xport = (ushort)(mapped.Port ^ (MagicCookie >> 16));
         BinaryPrimitives.WriteUInt16BigEndian(buf.AsSpan(26), xport);
         var addr = mapped.Address.GetAddressBytes();
@@ -142,7 +235,7 @@ public static class StunClient
         if (xor)
             port ^= (ushort)(MagicCookie >> 16);
 
-        if (family == 0x01) // IPv4
+        if (family == 0x01)
         {
             uint ip = BinaryPrimitives.ReadUInt32BigEndian(value.Slice(4));
             if (xor)
@@ -152,13 +245,12 @@ public static class StunClient
             return new IPEndPoint(new IPAddress(bytes), port);
         }
 
-        if (family == 0x02 && value.Length >= 20) // IPv6
+        if (family == 0x02 && value.Length >= 20)
         {
             var bytes = new byte[16];
             value.Slice(4, 16).CopyTo(bytes);
             if (xor)
             {
-                // XOR with Magic Cookie || Transaction ID
                 Span<byte> mask = stackalloc byte[16];
                 BinaryPrimitives.WriteUInt32BigEndian(mask, MagicCookie);
                 txn.CopyTo(mask.Slice(4));

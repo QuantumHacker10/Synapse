@@ -64,7 +64,7 @@ public sealed class ProductionVrWanUsdTests
         using var clientNat = new NatTraversalCoordinator(logger, code, rvPort, IPAddress.Loopback);
         var ep = await clientNat.DiscoverPeerAsync();
         ep.Should().NotBeNull();
-        ep!.Port.Should().Be(5555);
+        ep!.TcpPort.Should().Be(5555);
         // Same-host UDP source is loopback (or a local interface mapped to the relay).
         ep.Address.Should().NotBe(IPAddress.Any);
     }

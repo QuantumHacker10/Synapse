@@ -30,6 +30,7 @@ namespace Synapse.Infrastructure.Configuration
         public int WanRendezvousPort { get; set; } = 7778;
         /// <summary>When true with <see cref="WanSessionCode"/>, join an existing host instead of hosting.</summary>
         public bool WanJoin { get; set; }
+        public bool WanHost { get; set; }
         /// <summary>STUN server host or host:port (e.g. stun.l.google.com:19302).</summary>
         public string? StunServer { get; set; }
         /// <summary>TURN server host or host:port.</summary>
@@ -39,6 +40,9 @@ namespace Synapse.Infrastructure.Configuration
         public bool WanPreferTurn { get; set; }
         /// <summary>HTTPS (or loopback HTTP) URL to a remote plugin marketplace catalog JSON.</summary>
         public string? PluginMarketplaceUrl { get; set; }
+        public string? ExportWebPath { get; set; }
+        /// <summary>When true, EngineHost starts OpenXR after module init.</summary>
+        public bool EnableVr { get; set; }
         public string LogLevel { get; set; } = "Information";
         public LlmConfig Llm { get; set; } = new();
         public string ProjectsDirectory { get; set; } =
@@ -118,6 +122,13 @@ namespace Synapse.Infrastructure.Configuration
             var plugins = Environment.GetEnvironmentVariable("SYNAPSE_PLUGINS");
             if (!string.IsNullOrWhiteSpace(plugins))
                 config.PluginDirectory = plugins;
+            var wan = Environment.GetEnvironmentVariable("SYNAPSE_WAN_SESSION");
+            if (!string.IsNullOrWhiteSpace(wan))
+                config.WanSessionCode = wan;
+            var vr = Environment.GetEnvironmentVariable("SYNAPSE_VR");
+            if (string.Equals(vr, "1", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(vr, "true", StringComparison.OrdinalIgnoreCase))
+                config.EnableVr = true;
 
             config.Llm.OpenAiApiKey ??= Environment.GetEnvironmentVariable("OPENAI_API_KEY");
             config.Llm.AnthropicApiKey ??= Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
@@ -183,18 +194,29 @@ namespace Synapse.Infrastructure.Configuration
                         config.ScreenshotPath = Next();
                         break;
                     case "--wan-code":
+                    case "--wan-session":
                         config.WanSessionCode = Next();
                         break;
                     case "--wan-port":
                         if (int.TryParse(Next(), out var wanPort))
                             config.WanPort = wanPort;
                         break;
+                    case "--wan-host":
+                        config.WanHost = true;
+                        break;
                     case "--wan-rendezvous":
-                        config.WanRendezvousHost = Next() ?? config.WanRendezvousHost;
+                        {
+                            var next = Next();
+                            if (int.TryParse(next, out var wanRvPort))
+                                config.WanRendezvousPort = wanRvPort;
+                            else if (!string.IsNullOrWhiteSpace(next))
+                                config.WanRendezvousHost = next;
+                        }
                         break;
                     case "--wan-rendezvous-port":
-                        if (int.TryParse(Next(), out var wanRvPort))
-                            config.WanRendezvousPort = wanRvPort;
+                    case "--wan-rdv":
+                        if (int.TryParse(Next(), out var wanRvPortOnly))
+                            config.WanRendezvousPort = wanRvPortOnly;
                         break;
                     case "--wan-join":
                         config.WanJoin = true;
@@ -216,6 +238,13 @@ namespace Synapse.Infrastructure.Configuration
                         break;
                     case "--plugin-marketplace-url":
                         config.PluginMarketplaceUrl = Next();
+                        break;
+                    case "--export-web":
+                        config.ExportWebPath = Next();
+                        break;
+                    case "--vr":
+                    case "--enable-vr":
+                        config.EnableVr = true;
                         break;
                     case "--quality":
                         var q = Next();
