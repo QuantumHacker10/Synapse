@@ -19,13 +19,24 @@ Les items « Experimental » ne sont **pas** des capacités production.
 - [x] Matrice de maturité honnête (`docs/MATURITY.md`, `FeatureMaturityCatalog`)
 - [x] Scène lab `samples/lab-heat-agents.synapse` exercée en tests
 
+### EarlyAccess (collaboration / web branchés)
+- [x] P2P WAN NAT + AES-GCM branché EngineHost/Studio (STUN + hole-punch + patches scène)
+- [x] OpenXR / swapchain Vulkan branché EngineHost/FrameOrchestrator/Studio (Silk.NET natif)
+- [x] Éditeur web WASM / WebGPU (`Synapse.Web.Studio`, `ExportWebStudioAsync`)
+
 ### Experimental (scaffolds — ne pas vendre comme production)
 - [x] P2P multi-pairs TCP labo (`MultiPeerSimulationHub`)
-- [x] P2P WAN scaffold (rendez-vous **loopback** + AES-GCM)
-- [x] OpenXR scaffold (détection loader + swapchain **synthétique**)
-- [x] Éditeur web glTF / WebGPU preview (`site/editor/`)
 
 ## v2.3 — Durcissement (prochaine priorité)
+
+### Studio — ponts atelier (livré)
+- [x] Marketplace de lois dans Studio (import/export `.synapse-law`, catalogue)
+- [x] API plugins C# branchée dans Studio (chargement dossier, liste, statut)
+- [x] Jumeaux numériques dans Studio (jumeler, synchroniser, export snapshot)
+- [x] Export scène glTF depuis le menu Fichier
+- [x] Inspecteur d'arbre de comportement (agents sentients)
+- [x] Export du meilleur génome NEAT-G (JSON)
+- [x] Outil viewport **Échelle** (gizmo scale)
 
 ### Qualité
 - [ ] Promouvoir au moins une surface cœur en tier **Supported** (Windows+GPU validé)
@@ -34,7 +45,7 @@ Les items « Experimental » ne sont **pas** des capacités production.
 - [ ] Plus de scènes `samples/` couvertes en CI (joints, lois, agents)
 
 ### Honnêteté produit
-- [ ] Retirer ou remplacer les scaffolds Experimental avant toute claim « production »
+- [ ] Retirer ou remplacer les scaffolds Experimental restants avant toute claim « production »
 - [ ] Tutoriels vidéo (YouTube)
 - [ ] Serveur Discord communautaire actif
 
@@ -62,10 +73,10 @@ Les items « Experimental » ne sont **pas** des capacités production.
 
 ## v3.0 — Long terme (vraies intégrations)
 
-- [ ] Réseau P2P collaboratif multi-pairs **hors labo** (remplace le scaffold WAN)
-- [ ] Support VR OpenXR **natif** (swapchain Vulkan réel, pas synthétique)
-- [ ] Éditeur web complet (WASM + WebGPU) au-delà du preview
-- [ ] Marketplace d'assets et de lois avec signatures
+- [ ] Réseau P2P collaboratif multi-pairs **hors labo**, validé sur NAT résidentiel (promotion WAN → Supported)
+- [ ] VR OpenXR validé sur Windows + HMD réel (promotion → Supported)
+- [ ] Éditeur web WASM + WebGPU complet au-delà de l'accès anticipé
+- [ ] Marketplace d'assets et de lois hébergé avec signatures
 
 ## Comment contribuer à la roadmap
 
