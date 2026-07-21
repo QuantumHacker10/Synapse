@@ -1340,8 +1340,8 @@ namespace Synapse.Runtime
                 ExperimentalNotes =
                 {
                     "OpenXR uses native Vulkan2 swapchains when loader+HMD+Vulkan bind succeed; otherwise production simulated images (IsSimulated).",
-                    "WAN NAT rendezvous binds UDP Any and advertises observed peer IP:port; use --wan-rendezvous / --wan-join across LAN or port-forwarded WAN.",
-                    "OpenUSD composition supports refs/payloads/subLayers/inherits, prim-path targets, and xformOp translate/rotateXYZ/scale/transform stacks."
+                    "WAN NAT supports STUN reflexive candidates and TURN Allocate/CreatePermission/ChannelData for symmetric NAT (--stun-server / --turn-server).",
+                    "OpenUSD DCC: composition, xform stacks, UsdPreviewSurface materials, UsdSkel joints/weights, and variantSets."
                 }
             };
         }

@@ -1,4 +1,4 @@
-# SYNAPSE OMNIA — Outil de simulation 3D · v2.5
+# SYNAPSE OMNIA — Outil de simulation 3D · v2.6
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
@@ -16,9 +16,8 @@ comment formes, lois et agents sentients changent ensemble.
 Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
 Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
-> **Produit v2.5 — production-ready** — Studio + runtime, multi-RID mid-range,
-> OpenXR (natif/simulé), WAN NAT, OpenUSD DCC, plugins jailés, couverture **70 %**,
-> checklist [docs/PRODUCTION.md](docs/PRODUCTION.md).
+> **Produit v2.6 — production-ready** — Studio + runtime, STUN/TURN WAN, OpenUSD DCC
+> (materials / skeletons / variants), OpenXR, multi-RID, checklist [docs/PRODUCTION.md](docs/PRODUCTION.md).
 
 **Config minimale :** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **Production :** [docs/PRODUCTION.md](docs/PRODUCTION.md) · **Site :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
 
@@ -142,7 +141,7 @@ Placez `glfw3.dll` (GLFW 3.4+) à côté de l'exécutable, ou dans
 | Source | Paramètres |
 |---|---|
 | [`src/Synapse.Studio/appsettings.json`](src/Synapse.Studio/appsettings.json) | Résolution, qualité, budgets physique/sim, LLM par défaut |
-| CLI | `--width`, `--height`, `--scene`, `--quality`, `--validation` / `--no-validation`, `--engine` / `--glfw`, `--health`, `--plugin-dir`, `--wan-code`, `--wan-join`, `--wan-rendezvous` |
+| CLI | `--width`, `--height`, `--scene`, `--quality`, `--validation` / `--no-validation`, `--engine` / `--glfw`, `--health`, `--plugin-dir`, `--wan-code`, `--wan-join`, `--wan-rendezvous`, `--stun-server`, `--turn-server` |
 | Variables d'environnement | `SYNAPSE_WIDTH`, `SYNAPSE_HEIGHT`, `SYNAPSE_SCENE`, `SYNAPSE_SIMD_MAX` |
 | LLM (jamais en dur dans le dépôt) | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `AZURE_OPENAI_API_KEY`, `OLLAMA_HOST` |
 
@@ -150,7 +149,7 @@ Le routeur [`HybridLlmRouter`](src/Synapse.LLM/HybridLlmRouter.cs) bascule autom
 
 ## Production
 
-Synapse **2.5** est **production-ready** pour l'outil desktop (édition, simulation, export, plugins, P2P WAN authentifié, OpenXR, OpenUSD DCC).
+Synapse **2.6** est **production-ready** pour l'outil desktop (édition, simulation, export, plugins, P2P WAN+STUN/TURN, OpenXR, OpenUSD DCC).
 Matrice détaillée et checklist release :
 
 → **[docs/PRODUCTION.md](docs/PRODUCTION.md)** · **[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)**

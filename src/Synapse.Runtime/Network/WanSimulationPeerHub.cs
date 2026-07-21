@@ -7,9 +7,13 @@ using Synapse.Infrastructure.Logging;
 
 namespace Synapse.Network;
 
+/// <summary>Discovered peer endpoint plus transport mode (tcp|stun|turn).</summary>
+public readonly record struct PeerCandidate(IPEndPoint Endpoint, string Mode);
+
 /// <summary>
 /// UDP rendezvous + hole-punch coordinator for WAN/LAN P2P.
 /// Binds <see cref="IPAddress.Any"/> so peers across NAT (with port-forward / same LAN) can discover.
+/// Optional STUN-advertised IPs improve reflexive addressing; TURN mode registers relayed candidates.
 /// </summary>
 public sealed class NatTraversalCoordinator : IDisposable
 {
@@ -22,7 +26,7 @@ public sealed class NatTraversalCoordinator : IDisposable
     private UdpClient? _relay;
 
     // Shared static registry for in-process / same-host relay (stores observed public endpoint).
-    private static readonly ConcurrentDictionary<string, (IPAddress Address, int TcpPort, DateTime Expiry)> Registrations =
+    private static readonly ConcurrentDictionary<string, (IPAddress Address, int TcpPort, string Mode, DateTime Expiry)> Registrations =
         new(StringComparer.Ordinal);
 
     public NatTraversalCoordinator(
@@ -44,15 +48,22 @@ public sealed class NatTraversalCoordinator : IDisposable
     public int RendezvousPort { get; }
     public IPAddress RendezvousAddress => _rendezvousAddress;
 
-    public async Task RegisterPublicEndpointAsync(int tcpPort, CancellationToken ct = default)
+    public async Task RegisterPublicEndpointAsync(
+        int tcpPort,
+        IPAddress? advertisedAddress = null,
+        string mode = "tcp",
+        CancellationToken ct = default)
     {
-        var payload = Encoding.UTF8.GetBytes($"REGISTER|{_sessionCode}|{tcpPort}|{ComputeMac(_sessionCode, tcpPort)}");
+        var adv = advertisedAddress?.ToString() ?? "";
+        var payload = Encoding.UTF8.GetBytes(
+            $"REGISTER|{_sessionCode}|{tcpPort}|{ComputeMac(_sessionCode, tcpPort)}|{adv}|{mode}");
         if (payload.Length > MaxUdpPayload)
             throw new InvalidOperationException("REGISTER payload too large.");
         await _udp.SendAsync(payload, new IPEndPoint(_rendezvousAddress, RendezvousPort), ct).ConfigureAwait(false);
-        // Local optimistic registration (same-process host); relay overwrites with observed remote IP.
-        Registrations[_sessionCode] = (IPAddress.Loopback, tcpPort, DateTime.UtcNow.AddMinutes(5));
-        _logger.Info("Network", $"NAT rendezvous REGISTER session={_sessionCode} tcp={tcpPort} via {_rendezvousAddress}:{RendezvousPort}");
+        var localIp = advertisedAddress ?? IPAddress.Loopback;
+        Registrations[_sessionCode] = (localIp, tcpPort, mode, DateTime.UtcNow.AddMinutes(5));
+        _logger.Info("Network",
+            $"NAT rendezvous REGISTER session={_sessionCode} tcp={tcpPort} adv={localIp} mode={mode} via {_rendezvousAddress}:{RendezvousPort}");
     }
 
     public async Task<IPEndPoint?> DiscoverPeerAsync(CancellationToken ct = default)
@@ -66,7 +77,7 @@ public sealed class NatTraversalCoordinator : IDisposable
             var result = await _udp.ReceiveAsync(timeout.Token).ConfigureAwait(false);
             if (result.Buffer.Length > MaxUdpPayload)
                 return null;
-            return ParsePeerReply(Encoding.UTF8.GetString(result.Buffer), _sessionCode);
+            return ParsePeerCandidate(Encoding.UTF8.GetString(result.Buffer), _sessionCode)?.Endpoint;
         }
         catch (OperationCanceledException)
         {
@@ -114,12 +125,19 @@ public sealed class NatTraversalCoordinator : IDisposable
                         if (!string.Equals(parts[3], ComputeMac(sessionCode, tcpPort), StringComparison.Ordinal))
                             continue;
 
-                        // Prefer the UDP source address (works across LAN/WAN with port-forward).
+                        // Prefer STUN-advertised IP when present; else UDP source (LAN/WAN with port-forward).
                         var peerIp = result.RemoteEndPoint.Address;
                         if (peerIp.IsIPv4MappedToIPv6)
                             peerIp = peerIp.MapToIPv4();
-                        Registrations[sessionCode] = (peerIp, tcpPort, DateTime.UtcNow.AddMinutes(5));
-                        var reply = Encoding.UTF8.GetBytes($"PEER|{sessionCode}|{peerIp}|{tcpPort}");
+                        string mode = "tcp";
+                        if (parts.Length >= 5 && IPAddress.TryParse(parts[4], out var adv) &&
+                            !adv.Equals(IPAddress.Any) && !adv.Equals(IPAddress.None))
+                            peerIp = adv;
+                        if (parts.Length >= 6 && !string.IsNullOrWhiteSpace(parts[5]))
+                            mode = parts[5].Trim().ToLowerInvariant();
+
+                        Registrations[sessionCode] = (peerIp, tcpPort, mode, DateTime.UtcNow.AddMinutes(5));
+                        var reply = Encoding.UTF8.GetBytes($"PEER|{sessionCode}|{peerIp}|{tcpPort}|{mode}");
                         await relay.SendAsync(reply, result.RemoteEndPoint, coord._cts.Token).ConfigureAwait(false);
                     }
                     else if (text.StartsWith("DISCOVER|", StringComparison.Ordinal) && parts.Length >= 3)
@@ -130,12 +148,12 @@ public sealed class NatTraversalCoordinator : IDisposable
                             continue;
                         if (Registrations.TryGetValue(sessionCode, out var reg) && reg.Expiry > DateTime.UtcNow)
                         {
-                            var reply = Encoding.UTF8.GetBytes($"PEER|{sessionCode}|{reg.Address}|{reg.TcpPort}");
+                            var reply = Encoding.UTF8.GetBytes($"PEER|{sessionCode}|{reg.Address}|{reg.TcpPort}|{reg.Mode}");
                             await relay.SendAsync(reply, result.RemoteEndPoint, coord._cts.Token).ConfigureAwait(false);
                         }
                         else
                         {
-                            var reply = Encoding.UTF8.GetBytes($"PEER|{sessionCode}|0.0.0.0|0");
+                            var reply = Encoding.UTF8.GetBytes($"PEER|{sessionCode}|0.0.0.0|0|tcp");
                             await relay.SendAsync(reply, result.RemoteEndPoint, coord._cts.Token).ConfigureAwait(false);
                         }
                     }
@@ -163,14 +181,14 @@ public sealed class NatTraversalCoordinator : IDisposable
         return coord;
     }
 
-    public static IPEndPoint? ParsePeerReply(string text, string sessionCode)
+    public static PeerCandidate? ParsePeerCandidate(string text, string sessionCode)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(sessionCode);
         if (!text.StartsWith("PEER|", StringComparison.Ordinal))
             return null;
         var parts = text.Split('|');
-        // New: PEER|session|ip|port
+        // PEER|session|ip|port[|mode]
         if (parts.Length >= 4 && parts[1] == sessionCode)
         {
             if (!IPAddress.TryParse(parts[2], out var ip))
@@ -179,20 +197,24 @@ public sealed class NatTraversalCoordinator : IDisposable
                 return null;
             if (ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.IPv6Any))
                 return null;
-            return new IPEndPoint(ip, port);
+            var mode = parts.Length >= 5 && !string.IsNullOrWhiteSpace(parts[4]) ? parts[4].Trim() : "tcp";
+            return new PeerCandidate(new IPEndPoint(ip, port), mode);
         }
 
         // Legacy QA: PEER|session|port → Loopback
         if (parts.Length >= 3 && parts[1] == sessionCode && int.TryParse(parts[2], out var legacyPort) && legacyPort > 0)
-            return new IPEndPoint(IPAddress.Loopback, legacyPort);
+            return new PeerCandidate(new IPEndPoint(IPAddress.Loopback, legacyPort), "tcp");
 
         return null;
     }
 
+    public static IPEndPoint? ParsePeerReply(string text, string sessionCode) =>
+        ParsePeerCandidate(text, sessionCode)?.Endpoint;
+
     private static IPAddress PreferLoopbackHint(IPAddress bind) =>
         bind.Equals(IPAddress.Any) || bind.Equals(IPAddress.IPv6Any) ? IPAddress.Loopback : bind;
 
-    internal static string ComputeMac(string sessionCode, int tcpPort)
+    public static string ComputeMac(string sessionCode, int tcpPort)
     {
         var raw = Encoding.UTF8.GetBytes($"{sessionCode}|{tcpPort}|Synapse.NAT.v1");
         var hash = SHA256.HashData(raw);
@@ -214,7 +236,7 @@ public sealed class NatTraversalCoordinator : IDisposable
     }
 }
 
-/// <summary>WAN-capable encrypted P2P hub (NAT traversal on Any + AES-GCM + auth handshake).</summary>
+/// <summary>WAN-capable encrypted P2P hub (NAT traversal on Any + STUN/TURN + AES-GCM + auth).</summary>
 public sealed class WanSimulationPeerHub : IAsyncDisposable
 {
     private readonly ISynapseLogger _logger;
@@ -226,13 +248,16 @@ public sealed class WanSimulationPeerHub : IAsyncDisposable
     private readonly IPAddress _rendezvousAddress;
     private readonly int _rendezvousPort;
     private readonly bool _hostRelay;
+    private readonly NatIceOptions _ice;
+    private TurnClient? _turn;
 
     public WanSimulationPeerHub(
         ISynapseLogger logger,
         string sessionCode,
         IPAddress? rendezvousAddress = null,
         int rendezvousPort = 7778,
-        bool hostRelay = true)
+        bool hostRelay = true,
+        NatIceOptions? ice = null)
     {
         _sessionCode = sessionCode;
         _logger = logger;
@@ -240,6 +265,7 @@ public sealed class WanSimulationPeerHub : IAsyncDisposable
         _rendezvousAddress = rendezvousAddress ?? IPAddress.Loopback;
         _rendezvousPort = rendezvousPort;
         _hostRelay = hostRelay;
+        _ice = ice ?? new NatIceOptions();
         _nat = hostRelay
             ? NatTraversalCoordinator.StartRelay(logger, sessionCode, rendezvousPort, IPAddress.Any)
             : new NatTraversalCoordinator(logger, sessionCode, rendezvousPort, _rendezvousAddress);
@@ -254,13 +280,35 @@ public sealed class WanSimulationPeerHub : IAsyncDisposable
     public int DroppedPackets { get; private set; }
     public IPAddress RendezvousAddress => _rendezvousAddress;
     public int RendezvousPort => _rendezvousPort;
+    public NatIceCandidates? LastIce { get; private set; }
+    public string TransportMode { get; private set; } = "tcp";
 
     public async Task StartHostAsync(int port, CancellationToken ct = default)
     {
         // Auth is present → publicBind allowed (LAN/WAN with port-forward).
         await _inner.StartHostAsync(port, publicBind: true, ct).ConfigureAwait(false);
-        await _nat.RegisterPublicEndpointAsync(_inner.ListenPort, ct).ConfigureAwait(false);
-        _logger.Info("Network", $"WAN encrypted+auth host on 0.0.0.0:{_inner.ListenPort} (rendezvous {_rendezvousAddress}:{_rendezvousPort})");
+
+        LastIce = await NatIceAssist.GatherAsync(_ice, _logger, ct).ConfigureAwait(false);
+        _turn = LastIce.Turn;
+        TransportMode = LastIce.Mode;
+
+        int advertisePort = LastIce.AdvertisedPort ?? _inner.ListenPort;
+        // For turn mode the registered port is the TURN relay UDP port; TCP remains for LAN/direct.
+        if (TransportMode != "turn")
+            advertisePort = _inner.ListenPort;
+
+        await _nat.RegisterPublicEndpointAsync(
+            advertisePort,
+            advertisedAddress: LastIce.AdvertisedAddress,
+            mode: TransportMode,
+            ct: ct).ConfigureAwait(false);
+
+        _logger.Info("Network",
+            $"WAN encrypted+auth host on 0.0.0.0:{_inner.ListenPort} mode={TransportMode} " +
+            $"(rendezvous {_rendezvousAddress}:{_rendezvousPort}" +
+            (LastIce.StunMapped != null ? $", stun={LastIce.StunMapped}" : "") +
+            (LastIce.TurnRelayed != null ? $", turn={LastIce.TurnRelayed}" : "") +
+            ")");
     }
 
     public async Task JoinAsync(CancellationToken ct = default)
@@ -271,16 +319,42 @@ public sealed class WanSimulationPeerHub : IAsyncDisposable
     public async Task JoinAsync(IPAddress rendezvousHost, int rendezvousPort, CancellationToken ct = default)
     {
         using var clientNat = new NatTraversalCoordinator(_logger, _sessionCode, rendezvousPort, rendezvousHost);
+        // Gather local STUN/TURN for diagnostics and symmetric-NAT fallback.
+        LastIce = await NatIceAssist.GatherAsync(_ice, _logger, ct).ConfigureAwait(false);
+        _turn = LastIce.Turn;
+
         var endpoint = await clientNat.DiscoverPeerAsync(ct).ConfigureAwait(false);
         if (endpoint == null || endpoint.Port == 0)
             throw new InvalidOperationException("Peer discovery failed.");
-        await _inner.ConnectAsync(endpoint.Address.ToString(), endpoint.Port, ct).ConfigureAwait(false);
-        _logger.Info("Network", $"WAN joined peer {endpoint}");
+
+        // Direct TCP for tcp/stun modes (stun advertises public IP for port-forwarded hosts).
+        // Turn mode: keep TURN allocation for ChannelData relay; still attempt TCP when port is host listen.
+        try
+        {
+            await _inner.ConnectAsync(endpoint.Address.ToString(), endpoint.Port, ct).ConfigureAwait(false);
+            TransportMode = "tcp";
+            _logger.Info("Network", $"WAN joined peer {endpoint} via TCP");
+        }
+        catch (Exception ex) when (_turn?.RelayedEndpoint != null)
+        {
+            // Symmetric NAT fallback: CreatePermission toward discovered peer and keep TURN session.
+            await _turn.CreatePermissionAsync(endpoint, ct: ct).ConfigureAwait(false);
+            var channel = await _turn.ChannelBindAsync(endpoint, ct: ct).ConfigureAwait(false);
+            TransportMode = "turn";
+            _logger.Warn("Network",
+                $"TCP join failed ({ex.Message}); TURN fallback active channel={channel} via {_turn.RelayedEndpoint}");
+        }
     }
 
     public async Task BroadcastScenePatchAsync(ReadOnlyMemory<byte> patch, CancellationToken ct = default)
     {
         var encrypted = _encryption.Encrypt(patch.Span);
+        if (TransportMode == "turn" && _turn != null)
+        {
+            // Best-effort ChannelData on channel 0x4000 (bound during join/host assist).
+            await _turn.SendChannelDataAsync(0x4000, encrypted, ct).ConfigureAwait(false);
+        }
+
         await _inner.BroadcastScenePatchAsync(encrypted, ct).ConfigureAwait(false);
     }
 
@@ -304,6 +378,8 @@ public sealed class WanSimulationPeerHub : IAsyncDisposable
     {
         _inner.ScenePatchReceived -= _decryptHandler;
         await _inner.DisposeAsync().ConfigureAwait(false);
+        if (_turn != null)
+            await _turn.DisposeAsync().ConfigureAwait(false);
         _nat.Dispose();
         _encryption.Dispose();
     }

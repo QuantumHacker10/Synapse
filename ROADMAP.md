@@ -2,7 +2,13 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.5 — Actuel (2026-07) — production VR / WAN / OpenUSD
+## v2.6 — Actuel (2026-07) — STUN/TURN + OpenUSD DCC
+
+- [x] STUN Binding + TURN Allocate/Permission/ChannelData
+- [x] OpenUSD materials (UsdPreviewSurface) / skeletons / variantSets
+- [x] `docs/PRODUCTION.md` 2.6
+
+## v2.5 — Livré (2026-07) — production VR / WAN / OpenUSD
 
 - [x] OpenXR Vulkan2 natif + fallback simulé production (`IsSimulated`)
 - [x] WAN NAT hors-loopback (UDP Any + IP:port + CLI join/rendezvous)
@@ -59,7 +65,7 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] P2P WAN (NAT rendezvous UDP + chiffrement AES-GCM)
 - [x] Éditeur web glTF interactif (`site/editor/`, WebGPU)
 
-## v2.5+ — Prochaine release
+## v2.7+ — Prochaine release
 
 ### Communauté
 - [ ] Tutoriels vidéo (YouTube)
@@ -71,11 +77,10 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 
 ### Moteur
 - [ ] Plugin marketplace hébergé distant
-- [ ] STUN/TURN optionnel pour NAT symétrique
 - [ ] Path tracing L-DNN teacher offline (batch)
-- [ ] OpenUSD materials / skeletons / variants
+- [ ] OpenUSD materials textures / UsdSkel animation clips
 
-## v2.6 — Moyen terme
+## v2.8 — Moyen terme
 
 ### Rendu
 - [ ] Path tracing L-DNN teacher offline (batch)

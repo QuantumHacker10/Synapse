@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace GDNN.Rendering.MeshIO;
 
-/// <summary>Minimal USDA (ASCII USD) mesh importer with composition-arc resolution.</summary>
+/// <summary>USDA (ASCII USD) mesh importer with composition, materials, skeletons, and variants.</summary>
 public sealed class UsdAsciiLoader
 {
     private static readonly Regex PointTuple = new(@"\(([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\)", RegexOptions.Compiled);
@@ -27,8 +27,6 @@ public sealed class UsdAsciiLoader
         if (ext == ".usdc" || (ext == ".usd" && IsBinaryUsd(filePath)))
             return new UsdBinaryLoader().LoadAsync(filePath, config, ct);
 
-        // Composition walk for USDA (and ASCII .usd): resolve references then merge meshes.
-        // Leaf loads skip local xform — the resolver applies cumulative parent×local stacks.
         return UsdCompositionResolver.LoadWithCompositionAsync(
             filePath,
             (path, cfg, token) => LoadLeafMeshAsync(path, cfg, applyLocalXform: false, token),
@@ -36,14 +34,9 @@ public sealed class UsdAsciiLoader
             ct);
     }
 
-    /// <summary>Loads a single file's local mesh without following composition arcs.</summary>
     public Task<MeshLoadResult> LoadLeafMeshAsync(string filePath, MeshLoadConfig? config, CancellationToken ct) =>
         LoadLeafMeshAsync(filePath, config, applyLocalXform: true, ct);
 
-    /// <summary>
-    /// Loads a single file's local mesh. When <paramref name="applyLocalXform"/> is false,
-    /// xformOps are left for <see cref="UsdCompositionResolver"/> cumulative stacks.
-    /// </summary>
     public Task<MeshLoadResult> LoadLeafMeshAsync(
         string filePath,
         MeshLoadConfig? config,
@@ -60,8 +53,9 @@ public sealed class UsdAsciiLoader
             if (ext == ".usdc" || (ext == ".usd" && IsBinaryUsd(filePath)))
                 return new UsdBinaryLoader().LoadAsync(filePath, config, ct);
 
-            var text = File.ReadAllText(filePath);
-            // References-only stage files are valid during composition.
+            var raw = File.ReadAllText(filePath);
+            var text = UsdVariantResolver.ApplyVariants(raw, config);
+
             if (UsdCompositionResolver.ExtractReferencePaths(text).Count > 0 &&
                 text.IndexOf("point3f[] points", StringComparison.Ordinal) < 0)
             {
@@ -72,40 +66,7 @@ public sealed class UsdAsciiLoader
                 return Task.FromResult(result);
             }
 
-            var points = ParsePointsArray(text);
-            var indices = ParseFaceIndices(text);
-            if (applyLocalXform)
-            {
-                var local = UsdXform.ParseLocalMatrix(text);
-                UsdXform.ApplyToPoints(points, local);
-            }
-
-            if (points.Count == 0)
-            {
-                result.ErrorMessage = "No point positions found in USD file.";
-                return Task.FromResult(result);
-            }
-
-            if (indices.Count == 0)
-            {
-                for (uint i = 0; i < points.Count; i++)
-                    indices.Add(i);
-            }
-
-            var asset = new MeshAsset { Name = Path.GetFileNameWithoutExtension(filePath) };
-            var primitive = new MeshPrimitive { Topology = PrimitiveTopology.TriangleList };
-            foreach (var p in points)
-                primitive.Vertices.Add(new MeshVertex { Position = p, Normal = Vector3.UnitY });
-            primitive.Indices.AddRange(indices);
-            asset.Primitives.Add(primitive);
-            asset.Bounds = new BoundingBox3D
-            {
-                Min = points.Aggregate(Vector3.One * float.MaxValue, Vector3.Min),
-                Max = points.Aggregate(Vector3.One * float.MinValue, Vector3.Max)
-            };
-
-            result.Success = true;
-            result.Asset = asset;
+            result = LoadLeafFromText(text, Path.GetFileNameWithoutExtension(filePath), config, applyLocalXform);
         }
         catch (Exception ex)
         {
@@ -115,6 +76,84 @@ public sealed class UsdAsciiLoader
         sw.Stop();
         result.LoadTime = sw.Elapsed;
         return Task.FromResult(result);
+    }
+
+    /// <summary>Parses a USDA text buffer (already variant-resolved) into a mesh asset.</summary>
+    public MeshLoadResult LoadLeafFromText(
+        string text,
+        string assetName,
+        MeshLoadConfig? config,
+        bool applyLocalXform)
+    {
+        config ??= new MeshLoadConfig();
+        var result = new MeshLoadResult();
+        var points = ParsePointsArray(text);
+        var indices = ParseFaceIndices(text);
+        if (applyLocalXform)
+        {
+            var local = UsdXform.ParseLocalMatrix(text);
+            UsdXform.ApplyToPoints(points, local);
+        }
+
+        if (points.Count == 0)
+        {
+            // Materials/skeleton-only stages are valid.
+            var matsOnly = UsdMaterialParser.ParseMaterials(text);
+            var skelOnly = UsdSkeletonParser.ParseSkeleton(text, config);
+            if (matsOnly.Count > 0 || skelOnly != null)
+            {
+                result.Success = true;
+                result.Asset = new MeshAsset
+                {
+                    Name = assetName,
+                    Materials = matsOnly,
+                    Skeleton = skelOnly
+                };
+                return result;
+            }
+
+            result.ErrorMessage = "No point positions found in USD file.";
+            return result;
+        }
+
+        if (indices.Count == 0)
+        {
+            for (uint i = 0; i < points.Count; i++)
+                indices.Add(i);
+        }
+
+        var asset = new MeshAsset { Name = assetName };
+        var materials = UsdMaterialParser.ParseMaterials(text);
+        asset.Materials.AddRange(materials);
+        var binding = UsdMaterialParser.ParseBindingPath(text);
+        int matIndex = UsdMaterialParser.ResolveMaterialIndex(materials, binding);
+
+        var primitive = new MeshPrimitive
+        {
+            Topology = PrimitiveTopology.TriangleList,
+            MaterialIndex = matIndex,
+            ActiveAttributes = VertexAttribute.Position | VertexAttribute.Normal
+        };
+        foreach (var p in points)
+            primitive.Vertices.Add(new MeshVertex { Position = p, Normal = Vector3.UnitY });
+        primitive.Indices.AddRange(indices);
+
+        UsdSkeletonParser.ApplySkinPrimvars(text, primitive.Vertices, config);
+        if (text.Contains("primvars:skel:jointIndices", StringComparison.OrdinalIgnoreCase))
+            primitive.ActiveAttributes |= VertexAttribute.BoneWeights | VertexAttribute.BoneIndices;
+
+        asset.Skeleton = UsdSkeletonParser.ParseSkeleton(text, config);
+        asset.Primitives.Add(primitive);
+        asset.Bounds = new BoundingBox3D
+        {
+            Min = points.Aggregate(Vector3.One * float.MaxValue, Vector3.Min),
+            Max = points.Aggregate(Vector3.One * float.MinValue, Vector3.Max)
+        };
+        asset.GlobalAttributes = primitive.ActiveAttributes;
+
+        result.Success = true;
+        result.Asset = asset;
+        return result;
     }
 
     private static List<Vector3> ParsePointsArray(string text)
@@ -183,7 +222,6 @@ public sealed class UsdAsciiLoader
         return indices;
     }
 
-    /// <summary>Parses <c>double3 xformOp:translate = (x, y, z)</c> or <c>float3 xformOp:translate</c>.</summary>
     public static Vector3 ParseTranslate(string text) =>
         UsdXform.ParseVec3Op(text, "xformOp:translate");
 

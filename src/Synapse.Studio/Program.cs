@@ -152,18 +152,26 @@ namespace Synapse.Studio
                         config.WanSessionCode,
                         rendezvousAddress: rvHost,
                         rendezvousPort: config.WanRendezvousPort,
-                        hostRelay: !config.WanJoin);
+                        hostRelay: !config.WanJoin,
+                        ice: new NatIceOptions
+                        {
+                            StunServer = config.StunServer,
+                            TurnServer = config.TurnServer,
+                            TurnUsername = config.TurnUsername,
+                            TurnPassword = config.TurnPassword,
+                            PreferTurn = config.WanPreferTurn
+                        });
 
                     if (config.WanJoin)
                     {
                         wan.JoinAsync(rvHost, config.WanRendezvousPort).GetAwaiter().GetResult();
-                        Console.WriteLine($"[WAN] Joined via rendezvous {rvHost}:{config.WanRendezvousPort}");
+                        Console.WriteLine($"[WAN] Joined via rendezvous {rvHost}:{config.WanRendezvousPort} mode={wan.TransportMode}");
                     }
                     else
                     {
                         wan.StartHostAsync(config.WanPort).GetAwaiter().GetResult();
                         Console.WriteLine(
-                            $"[WAN] Authenticated host on 0.0.0.0:{wan.ListenPort} " +
+                            $"[WAN] Authenticated host on 0.0.0.0:{wan.ListenPort} mode={wan.TransportMode} " +
                             $"(rendezvous {rvHost}:{config.WanRendezvousPort})");
                     }
                 }

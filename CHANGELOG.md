@@ -6,6 +6,25 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [2.6.0] — 2026-07-21
+
+**STUN/TURN + OpenUSD DCC complet** — NAT symétrique, materials / skeletons / variants.
+
+### Ajouté
+
+- **STUN** (`StunClient`, RFC 5389 Binding + XOR-MAPPED-ADDRESS)
+- **TURN** (`TurnClient`, Allocate / CreatePermission / ChannelBind / ChannelData)
+- **`NatIceAssist`** + CLI `--stun-server` / `--turn-server` / `--turn-user` / `--turn-password` / `--wan-prefer-turn`
+- **OpenUSD materials** — UsdPreviewSurface + `material:binding`
+- **OpenUSD skeletons** — joints, bindTransforms, skel jointIndices/Weights → `MeshSkeleton` / bone attrs
+- **OpenUSD variants** — `variantSet` + `MeshLoadConfig.UsdVariantSelections`
+- Samples `tetra_preview_skel.usda`, `variant_modeling.usda`
+
+### Modifié
+
+- Version **2.6.0**, `docs/PRODUCTION.md` matrice 2.6
+- WAN REGISTER/PEER portent `mode` (`tcp|stun|turn`) et IP STUN optionnelle
+
 ## [2.5.0] — 2026-07-21
 
 **Production-ready VR / WAN / OpenUSD DCC** — OpenXR natif+simulé, NAT hors-loopback, xform stacks complets.

@@ -165,6 +165,7 @@ namespace GDNN.Rendering.MeshIO
         public MeshFileType SourceFormat { get; set; }
         public List<MeshPrimitive> Primitives { get; set; } = new();
         public List<MeshMaterial> Materials { get; set; } = new();
+        public MeshSkeleton? Skeleton { get; set; }
         public BoundingBox3D Bounds { get; set; }
         public int TotalVertexCount => Primitives.Sum(p => p.Vertices.Count);
         public int TotalIndexCount => Primitives.Sum(p => p.Indices.Count);
@@ -266,6 +267,8 @@ namespace GDNN.Rendering.MeshIO
         public int MaxBoneWeightsPerVertex { get; set; } = 4;
         public int MaxBones { get; set; } = 256;
         public float ImportDepth { get; set; } = -1;
+        /// <summary>Active USD variantSelections: variantSet name → variant name.</summary>
+        public Dictionary<string, string> UsdVariantSelections { get; set; } = new(StringComparer.Ordinal);
     }
 
     /// <summary>Configuration for mesh export.</summary>

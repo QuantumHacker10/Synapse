@@ -116,6 +116,7 @@ public static class UsdCompositionResolver
                 if (!(ext == ".usd" && IsBinary(full)))
                 {
                     var text = await File.ReadAllTextAsync(full, ct).ConfigureAwait(false);
+                    text = UsdVariantResolver.ApplyVariants(text, config);
                     localXform = UsdXform.ParseLocalMatrix(text);
                     var world = localXform * parentXform;
 
@@ -192,13 +193,34 @@ public static class UsdCompositionResolver
     {
         if (leaf.Success && leaf.Asset != null)
         {
+            int matOffset = merged.Materials.Count;
+            foreach (var mat in leaf.Asset.Materials)
+                merged.Materials.Add(mat);
+
+            if (merged.Skeleton == null && leaf.Asset.Skeleton != null)
+                merged.Skeleton = leaf.Asset.Skeleton;
+
             bool invertOk = Matrix4x4.Invert(world, out var inv);
             var nMat = invertOk ? Matrix4x4.Transpose(inv) : Matrix4x4.Identity;
 
             foreach (var prim in leaf.Asset.Primitives)
             {
-                _ = primFilter;
-                _ = fullPath;
+                if (!string.IsNullOrEmpty(primFilter))
+                {
+                    var filter = primFilter.Trim().Trim('/');
+                    var leafName = leaf.Asset.Name ?? "";
+                    var fileStem = Path.GetFileNameWithoutExtension(fullPath);
+                    var last = filter.Contains('/') ? filter[(filter.LastIndexOf('/') + 1)..] : filter;
+                    if (!leafName.Equals(last, StringComparison.OrdinalIgnoreCase) &&
+                        !fileStem.Equals(last, StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(prim.Name, last, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Soft filter: still include when leaf is a single-mesh file.
+                        if (leaf.Asset.Primitives.Count > 1)
+                            continue;
+                    }
+                }
+
                 for (int i = 0; i < prim.Vertices.Count; i++)
                 {
                     var v = prim.Vertices[i];
@@ -213,6 +235,7 @@ public static class UsdCompositionResolver
                     prim.Vertices[i] = v;
                 }
 
+                prim.MaterialIndex += matOffset;
                 merged.Primitives.Add(prim);
             }
         }

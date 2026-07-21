@@ -30,6 +30,13 @@ namespace Synapse.Infrastructure.Configuration
         public int WanRendezvousPort { get; set; } = 7778;
         /// <summary>When true with <see cref="WanSessionCode"/>, join an existing host instead of hosting.</summary>
         public bool WanJoin { get; set; }
+        /// <summary>STUN server host or host:port (e.g. stun.l.google.com:19302).</summary>
+        public string? StunServer { get; set; }
+        /// <summary>TURN server host or host:port.</summary>
+        public string? TurnServer { get; set; }
+        public string? TurnUsername { get; set; }
+        [JsonIgnore] public string? TurnPassword { get; set; }
+        public bool WanPreferTurn { get; set; }
         public string LogLevel { get; set; } = "Information";
         public LlmConfig Llm { get; set; } = new();
         public string ProjectsDirectory { get; set; } =
@@ -115,6 +122,13 @@ namespace Synapse.Infrastructure.Configuration
             config.Llm.GeminiApiKey ??= Environment.GetEnvironmentVariable("GEMINI_API_KEY");
             config.Llm.AzureApiKey ??= Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
             config.Llm.OllamaBaseUrl ??= Environment.GetEnvironmentVariable("OLLAMA_HOST") ?? "http://127.0.0.1:11434";
+
+            config.StunServer ??= Environment.GetEnvironmentVariable("SYNAPSE_STUN_SERVER");
+            config.TurnServer ??= Environment.GetEnvironmentVariable("SYNAPSE_TURN_SERVER");
+            config.TurnUsername ??= Environment.GetEnvironmentVariable("SYNAPSE_TURN_USER");
+            config.TurnPassword ??= Environment.GetEnvironmentVariable("SYNAPSE_TURN_PASSWORD");
+            if (string.Equals(Environment.GetEnvironmentVariable("SYNAPSE_WAN_PREFER_TURN"), "1", StringComparison.Ordinal))
+                config.WanPreferTurn = true;
         }
 
         private static void ApplyCli(SynapseConfig config, string[] args)
@@ -181,6 +195,21 @@ namespace Synapse.Infrastructure.Configuration
                         break;
                     case "--wan-join":
                         config.WanJoin = true;
+                        break;
+                    case "--stun-server":
+                        config.StunServer = Next();
+                        break;
+                    case "--turn-server":
+                        config.TurnServer = Next();
+                        break;
+                    case "--turn-user":
+                        config.TurnUsername = Next();
+                        break;
+                    case "--turn-password":
+                        config.TurnPassword = Next();
+                        break;
+                    case "--wan-prefer-turn":
+                        config.WanPreferTurn = true;
                         break;
                     case "--quality":
                         var q = Next();
