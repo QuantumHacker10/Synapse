@@ -4,6 +4,7 @@ using Avalonia;
 using Synapse.Infrastructure;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
+using Synapse.Network;
 using Synapse.Plugins;
 using Synapse.Runtime;
 
@@ -14,6 +15,12 @@ namespace Synapse.Studio
         [STAThread]
         public static void Main(string[] args)
         {
+            if (Array.Exists(args, a => a == "--health"))
+            {
+                RunHealthCheck(args);
+                return;
+            }
+
             if (Array.Exists(args, a => a is "--engine" or "--glfw"))
             {
                 RunEngineOnly(args);
@@ -56,6 +63,26 @@ namespace Synapse.Studio
                 .WithInterFont()
                 .LogToTrace();
 
+        private static void RunHealthCheck(string[] args)
+        {
+            var config = SynapseConfig.Load(args: args);
+            using var logger = new SynapseLogger(null, LogLevel.Warning, consoleEnabled: false);
+            var host = new EngineHost(config, logger);
+            try
+            {
+                host.InitializeModules();
+                var report = host.GetProductionHealth();
+                Console.WriteLine(report.ToString());
+                foreach (var note in report.ExperimentalNotes)
+                    Console.WriteLine($"  · {note}");
+                Environment.ExitCode = report.IsCoreReady ? 0 : 2;
+            }
+            finally
+            {
+                host.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            }
+        }
+
         private static void RunBenchmark(string[] args)
         {
             var config = SynapseConfig.Load(args: args);
@@ -96,15 +123,32 @@ namespace Synapse.Studio
             using var pluginHost = new PluginHost(logger);
             var host = new EngineHost(config, logger);
             var orchestrator = new FrameOrchestrator(host, logger);
+            WanSimulationPeerHub? wan = null;
 
             try
             {
                 host.InitializeModules();
+                Console.WriteLine($"[Health] {host.GetProductionHealth()}");
 
                 if (!string.IsNullOrWhiteSpace(config.PluginDirectory))
                     pluginHost.LoadFromDirectory(config.PluginDirectory, host);
 
+                // Optional local plugin marketplace catalog (manifest + hashes beside plugin-dir).
+                if (!string.IsNullOrWhiteSpace(config.PluginDirectory))
+                {
+                    var market = PluginMarketplace.FromDirectory(config.PluginDirectory, logger);
+                    market.VerifyInstalledOrWarn();
+                }
+
                 host.LoadSceneAsync(config.ScenePath).GetAwaiter().GetResult();
+
+                if (!string.IsNullOrWhiteSpace(config.WanSessionCode))
+                {
+                    // Loopback NAT QA / LAN-authenticated hub — see docs/PRODUCTION.md
+                    wan = new WanSimulationPeerHub(logger, config.WanSessionCode);
+                    wan.StartHostAsync(config.WanPort).GetAwaiter().GetResult();
+                    Console.WriteLine($"[WAN] Authenticated loopback host on {wan.ListenPort} (session QA)");
+                }
 
                 if (!string.IsNullOrWhiteSpace(config.ExportScenePath))
                 {
@@ -147,6 +191,8 @@ namespace Synapse.Studio
             }
             finally
             {
+                if (wan != null)
+                    wan.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 host.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
         }

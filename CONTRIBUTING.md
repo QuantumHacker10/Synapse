@@ -16,13 +16,13 @@ Merci de votre intérêt pour **Synapse OMNIA**, outil de simulation 3D. Ce guid
 ### Flux recommandé
 
 ```text
-feat/ma-fonctionnalite ──PR──► develop ──PR──► main ──tag──► v1.3.0
+feat/ma-fonctionnalite ──PR──► develop ──PR──► main ──tag──► v2.4.0
 ```
 
 1. Partir de `develop` à jour : `git checkout develop && git pull`
 2. Créer une branche isolée : `git checkout -b feat/ma-fonctionnalite`
 3. Commiter des changements atomiques avec des messages clairs
-4. Vérifier localement : `dotnet build && dotnet test`
+4. Vérifier localement : `dotnet build && dotnet test && dotnet format whitespace --verify-no-changes`
 5. Pousser et ouvrir une PR vers `develop`
 6. Après revue et CI verte, merger dans `develop`
 7. Pour une release : PR `develop` → `main`, puis taguer (voir ci-dessous)
@@ -32,7 +32,7 @@ feat/ma-fonctionnalite ──PR──► develop ──PR──► main ──ta
 ```text
 feat/neural-shadows      # nouvelle capacité
 fix/vulkan-resize-crash  # correction
-docs/changelog-1.3       # documentation
+docs/changelog-2.4       # documentation
 chore/ci-cache           # infrastructure
 ```
 
@@ -45,7 +45,7 @@ La branche `main` doit rester stable. Configuration cible :
 - **CI verte** — checks requis :
   - `test-linux`
   - `test-macos`
-  - `publish-windows`
+  - `publish-smoke`
   - `analyze`
   - `CodeQL` (optionnel mais recommandé)
 - **Branches à jour** — rebase ou merge de `main` avant merge de la PR
@@ -82,17 +82,18 @@ Le projet suit [Semantic Versioning](https://semver.org/) :
 ```bash
 git checkout main
 git pull
-git tag -a v1.3.0 -m "Synapse OMNIA 1.3.0"
-git push origin v1.3.0
+git tag -a v2.4.0 -m "Synapse OMNIA 2.4.0"
+git push origin v2.4.0
 ```
 
-Le workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) publie automatiquement le zip Windows x64 sur GitHub Releases.
+Le workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) publie automatiquement les artefacts multi-RID sur GitHub Releases.
 
 ### Tags existants
 
 | Tag | Description |
 |---|---|
-| `v1.1.0` | Release initiale Synapse OMNIA 1.1 |
+| `v2.4.0` | Production-ready desktop (voir docs/PRODUCTION.md) |
+| `v2.3.x` | Multi-plateforme mid-range + USDC + blueprints live |
 
 ## CHANGELOG
 
@@ -109,10 +110,12 @@ Chaque PR significative doit mettre à jour [CHANGELOG.md](CHANGELOG.md) sous la
 ```bash
 dotnet build
 dotnet test
-dotnet format --verify-no-changes   # comme en CI
+dotnet format whitespace --verify-no-changes   # comme en CI analysis.yml
+dotnet run --project src/Synapse.Studio -- --health
 ```
 
 Les workflows [`build.yml`](.github/workflows/build.yml) et [`analysis.yml`](.github/workflows/analysis.yml) doivent passer avant merge.
+Voir aussi [docs/PRODUCTION.md](docs/PRODUCTION.md).
 
 ## Licence et contributions
 

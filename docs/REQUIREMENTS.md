@@ -83,3 +83,5 @@ bash scripts/smoke-publish-rids.sh
 ```
 
 CI : job `publish-smoke` dans `.github/workflows/build.yml`.
+
+Checklist release et surfaces expérimentales : **[PRODUCTION.md](PRODUCTION.md)**.

@@ -2,7 +2,16 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.3 — Actuel (2026-07)
+## v2.4 — Actuel (2026-07) — production-ready desktop
+
+- [x] Checklist production (`docs/PRODUCTION.md`) + `--health`
+- [x] Dispose / fuites / plugins Studio / WAN CLI câblé
+- [x] Marketplace plugins local (`marketplace.json`)
+- [x] USD translate xformOps + composition arcs
+- [x] Couverture Codecov **70 %**
+- [x] Docs sécurité / contribution / honesty VR·WAN
+
+## v2.3 — Livré (2026-07)
 
 - [x] Multi-plateforme natif élargi (6 RID, Vulkan 1.2 mid-range, AVX2/NEON baseline)
 - [x] Configuration minimale documentée (`docs/REQUIREMENTS.md`)
@@ -43,20 +52,21 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] P2P WAN (NAT rendezvous UDP + chiffrement AES-GCM)
 - [x] Éditeur web glTF interactif (`site/editor/`, WebGPU)
 
-## v2.3+ — Prochaine release
+## v2.4+ — Prochaine release
 
 ### Communauté
 - [ ] Tutoriels vidéo (YouTube)
 - [ ] Serveur Discord communautaire actif
 
 ### Qualité
-- [ ] Couverture de code > 70 %
 - [ ] Validation GPU manuelle matrice iGPU/discret (Windows/Linux/macOS)
+- [ ] Couverture de code > 80 %
 
 ### Moteur
-- [ ] Plugin marketplace hébergé
+- [ ] Plugin marketplace hébergé distant
+- [ ] OpenXR compositor Vulkan réel (hors handles simulés)
+- [ ] WAN NAT hors-loopback
 - [ ] Path tracing L-DNN teacher offline (batch)
-- [ ] Composition USD transforms (Xform ops) + payloads asynchrones
 
 ## v2.5 — Moyen terme
 

@@ -1,6 +1,9 @@
 namespace Synapse.VR;
 
-/// <summary>Vulkan swapchain image managed through OpenXR (v2.2).</summary>
+/// <summary>
+/// OpenXR-facing swapchain helper. Image handles are simulated placeholders for lifecycle/QA
+/// until a real Vulkan XR compositor path is bound.
+/// </summary>
 public sealed class OpenXrVulkanSwapchain : IDisposable
 {
     private readonly object _gate = new();

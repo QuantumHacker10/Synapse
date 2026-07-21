@@ -3,7 +3,7 @@ using Synapse.Infrastructure.Logging;
 
 namespace Synapse.VR;
 
-/// <summary>Production OpenXR session lifecycle with Vulkan backend (v2.2).</summary>
+/// <summary>OpenXR session lifecycle with Vulkan backend. Swapchain images are simulated until compositor binding ships.</summary>
 public interface IVrSession : IAsyncDisposable
 {
     bool IsAvailable { get; }

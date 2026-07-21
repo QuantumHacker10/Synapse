@@ -112,7 +112,10 @@ public sealed class PluginHost : IDisposable
             try
             { plugin.OnUnload(); }
             catch (Exception ex) { _logger.Warn("Plugins", $"Unload error: {ex.Message}"); }
-            context.Unload();
+
+            try
+            { context.Unload(); }
+            catch (Exception ex) { _logger.Warn("Plugins", $"ALC unload error: {ex.Message}"); }
         }
         _loaded.Clear();
     }

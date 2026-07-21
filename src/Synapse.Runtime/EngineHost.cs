@@ -55,6 +55,7 @@ namespace Synapse.Runtime
         private BlueprintRuntimeExecutor? _blueprintExecutor;
         private string? _liveBlueprintName;
         private Guid? _liveBlueprintAgentId;
+        private bool _disposed;
 
         /// <summary>When true, blueprint graph edits hot-reload the live agent tree without respawning.</summary>
         public bool BlueprintLiveEdit { get; set; } = true;
@@ -1232,18 +1233,147 @@ namespace Synapse.Runtime
             };
         }
 
-        /// <summary>Releases evolution, LLM, quality, and render resources.</summary>
+        /// <summary>Releases evolution, LLM, quality, render, and blueprint resources safely.</summary>
         public async ValueTask DisposeAsync()
         {
-            CancelEvolution();
-            _evolutionCts?.Dispose();
-            if (_evolution != null)
-                await _evolution.DisposeAsync();
-            _multiphysics?.Dispose();
-            _llmRouter?.Dispose();
-            _quality?.Dispose();
-            _renderEngine?.Dispose();
+            if (_disposed)
+                return;
+            _disposed = true;
+
+            try
+            {
+                CancelEvolution();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"CancelEvolution: {ex.Message}");
+            }
+
+            try
+            {
+                _evolutionCts?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"EvolutionCts dispose: {ex.Message}");
+            }
+
+            try
+            {
+                if (_evolution != null)
+                    await _evolution.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Evolution dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _blueprintExecutor?.Stop();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Blueprint stop: {ex.Message}");
+            }
+
+            try
+            {
+                _multiphysics?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Multiphysics dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _llmRouter?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"LLM dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _quality?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Quality dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _renderEngine?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Render dispose: {ex.Message}");
+            }
+
             _logger.Info("EngineHost", "Disposed");
+        }
+
+        /// <summary>
+        /// Production readiness snapshot: platform, SIMD, modules, and known experimental surfaces.
+        /// </summary>
+        public ProductionHealthReport GetProductionHealth()
+        {
+            var caps = PlatformCaps;
+            var cpu = caps.Cpu;
+            return new ProductionHealthReport
+            {
+                ProductVersion = Synapse.Infrastructure.SynapseProduct.Version,
+                ModulesInitialized = _modulesInitialized,
+                RenderInitialized = _renderInitialized,
+                SimulationPlaying = _simulationPlaying,
+                GlfwAvailable = caps.GlfwAvailable,
+                VulkanLoaderAvailable = caps.VulkanLoaderAvailable,
+                SimdBaseline = cpu.BaselineLabel,
+                PlatformSummary = caps.Summary,
+                EntityCount = EntityCount,
+                ActiveLawId = _activeLawId,
+                BlueprintLiveEdit = BlueprintLiveEdit,
+                MeetsMinimumCpu = cpu.MeetsMinimumCpu,
+                ExperimentalNotes =
+                {
+                    "OpenXR swapchain uses simulated image handles until a full XR compositor path is wired.",
+                    "WAN NAT rendezvous binds loopback for local QA; use authenticated MultiPeer on LAN for real peers.",
+                    "USD composition resolves references; translate xformOps are applied; full OpenUSD stacks remain best-effort."
+                }
+            };
+        }
+    }
+
+    /// <summary>Machine-readable production health snapshot for Studio / --health.</summary>
+    public sealed class ProductionHealthReport
+    {
+        public string ProductVersion { get; init; } = "";
+        public bool ModulesInitialized { get; init; }
+        public bool RenderInitialized { get; init; }
+        public bool SimulationPlaying { get; init; }
+        public bool GlfwAvailable { get; init; }
+        public bool VulkanLoaderAvailable { get; init; }
+        public string SimdBaseline { get; init; } = "";
+        public string PlatformSummary { get; init; } = "";
+        public int EntityCount { get; init; }
+        public string? ActiveLawId { get; init; }
+        public bool BlueprintLiveEdit { get; init; }
+        public bool MeetsMinimumCpu { get; init; }
+        public List<string> ExperimentalNotes { get; init; } = new();
+
+        /// <summary>True when core runtime can run (modules + CPU baseline). Vulkan optional for headless.</summary>
+        public bool IsCoreReady => ModulesInitialized && MeetsMinimumCpu;
+
+        /// <summary>True when interactive 3D viewport path is expected to work.</summary>
+        public bool IsInteractiveReady => IsCoreReady && GlfwAvailable && VulkanLoaderAvailable;
+
+        public override string ToString()
+        {
+            var mode = IsInteractiveReady ? "interactive-ready" : IsCoreReady ? "core-ready (headless/edit)" : "not-ready";
+            return $"Synapse {ProductVersion} [{mode}] SIMD={SimdBaseline} | {PlatformSummary} | entities={EntityCount} law={ActiveLawId ?? "-"}";
         }
     }
 }

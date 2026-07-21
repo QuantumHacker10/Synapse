@@ -1,4 +1,4 @@
-# SYNAPSE OMNIA — Outil de simulation 3D · v2.3
+# SYNAPSE OMNIA — Outil de simulation 3D · v2.4
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
@@ -6,7 +6,7 @@
 [![codecov](https://codecov.io/gh/QuantumHacker10/Synapse/graph/badge.svg)](https://codecov.io/gh/QuantumHacker10/Synapse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
-[![Tests](https://img.shields.io/badge/tests-305%20passing-brightgreen)](tests/Synapse.Tests)
+[![Tests](https://img.shields.io/badge/tests-310%20passing-brightgreen)](tests/Synapse.Tests)
 
 **Synapse OMNIA** est un **outil de simulation 3D** : un monde numérique que l'on observe,
 modifie et fait évoluer — pas un moteur de jeu, ni une boîte à monter des niveaux.
@@ -16,12 +16,11 @@ comment formes, lois et agents sentients changent ensemble.
 Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
 Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
-> **Produit v2.3** — multi-plateforme natif milieu de gamme (Vulkan 1.2, AVX2/NEON, 6 RID),
-> import **USDC**, blueprints **éditables en live**, couverture tests **~50 %**,
-> plugins C#, benchmarks headless, P2P WAN, OpenXR, éditeur web glTF.
-> Builds **Windows / Linux / macOS** × **x64 / arm64**.
+> **Produit v2.4 — production-ready desktop** — Studio + runtime, multi-RID mid-range,
+> USDC composition, blueprints live, plugins jailés, P2P authentifié, couverture **70 %**,
+> checklist [docs/PRODUCTION.md](docs/PRODUCTION.md). VR/WAN restent expérimentaux (honnêteté produit).
 
-**Configuration minimale :** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **Site :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
+**Config minimale :** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **Production :** [docs/PRODUCTION.md](docs/PRODUCTION.md) · **Site :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
 
 ## Sommaire
 
@@ -30,6 +29,7 @@ Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 - [Démarrage rapide](#démarrage-rapide) — voir aussi **[GETTING_STARTED.md](GETTING_STARTED.md)**
 - [Configuration](#configuration)
 - [Architecture](#architecture)
+- [Production](#production)
 - [Pipeline G-DNN + L-DNN](#pipeline-g-dnn--l-dnn)
 - [Synapse Studio](#synapse-studio)
 - [Captures d'écran](#captures-décran)
@@ -142,11 +142,22 @@ Placez `glfw3.dll` (GLFW 3.4+) à côté de l'exécutable, ou dans
 | Source | Paramètres |
 |---|---|
 | [`src/Synapse.Studio/appsettings.json`](src/Synapse.Studio/appsettings.json) | Résolution, qualité, budgets physique/sim, LLM par défaut |
-| CLI | `--width`, `--height`, `--scene`, `--quality`, `--validation` / `--no-validation`, `--engine` / `--glfw` |
-| Variables d'environnement | `SYNAPSE_WIDTH`, `SYNAPSE_HEIGHT`, `SYNAPSE_SCENE` |
+| CLI | `--width`, `--height`, `--scene`, `--quality`, `--validation` / `--no-validation`, `--engine` / `--glfw`, `--health`, `--plugin-dir`, `--wan-code` |
+| Variables d'environnement | `SYNAPSE_WIDTH`, `SYNAPSE_HEIGHT`, `SYNAPSE_SCENE`, `SYNAPSE_SIMD_MAX` |
 | LLM (jamais en dur dans le dépôt) | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `AZURE_OPENAI_API_KEY`, `OLLAMA_HOST` |
 
 Le routeur [`HybridLlmRouter`](src/Synapse.LLM/HybridLlmRouter.cs) bascule automatiquement entre ONNX, Ollama, OpenAI, Anthropic, Gemini et Azure selon disponibilité, coût et confidentialité.
+
+## Production
+
+Synapse **2.4** est **production-ready** pour l'outil desktop (édition, simulation, export, plugins, P2P authentifié local).
+Matrice détaillée, surfaces expérimentales (VR / WAN loopback) et checklist release :
+
+→ **[docs/PRODUCTION.md](docs/PRODUCTION.md)** · **[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)**
+
+```bash
+dotnet run --project src/Synapse.Studio -- --health
+```
 
 ## Architecture
 

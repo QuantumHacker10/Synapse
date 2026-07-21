@@ -2,24 +2,19 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 2.0.x   | :white_check_mark: |
-| 1.3.x   | :white_check_mark: |
-| 1.2.x   | :x:                |
-| < 1.2   | :x:                |
+| Version | Supported |
+| ------- | --------- |
+| 2.4.x   | :white_check_mark: |
+| 2.3.x   | :white_check_mark: |
+| &lt; 2.3  | :x: |
 
 ## Reporting a Vulnerability
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Instead, report via one of these channels:
+Report only via **GitHub Security Advisories** (preferred):
 
-1. **GitHub Security Advisories** (preferred) :
-   [Report a vulnerability](https://github.com/QuantumHacker10/Synapse/security/advisories/new)
-
-2. **Private issue** : open a GitHub issue with the title `[SECURITY]` —
-   a maintainer will mark it as sensitive.
+[Report a vulnerability](https://github.com/QuantumHacker10/Synapse/security/advisories/new)
 
 ### What to include
 
@@ -38,20 +33,8 @@ Instead, report via one of these channels:
 | Fix or mitigation plan | 30 days |
 | Public disclosure | After patch release |
 
-## Security measures in place
+## Production security notes
 
-- **CodeQL** — static analysis on every push/PR (`.github/workflows/codeql.yml`)
-- **Dependabot** — automated dependency updates (`.github/dependabot.yml`)
-- **NuGet audit** — `dotnet list package --vulnerable` in CI
-- **Branch protection** — PR required on `main`, CI checks mandatory
-- **Secret scanning** — API keys never committed (env vars only for LLM)
-
-## Dependency audit
-
-Run locally :
-
-```bash
-dotnet list package --vulnerable --include-transitive
-```
-
-See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for license inventory.
+- Plugin loading is confined to `--plugin-dir` (path jail). Prefer a `plugins.allow` SHA-256 allowlist for production installs.
+- Do not expose `publicBind` P2P without a session auth key (`PeerEncryption` / `--wan-code` for the WAN QA hub).
+- See [docs/PRODUCTION.md](docs/PRODUCTION.md) for the production / experimental matrix.

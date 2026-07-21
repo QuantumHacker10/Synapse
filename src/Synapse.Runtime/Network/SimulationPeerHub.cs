@@ -197,12 +197,14 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
 
     private sealed class PeerConnection : IDisposable
     {
+        private readonly TcpClient _client;
         private readonly NetworkStream _stream;
         private readonly SemaphoreSlim _sendLock = new(1, 1);
 
         public PeerConnection(string peerId, TcpClient client)
         {
             PeerId = peerId;
+            _client = client;
             _stream = client.GetStream();
         }
 
@@ -247,7 +249,35 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
             return buffer;
         }
 
-        public void Dispose() => _stream.Dispose();
+        public void Dispose()
+        {
+            try
+            {
+                _stream.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                _client.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                _sendLock.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
+        }
     }
 }
 

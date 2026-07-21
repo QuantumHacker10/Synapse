@@ -6,6 +6,32 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [2.4.0] — 2026-07-21
+
+**Production-ready desktop** — dispose sûr, health check, docs alignées, plugins Studio, marketplace local, honesty VR/WAN.
+
+### Ajouté
+
+- **`docs/PRODUCTION.md`** — matrice production vs expérimental + checklist release
+- **`--health`** — `ProductionHealthReport` (core-ready / interactive-ready)
+- **Plugin marketplace local** — `marketplace.json` + vérification SHA-256
+- **USD `xformOp:translate`** appliqué à l’import USDA
+- Studio Bootstrap charge `--plugin-dir` (parité moteur)
+
+### Sécurité / robustesse
+
+- `EngineHost.DisposeAsync` idempotent + try/catch par ressource
+- `PeerConnection` dispose `TcpClient` (plus de fuite socket)
+- `PluginHost` protege `ALC.Unload`
+- Screenshot capture dispose host/logger dans `finally`
+- `--wan-code` câblé (hub authentifié loopback QA)
+- SECURITY.md / CONTRIBUTING.md / badges docs synchronisés sur 2.4
+
+### Modifié
+
+- Version **2.4.0**, Codecov **70 %**
+- OpenXR documenté comme swapchain simulé (expérimental)
+
 ## [2.3.1] — 2026-07-21
 
 Durcissement **production-ready early** : QA multi-RID, composition USD, couverture 60 %, sécurité plugins/P2P.
