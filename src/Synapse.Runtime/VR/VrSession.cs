@@ -8,16 +8,17 @@ using Synapse.Infrastructure.Logging;
 namespace Synapse.VR;
 
 /// <summary>
-/// EXPERIMENTAL — OpenXR session lifecycle scaffold with synthetic Vulkan swapchain (v2.2).
-/// Detects a loader when present, but does not drive a real XR frame loop.
+/// OpenXR session lifecycle. Prefers a native Silk.NET OpenXR session when a loader/runtime
+/// is available; falls back to synthetic lab mode only when <c>SYNAPSE_VR_SIMULATE=1</c>.
 /// See <c>docs/MATURITY.md</c> (<c>VR.OpenXR</c>).
 /// </summary>
-[SynapseExperimental("VR.OpenXR", "Loader probe + synthetic swapchain; not a production OpenXR session.")]
+[SynapseExperimental("VR.OpenXR", "Native OpenXR via Silk.NET when loader/runtime present; simulate mode for lab.")]
 public interface IVrSession : IAsyncDisposable
 {
     bool IsAvailable { get; }
     bool IsRunning { get; }
     string RuntimeName { get; }
+    bool UsesNativeOpenXr { get; }
     OpenXrVulkanSwapchain? Swapchain { get; }
 
     Task<bool> TryInitializeAsync(int width = 1280, int height = 720, CancellationToken cancellationToken = default);
@@ -29,11 +30,12 @@ public interface IVrSession : IAsyncDisposable
     Task PollEventsAsync(CancellationToken cancellationToken = default);
 }
 
-/// <summary>EXPERIMENTAL OpenXR session: loader detection only, synthetic swapchain images.</summary>
-[SynapseExperimental("VR.OpenXR", "Loader probe + synthetic swapchain; not a production OpenXR session.")]
+/// <summary>OpenXR session: native Silk.NET path, optional synthetic simulate fallback.</summary>
+[SynapseExperimental("VR.OpenXR", "Native OpenXR via Silk.NET when loader/runtime present; simulate mode for lab.")]
 public sealed class OpenXrVulkanSession : IVrSession
 {
     private readonly ISynapseLogger? _logger;
+    private NativeOpenXrRuntime? _native;
     private bool _initialized;
     private int _frameCounter;
 
@@ -42,65 +44,117 @@ public sealed class OpenXrVulkanSession : IVrSession
     public bool IsAvailable { get; private set; }
     public bool IsRunning { get; private set; }
     public string RuntimeName { get; private set; } = "none";
+    public bool UsesNativeOpenXr { get; private set; }
     public OpenXrVulkanSwapchain? Swapchain { get; private set; }
 
     public Task<bool> TryInitializeAsync(int width = 1280, int height = 720, CancellationToken cancellationToken = default)
     {
-        // Production path: real OpenXR frame loops are not wired yet.
-        // Lab path: set SYNAPSE_VR_SIMULATE=1 to exercise the synthetic swapchain scaffold.
-        bool simulate = IsSimulateModeEnabled();
-        bool loaderPresent = TryProbeOpenXrLoader();
+        cancellationToken.ThrowIfCancellationRequested();
 
-        if (!simulate)
+        // 1) Prefer real native OpenXR when a loader/runtime answers.
+        var native = new NativeOpenXrRuntime(_logger);
+        if (native.TryInitialize(width, height))
+        {
+            _native = native;
+            UsesNativeOpenXr = true;
+            IsAvailable = true;
+            IsRunning = native.IsSessionRunning || native.IsInitialized;
+            RuntimeName = native.RuntimeName;
+            int w = native.RecommendedWidth > 0 ? native.RecommendedWidth : width;
+            int h = native.RecommendedHeight > 0 ? native.RecommendedHeight : height;
+            Swapchain = OpenXrVulkanSwapchain.FromNative(
+                native.SwapchainImageHandles.Length > 0 ? native.SwapchainImageHandles.Length : 3,
+                w,
+                h,
+                native.SwapchainImageHandles);
+            _initialized = true;
+            _logger?.Info("VR", $"Native OpenXR session active ({RuntimeName}, {w}x{h}, headless={native.UsesHeadless})");
+            return Task.FromResult(true);
+        }
+
+        native.Dispose();
+        _native = null;
+        UsesNativeOpenXr = false;
+
+        // 2) Lab path: synthetic swapchain only when explicitly requested.
+        if (!IsSimulateModeEnabled())
         {
             IsAvailable = false;
             IsRunning = false;
-            RuntimeName = loaderPresent ? "loader-detected-no-session" : "unavailable";
+            RuntimeName = TryProbeOpenXrLoader() ? "loader-detected-init-failed" : "unavailable";
             Swapchain = null;
             _logger?.Warn("VR",
-                loaderPresent
-                    ? "OpenXR loader detected but real session/swapchain is not implemented — set SYNAPSE_VR_SIMULATE=1 for lab synthetic mode"
-                    : "OpenXR runtime not found — install OpenXR loader or set SYNAPSE_VR_SIMULATE=1 for lab synthetic mode");
+                "OpenXR native init failed — install an OpenXR runtime (SteamVR/Monado) " +
+                "or set SYNAPSE_VR_SIMULATE=1 for lab synthetic mode");
             return Task.FromResult(false);
         }
 
         IsAvailable = true;
         IsRunning = true;
         RuntimeName = Environment.GetEnvironmentVariable("XR_RUNTIME")
-                      ?? (loaderPresent ? "OpenXR-Loader+simulate" : "simulate");
-        Swapchain = new OpenXrVulkanSwapchain(imageCount: 3, width, height);
+                      ?? (TryProbeOpenXrLoader() ? "OpenXR-Loader+simulate" : "simulate");
+        Swapchain = OpenXrVulkanSwapchain.CreateSynthetic(imageCount: 3, width, height);
         _logger?.Warn("VR",
-            $"EXPERIMENTAL OpenXR simulate mode ({width}x{height}, {RuntimeName}) — synthetic swapchain, not production XR");
+            $"OpenXR simulate mode ({width}x{height}, {RuntimeName}) — synthetic swapchain for lab only");
         _initialized = true;
         return Task.FromResult(true);
     }
 
     public Task BeginFrameAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!_initialized || Swapchain == null)
             return Task.CompletedTask;
 
-        if (!Swapchain.TryAcquire(out var index))
+        if (_native != null)
+        {
+            if (!_native.TryBeginFrame())
+            {
+                _logger?.Debug("VR", "Native OpenXR begin-frame skipped (session not ready)");
+                return Task.CompletedTask;
+            }
+
+            int index = _native.CurrentSwapchainIndex;
+            if (index >= 0)
+                Swapchain.MarkAcquired(index);
+            return Task.CompletedTask;
+        }
+
+        if (!Swapchain.TryAcquire(out var idx))
             _logger?.Warn("VR", "Swapchain acquire skipped (already acquired)");
         else
-            _logger?.Debug("VR", $"Acquire synthetic swapchain image {index}");
+            _logger?.Debug("VR", $"Acquire synthetic swapchain image {idx}");
 
         return Task.CompletedTask;
     }
 
     public Task EndFrameAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!_initialized || Swapchain == null)
             return Task.CompletedTask;
 
         var frame = Swapchain.PrepareSubmit(vulkanQueueFamily: 0, vulkanQueue: 0);
         _frameCounter++;
-        _logger?.Debug("VR", $"Submit synthetic XR frame #{_frameCounter} image={frame.ImageHandle:x}");
+        _logger?.Debug("VR", $"Submit XR frame #{_frameCounter} image={frame.ImageHandle:x} native={UsesNativeOpenXr}");
+
+        if (_native != null)
+        {
+            _native.EndFrame();
+            Swapchain.Release();
+            return Task.CompletedTask;
+        }
+
         Swapchain.Release();
         return Task.CompletedTask;
     }
 
-    public Task PollEventsAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task PollEventsAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _native?.PollEvents();
+        return Task.CompletedTask;
+    }
 
     public ValueTask DisposeAsync()
     {
@@ -108,6 +162,9 @@ public sealed class OpenXrVulkanSession : IVrSession
         _initialized = false;
         Swapchain?.Dispose();
         Swapchain = null;
+        _native?.Dispose();
+        _native = null;
+        UsesNativeOpenXr = false;
         return ValueTask.CompletedTask;
     }
 
@@ -140,6 +197,7 @@ public sealed class HeadlessVrSession : IVrSession
     public bool IsAvailable { get; private set; }
     public bool IsRunning { get; private set; }
     public string RuntimeName { get; private set; } = "headless";
+    public bool UsesNativeOpenXr => false;
     public OpenXrVulkanSwapchain? Swapchain { get; private set; }
 
     public Task<bool> TryInitializeAsync(int width = 1280, int height = 720, CancellationToken cancellationToken = default)

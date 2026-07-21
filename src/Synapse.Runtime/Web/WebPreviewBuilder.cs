@@ -9,10 +9,10 @@ using Synapse.Infrastructure;
 namespace Synapse.Web;
 
 /// <summary>
-/// EXPERIMENTAL — WebGPU / glTF editor preview bundle (v2.2).
-/// Site preview only; not a production WASM Studio. See <c>docs/MATURITY.md</c>.
+/// Early-access WebGPU / glTF editor preview bundle + WASM Studio publish path (v2.2).
+/// See <c>docs/MATURITY.md</c>.
 /// </summary>
-[SynapseExperimental("Web.Editor", "Static/WebGPU preview bundle; not a production WASM Studio.")]
+[SynapseExperimental("Web.Editor", "Blazor WASM Studio + static WebGPU preview bundle.")]
 public sealed class WebEditorBundle
 {
     public required string SceneName { get; init; }
@@ -23,8 +23,8 @@ public sealed class WebEditorBundle
     public string EditorVersion { get; init; } = "2.2.0";
 }
 
-/// <summary>EXPERIMENTAL builder for the web glTF preview site.</summary>
-[SynapseExperimental("Web.Editor", "Static/WebGPU preview bundle; not a production WASM Studio.")]
+/// <summary>Builder for the web glTF preview site and WASM export fallback.</summary>
+[SynapseExperimental("Web.Editor", "Blazor WASM Studio + static WebGPU preview bundle.")]
 public static class WebEditorBuilder
 {
     public static WebEditorBundle FromScene(string sceneName, string glbUrl, string? lawId, int entityCount, string? gltfUrl = null)

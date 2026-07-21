@@ -8,6 +8,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ### Ajouté
 
+- **OpenXR natif** — `NativeOpenXrRuntime` (Silk.NET), session réelle + fallback `SYNAPSE_VR_SIMULATE=1`
+- **NAT réel** — client STUN RFC 5389, rendez-vous UDP, hole-punch, hub WAN AES-GCM
+- **Studio web WASM** — projet `Synapse.Web.Studio` (Blazor), `--export-web` / `WasmStudioPublisher`
 - **Matrice de maturité** — [`docs/MATURITY.md`](docs/MATURITY.md), `FeatureMaturityCatalog`, attribut `[SynapseExperimental]`
 - **Scène lab** — `samples/lab-heat-agents.synapse` (loi heat, agents, joint hinge) + tests de chargement CI
 - **Plugin trust** — `PluginTrustMode.RequireManifest` + `plugin.synapse.json` (SHA-256), env `SYNAPSE_PLUGIN_TRUST`
@@ -17,6 +20,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ### Modifié
 
+- **VR / WAN / Web** promus **EarlyAccess** (chemins natifs branchés ; pas encore Supported)
 - Positionnement honnête **accès anticipé / R&D** (README, ROADMAP, site, SECURITY)
 - **GLB** : chunks bornés + plafonds fichier / data URI
 - **ZeroCopyBuffer / MappedBuffer** : mmap réel, pin handle, `checked`, `createIfMissing`

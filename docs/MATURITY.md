@@ -24,9 +24,9 @@ Ce document est la source de vérité des claims. Le catalogue code miroir est
 | `IO.GlTF` | Export glTF / import mesh | **EarlyAccess** | FBX ASCII + USDA limités |
 | `Plugins.CSharp` | Plugins C# | **EarlyAccess** | ALC isolé ≠ sandbox; `SYNAPSE_PLUGIN_TRUST=require-manifest` |
 | `Network.P2P` | P2P multi-pairs | **Experimental** | Labo TCP + framing exact ; pas collaboratif production |
-| `Network.WAN` | WAN NAT + AES-GCM | **Experimental** | Rendez-vous **loopback** avec registre de ports ; pas de NAT réel |
-| `VR.OpenXR` | OpenXR swapchain | **Experimental** | Fail-closed hors `SYNAPSE_VR_SIMULATE=1` ; handles synthétiques |
-| `Web.Editor` | Éditeur web glTF | **Experimental** | Preview site ; pas Studio WASM production |
+| `Network.WAN` | WAN NAT + AES-GCM | **EarlyAccess** | STUN + rendez-vous UDP + hole-punch ; NAT symétrique peut encore nécessiter un relay |
+| `VR.OpenXR` | OpenXR swapchain | **EarlyAccess** | Session native Silk.NET ; `SYNAPSE_VR_SIMULATE=1` pour lab synthétique |
+| `Web.Editor` | Éditeur web WASM | **EarlyAccess** | `Synapse.Web.Studio` Blazor WASM + `--export-web` |
 
 ### Légende des tiers
 
@@ -39,7 +39,8 @@ Ce document est la source de vérité des claims. Le catalogue code miroir est
 ## Ce que v2.2 assume honnêtement
 
 - Studio + runtime local pour explorer scènes, lois vivantes, agents et benchmarks.
-- Surfaces VR / P2P WAN / web marquées `[SynapseExperimental]` dans le code.
+- Surfaces VR / WAN / web marquées `[SynapseExperimental]` mais désormais branchées sur des
+  chemins natifs (OpenXR Silk.NET, STUN/NAT, Blazor WASM) — encore EarlyAccess, pas Supported.
 - Pas de promesse de path tracing certifié, FEM production, ou simulation collaborative WAN.
 
 ## Prochaines priorités de durcissement
@@ -47,7 +48,7 @@ Ce document est la source de vérité des claims. Le catalogue code miroir est
 1. Couverture de tests et réduction des warnings analyseurs sur le cœur Runtime/Physics.
 2. Scènes d'exemple réalistes sous `samples/` exercées en CI.
 3. Promouvoir une surface en **Supported** seulement après validation Windows+GPU réelle.
-4. Remplacer les scaffolds VR / WAN par des intégrations natives — ou les retirer des claims produit.
+4. Valider VR OpenXR sur Windows+HMD et WAN sur NAT résidentiel ; promouvoir en Supported.
 
 ### Durcissement déjà livré (production-hardening)
 

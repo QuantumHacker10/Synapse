@@ -83,6 +83,12 @@ namespace Synapse.Runtime
             await JsonSerializer.SerializeAsync(stream, this, SceneDocumentJsonContext.Default.SceneDocument, cancellationToken);
         }
 
+        public string ToJson()
+        {
+            Validate();
+            return JsonSerializer.Serialize(this, SceneDocumentJsonContext.Default.SceneDocument);
+        }
+
         public static async Task<SceneDocument> LoadAsync(string path, CancellationToken cancellationToken = default)
         {
             var full = Path.GetFullPath(path);

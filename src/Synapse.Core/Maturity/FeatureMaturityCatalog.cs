@@ -53,12 +53,12 @@ public static class FeatureMaturityCatalog
             "AssemblyLoadContext collectible — pas un sandbox sécurité. Utiliser SYNAPSE_PLUGIN_TRUST=require-manifest."),
         new("Network.P2P", "P2P multi-pairs", MaturityTier.Experimental,
             "TCP localhost / labo avec framing exact; pas un réseau collaboratif production."),
-        new("Network.WAN", "P2P WAN (NAT + AES-GCM)", MaturityTier.Experimental,
-            "Rendez-vous UDP loopback avec registre de ports; chiffrement réel, traversal NAT non production."),
-        new("VR.OpenXR", "OpenXR / swapchain Vulkan", MaturityTier.Experimental,
-            "Fail-closed hors SYNAPSE_VR_SIMULATE=1; handles synthétiques — pas d'intégration OpenXR réelle."),
-        new("Web.Editor", "Éditeur web glTF / WebGPU", MaturityTier.Experimental,
-            "Preview / site editor; pas un Studio WASM production."),
+        new("Network.WAN", "P2P WAN (NAT + AES-GCM)", MaturityTier.EarlyAccess,
+            "STUN (RFC 5389) + rendez-vous UDP + hole-punch + AES-GCM; NAT symétrique peut encore nécessiter un relay."),
+        new("VR.OpenXR", "OpenXR / swapchain Vulkan", MaturityTier.EarlyAccess,
+            "Session native Silk.NET OpenXR (XR_MND_headless / runtime); SYNAPSE_VR_SIMULATE=1 pour lab synthétique."),
+        new("Web.Editor", "Éditeur web WASM / WebGPU", MaturityTier.EarlyAccess,
+            "Synapse.Web.Studio (Blazor WASM) + --export-web; WebGPU canvas et import/export scène/glTF."),
     ];
 
     public static IEnumerable<FeatureMaturityEntry> OfTier(MaturityTier tier)

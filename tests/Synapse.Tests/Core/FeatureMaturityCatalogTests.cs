@@ -20,12 +20,12 @@ public sealed class FeatureMaturityCatalogTests
     }
 
     [Fact]
-    public void Catalog_MarksVrWanAndWebAsExperimental()
+    public void Catalog_MarksVrWanAndWebAsEarlyAccess()
     {
-        FeatureMaturityCatalog.Find("VR.OpenXR")!.Tier.Should().Be(MaturityTier.Experimental);
-        FeatureMaturityCatalog.Find("Network.WAN")!.Tier.Should().Be(MaturityTier.Experimental);
-        FeatureMaturityCatalog.Find("Web.Editor")!.Tier.Should().Be(MaturityTier.Experimental);
-        FeatureMaturityCatalog.OfTier(MaturityTier.Experimental).Should().HaveCountGreaterThanOrEqualTo(3);
+        FeatureMaturityCatalog.Find("VR.OpenXR")!.Tier.Should().Be(MaturityTier.EarlyAccess);
+        FeatureMaturityCatalog.Find("Network.WAN")!.Tier.Should().Be(MaturityTier.EarlyAccess);
+        FeatureMaturityCatalog.Find("Web.Editor")!.Tier.Should().Be(MaturityTier.EarlyAccess);
+        FeatureMaturityCatalog.OfTier(MaturityTier.Experimental).Should().HaveCountGreaterThanOrEqualTo(1);
     }
 
     [Fact]

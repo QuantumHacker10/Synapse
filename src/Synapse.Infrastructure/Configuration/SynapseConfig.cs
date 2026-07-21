@@ -25,6 +25,8 @@ namespace Synapse.Infrastructure.Configuration
         public string? ScreenshotPath { get; set; }
         public string? WanSessionCode { get; set; }
         public int WanPort { get; set; } = 7777;
+        public bool WanHost { get; set; }
+        public string? ExportWebPath { get; set; }
         public string LogLevel { get; set; } = "Information";
         public LlmConfig Llm { get; set; } = new();
         public string ProjectsDirectory { get; set; } =
@@ -161,11 +163,18 @@ namespace Synapse.Infrastructure.Configuration
                         config.ScreenshotPath = Next();
                         break;
                     case "--wan-code":
+                    case "--wan-session":
                         config.WanSessionCode = Next();
                         break;
                     case "--wan-port":
                         if (int.TryParse(Next(), out var wanPort))
                             config.WanPort = wanPort;
+                        break;
+                    case "--wan-host":
+                        config.WanHost = true;
+                        break;
+                    case "--export-web":
+                        config.ExportWebPath = Next();
                         break;
                     case "--quality":
                         var q = Next();

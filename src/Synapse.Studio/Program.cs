@@ -4,8 +4,10 @@ using Avalonia;
 using Synapse.Infrastructure;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
+using Synapse.Network;
 using Synapse.Plugins;
 using Synapse.Runtime;
+using Synapse.Web;
 
 namespace Synapse.Studio
 {
@@ -96,6 +98,7 @@ namespace Synapse.Studio
             using var pluginHost = new PluginHost(logger);
             var host = new EngineHost(config, logger);
             var orchestrator = new FrameOrchestrator(host, logger);
+            WanSimulationPeerHub? wan = null;
 
             try
             {
@@ -115,6 +118,32 @@ namespace Synapse.Studio
                         : $"[Export] Failed: {export.ErrorMessage}");
                     if (config.Headless && string.IsNullOrWhiteSpace(config.ScenePath))
                         return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(config.ExportWebPath))
+                {
+                    var sceneJson = host.Scene.ToJson();
+                    var result = WasmStudioPublisher.PublishAsync(
+                            config.ExportWebPath,
+                            host.Scene.Name,
+                            host.Scene.ActiveLawId,
+                            host.Scene.Entities.Count,
+                            sceneJson)
+                        .GetAwaiter().GetResult();
+                    Console.WriteLine(result.UsedDotnetPublish
+                        ? $"[Export-Web] WASM Studio publié -> {result.OutputDirectory}"
+                        : $"[Export-Web] Fallback WebGPU site -> {result.OutputDirectory}");
+                    if (config.Headless)
+                        return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(config.WanSessionCode))
+                {
+                    wan = new WanSimulationPeerHub(logger, config.WanSessionCode, rendezvousPort: 0);
+                    wan.StartHostAsync(config.WanPort).GetAwaiter().GetResult();
+                    Console.WriteLine(
+                        $"[WAN] session={config.WanSessionCode} tcp={wan.ListenPort} " +
+                        $"rendezvous={wan.RendezvousPort} mapped={wan.MappedEndpoint} loopback={wan.IsLoopbackOnly}");
                 }
 
                 if (config.Headless && !string.IsNullOrWhiteSpace(config.BenchmarkConfigPath))
@@ -147,6 +176,8 @@ namespace Synapse.Studio
             }
             finally
             {
+                if (wan != null)
+                    wan.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 host.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
         }

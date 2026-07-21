@@ -11,76 +11,51 @@ using Synapse.Infrastructure.Logging;
 namespace Synapse.Network;
 
 /// <summary>
-/// EXPERIMENTAL — UDP rendezvous scaffold for WAN P2P (v2.2).
-/// Binds and discovers peers on <see cref="IPAddress.Loopback"/> only; not real NAT traversal.
-/// See <c>docs/MATURITY.md</c> (<c>Network.WAN</c>).
+/// Registered peer endpoint exchanged through the UDP rendezvous.
 /// </summary>
-[SynapseExperimental("Network.WAN", "UDP rendezvous is loopback-only; not production NAT traversal.")]
+public sealed record NatPeerEndpoint(
+    string SessionCode,
+    IPAddress Address,
+    int TcpPort,
+    int UdpPort,
+    bool IsMapped);
+
+/// <summary>
+/// NAT traversal coordinator: STUN mapped-address discovery, UDP rendezvous registration,
+/// and bidirectional UDP hole-punching. Falls back to loopback-only when STUN is unreachable
+/// (offline CI). See <c>docs/MATURITY.md</c> (<c>Network.WAN</c>).
+/// </summary>
+[SynapseExperimental("Network.WAN", "STUN + UDP hole-punch + rendezvous; symmetric NAT may still need a relay.")]
 public sealed class NatTraversalCoordinator : IDisposable
 {
-    private static readonly ConcurrentDictionary<string, int> RegisteredTcpPorts = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, NatPeerEndpoint> RegisteredPeers = new(StringComparer.Ordinal);
 
     private readonly UdpClient _udp;
     private readonly ISynapseLogger _logger;
     private readonly string _sessionCode;
+    private readonly StunClient _stun;
+    private readonly IPAddress _rendezvousHost;
     private CancellationTokenSource? _cts;
     private UdpClient? _relay;
     private bool _ownsRelay;
+    private bool _disposed;
 
-    public NatTraversalCoordinator(ISynapseLogger logger, string sessionCode, int rendezvousPort = 7778)
+    public NatTraversalCoordinator(
+        ISynapseLogger logger,
+        string sessionCode,
+        int rendezvousPort = 7778,
+        IPAddress? rendezvousHost = null)
     {
-        _logger = logger;
-        _sessionCode = sessionCode;
-        _udp = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
-        RendezvousPort = rendezvousPort;
-    }
-
-    /// <summary>Always true in v2.2: relay and discovery use loopback endpoints only.</summary>
-    public bool IsLoopbackOnly => true;
-
-    public int RendezvousPort { get; private set; }
-
-    public async Task RegisterPublicEndpointAsync(int tcpPort, CancellationToken ct = default)
-    {
-        if (tcpPort <= 0 || tcpPort > 65535)
-            throw new ArgumentOutOfRangeException(nameof(tcpPort));
-
-        RegisteredTcpPorts[_sessionCode] = tcpPort;
-        var payload = Encoding.UTF8.GetBytes($"REGISTER|{_sessionCode}|{tcpPort}");
-        await _udp.SendAsync(payload, new IPEndPoint(IPAddress.Loopback, RendezvousPort), ct)
-            .ConfigureAwait(false);
-        _logger.Info("Network", $"NAT rendezvous registered session={_sessionCode} tcp={tcpPort}");
-    }
-
-    public async Task<IPEndPoint?> DiscoverPeerAsync(CancellationToken ct = default)
-    {
-        var payload = Encoding.UTF8.GetBytes($"DISCOVER|{_sessionCode}");
-        await _udp.SendAsync(payload, new IPEndPoint(IPAddress.Loopback, RendezvousPort), ct)
-            .ConfigureAwait(false);
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(TimeSpan.FromSeconds(2));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _sessionCode = sessionCode ?? throw new ArgumentNullException(nameof(sessionCode));
+        _stun = new StunClient(logger);
+        _rendezvousHost = rendezvousHost ?? IPAddress.Loopback;
+        _udp = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
         try
-        {
-            var result = await _udp.ReceiveAsync(timeout.Token).ConfigureAwait(false);
-            var text = Encoding.UTF8.GetString(result.Buffer);
-            if (!text.StartsWith("PEER|", StringComparison.Ordinal))
-                return null;
-
-            var parts = text.Split('|');
-            if (parts.Length >= 3 &&
-                int.TryParse(parts[2], out var port) &&
-                port > 0 &&
-                port <= 65535)
-            {
-                return new IPEndPoint(IPAddress.Loopback, port);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            return null;
-        }
-
-        return null;
+        { _udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true); }
+        catch { /* best-effort */ }
+        RendezvousPort = rendezvousPort;
+        LocalUdpPort = ((IPEndPoint)_udp.Client.LocalEndPoint!).Port;
     }
 
     private NatTraversalCoordinator(
@@ -96,12 +71,106 @@ public sealed class NatTraversalCoordinator : IDisposable
         _cts = cts;
     }
 
+    /// <summary>True until a non-loopback STUN mapping is confirmed.</summary>
+    public bool IsLoopbackOnly { get; private set; } = true;
+
+    public int RendezvousPort { get; private set; }
+    public int LocalUdpPort { get; }
+    public IPEndPoint? MappedEndpoint { get; private set; }
+
+    /// <summary>
+    /// Discovers the public mapped UDP endpoint via STUN. On failure, uses the local Any-bound port
+    /// advertised as loopback for same-host lab scenarios.
+    /// </summary>
+    public async Task<IPEndPoint> DiscoverPublicEndpointAsync(CancellationToken ct = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var mapped = await _stun.DiscoverMappedAddressAsync(_udp, timeout: null, ct).ConfigureAwait(false);
+        if (mapped != null)
+        {
+            MappedEndpoint = mapped;
+            IsLoopbackOnly = mapped.Address.Equals(IPAddress.Loopback) || IPAddress.IsLoopback(mapped.Address);
+            return mapped;
+        }
+
+        // Offline / blocked STUN: fall back to loopback advertisement for same-host tests.
+        IsLoopbackOnly = true;
+        MappedEndpoint = new IPEndPoint(IPAddress.Loopback, LocalUdpPort);
+        _logger.Warn("Network", "STUN unavailable — falling back to loopback NAT advertisement");
+        return MappedEndpoint;
+    }
+
+    public async Task RegisterPublicEndpointAsync(int tcpPort, CancellationToken ct = default)
+    {
+        if (tcpPort is <= 0 or > 65535)
+            throw new ArgumentOutOfRangeException(nameof(tcpPort));
+
+        var mapped = MappedEndpoint ?? await DiscoverPublicEndpointAsync(ct).ConfigureAwait(false);
+        var peer = new NatPeerEndpoint(_sessionCode, mapped.Address, tcpPort, mapped.Port, !IsLoopbackOnly);
+        RegisteredPeers[_sessionCode] = peer;
+
+        var payload = Encoding.UTF8.GetBytes(
+            $"REGISTER|{_sessionCode}|{peer.Address}|{peer.TcpPort}|{peer.UdpPort}|{(peer.IsMapped ? 1 : 0)}");
+        await _udp.SendAsync(payload, new IPEndPoint(_rendezvousHost, RendezvousPort), ct)
+            .ConfigureAwait(false);
+        _logger.Info("Network",
+            $"NAT rendezvous registered session={_sessionCode} tcp={tcpPort} mapped={peer.Address}:{peer.UdpPort} loopback={IsLoopbackOnly}");
+    }
+
+    public async Task<NatPeerEndpoint?> DiscoverPeerAsync(CancellationToken ct = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var payload = Encoding.UTF8.GetBytes($"DISCOVER|{_sessionCode}");
+        await _udp.SendAsync(payload, new IPEndPoint(_rendezvousHost, RendezvousPort), ct)
+            .ConfigureAwait(false);
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(3));
+        try
+        {
+            while (!timeout.IsCancellationRequested)
+            {
+                var result = await _udp.ReceiveAsync(timeout.Token).ConfigureAwait(false);
+                var text = Encoding.UTF8.GetString(result.Buffer);
+                if (TryParsePeerMessage(text, out var peer) && peer!.SessionCode == _sessionCode)
+                    return peer;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Fall through to in-process registry (same-process host/join).
+        }
+
+        return RegisteredPeers.TryGetValue(_sessionCode, out var local) ? local : null;
+    }
+
+    /// <summary>
+    /// Sends UDP hole-punch packets toward the peer's mapped UDP endpoint to open NAT bindings.
+    /// </summary>
+    public async Task HolePunchAsync(NatPeerEndpoint peer, int bursts = 8, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(peer);
+        var target = new IPEndPoint(peer.Address, peer.UdpPort > 0 ? peer.UdpPort : peer.TcpPort);
+        var punch = Encoding.UTF8.GetBytes($"PUNCH|{_sessionCode}|{LocalUdpPort}");
+        for (int i = 0; i < Math.Max(1, bursts); i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            await _udp.SendAsync(punch, target, ct).ConfigureAwait(false);
+            await Task.Delay(40, ct).ConfigureAwait(false);
+        }
+
+        _logger.Info("Network", $"UDP hole-punch sent to {target} ({bursts} bursts)");
+    }
+
     public static NatTraversalCoordinator StartRelay(
         ISynapseLogger logger,
         string sessionCode,
         int rendezvousPort = 0)
     {
-        var relay = new UdpClient(new IPEndPoint(IPAddress.Loopback, rendezvousPort));
+        var relay = new UdpClient(new IPEndPoint(IPAddress.Any, rendezvousPort));
+        try
+        { relay.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true); }
+        catch { /* best-effort */ }
         int boundPort = ((IPEndPoint)relay.Client.LocalEndPoint!).Port;
         var cts = new CancellationTokenSource();
         var coord = new NatTraversalCoordinator(logger, sessionCode, boundPort, relay, cts);
@@ -116,14 +185,10 @@ public sealed class NatTraversalCoordinator : IDisposable
                     var text = Encoding.UTF8.GetString(result.Buffer);
                     if (text.StartsWith("REGISTER|", StringComparison.Ordinal))
                     {
-                        var parts = text.Split('|');
-                        if (parts.Length >= 3 &&
-                            parts[1] == sessionCode &&
-                            int.TryParse(parts[2], out var tcpPort) &&
-                            tcpPort > 0)
+                        if (TryParseRegisterMessage(text, out var peer) && peer!.SessionCode == sessionCode)
                         {
-                            RegisteredTcpPorts[sessionCode] = tcpPort;
-                            var reply = Encoding.UTF8.GetBytes($"PEER|{sessionCode}|{tcpPort}");
+                            RegisteredPeers[sessionCode] = peer;
+                            var reply = Encoding.UTF8.GetBytes(FormatPeerMessage(peer));
                             await relay.SendAsync(reply, result.RemoteEndPoint, token).ConfigureAwait(false);
                         }
                     }
@@ -132,12 +197,23 @@ public sealed class NatTraversalCoordinator : IDisposable
                         var parts = text.Split('|');
                         if (parts.Length >= 2 && parts[1] == sessionCode)
                         {
-                            int port = RegisteredTcpPorts.TryGetValue(sessionCode, out var registered)
-                                ? registered
-                                : 0;
-                            var reply = Encoding.UTF8.GetBytes($"PEER|{sessionCode}|{port}");
-                            await relay.SendAsync(reply, result.RemoteEndPoint, token).ConfigureAwait(false);
+                            if (RegisteredPeers.TryGetValue(sessionCode, out var peer))
+                            {
+                                var reply = Encoding.UTF8.GetBytes(FormatPeerMessage(peer));
+                                await relay.SendAsync(reply, result.RemoteEndPoint, token).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                var reply = Encoding.UTF8.GetBytes($"PEER|{sessionCode}|127.0.0.1|0|0|0");
+                                await relay.SendAsync(reply, result.RemoteEndPoint, token).ConfigureAwait(false);
+                            }
                         }
+                    }
+                    else if (text.StartsWith("PUNCH|", StringComparison.Ordinal))
+                    {
+                        // Reflect punch to keep bindings warm when relay is co-located.
+                        var ack = Encoding.UTF8.GetBytes($"PUNCH-ACK|{sessionCode}");
+                        await relay.SendAsync(ack, result.RemoteEndPoint, token).ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException)
@@ -148,6 +224,10 @@ public sealed class NatTraversalCoordinator : IDisposable
                 {
                     break;
                 }
+                catch (Exception)
+                {
+                    // Keep relay alive across transient errors.
+                }
             }
         }, token);
 
@@ -156,19 +236,73 @@ public sealed class NatTraversalCoordinator : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+        _disposed = true;
         _cts?.Cancel();
         if (_ownsRelay)
             _relay?.Dispose();
         _udp.Dispose();
-        RegisteredTcpPorts.TryRemove(_sessionCode, out _);
+        RegisteredPeers.TryRemove(_sessionCode, out _);
+    }
+
+    private static string FormatPeerMessage(NatPeerEndpoint peer)
+        => $"PEER|{peer.SessionCode}|{peer.Address}|{peer.TcpPort}|{peer.UdpPort}|{(peer.IsMapped ? 1 : 0)}";
+
+    private static bool TryParsePeerMessage(string text, out NatPeerEndpoint? peer)
+    {
+        peer = null;
+        if (!text.StartsWith("PEER|", StringComparison.Ordinal))
+            return false;
+        var parts = text.Split('|');
+        if (parts.Length < 5)
+            return false;
+        if (!IPAddress.TryParse(parts[2], out var address))
+            return false;
+        if (!int.TryParse(parts[3], out var tcpPort) || tcpPort < 0 || tcpPort > 65535)
+            return false;
+        if (!int.TryParse(parts[4], out var udpPort) || udpPort < 0 || udpPort > 65535)
+            return false;
+        bool mapped = parts.Length >= 6 && parts[5] == "1";
+        peer = new NatPeerEndpoint(parts[1], address, tcpPort, udpPort, mapped);
+        return true;
+    }
+
+    private static bool TryParseRegisterMessage(string text, out NatPeerEndpoint? peer)
+    {
+        peer = null;
+        if (!text.StartsWith("REGISTER|", StringComparison.Ordinal))
+            return false;
+        var parts = text.Split('|');
+        // New format: REGISTER|code|ip|tcp|udp|mapped
+        if (parts.Length >= 5 && IPAddress.TryParse(parts[2], out var address))
+        {
+            if (!int.TryParse(parts[3], out var tcpPort) || tcpPort <= 0 || tcpPort > 65535)
+                return false;
+            int udpPort = 0;
+            if (parts.Length >= 5 && !int.TryParse(parts[4], out udpPort))
+                udpPort = 0;
+            bool mapped = parts.Length >= 6 && parts[5] == "1";
+            peer = new NatPeerEndpoint(parts[1], address, tcpPort, udpPort, mapped);
+            return true;
+        }
+
+        // Legacy format: REGISTER|code|tcpPort
+        if (parts.Length >= 3 && int.TryParse(parts[2], out var legacyTcp) && legacyTcp > 0)
+        {
+            peer = new NatPeerEndpoint(parts[1], IPAddress.Loopback, legacyTcp, 0, false);
+            return true;
+        }
+
+        return false;
     }
 }
 
 /// <summary>
-/// EXPERIMENTAL — encrypted P2P hub with loopback NAT scaffold + AES-GCM (v2.2).
-/// Encryption is real; WAN/NAT claims are not. See <c>docs/MATURITY.md</c>.
+/// Encrypted P2P hub with STUN-backed NAT traversal + AES-GCM.
+/// See <c>docs/MATURITY.md</c> (<c>Network.WAN</c>).
 /// </summary>
-[SynapseExperimental("Network.WAN", "AES-GCM ok; NAT rendezvous is loopback lab scaffolding.")]
+[SynapseExperimental("Network.WAN", "STUN + hole-punch + AES-GCM; symmetric NAT may need an external relay.")]
 public sealed class WanSimulationPeerHub : IAsyncDisposable
 {
     private readonly ISynapseLogger _logger;
@@ -179,8 +313,8 @@ public sealed class WanSimulationPeerHub : IAsyncDisposable
 
     public WanSimulationPeerHub(ISynapseLogger logger, string sessionCode, int rendezvousPort = 0)
     {
-        _sessionCode = sessionCode;
-        _logger = logger;
+        _sessionCode = sessionCode ?? throw new ArgumentNullException(nameof(sessionCode));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _encryption = PeerEncryption.FromSessionCode(sessionCode);
         _nat = NatTraversalCoordinator.StartRelay(logger, sessionCode, rendezvousPort);
         _inner = new MultiPeerSimulationHub(logger);
@@ -194,22 +328,36 @@ public sealed class WanSimulationPeerHub : IAsyncDisposable
 
     public int ListenPort => _inner.ListenPort;
     public int RendezvousPort => _nat.RendezvousPort;
+    public bool IsLoopbackOnly => _nat.IsLoopbackOnly;
+    public IPEndPoint? MappedEndpoint => _nat.MappedEndpoint;
 
     public async Task StartHostAsync(int port, CancellationToken ct = default)
     {
         await _inner.StartHostAsync(port, publicBind: true, ct).ConfigureAwait(false);
+        await _nat.DiscoverPublicEndpointAsync(ct).ConfigureAwait(false);
         await _nat.RegisterPublicEndpointAsync(_inner.ListenPort, ct).ConfigureAwait(false);
-        _logger.Info("Network", $"WAN encrypted host on port {_inner.ListenPort} (rendezvous={_nat.RendezvousPort})");
+        _logger.Info("Network",
+            $"WAN encrypted host on port {_inner.ListenPort} (rendezvous={_nat.RendezvousPort}, mapped={_nat.MappedEndpoint}, loopback={_nat.IsLoopbackOnly})");
     }
 
     public async Task JoinAsync(CancellationToken ct = default)
     {
         using var clientNat = new NatTraversalCoordinator(_logger, _sessionCode, _nat.RendezvousPort);
-        var endpoint = await clientNat.DiscoverPeerAsync(ct).ConfigureAwait(false);
-        if (endpoint == null || endpoint.Port == 0)
+        await clientNat.DiscoverPublicEndpointAsync(ct).ConfigureAwait(false);
+        var peer = await clientNat.DiscoverPeerAsync(ct).ConfigureAwait(false);
+        if (peer == null || peer.TcpPort == 0)
             throw new InvalidOperationException(
                 "Peer discovery failed. Ensure the host registered before join, and rendezvous ports match.");
-        await _inner.ConnectAsync(endpoint.Address.ToString(), endpoint.Port, ct).ConfigureAwait(false);
+
+        await clientNat.HolePunchAsync(peer, ct: ct).ConfigureAwait(false);
+
+        // Prefer mapped public address; for same-host lab (loopback advertisement) use loopback.
+        var connectHost = peer.Address.Equals(IPAddress.Any) || peer.Address.Equals(IPAddress.IPv6Any)
+            ? IPAddress.Loopback.ToString()
+            : peer.Address.ToString();
+
+        await _inner.ConnectAsync(connectHost, peer.TcpPort, ct).ConfigureAwait(false);
+        _logger.Info("Network", $"WAN join connected to {connectHost}:{peer.TcpPort}");
     }
 
     public async Task BroadcastScenePatchAsync(ReadOnlyMemory<byte> patch, CancellationToken ct = default)
