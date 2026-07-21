@@ -8,6 +8,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ### Ajouté
 
+- **Tests de couverture** — CLI/env config, ScenePatchCodec, STUN/NAT, validation SceneDocument, collaboration EngineHost/orchestrator, VR fail-closed, PeerEncryption, WasmStudioPublisher, plugins/sentience/infra
 - **OpenXR natif** — `NativeOpenXrRuntime` (Silk.NET), session réelle + fallback `SYNAPSE_VR_SIMULATE=1`
 - **NAT réel** — client STUN RFC 5389, rendez-vous UDP, hole-punch, hub WAN AES-GCM
 - **Studio web WASM** — projet `Synapse.Web.Studio` (Blazor), `--export-web` / `WasmStudioPublisher`
