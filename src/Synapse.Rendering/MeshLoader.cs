@@ -167,6 +167,7 @@ namespace GDNN.Rendering.MeshIO
         public List<MeshMaterial> Materials { get; set; } = new();
         public MeshSkeleton? Skeleton { get; set; }
         public List<MeshAnimationClip> AnimationClips { get; set; } = new();
+        public List<MeshBlendShape> BlendShapes { get; set; } = new();
         public BoundingBox3D Bounds { get; set; }
         public int TotalVertexCount => Primitives.Sum(p => p.Vertices.Count);
         public int TotalIndexCount => Primitives.Sum(p => p.Indices.Count);
@@ -252,6 +253,12 @@ namespace GDNN.Rendering.MeshIO
         public string ClearcoatTexturePath { get; set; } = "";
         public string SpecularTexturePath { get; set; } = "";
         public string OpacityTexturePath { get; set; } = "";
+        /// <summary>UDIM tile index (1001+) → resolved file path for albedo (primary) or multi-channel maps.</summary>
+        public Dictionary<int, string> UdimTiles { get; set; } = new();
+        /// <summary>Optional NVIDIA MDL module asset path (<c>sourceAsset</c>).</summary>
+        public string MdlAssetPath { get; set; } = "";
+        /// <summary>MDL material name inside the module.</summary>
+        public string MdlMaterialName { get; set; } = "";
     }
 
     /// <summary>Result of a mesh loading operation.</summary>

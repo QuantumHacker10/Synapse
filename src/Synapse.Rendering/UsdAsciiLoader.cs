@@ -107,7 +107,8 @@ public sealed class UsdAsciiLoader
             var matsOnly = UsdMaterialParser.ParseMaterials(text, baseDirectory);
             var skelOnly = UsdSkeletonParser.ParseSkeleton(text, config);
             var clipsOnly = UsdSkelAnimationParser.ParseClips(text);
-            if (matsOnly.Count > 0 || skelOnly != null || clipsOnly.Count > 0)
+            var blendsOnly = UsdSkelBlendShapeParser.ParseBlendShapes(text);
+            if (matsOnly.Count > 0 || skelOnly != null || clipsOnly.Count > 0 || blendsOnly.Count > 0)
             {
                 result.Success = true;
                 result.Asset = new MeshAsset
@@ -115,7 +116,8 @@ public sealed class UsdAsciiLoader
                     Name = assetName,
                     Materials = matsOnly,
                     Skeleton = skelOnly,
-                    AnimationClips = clipsOnly
+                    AnimationClips = clipsOnly,
+                    BlendShapes = blendsOnly
                 };
                 return result;
             }
@@ -162,6 +164,7 @@ public sealed class UsdAsciiLoader
 
         asset.Skeleton = UsdSkeletonParser.ParseSkeleton(text, config);
         asset.AnimationClips.AddRange(UsdSkelAnimationParser.ParseClips(text));
+        asset.BlendShapes.AddRange(UsdSkelBlendShapeParser.ParseBlendShapes(text));
         asset.Primitives.Add(primitive);
         asset.Bounds = new BoundingBox3D
         {

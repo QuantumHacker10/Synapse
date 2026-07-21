@@ -2,7 +2,15 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.8 — Actuel (2026-07) — UsdSkel animation clips
+## v2.9 — Actuel (2026-07) — UDIM/MDL, blend shapes, texture stream, marketplace distant
+
+- [x] UDIM tiles + MDL material references
+- [x] UsdSkel BlendShape morph targets
+- [x] `GpuTextureStreamer` (LRU / prefetch)
+- [x] `RemotePluginMarketplace` (catalog + install hash-vérifié)
+- [x] Sample `udim_mdl_blend.usda`
+
+## v2.8 — Livré (2026-07) — UsdSkel animation clips
 
 - [x] `SkelAnimation` (translations / rotations / scales + timeSamples)
 - [x] `skel:animationSource` + évaluation TRS sur `MeshAnimationClip`
@@ -90,7 +98,7 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 ### Moteur
 - [ ] Plugin marketplace hébergé distant
 - [ ] Path tracing L-DNN teacher offline (batch)
-- [ ] OpenUSD UDIM / MDL / GPU texture streaming
+- [ ] Native OpenUSD C++/Hydra plugin (optional) / full MDL SDK evaluation
 
 ## v2.8 — Moyen terme
 

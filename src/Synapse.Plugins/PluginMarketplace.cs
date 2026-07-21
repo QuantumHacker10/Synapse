@@ -109,4 +109,6 @@ public sealed class PluginCatalogEntry
     public string FileName { get; set; } = "";
     public string Sha256 { get; set; } = "";
     public string Description { get; set; } = "";
+    /// <summary>Optional HTTPS (or loopback HTTP) URL for remote install.</summary>
+    public string DownloadUrl { get; set; } = "";
 }

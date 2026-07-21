@@ -136,6 +136,14 @@ namespace Synapse.Studio
                 // Optional local plugin marketplace catalog (manifest + hashes beside plugin-dir).
                 if (!string.IsNullOrWhiteSpace(config.PluginDirectory))
                 {
+                    if (!string.IsNullOrWhiteSpace(config.PluginMarketplaceUrl))
+                    {
+                        var remote = new RemotePluginMarketplace(logger);
+                        var n = remote.SyncAsync(config.PluginMarketplaceUrl, config.PluginDirectory)
+                            .GetAwaiter().GetResult();
+                        Console.WriteLine($"[Plugins] Remote marketplace sync: {n} installed from {config.PluginMarketplaceUrl}");
+                    }
+
                     var market = PluginMarketplace.FromDirectory(config.PluginDirectory, logger);
                     market.VerifyInstalledOrWarn();
                 }

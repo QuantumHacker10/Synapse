@@ -22,7 +22,7 @@ public sealed class ProductionReadyTests
         host.InitializeModules();
         var report = host.GetProductionHealth();
         report.IsCoreReady.Should().BeTrue();
-        report.ProductVersion.Should().StartWith("2.8");
+        report.ProductVersion.Should().StartWith("2.9");
         report.ExperimentalNotes.Should().NotBeEmpty();
         report.ExperimentalNotes.Should().OnlyContain(n =>
             n.Contains("OpenXR", StringComparison.OrdinalIgnoreCase) ||

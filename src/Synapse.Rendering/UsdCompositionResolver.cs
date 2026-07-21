@@ -203,6 +203,9 @@ public static class UsdCompositionResolver
             foreach (var clip in leaf.Asset.AnimationClips)
                 merged.AnimationClips.Add(clip);
 
+            foreach (var blend in leaf.Asset.BlendShapes)
+                merged.BlendShapes.Add(blend);
+
             bool invertOk = Matrix4x4.Invert(world, out var inv);
             var nMat = invertOk ? Matrix4x4.Transpose(inv) : Matrix4x4.Identity;
 

@@ -85,6 +85,8 @@ public static class UsdMaterialParser
 
             // Also scan material body for direct UsdUVTexture children named conventionally.
             ApplyDirectUvTexturesInScope(mat, matBody, shaders, baseDirectory);
+            ApplyMdlReference(mat, matBody, usdaText, baseDirectory);
+            FinalizeUdimMaps(mat, baseDirectory);
 
             materials.Add(mat);
         }
@@ -99,11 +101,55 @@ public static class UsdMaterialParser
                 var mat = new MeshMaterial { Name = name };
                 ApplyPreviewSurfaceScalars(mat, body);
                 ApplyTextureConnections(mat, body, shaders, baseDirectory);
+                FinalizeUdimMaps(mat, baseDirectory);
                 materials.Add(mat);
             }
         }
 
         return materials;
+    }
+
+    public static void ApplyMdlReference(MeshMaterial mat, string matBody, string fullText, string? baseDirectory)
+    {
+        // sourceAsset = @./materials/foo.mdl@ or info:id = "mdl:..."
+        var source = Regex.Match(matBody, @"(?:asset\s+)?(?:info:)?sourceAsset\s*=\s*@([^@]+)@",
+            RegexOptions.IgnoreCase);
+        if (!source.Success)
+            source = Regex.Match(fullText, @"(?:asset\s+)?(?:info:)?sourceAsset\s*=\s*@([^@]+\.mdl)@",
+                RegexOptions.IgnoreCase);
+        if (source.Success)
+            mat.MdlAssetPath = ResolveTexturePath(source.Groups[1].Value.Trim(), baseDirectory);
+
+        var mdlName = Regex.Match(matBody, @"(?:uniform\s+)?token\s+(?:info:)?mdl:sourceMaterial\s*=\s*""([^""]+)""",
+            RegexOptions.IgnoreCase);
+        if (!mdlName.Success)
+            mdlName = Regex.Match(matBody, @"string\s+inputs:mdlMaterial\s*=\s*""([^""]+)""", RegexOptions.IgnoreCase);
+        if (mdlName.Success)
+            mat.MdlMaterialName = mdlName.Groups[1].Value;
+
+        // Heuristic: shader info:id containing .mdl
+        var id = Regex.Match(matBody, @"info:id\s*=\s*""([^""]*\.mdl[^""]*)""", RegexOptions.IgnoreCase);
+        if (id.Success && string.IsNullOrEmpty(mat.MdlAssetPath))
+            mat.MdlAssetPath = ResolveTexturePath(id.Groups[1].Value, baseDirectory);
+    }
+
+    public static void FinalizeUdimMaps(MeshMaterial mat, string? baseDirectory)
+    {
+        if (!string.IsNullOrEmpty(mat.AlbedoTexturePath) &&
+            (mat.AlbedoTexturePath.Contains("<UDIM>", StringComparison.OrdinalIgnoreCase) ||
+             mat.AlbedoTexturePath.Contains("%(UDIM)", StringComparison.OrdinalIgnoreCase)))
+        {
+            mat.UdimTiles = UsdUdim.ExpandTiles(mat.AlbedoTexturePath, baseDirectory);
+            if (mat.UdimTiles.TryGetValue(UsdUdim.BaseTile, out var t1001))
+                mat.AlbedoTexturePath = t1001;
+        }
+        else if (!string.IsNullOrEmpty(mat.AlbedoTexturePath))
+        {
+            // Still record primary as tile 1001 when path looks like ...1001...
+            var m = Regex.Match(mat.AlbedoTexturePath, @"(\d{4})(?=\.|$)");
+            if (m.Success && int.TryParse(m.Groups[1].Value, out var tile) && tile >= 1001)
+                mat.UdimTiles[tile] = mat.AlbedoTexturePath;
+        }
     }
 
     public static string? ParseBindingPath(string usdaText)

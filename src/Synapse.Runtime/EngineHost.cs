@@ -1341,7 +1341,7 @@ namespace Synapse.Runtime
                 {
                     "OpenXR uses native Vulkan2 swapchains when loader+HMD+Vulkan bind succeed; otherwise production simulated images (IsSimulated).",
                     "WAN NAT supports STUN reflexive candidates and TURN Allocate/CreatePermission/ChannelData for symmetric NAT (--stun-server / --turn-server).",
-                    "OpenUSD DCC: composition, xforms, PBR textures, UsdSkel skeleton + SkelAnimation clips, variantSets."
+                    "OpenUSD DCC (Synapse runtime): UDIM/MDL refs, blend shapes, SkelAnimation, PBR textures; GpuTextureStreamer; remote plugin marketplace."
                 }
             };
         }

@@ -37,6 +37,8 @@ namespace Synapse.Infrastructure.Configuration
         public string? TurnUsername { get; set; }
         [JsonIgnore] public string? TurnPassword { get; set; }
         public bool WanPreferTurn { get; set; }
+        /// <summary>HTTPS (or loopback HTTP) URL to a remote plugin marketplace catalog JSON.</summary>
+        public string? PluginMarketplaceUrl { get; set; }
         public string LogLevel { get; set; } = "Information";
         public LlmConfig Llm { get; set; } = new();
         public string ProjectsDirectory { get; set; } =
@@ -129,6 +131,7 @@ namespace Synapse.Infrastructure.Configuration
             config.TurnPassword ??= Environment.GetEnvironmentVariable("SYNAPSE_TURN_PASSWORD");
             if (string.Equals(Environment.GetEnvironmentVariable("SYNAPSE_WAN_PREFER_TURN"), "1", StringComparison.Ordinal))
                 config.WanPreferTurn = true;
+            config.PluginMarketplaceUrl ??= Environment.GetEnvironmentVariable("SYNAPSE_PLUGIN_MARKETPLACE_URL");
         }
 
         private static void ApplyCli(SynapseConfig config, string[] args)
@@ -210,6 +213,9 @@ namespace Synapse.Infrastructure.Configuration
                         break;
                     case "--wan-prefer-turn":
                         config.WanPreferTurn = true;
+                        break;
+                    case "--plugin-marketplace-url":
+                        config.PluginMarketplaceUrl = Next();
                         break;
                     case "--quality":
                         var q = Next();

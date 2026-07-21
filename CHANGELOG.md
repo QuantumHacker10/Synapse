@@ -6,6 +6,24 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [2.9.0] — 2026-07-21
+
+**Runtime USD étendu** — UDIM/MDL, blend shapes, streaming GPU textures, marketplace plugins distant.
+
+### Ajouté
+
+- **UDIM** — `UsdUdim.ExpandTiles` / `MeshMaterial.UdimTiles` (`<UDIM>` / `%(UDIM)`)
+- **MDL** — `MdlAssetPath` / `MdlMaterialName` (`sourceAsset`, `mdl:sourceMaterial`)
+- **UsdSkel BlendShape** — `MeshBlendShape` + offsets / Apply
+- **`GpuTextureStreamer`** — page-in disque/HTTPS, LRU, prefetch UDIM
+- **`RemotePluginMarketplace`** — catalog HTTPS + download hash-vérifié + jail
+- CLI `--plugin-marketplace-url` / `SYNAPSE_PLUGIN_MARKETPLACE_URL`
+- Sample `udim_mdl_blend.usda`
+
+### Modifié
+
+- Version **2.9.0**, docs honesty : runtime Synapse (pas lib OpenUSD C++ native)
+
 ## [2.8.0] — 2026-07-21
 
 **UsdSkel animation clips** — `SkelAnimation` timeSamples + évaluation TRS.
