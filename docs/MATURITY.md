@@ -22,10 +22,10 @@ Ce document est la source de vérité des claims. Le catalogue code miroir est
 | `Runtime.Local` | EngineHost + lois + multiphysique | **EarlyAccess** | Cœur local utilisable ; couverture et durcissement incomplets |
 | `Runtime.Benchmarks` | Benchmarks headless | **EarlyAccess** | Régression / perf, pas certification industrielle |
 | `IO.GlTF` | Export glTF / import mesh | **EarlyAccess** | FBX ASCII + USDA limités |
-| `Plugins.CSharp` | Plugins C# | **EarlyAccess** | API encore mince |
-| `Network.P2P` | P2P multi-pairs | **Experimental** | Labo TCP ; pas collaboratif production |
-| `Network.WAN` | WAN NAT + AES-GCM | **Experimental** | Rendez-vous **loopback** ; pas de traversal NAT réel |
-| `VR.OpenXR` | OpenXR swapchain | **Experimental** | Handles d'images **synthétiques** ; pas d'OpenXR production |
+| `Plugins.CSharp` | Plugins C# | **EarlyAccess** | ALC isolé ≠ sandbox; `SYNAPSE_PLUGIN_TRUST=require-manifest` |
+| `Network.P2P` | P2P multi-pairs | **Experimental** | Labo TCP + framing exact ; pas collaboratif production |
+| `Network.WAN` | WAN NAT + AES-GCM | **Experimental** | Rendez-vous **loopback** avec registre de ports ; pas de NAT réel |
+| `VR.OpenXR` | OpenXR swapchain | **Experimental** | Fail-closed hors `SYNAPSE_VR_SIMULATE=1` ; handles synthétiques |
 | `Web.Editor` | Éditeur web glTF | **Experimental** | Preview site ; pas Studio WASM production |
 
 ### Légende des tiers
@@ -48,5 +48,16 @@ Ce document est la source de vérité des claims. Le catalogue code miroir est
 2. Scènes d'exemple réalistes sous `samples/` exercées en CI.
 3. Promouvoir une surface en **Supported** seulement après validation Windows+GPU réelle.
 4. Remplacer les scaffolds VR / WAN par des intégrations natives — ou les retirer des claims produit.
+
+### Durcissement déjà livré (production-hardening)
+
+- GLB : validation des bornes de chunks avant copie.
+- `ZeroCopyBuffer` / `MappedBuffer` : mapping fichier réel + durée de vie du handle.
+- Streaming : assets manquants en fail-closed ; stage GPU avec intégrité des poids.
+- Marketplace `.synapse-law` : validation taille / expression / catalogue.
+- Plugins : mode `RequireManifest` + SHA-256 ; ALC documenté hors sandbox.
+- P2P : `ReadExactly` sur les frames ; WAN loopback avec registre de ports correct.
+- VR : fail-closed sauf `SYNAPSE_VR_SIMULATE=1`.
+- Studio : erreurs projet / viewport remontées à l'UI.
 
 Voir aussi [ROADMAP.md](../ROADMAP.md) et [SECURITY.md](../SECURITY.md).

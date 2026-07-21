@@ -29,6 +29,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks;
 using Synapse.Infrastructure.Logging;
+using GDNN.Rendering.Compat;
 
 namespace GDNN.Streaming
 {
@@ -1036,7 +1037,7 @@ namespace GDNN.Streaming
             const int maxBytes = 64 * 1024 * 1024;
             return new DelegateStage<string, byte[]>(async (url, ct) =>
             {
-                var uri = Synapse.Core.Security.UrlSecurity.ValidateOutboundUri(url, allowLoopbackHttp: true);
+                var uri = Synapse.Core.Security.UrlSecurity.ValidateOutboundUri(url, allowLoopbackHttp: false);
                 using var client = Synapse.Core.Security.UrlSecurity.CreateSafeHttpClient(TimeSpan.FromSeconds(30));
                 using var response = await client.GetAsync(uri, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, ct)
                     .ConfigureAwait(false);
@@ -1107,6 +1108,8 @@ namespace GDNN.Streaming
 
         /// <summary>
         /// Creates the GPU upload stage.
+        /// Validates and CPU-stages neural weights for device upload.
+        /// Real VkBuffer upload remains device-bound in the render backend.
         /// </summary>
         public static DelegateStage<Core.NeuralNetwork.NeuralAsset, Core.NeuralNetwork.NeuralAsset>
             CreateGpuUploadStage()
@@ -1114,12 +1117,51 @@ namespace GDNN.Streaming
             return new DelegateStage<Core.NeuralNetwork.NeuralAsset,
                 Core.NeuralNetwork.NeuralAsset>((asset, ct) =>
             {
+                ct.ThrowIfCancellationRequested();
+                ArgumentNullException.ThrowIfNull(asset);
+
+                if (asset.CompressedWeights.Length == 0 &&
+                    asset.UncompressedWeights is { Length: > 0 })
+                {
+                    asset.Compress();
+                }
+
+                if (asset.CompressedWeights.Length == 0 &&
+                    (asset.UncompressedWeights == null || asset.UncompressedWeights.Length == 0) &&
+                    asset.LODTiers.Count == 0)
+                {
+                    throw new InvalidDataException(
+                        "GpuUpload: neural asset has no weight payload to stage.");
+                }
+
+                // Round-trip integrity check when compressed weights are present.
+                if (asset.CompressedWeights.Length > 0)
+                {
+                    try
+                    {
+                        _ = BrotliCompat.Decompress(asset.CompressedWeights);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidDataException(
+                            "GpuUpload: compressed weights failed integrity check.", ex);
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(asset.Metadata.ContentHash) &&
+                    asset.CompressedWeights.Length > 0)
+                {
+                    asset.Metadata.ContentHash = Convert.ToHexString(
+                        System.Security.Cryptography.SHA256.HashData(asset.CompressedWeights));
+                }
+
+                asset.IsGpuUploadPrepared = true;
                 return Task.FromResult(asset);
             })
             {
                 Name = "GpuUpload",
                 Order = 3,
-                IsRequired = false,
+                IsRequired = true,
                 TimeoutMs = 10000,
                 MaxRetries = 2
             };

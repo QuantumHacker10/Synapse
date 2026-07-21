@@ -622,6 +622,13 @@ public sealed class NeuralAsset
     [JsonIgnore]
     public bool IsDirty { get; private set; }
 
+    /// <summary>
+    /// Gets or sets whether CPU-side GPU upload staging completed (weights validated / hashed).
+    /// Device VkBuffer upload remains the responsibility of the render backend.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsGpuUploadPrepared { get; set; }
+
     /// <summary>Gets the LOD level closest to the specified screen-space pixel error.</summary>
     /// <param name="screenError">The target screen-space pixel error.</param>
     /// <returns>The best LOD tier, or null if none exist.</returns>

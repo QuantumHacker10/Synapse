@@ -37,6 +37,7 @@ public sealed class FeatureMaturityCatalogTests
         AssertExperimental(typeof(WanSimulationPeerHub), "Network.WAN");
         AssertExperimental(typeof(MultiPeerSimulationHub), "Network.P2P");
         AssertExperimental(typeof(WebEditorBuilder), "Web.Editor");
+        AssertExperimental(typeof(Synapse.Plugins.PluginHost), "Plugins.CSharp");
     }
 
     [Fact]

@@ -388,27 +388,35 @@ namespace GDNN.Rendering.MeshIO
                 return null;
 
             uint totalLength = BitConverter.ToUInt32(data, 8);
+            if (totalLength > data.Length || totalLength < 12)
+                return null;
+
             int offset = 12;
             byte[]? jsonChunk = null;
             byte[]? binChunk = null;
+            const int maxChunkBytes = 256 * 1024 * 1024;
 
-            while (offset < totalLength)
+            while (offset + 8 <= totalLength && offset + 8 <= data.Length)
             {
-                if (offset + 8 > data.Length)
-                    break;
                 uint chunkLength = BitConverter.ToUInt32(data, offset);
                 uint chunkType = BitConverter.ToUInt32(data, offset + 4);
                 offset += 8;
 
-                if (chunkType == 0x4E4F534A) // JSON
-                    jsonChunk = new byte[chunkLength];
-                else if (chunkType == 0x004E4942) // BIN
-                    binChunk = new byte[chunkLength];
+                if (chunkLength > maxChunkBytes)
+                    return null;
+                if (offset + chunkLength > totalLength || offset + chunkLength > data.Length)
+                    return null;
 
-                if (jsonChunk != null && chunkType == 0x4E4F534A)
+                if (chunkType == 0x4E4F534A) // JSON
+                {
+                    jsonChunk = new byte[chunkLength];
                     Buffer.BlockCopy(data, offset, jsonChunk, 0, (int)chunkLength);
-                else if (binChunk != null && chunkType == 0x004E4942)
+                }
+                else if (chunkType == 0x004E4942) // BIN
+                {
+                    binChunk = new byte[chunkLength];
                     Buffer.BlockCopy(data, offset, binChunk, 0, (int)chunkLength);
+                }
 
                 offset += (int)chunkLength;
             }

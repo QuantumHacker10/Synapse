@@ -77,6 +77,9 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
     private readonly byte* _rawPointer;
     private readonly int _capacity;
     private readonly int _alignment;
+    private readonly MemoryMappedFile? _mmf;
+    private readonly MemoryMappedViewAccessor? _accessor;
+    private bool _viewHandleHeld;
     private volatile BufferState _state;
     private bool _disposed;
 
@@ -177,6 +180,9 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
         _capacity = capacity;
         _alignment = alignment;
         _state = BufferState.Available;
+        _mmf = null;
+        _accessor = null;
+        _viewHandleHeld = false;
 
         // Allocate aligned memory.
         int allocSize = capacity + alignment; // Extra space for alignment.
@@ -197,6 +203,27 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
         _fenceTail = 0;
     }
 
+    private ZeroCopyBuffer(
+        byte* mappedPointer,
+        int capacity,
+        MemoryMappedFile mmf,
+        MemoryMappedViewAccessor accessor,
+        bool viewHandleHeld)
+    {
+        _capacity = capacity;
+        _alignment = 1;
+        _state = BufferState.Available;
+        _pointer = mappedPointer;
+        _rawPointer = null;
+        _mmf = mmf;
+        _accessor = accessor;
+        _viewHandleHeld = viewHandleHeld;
+        _fenceSignals = new int[MaxFenceDepth];
+        _fenceCount = 0;
+        _fenceHead = 0;
+        _fenceTail = 0;
+    }
+
     /// <summary>
     /// Creates a zero-copy buffer backed by a memory-mapped file.
     /// Enables inter-process data sharing without copying.
@@ -211,25 +238,43 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
             throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
         if (capacity <= 0)
             throw new ArgumentOutOfRangeException(nameof(capacity));
+        if (offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset));
 
-        // Ensure the file exists and is large enough.
+        long requiredLength = offset + capacity;
         if (!File.Exists(filePath))
         {
             using var fs = File.Create(filePath);
-            fs.SetLength(offset + capacity);
+            fs.SetLength(requiredLength);
+        }
+        else if (new FileInfo(filePath).Length < requiredLength)
+        {
+            throw new InvalidDataException(
+                $"File '{filePath}' is smaller than required mapping size ({requiredLength} bytes).");
         }
 
-        var mmf = MemoryMappedFile.CreateFromFile(filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.ReadWrite);
-        var accessor = mmf.CreateViewAccessor(offset, capacity, MemoryMappedFileAccess.ReadWrite);
-
-        // Keep the view alive for the lifetime of the mapped buffer wrapper.
+        var mmf = MemoryMappedFile.CreateFromFile(
+            filePath, FileMode.Open, mapName: null, capacity: 0, MemoryMappedFileAccess.ReadWrite);
+        MemoryMappedViewAccessor? accessor = null;
         bool addRefSuccess = false;
-        accessor.SafeMemoryMappedViewHandle.DangerousAddRef(ref addRefSuccess);
-        if (addRefSuccess)
-            accessor.SafeMemoryMappedViewHandle.DangerousRelease();
+        try
+        {
+            accessor = mmf.CreateViewAccessor(offset, capacity, MemoryMappedFileAccess.ReadWrite);
+            accessor.SafeMemoryMappedViewHandle.DangerousAddRef(ref addRefSuccess);
+            if (!addRefSuccess)
+                throw new InvalidOperationException("Failed to pin memory-mapped view handle.");
 
-        // For simplicity, create a buffer that wraps the accessor.
-        return new ZeroCopyBuffer(capacity);
+            byte* ptr = (byte*)accessor.SafeMemoryMappedViewHandle.DangerousGetHandle().ToPointer();
+            return new ZeroCopyBuffer(ptr, capacity, mmf, accessor, viewHandleHeld: true);
+        }
+        catch
+        {
+            if (addRefSuccess && accessor != null)
+                accessor.SafeMemoryMappedViewHandle.DangerousRelease();
+            accessor?.Dispose();
+            mmf.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
@@ -661,7 +706,7 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
     #endregion
 
     /// <summary>
-    /// Disposes the buffer and frees native memory.
+    /// Disposes the buffer and frees native or memory-mapped resources.
     /// </summary>
     public void Dispose()
     {
@@ -669,10 +714,17 @@ public sealed unsafe class ZeroCopyBuffer : IDisposable
             return;
         _disposed = true;
 
-        if (_rawPointer != null)
+        if (_viewHandleHeld && _accessor != null)
         {
-            NativeMemory.Free(_rawPointer);
+            _accessor.SafeMemoryMappedViewHandle.DangerousRelease();
+            _viewHandleHeld = false;
         }
+
+        _accessor?.Dispose();
+        _mmf?.Dispose();
+
+        if (_rawPointer != null)
+            NativeMemory.Free(_rawPointer);
     }
 }
 
@@ -690,6 +742,7 @@ public sealed unsafe class MappedBuffer : IDisposable
     private readonly string _filePath;
     private bool _disposed;
     private bool _isOpen;
+    private bool _viewHandleHeld;
 
     /// <summary>
     /// Gets the file path of the memory-mapped file.
@@ -749,19 +802,20 @@ public sealed unsafe class MappedBuffer : IDisposable
 
         _accessor = _mmf.CreateViewAccessor(0, _size, MemoryMappedFileAccess.ReadWrite);
 
-        // Pin the view to get a stable pointer.
+        // Keep the view handle alive for the lifetime of the mapped pointer.
         bool addedRef = false;
-        try
+        _accessor.SafeMemoryMappedViewHandle.DangerousAddRef(ref addedRef);
+        if (!addedRef)
         {
-            _accessor.SafeMemoryMappedViewHandle.DangerousAddRef(ref addedRef);
-            _basePointer = (byte*)_accessor.SafeMemoryMappedViewHandle.DangerousGetHandle().ToPointer();
-        }
-        finally
-        {
-            if (addedRef)
-                _accessor.SafeMemoryMappedViewHandle.DangerousRelease();
+            _accessor.Dispose();
+            _accessor = null;
+            _mmf.Dispose();
+            _mmf = null;
+            throw new InvalidOperationException("Failed to pin memory-mapped view handle.");
         }
 
+        _viewHandleHeld = true;
+        _basePointer = (byte*)_accessor.SafeMemoryMappedViewHandle.DangerousGetHandle().ToPointer();
         _isOpen = true;
     }
 
@@ -821,6 +875,12 @@ public sealed unsafe class MappedBuffer : IDisposable
         if (!_isOpen)
             return;
         _isOpen = false;
+
+        if (_viewHandleHeld && _accessor != null)
+        {
+            _accessor.SafeMemoryMappedViewHandle.DangerousRelease();
+            _viewHandleHeld = false;
+        }
 
         _accessor?.Dispose();
         _accessor = null;

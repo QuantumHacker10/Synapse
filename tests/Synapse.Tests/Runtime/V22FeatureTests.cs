@@ -33,12 +33,18 @@ public sealed class V22FeatureTests
     }
 
     [Fact]
-    public async Task WanPeerHub_EncryptedHostStarts()
+    public async Task WanPeerHub_HostRegistersAndJoinDiscoversPort()
     {
         using var logger = new SynapseLogger(null, LogLevel.Error, consoleEnabled: false);
-        await using var hub = new WanSimulationPeerHub(logger, "test-session-v22");
-        await hub.StartHostAsync(port: 0);
-        hub.ListenPort.Should().BeGreaterThan(0);
+        await using var host = new WanSimulationPeerHub(logger, "test-session-discover");
+        await host.StartHostAsync(port: 0);
+        host.ListenPort.Should().BeGreaterThan(0);
+        host.RendezvousPort.Should().BeGreaterThan(0);
+
+        using var clientNat = new NatTraversalCoordinator(logger, "test-session-discover", host.RendezvousPort);
+        var endpoint = await clientNat.DiscoverPeerAsync();
+        endpoint.Should().NotBeNull();
+        endpoint!.Port.Should().Be(host.ListenPort);
     }
 
     [Fact]
@@ -52,12 +58,41 @@ public sealed class V22FeatureTests
     }
 
     [Fact]
-    public void OpenXrSession_ExposesSwapchainWhenLoaderPresent()
+    public void OpenXrSession_FailClosedWithoutSimulateFlag()
     {
-        using var logger = new SynapseLogger(null, LogLevel.Error, consoleEnabled: false);
-        var session = VrSessionFactory.Create(logger);
-        session.TryInitializeAsync().GetAwaiter().GetResult();
-        if (session.IsAvailable)
+        var previous = Environment.GetEnvironmentVariable("SYNAPSE_VR_SIMULATE");
+        try
+        {
+            Environment.SetEnvironmentVariable("SYNAPSE_VR_SIMULATE", null);
+            using var logger = new SynapseLogger(null, LogLevel.Error, consoleEnabled: false);
+            var session = VrSessionFactory.Create(logger);
+            session.TryInitializeAsync().GetAwaiter().GetResult().Should().BeFalse();
+            session.IsAvailable.Should().BeFalse();
+            session.Swapchain.Should().BeNull();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("SYNAPSE_VR_SIMULATE", previous);
+        }
+    }
+
+    [Fact]
+    public void OpenXrSession_SimulateModeExposesSyntheticSwapchain()
+    {
+        var previous = Environment.GetEnvironmentVariable("SYNAPSE_VR_SIMULATE");
+        try
+        {
+            Environment.SetEnvironmentVariable("SYNAPSE_VR_SIMULATE", "1");
+            using var logger = new SynapseLogger(null, LogLevel.Error, consoleEnabled: false);
+            var session = VrSessionFactory.Create(logger);
+            session.TryInitializeAsync(64, 64).GetAwaiter().GetResult().Should().BeTrue();
+            session.IsAvailable.Should().BeTrue();
             session.Swapchain.Should().NotBeNull();
+            session.Swapchain!.UsesSyntheticImageHandles.Should().BeTrue();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("SYNAPSE_VR_SIMULATE", previous);
+        }
     }
 }

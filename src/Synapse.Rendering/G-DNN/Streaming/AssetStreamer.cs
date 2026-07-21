@@ -1089,10 +1089,17 @@ namespace GDNN.Streaming
         }
 
         /// <summary>
-        /// Loads asset bytes from the local project/assets directory, or synthesizes a placeholder MLP.
+        /// Loads asset bytes from the local project/assets directory.
+        /// Missing assets fail closed unless <see cref="AllowSyntheticPlaceholders"/> is enabled (lab only).
         /// Set <see cref="AssetRootDirectory"/> to enable real file I/O for <c>{assetId}.gnn</c> / <c>.bin</c>.
         /// </summary>
         public static string? AssetRootDirectory { get; set; }
+
+        /// <summary>
+        /// When true, synthesizes a placeholder MicroMLP if the asset file is missing.
+        /// Defaults to false for production-safe fail-closed loading.
+        /// </summary>
+        public static bool AllowSyntheticPlaceholders { get; set; }
 
         private const long MaxAssetFileBytes = 64L * 1024 * 1024;
 
@@ -1119,7 +1126,14 @@ namespace GDNN.Streaming
                     return await ReadAssetFileAsync(direct, cancellationToken).ConfigureAwait(false);
             }
 
-            // Fallback: generate a local placeholder asset so streaming never blocks the product.
+            if (!AllowSyntheticPlaceholders)
+            {
+                throw new FileNotFoundException(
+                    $"Neural asset '{entry.AssetId}' not found under '{AssetRootDirectory ?? "(unset)"}'. " +
+                    "Set AssetStreamer.AssetRootDirectory or enable AllowSyntheticPlaceholders for lab use.");
+            }
+
+            // Lab fallback: generate a local placeholder asset so streaming demos can proceed.
             await Task.Yield();
             var asset = new NeuralAsset { TargetMeshId = Guid.Empty };
             var mlp = new MicroMLP();
@@ -1145,11 +1159,25 @@ namespace GDNN.Streaming
         }
 
         /// <summary>
-        /// Simulates uploading asset data to GPU memory.
+        /// CPU-stages asset data before device upload (integrity check).
         /// </summary>
         private async Task UploadToGpuAsync(NeuralAsset asset, CancellationToken cancellationToken)
         {
-            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (asset.CompressedWeights.Length == 0 &&
+                asset.UncompressedWeights is { Length: > 0 })
+            {
+                asset.Compress();
+            }
+
+            if (asset.CompressedWeights.Length == 0 &&
+                (asset.UncompressedWeights == null || asset.UncompressedWeights.Length == 0))
+            {
+                throw new InvalidDataException("GPU upload staging failed: empty neural weights.");
+            }
+
+            asset.IsGpuUploadPrepared = true;
+            await Task.Yield();
         }
 
         /// <summary>

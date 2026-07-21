@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -180,12 +181,19 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
         public async Task<byte[]> ReceiveAsync(CancellationToken ct)
         {
             var header = new byte[4];
-            var read = await _stream.ReadAsync(header, ct).ConfigureAwait(false);
-            if (read == 0)
+            try
+            {
+                await _stream.ReadExactlyAsync(header, ct).ConfigureAwait(false);
+            }
+            catch (EndOfStreamException)
+            {
                 return Array.Empty<byte>();
+            }
+
             int length = BitConverter.ToInt32(header, 0);
             if (length <= 0 || length > 4 * 1024 * 1024)
-                return Array.Empty<byte>();
+                throw new InvalidDataException($"Invalid P2P frame length: {length}");
+
             var buffer = new byte[length];
             await _stream.ReadExactlyAsync(buffer, ct).ConfigureAwait(false);
             return buffer;

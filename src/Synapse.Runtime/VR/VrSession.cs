@@ -46,24 +46,33 @@ public sealed class OpenXrVulkanSession : IVrSession
 
     public Task<bool> TryInitializeAsync(int width = 1280, int height = 720, CancellationToken cancellationToken = default)
     {
-        if (TryLoadOpenXr())
+        // Production path: real OpenXR frame loops are not wired yet.
+        // Lab path: set SYNAPSE_VR_SIMULATE=1 to exercise the synthetic swapchain scaffold.
+        bool simulate = IsSimulateModeEnabled();
+        bool loaderPresent = TryProbeOpenXrLoader();
+
+        if (!simulate)
         {
-            IsAvailable = true;
-            IsRunning = true;
-            RuntimeName = Environment.GetEnvironmentVariable("XR_RUNTIME") ?? "OpenXR-Loader";
-            Swapchain = new OpenXrVulkanSwapchain(imageCount: 3, width, height);
+            IsAvailable = false;
+            IsRunning = false;
+            RuntimeName = loaderPresent ? "loader-detected-no-session" : "unavailable";
+            Swapchain = null;
             _logger?.Warn("VR",
-                $"EXPERIMENTAL OpenXR scaffold active ({width}x{height}, {RuntimeName}) — synthetic swapchain, not production XR");
-            _initialized = true;
-            return Task.FromResult(true);
+                loaderPresent
+                    ? "OpenXR loader detected but real session/swapchain is not implemented — set SYNAPSE_VR_SIMULATE=1 for lab synthetic mode"
+                    : "OpenXR runtime not found — install OpenXR loader or set SYNAPSE_VR_SIMULATE=1 for lab synthetic mode");
+            return Task.FromResult(false);
         }
 
-        IsAvailable = false;
-        IsRunning = false;
-        RuntimeName = "unavailable";
-        Swapchain = null;
-        _logger?.Warn("VR", "OpenXR runtime not found — install OpenXR loader or set XR_RUNTIME_JSON");
-        return Task.FromResult(false);
+        IsAvailable = true;
+        IsRunning = true;
+        RuntimeName = Environment.GetEnvironmentVariable("XR_RUNTIME")
+                      ?? (loaderPresent ? "OpenXR-Loader+simulate" : "simulate");
+        Swapchain = new OpenXrVulkanSwapchain(imageCount: 3, width, height);
+        _logger?.Warn("VR",
+            $"EXPERIMENTAL OpenXR simulate mode ({width}x{height}, {RuntimeName}) — synthetic swapchain, not production XR");
+        _initialized = true;
+        return Task.FromResult(true);
     }
 
     public Task BeginFrameAsync(CancellationToken cancellationToken = default)
@@ -102,11 +111,16 @@ public sealed class OpenXrVulkanSession : IVrSession
         return ValueTask.CompletedTask;
     }
 
-    private static bool TryLoadOpenXr()
+    private static bool IsSimulateModeEnabled()
     {
-        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("XR_RUNTIME_JSON")))
-            return true;
+        var value = Environment.GetEnvironmentVariable("SYNAPSE_VR_SIMULATE");
+        return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase);
+    }
 
+    private static bool TryProbeOpenXrLoader()
+    {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return NativeLibrary.TryLoad("openxr_loader.dll", out _);
 

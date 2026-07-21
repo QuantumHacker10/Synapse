@@ -594,12 +594,20 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task StartEvolutionAsync()
         {
-            if (!IsInspectorModeEnabled)
-                IsInspectorModeEnabled = true;
-            EvolutionStatus = "Démarrage…";
-            await Task.Run(async () => await _host.StartEvolutionAsync(20, 5));
-            EvolutionStatus = $"Terminé — gen {_host.EvolutionGeneration} fitness={_host.BestFitness:F3} (volume mis à jour)";
-            RefreshEntities();
+            try
+            {
+                if (!IsInspectorModeEnabled)
+                    IsInspectorModeEnabled = true;
+                EvolutionStatus = "Démarrage…";
+                await Task.Run(async () => await _host.StartEvolutionAsync(20, 5));
+                EvolutionStatus = $"Terminé — gen {_host.EvolutionGeneration} fitness={_host.BestFitness:F3} (volume mis à jour)";
+                RefreshEntities();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Evolution failed", ex);
+                EvolutionStatus = $"Erreur — {ex.Message}";
+            }
         }
 
         [RelayCommand]
@@ -608,74 +616,101 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task NewProjectAsync()
         {
-            await _host.LoadSceneAsync(null);
-            RefreshEntities();
-            RefreshLaws();
-            _projectPath = null;
+            try
+            {
+                await _host.LoadSceneAsync(null);
+                RefreshEntities();
+                RefreshLaws();
+                _projectPath = null;
+                LawStatus = "Nouveau projet";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "New project failed", ex);
+                LawStatus = $"Erreur nouveau projet — {ex.Message}";
+            }
         }
 
         [RelayCommand]
         private async Task OpenProjectAsync()
         {
-            var window = GetMainWindow();
-            if (window?.StorageProvider == null)
-                return;
-            var files = await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+            try
             {
-                Title = "Ouvrir un projet Synapse",
-                AllowMultiple = false,
-                FileTypeFilter = new[]
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var files = await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
                 {
-                    new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
+                    Title = "Ouvrir un projet Synapse",
+                    AllowMultiple = false,
+                    FileTypeFilter = new[]
                     {
-                        Patterns = new[] { "*.synapse", "*.json" }
+                        new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
+                        {
+                            Patterns = new[] { "*.synapse", "*.json" }
+                        }
                     }
-                }
-            });
-            var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
-            if (path == null)
-                return;
-            await _host.LoadSceneAsync(path);
-            GDNN.Streaming.AssetStreamer.AssetRootDirectory = Path.Combine(Path.GetDirectoryName(path)!, "assets");
-            _projectPath = path;
-            RefreshEntities();
-            RefreshLaws();
+                });
+                var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
+                if (path == null)
+                    return;
+                await _host.LoadSceneAsync(path);
+                GDNN.Streaming.AssetStreamer.AssetRootDirectory = Path.Combine(Path.GetDirectoryName(path)!, "assets");
+                _projectPath = path;
+                RefreshEntities();
+                RefreshLaws();
+                LawStatus = $"Ouvert — {Path.GetFileName(path)}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Open project failed", ex);
+                LawStatus = $"Erreur ouverture — {ex.Message}";
+            }
         }
 
         [RelayCommand]
         private async Task SaveProjectAsync()
         {
-            var path = _projectPath;
-            if (string.IsNullOrWhiteSpace(path))
+            try
             {
-                var window = GetMainWindow();
-                if (window?.StorageProvider == null)
-                    return;
-                var file = await window.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+                var path = _projectPath;
+                if (string.IsNullOrWhiteSpace(path))
                 {
-                    Title = "Enregistrer le projet Synapse",
-                    DefaultExtension = "synapse",
-                    SuggestedFileName = "project.synapse",
-                    FileTypeChoices = new[]
+                    var window = GetMainWindow();
+                    if (window?.StorageProvider == null)
+                        return;
+                    var file = await window.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
                     {
-                        new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
+                        Title = "Enregistrer le projet Synapse",
+                        DefaultExtension = "synapse",
+                        SuggestedFileName = "project.synapse",
+                        FileTypeChoices = new[]
                         {
-                            Patterns = new[] { "*.synapse" }
+                            new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
+                            {
+                                Patterns = new[] { "*.synapse" }
+                            }
                         }
-                    }
-                });
-                path = file?.TryGetLocalPath();
-            }
-            if (string.IsNullOrWhiteSpace(path))
-                return;
+                    });
+                    path = file?.TryGetLocalPath();
+                }
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
 
-            Directory.CreateDirectory(_config.ProjectsDirectory);
-            var assetsDir = Path.Combine(Path.GetDirectoryName(path)!, "assets");
-            Directory.CreateDirectory(assetsDir);
-            GDNN.Streaming.AssetStreamer.AssetRootDirectory = assetsDir;
-            await _host.SaveSceneAsync(path);
-            _projectPath = path;
-            _logger.Info("Studio", $"Saved {path}");
+                Directory.CreateDirectory(_config.ProjectsDirectory);
+                var assetsDir = Path.Combine(Path.GetDirectoryName(path)!, "assets");
+                Directory.CreateDirectory(assetsDir);
+                GDNN.Streaming.AssetStreamer.AssetRootDirectory = assetsDir;
+                await _host.SaveSceneAsync(path);
+                _projectPath = path;
+                _logger.Info("Studio", $"Saved {path}");
+                LawStatus = $"Enregistré — {Path.GetFileName(path)}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Save project failed", ex);
+                LawStatus = $"Erreur enregistrement — {ex.Message}";
+            }
         }
 
         [RelayCommand]
