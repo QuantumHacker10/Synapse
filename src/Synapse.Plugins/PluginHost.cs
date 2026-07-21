@@ -133,7 +133,9 @@ public sealed class PluginHost : IDisposable
             {
                 if (_loaded.Count >= MaxPlugins)
                 {
-                    try { plugin.OnUnload(); } catch { /* ignore */ }
+                    try
+                    { plugin.OnUnload(); }
+                    catch { /* ignore */ }
                     context.Unload();
                     return false;
                 }
@@ -147,7 +149,9 @@ public sealed class PluginHost : IDisposable
         {
             if (context != null)
             {
-                try { context.Unload(); } catch { /* ignore */ }
+                try
+                { context.Unload(); }
+                catch { /* ignore */ }
             }
             _logger.Error("Plugins", $"Failed to load {assemblyPath}: {ex.Message}");
             return false;

@@ -11,23 +11,22 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - **Matrice de maturité** — [`docs/MATURITY.md`](docs/MATURITY.md), `FeatureMaturityCatalog`, attribut `[SynapseExperimental]`
 - **Scène lab** — `samples/lab-heat-agents.synapse` (loi heat, agents, joint hinge) + tests de chargement CI
 - **Plugin trust** — `PluginTrustMode.RequireManifest` + `plugin.synapse.json` (SHA-256), env `SYNAPSE_PLUGIN_TRUST`
-- **Tests de durcissement** — mapping zero-copy, marketplace, VR fail-closed, WAN discovery, GPU upload staging
+- **Tests de durcissement** — mmap, marketplace, VR, WAN, GPU upload, scènes/blueprints hostiles
+- **Budgets blueprint** — spawns / LLM / nœuds par tick ; arrêt sur boucle / edge manquante
+- **Runtime diagnostics** — `LastRuntimeError`, `RuntimeErrorCount`, `IsLawDegraded`
 
 ### Modifié
 
-- Positionnement honnête **accès anticipé / R&D** (README, ROADMAP, site, SECURITY) : VR / P2P WAN / web = **Experimental** (scaffolds), pas production
-- Commentaires et logs VR/Network/Web alignés sur la réalité (swapchain synthétique, NAT loopback)
-- **GLB** : validation stricte des longueurs de chunks
-- **ZeroCopyBuffer.CreateFromFile** / **MappedBuffer** : vrai mmap + pin de handle
-- **AssetStreamer** : fail-closed si asset manquant (`AllowSyntheticPlaceholders` opt-in lab)
-- **GpuUpload** pipeline : validation / hash des poids (plus de no-op)
-- **LawMarketplace** : limites taille, expression, catalogue
-- **P2P framing** : `ReadExactly` + rejet des longueurs invalides
-- **WAN rendezvous** : registre de ports (DISCOVER ne renvoie plus `0` après REGISTER)
-- **OpenXR session** : fail-closed hors `SYNAPSE_VR_SIMULATE=1`
-- **Studio** : try/catch projet/évolution + hint viewport si rendu indisponible
-- **Megascans** : plafonds fichiers / taille à l'import
-- **Downloads pipeline** : loopback HTTP désactivé par défaut
+- Positionnement honnête **accès anticipé / R&D** (README, ROADMAP, site, SECURITY)
+- **GLB** : chunks bornés + plafonds fichier / data URI
+- **ZeroCopyBuffer / MappedBuffer** : mmap réel, pin handle, `checked`, `createIfMissing`
+- **AssetStreamer / GpuUpload** : fail-closed + hash d'intégrité
+- **LawMarketplace / Plugins / P2P / WAN / VR** : trust, framing, registre, simulate gate
+- **SceneDocument / Blueprint** : validation structurelle ; JSON corrompu = exception
+- **FrameOrchestrator** : ticks non réentrants
+- **LLM** : Gemini `x-goog-api-key`, OpenAI retry/dispose/cap, `MaxLatencyMs`, sessions path-safe
+- **Studio** : erreurs projet / blueprint / Megascans / LLM / viewport
+- **SSRF** : DNS optionnel (activé sur downloads) ; PostProcess borné
 
 ## [2.2.0] — 2026-07-20
 

@@ -51,13 +51,11 @@ Ce document est la source de vérité des claims. Le catalogue code miroir est
 
 ### Durcissement déjà livré (production-hardening)
 
-- GLB : validation des bornes de chunks avant copie.
-- `ZeroCopyBuffer` / `MappedBuffer` : mapping fichier réel + durée de vie du handle.
-- Streaming : assets manquants en fail-closed ; stage GPU avec intégrité des poids.
-- Marketplace `.synapse-law` : validation taille / expression / catalogue.
-- Plugins : mode `RequireManifest` + SHA-256 ; ALC documenté hors sandbox.
-- P2P : `ReadExactly` sur les frames ; WAN loopback avec registre de ports correct.
-- VR : fail-closed sauf `SYNAPSE_VR_SIMULATE=1`.
-- Studio : erreurs projet / viewport remontées à l'UI.
+- GLB / PostProcess / mmap : bornes, pin handle, arithmétique `checked`.
+- Streaming / marketplace / plugins : fail-closed, trust SHA-256, unload ALC.
+- P2P / WAN / VR : framing exact, registre ports, simulate gate.
+- Scènes / blueprints : validation + budgets d'exécution + fail-closed JSON.
+- LLM / SSRF / Studio : clés hors URL, caps réponse, DNS downloads, erreurs UI.
+- Runtime : `LastRuntimeError` / `IsLawDegraded` ; ticks non réentrants.
 
 Voir aussi [ROADMAP.md](../ROADMAP.md) et [SECURITY.md](../SECURITY.md).
