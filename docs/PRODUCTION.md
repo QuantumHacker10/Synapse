@@ -1,8 +1,8 @@
-# Production readiness — Synapse OMNIA 2.6
+# Production readiness — Synapse OMNIA 2.7
 
 This document defines what **production-ready** means for Synapse today and how to verify it.
 
-## Definition (2.6)
+## Definition (2.7)
 
 | Surface | Status |
 |---|---|
@@ -13,33 +13,27 @@ This document defines what **production-ready** means for Synapse today and how 
 | Authenticated LAN/WAN P2P + STUN/TURN | **Production** |
 | Vulkan viewport (real GPU + GLFW/MoltenVK) | **Production** when health says `interactive-ready` |
 | OpenXR / VR | **Production** — native Vulkan2 or labeled simulated |
-| OpenUSD DCC import | **Production** — composition, xforms, materials, skeletons, variants |
+| OpenUSD DCC import | **Production** — composition, xforms, materials+PBR textures, skeletons, variants |
+
+## OpenUSD textures
+
+USDA `UsdPreviewSurface` inputs may `.connect` to `UsdUVTexture` shaders (`asset inputs:file = @path@`):
+
+| PreviewSurface input | MeshMaterial slot |
+|---|---|
+| diffuseColor / baseColor | AlbedoTexturePath |
+| normal | NormalTexturePath |
+| metallic / roughness / occlusionRoughnessMetallic | MetallicRoughnessTexturePath |
+| occlusion | AOTexturePath |
+| emissiveColor | EmissiveTexturePath |
+| displacement / height | HeightTexturePath |
+| clearcoat / specularColor / opacity | Clearcoat / Specular / Opacity texture paths |
+
+Relative `@./textures/…@` paths resolve against the USDA directory. Mesh UVs from `primvars:st`.
 
 ## WAN + STUN/TURN
 
-```bash
-# Host with STUN (advertise reflexive IP) and optional TURN for symmetric NAT
-dotnet run --project src/Synapse.Studio -c Release -- --engine --wan-code myroom \
-  --stun-server stun.l.google.com:19302 \
-  --turn-server turn.example.com:3478 --turn-user u --turn-password secret
-
-# Peer
-dotnet run --project src/Synapse.Studio -c Release -- --engine --wan-code myroom --wan-join \
-  --wan-rendezvous 192.168.1.10 --stun-server stun.l.google.com:19302 \
-  --turn-server turn.example.com:3478 --turn-user u --turn-password secret
-```
-
-Env equivalents: `SYNAPSE_STUN_SERVER`, `SYNAPSE_TURN_SERVER`, `SYNAPSE_TURN_USER`, `SYNAPSE_TURN_PASSWORD`, `SYNAPSE_WAN_PREFER_TURN=1`.
-
-## OpenUSD
-
-Supported on USDA/ASCII `.usd` (composition walk):
-
-- Arcs: references, payloads, subLayers, inherits, `@file@</Prim>`
-- Xforms: translate, rotateXYZ, scale, transform, xformOpOrder
-- Materials: UsdPreviewSurface (`diffuseColor`, roughness, metallic, opacity) + `material:binding`
-- Skeletons: `token[] joints`, `bindTransforms`/`restTransforms`, `primvars:skel:jointIndices/Weights`
-- Variants: `variantSet "name" = { "A" {…} "B" {…} }` via `MeshLoadConfig.UsdVariantSelections`
+See prior 2.6 notes: `--stun-server`, `--turn-server`, `--turn-user`, `--turn-password`.
 
 ## Verify before shipping
 
@@ -52,6 +46,5 @@ dotnet run --project src/Synapse.Studio -c Release -- --health
 
 ## Honest release claim
 
-Synapse **2.6** is production-ready for desktop simulation tooling including STUN/TURN-assisted WAN and
-OpenUSD DCC import of meshes with materials, skinning, and variants. It does not replace a full Pixar
-USD runtime (schemas beyond the above, crate composition parity, or hosted TURN infra).
+Synapse **2.7** is production-ready for desktop simulation tooling including OpenUSD PBR texture maps.
+It does not replace a full Pixar USD runtime (UDIM tiles, MDL, GPU texture streaming, or animation clips).
