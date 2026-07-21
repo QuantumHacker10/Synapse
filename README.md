@@ -1,26 +1,15 @@
-# SYNAPSE OMNIA — Outil de simulation 3D · v2.10
+# SYNAPSE OMNIA — Simulation 3D professionnelle · v1.0
 
-[![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
-[![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
-[![CodeQL](https://github.com/QuantumHacker10/Synapse/actions/workflows/codeql.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/codeql.yml)
-[![codecov](https://codecov.io/gh/QuantumHacker10/Synapse/graph/badge.svg)](https://codecov.io/gh/QuantumHacker10/Synapse)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
-[![Tests](https://img.shields.io/badge/tests-310%2B%20passing-brightgreen)](tests/Synapse.Tests)
+[![Tests](https://img.shields.io/badge/tests-419%20passing-brightgreen)](tests/Synapse.Tests)
+[![License](https://img.shields.io/badge/License-Proprietary-red)](EULA.md)
 
-**Synapse OMNIA** est un **outil de simulation 3D** : un monde numérique que l'on observe,
-modifie et fait évoluer — pas un moteur de jeu, ni une boîte à monter des niveaux.
-**Synapse Studio** en est l'atelier pour éditer une scène, lancer la simulation et voir
-comment formes, lois et agents sentients changent ensemble.
+**Synapse OMNIA** est une **plateforme commerciale de simulation 3D** : formes apprises,
+lois physiques réécrivables, évolution génétique et agents sentients — dans **Synapse Studio**.
 
-Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
-Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
+> **Version 1.0** — release commerciale propriétaire. [Tarifs](docs/PRICING.md) · [EULA](EULA.md)
 
-> **Produit v2.10 — production-ready** — OpenUSD MeshIO complet (topology DCC, UDIM/MDL/blend shapes), streaming textures,
-> marketplace plugins distant, STUN/TURN, OpenXR — [docs/PRODUCTION.md](docs/PRODUCTION.md).
-> Matrice honnête EarlyAccess/Experimental : **[docs/MATURITY.md](docs/MATURITY.md)**.
-
-**Config minimale :** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **Production :** [docs/PRODUCTION.md](docs/PRODUCTION.md) · **Maturité :** [docs/MATURITY.md](docs/MATURITY.md) · **Site :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
+**Tarifs :** [docs/PRICING.md](docs/PRICING.md) · **Production :** [docs/PRODUCTION.md](docs/PRODUCTION.md) · **Config :** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
 
 ## Sommaire
 
@@ -291,14 +280,12 @@ Déployée automatiquement sur [GitHub Pages](https://quantumhacker10.github.io/
 
 ## Licence
 
-**Licence MIT — open source.** Vous pouvez utiliser, modifier, distribuer et créer
-des simulations dérivées du code source, y compris à des fins commerciales, sous réserve
-de conserver l'avis de copyright et la licence.
+**Logiciel propriétaire** — utilisation soumise à [EULA.md](EULA.md) et à un abonnement valide ([docs/PRICING.md](docs/PRICING.md)).
 
 | Fichier | Contenu |
 |---|---|
-| [`LICENSE`](LICENSE) | Texte MIT |
+| [`LICENSE`](LICENSE) | Avis propriétaire |
+| [`EULA.md`](EULA.md) | Contrat utilisateur |
+| [`docs/PRICING.md`](docs/PRICING.md) | Tarifs v1 |
 | [`COPYRIGHT`](COPYRIGHT) | Copyright et marques |
-| [`NOTICE`](NOTICE) | Avis standard (crédits) |
-| [`LICENSE_HISTORY.md`](LICENSE_HISTORY.md) | Historique des changements de licence |
 | [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Licences des dépendances |

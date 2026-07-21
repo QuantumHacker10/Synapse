@@ -19,7 +19,7 @@ for rid in "${RIDS[@]}"; do
     --self-contained true \
     -p:PublishReadyToRun=true \
     -o "$dest"
-  cp -f "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/COPYRIGHT" "$ROOT/docs/REQUIREMENTS.md" "$dest/" 2>/dev/null || true
+  cp -f "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/EULA.md" "$ROOT/docs/PRICING.md" "$ROOT/COPYRIGHT" "$ROOT/docs/REQUIREMENTS.md" "$dest/" 2>/dev/null || true
   echo "OK $dest"
 done
 

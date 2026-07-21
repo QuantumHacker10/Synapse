@@ -71,13 +71,13 @@ namespace Synapse.Studio.ViewModels
             MegascansStatus = $"Bibliothèque : {_megascans.Config.LibraryRootPath}";
             LlmStatusText = _host.LlmProviderSummary;
             AboutText =
-                $"{SynapseProduct.Name} {SynapseProduct.Version} — Outil de simulation 3D\n\n" +
-                "Pas un moteur de jeu : un monde numérique que l'on observe, modifie et fait évoluer.\n" +
-                "Formes apprises (G-DNN), lois physiques réécrivables, évolution NEAT-G, " +
-                "agents sentients (perception et décisions — pas des PNJ scriptés), " +
-                "assistance créative (LLM) et rendu Vulkan temps réel.\n\n" +
-                "Site : https://quantumhacker10.github.io/Synapse/\n" +
-                "Licence MIT — open source.\n\n" +
+                $"{SynapseProduct.Name} {SynapseProduct.Version}\n" +
+                "Synapse Studio — plateforme de simulation 3D professionnelle\n\n" +
+                "Formes apprises (G-DNN) · lois physiques réécrivables · évolution NEAT-G · " +
+                "agents sentients · rendu Vulkan · OpenUSD · collaboration & VR (Studio tier).\n\n" +
+                $"Tarifs & activation : {SynapseProduct.LicenseTierUrl}\n" +
+                $"Support : {SynapseProduct.SupportEmail}\n\n" +
+                "© 2026 Synapse. Logiciel propriétaire — voir EULA.md.\n" +
                 "Apprendre · Réécrire · Cultiver";
 
             foreach (EntityType t in Enum.GetValues<EntityType>())
@@ -895,6 +895,24 @@ namespace Synapse.Studio.ViewModels
 
         [RelayCommand]
         private void About() => ShowAboutText = true;
+
+        [RelayCommand]
+        private void OpenPricing()
+        {
+            ShowAboutText = true;
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = SynapseProduct.LicenseTierUrl,
+                    UseShellExecute = true,
+                });
+            }
+            catch
+            {
+                CollaborationStatus = "Consultez docs/PRICING.md pour les tarifs.";
+            }
+        }
 
         [RelayCommand]
         private void Exit()

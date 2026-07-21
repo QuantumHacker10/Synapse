@@ -3,372 +3,142 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Synapse — Outil de simulation 3D</title>
-  <meta name="description" content="Synapse OMNIA 2.2 (accès anticipé) — un outil de simulation 3D (pas un moteur de jeu) où formes, lois physiques et agents sentients évoluent ensemble. Synapse Studio est l'atelier pour observer, modifier et cultiver ce monde simulé." />
+  <title>Synapse OMNIA — Simulation 3D professionnelle</title>
+  <meta name="description" content="Synapse OMNIA v1.0 — plateforme commerciale de simulation 3D. Formes apprises, lois physiques réécrivables, OpenUSD, agents sentients. Synapse Studio pour studios, recherche et VFX." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='6' fill='%2345e0b8'/%3E%3Ccircle cx='16' cy='16' r='12' fill='none' stroke='%2345e0b8' stroke-opacity='.35' stroke-width='2'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='5' fill='%2345e0b8'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%2345e0b8' stroke-opacity='.4' stroke-width='2'/%3E%3C/svg%3E" />
 </head>
 <body>
-  <a class="skip-link" href="#apropos">Aller au contenu</a>
+  <a class="skip-link" href="#produit">Aller au contenu</a>
 
   <header class="site-header" id="haut">
     <nav class="nav" aria-label="Navigation principale">
-      <a class="brand" href="#haut" aria-label="Synapse — retour en haut">
+      <a class="brand" href="#haut">
         <span class="brand-dot" aria-hidden="true"></span>
         Synapse
+        <span class="brand-badge">v1</span>
       </a>
-      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Ouvrir le menu">
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Menu">
         <span aria-hidden="true"></span>
       </button>
       <ul class="nav-menu" id="nav-menu">
-        <li><a href="#apropos">Le projet</a></li>
-        <li><a href="#forces">Les forces</a></li>
-        <li><a href="#assemblage">L'assemblage</a></li>
-        <li><a href="#difference">La différence</a></li>
-        <li><a class="nav-cta" href="#telecharger">Télécharger</a></li>
+        <li><a href="#produit">Produit</a></li>
+        <li><a href="#capacites">Capacités</a></li>
+        <li><a href="#workflow">Workflow</a></li>
+        <li><a href="pricing.html">Tarifs</a></li>
+        <li><a class="nav-cta" href="pricing.html#essai">Essai 14 jours</a></li>
       </ul>
     </nav>
   </header>
 
   <main>
-    <!-- ============ 1. ACCROCHE ============ -->
     <section class="hero">
       <canvas id="bio-canvas" aria-hidden="true"></canvas>
       <div class="hero-inner">
-        <p class="eyebrow reveal">SYNAPSE OMNIA 2.2 — accès anticipé · Synapse Studio</p>
-        <h1 class="reveal delay-1">Et si la 3D n'était plus <em>dessinée</em>,<br />mais <em>simulée</em>&nbsp;?</h1>
+        <p class="eyebrow reveal">SYNAPSE OMNIA · Version 1.0 · Synapse Studio</p>
+        <h1 class="reveal delay-1">Simulez des mondes.<br />Pas seulement des <em>scènes</em>.</h1>
         <p class="hero-sub reveal delay-2">
-          Synapse OMNIA est un outil de simulation 3D — pas un moteur de jeu&nbsp;: un monde
-          numérique que l'on observe, modifie et fait évoluer. Formes qui s'apprennent, lois
-          physiques réécrivables en direct, populations qui mutent, agents sentients qui
-          perçoivent — le tout dans un seul atelier, Synapse Studio.
+          Plateforme professionnelle de simulation 3D : géométrie apprise (G-DNN),
+          lois physiques modifiables en direct, évolution génétique, agents sentients,
+          pipeline OpenUSD et rendu Vulkan — dans un atelier unique, Synapse Studio.
         </p>
         <div class="hero-actions reveal delay-3">
-          <a class="btn btn-primary" href="https://github.com/QuantumHacker10/Synapse/releases" rel="noopener">Télécharger v2.2</a>
-          <a class="btn btn-ghost" href="#difference">Pourquoi c'est différent</a>
+          <a class="btn btn-primary" href="pricing.html">Voir les tarifs</a>
+          <a class="btn btn-ghost" href="pricing.html#essai">Essai Pro 14 jours</a>
         </div>
+        <p class="hero-note reveal delay-4">Logiciel propriétaire · Windows · Linux · macOS</p>
       </div>
-      <a class="scroll-hint" href="#apropos" aria-label="Faire défiler vers la présentation">
-        <span aria-hidden="true"></span>
-      </a>
     </section>
 
-    <!-- ============ 2. C'EST QUOI ============ -->
-    <section class="section" id="apropos">
+    <section class="section" id="produit">
       <div class="container narrow">
-        <p class="kicker reveal">Le projet, en une idée</p>
-        <h2 class="reveal delay-1">Un monde simulé, plutôt qu'une chaîne de montage.</h2>
+        <p class="kicker reveal">Le produit</p>
+        <h2 class="reveal delay-1">Un moteur de simulation, pas un moteur de jeu.</h2>
         <p class="lead reveal delay-2">
-          Les moteurs de jeu (Unity, Unreal, Godot…) excellent à <em>monter</em> des scènes pour
-          le gameplay ou le cinéma. Synapse prend une autre route&nbsp;: simuler un monde qui
-          change — où chaque forme peut s'apprendre, chaque loi physique se réécrire sans arrêter
-          la course, et les formes elles-mêmes évoluer génération après génération, comme une
-          espèce vivante.
+          Unity et Unreal excellent à <em>monter</em> des niveaux. Synapse OMNIA simule
+          des systèmes qui évoluent : champs continus, populations de formes, lois réécrites
+          sans redémarrer, agents qui perçoivent et décident. Pensé pour la recherche,
+          la VFX procédurale, la visualisation scientifique et les pipelines DCC.
         </p>
         <dl class="stat-row reveal delay-3">
-          <div class="stat">
-            <dt>Modules construits de zéro</dt>
-            <dd>10</dd>
-          </div>
-          <div class="stat">
-            <dt>Lois physiques référencées, sur 18 domaines</dt>
-            <dd>100</dd>
-          </div>
-          <div class="stat">
-            <dt>Nombres suffisent à décrire une forme simple</dt>
-            <dd>216</dd>
-          </div>
+          <div class="stat"><dt>Modules natifs</dt><dd>10</dd></div>
+          <div class="stat"><dt>Lois physiques cataloguées</dt><dd>100+</dd></div>
+          <div class="stat"><dt>Tests de validation</dt><dd>419</dd></div>
         </dl>
       </div>
     </section>
 
-    <!-- ============ 3. LES GRANDES FORCES ============ -->
-    <section class="section section-deep" id="forces">
+    <section class="section section-deep" id="capacites">
       <div class="container">
-        <p class="kicker reveal">Les grandes forces</p>
-        <h2 class="reveal delay-1">Six idées peu communes,<br />réunies dans une seule simulation.</h2>
-
-        <div class="card-grid">
-          <!-- Carte 1 : formes apprises -->
-          <article class="card reveal">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 64 64" fill="none">
-                <circle class="pulse-slow" cx="32" cy="32" r="14" stroke="currentColor" stroke-width="1.5" opacity=".9"/>
-                <circle cx="32" cy="32" r="4" fill="currentColor"/>
-                <circle class="pulse-slow d2" cx="32" cy="32" r="24" stroke="currentColor" stroke-width="1" opacity=".35"/>
-                <circle cx="12" cy="20" r="2.5" fill="currentColor" opacity=".7"/>
-                <circle cx="52" cy="18" r="2" fill="currentColor" opacity=".5"/>
-                <circle cx="50" cy="46" r="2.5" fill="currentColor" opacity=".7"/>
-                <path d="M14 21.5 26 29m24-10-14 8m12 17-12-9" stroke="currentColor" stroke-width="1" opacity=".4"/>
-              </svg>
-            </div>
-            <h3>Des formes qui s'apprennent</h3>
-            <p>
-              Ici, un objet 3D n'est pas une sculpture figée&nbsp;: c'est une surface
-              <em>apprise</em>, continue et organique. On peut s'en approcher sans fin, comme
-              on zoomerait dans une matière vivante — sans facettes ni limite de détail.
-            </p>
+        <p class="kicker center reveal">Capacités v1</p>
+        <h2 class="center reveal delay-1">Ce que Synapse Studio fait aujourd'hui.</h2>
+        <div class="feature-grid">
+          <article class="feature-card reveal">
+            <h3>G-DNN · Formes apprises</h3>
+            <p>Surfaces continues compactes, sculpteur procédural, évolution NEAT-G avec sélection des génomes.</p>
           </article>
-
-          <!-- Carte 2 : physique vivante -->
-          <article class="card reveal delay-1">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 64 64" fill="none">
-                <path class="draw-loop" d="M8 40c6-14 14-22 24-22s18 8 24 22" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M8 46h48" stroke="currentColor" stroke-width="1" opacity=".35"/>
-                <text x="20" y="14" fill="currentColor" font-size="9" font-family="JetBrains Mono, monospace" opacity=".8">∂T/∂t</text>
-                <circle class="pulse-slow" cx="32" cy="18" r="3" fill="currentColor"/>
-              </svg>
-            </div>
-            <h3>Une physique dont on réécrit les lois</h3>
-            <p>
-              La gravité, la chaleur, les ondes&nbsp;: dans Synapse, chaque loi est une équation en
-              toutes lettres. On peut la modifier <em>pendant que la simulation tourne</em>, comme
-              on corrige une phrase — le monde change de règles sans redémarrer. Des garde-fous
-              empêchent qu'une loi dérégle toute la simulation.
-            </p>
+          <article class="feature-card reveal delay-1">
+            <h3>Lois vivantes</h3>
+            <p>Éditeur d'équations, compilation hot-reload, 18 domaines (thermo, fluides, EM, quantique…).</p>
           </article>
-
-          <!-- Carte 3 : évolution -->
-          <article class="card reveal delay-2">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 64 64" fill="none">
-                <circle cx="14" cy="48" r="4" stroke="currentColor" stroke-width="1.5"/>
-                <circle cx="32" cy="30" r="5" stroke="currentColor" stroke-width="1.5"/>
-                <circle class="pulse-slow" cx="50" cy="14" r="6" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M17 45 28 34m8-7 10-9" stroke="currentColor" stroke-width="1" opacity=".5" stroke-dasharray="3 3"/>
-                <circle cx="46" cy="44" r="3" stroke="currentColor" stroke-width="1" opacity=".4"/>
-                <path d="M35 33l8 8" stroke="currentColor" stroke-width="1" opacity=".3" stroke-dasharray="3 3"/>
-              </svg>
-            </div>
-            <h3>Une géométrie qui évolue</h3>
-            <p>
-              Les formes possèdent une recette héréditaire. Synapse en fait vivre des populations
-              entières&nbsp;: mutations, croisements, espèces qui divergent, sélection des plus
-              aptes. On ne modélise plus une forme, on la <em>cultive</em>, génération après
-              génération.
-            </p>
+          <article class="feature-card reveal delay-2">
+            <h3>OpenUSD production</h3>
+            <p>Import USDA/USDC, materials PBR, skeletons, UDIM, variants — chemin DCC first-party.</p>
           </article>
-
-          <!-- Carte 4 : routeur LLM -->
-          <article class="card reveal">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 64 64" fill="none">
-                <circle cx="12" cy="32" r="4" fill="currentColor"/>
-                <circle cx="46" cy="14" r="3.5" stroke="currentColor" stroke-width="1.5"/>
-                <circle cx="52" cy="32" r="3.5" stroke="currentColor" stroke-width="1.5"/>
-                <circle cx="46" cy="50" r="3.5" stroke="currentColor" stroke-width="1.5"/>
-                <path class="draw-loop" d="M16 30c10-6 18-12 26-15M16 32h32M16 34c10 6 18 12 26 15" stroke="currentColor" stroke-width="1" opacity=".55"/>
-              </svg>
-            </div>
-            <h3>Un assistant créatif discret</h3>
-            <p>
-              Pour décrire une scène, suggérer une ambiance ou esquisser une forme, Synapse
-              s'adresse à des intelligences de langage — sur votre machine ou à distance, selon
-              ce que vous préférez. Si l'une est indisponible, une autre prend le relais&nbsp;;
-              vos données sensibles peuvent rester chez vous.
-            </p>
+          <article class="feature-card reveal">
+            <h3>Agents sentients</h3>
+            <p>Perception, mémoire, émotions, arbres de comportement — pas des PNJ scriptés.</p>
           </article>
-
-          <!-- Carte 5 : moteur Vulkan -->
-          <article class="card reveal delay-1">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 64 64" fill="none">
-                <path d="M32 8 8 50h48L32 8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                <path class="pulse-slow" d="M32 22 20 43h24L32 22Z" fill="currentColor" opacity=".18"/>
-                <circle class="pulse-slow d2" cx="32" cy="38" r="3" fill="currentColor"/>
-              </svg>
-            </div>
-            <h3>Voir le monde simulé</h3>
-            <p>
-              Sous les idées neuves, un rendu temps réel sérieux&nbsp;: lumière, ombres, reflets,
-              brouillard et nuages donnent corps au monde simulé. L'image suit la simulation —
-              pas l'inverse.
-            </p>
+          <article class="feature-card reveal delay-1">
+            <h3>Rendu L-DNN</h3>
+            <p>Vulkan temps réel, irradiance prédictive, path tracing de référence, denoising temporel.</p>
           </article>
-
-          <!-- Carte 6 : entités sentientes -->
-          <article class="card reveal delay-2">
-            <div class="card-icon" aria-hidden="true">
-              <svg viewBox="0 0 64 64" fill="none">
-                <circle cx="32" cy="26" r="10" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M32 36v8m0 0-10 10m10-10 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                <circle class="pulse-slow" cx="29" cy="24" r="1.6" fill="currentColor"/>
-                <circle class="pulse-slow d2" cx="36" cy="24" r="1.6" fill="currentColor"/>
-                <path d="M14 18c4-2 6-2 9-1M50 18c-4-2-6-2-9-1" stroke="currentColor" stroke-width="1" opacity=".4"/>
-              </svg>
-            </div>
-            <h3>Des agents sentients — pas des PNJ</h3>
-            <p>
-              Le monde simulé peut être peuplé d'agents qui voient, entendent, mémorisent et
-              ressentent. Ce ne sont pas des PNJ de jeu scriptés&nbsp;: chacun perçoit, décide
-              et s'adapte. Les proches vivent à pleine cadence&nbsp;; les lointains somnolent —
-              le tout dans le rythme de la simulation.
-            </p>
+          <article class="feature-card reveal delay-2">
+            <h3>Collaboration &amp; VR</h3>
+            <p>P2P chiffré, WAN STUN/TURN, OpenXR, export glTF/WASM (tiers Studio).</p>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- ============ 4. COMMENT ÇA S'ASSEMBLE ============ -->
-    <section class="section" id="assemblage">
+    <section class="section" id="workflow">
       <div class="container narrow">
-        <p class="kicker reveal">Comment ça s'assemble</p>
-        <h2 class="reveal delay-1">L'histoire d'une simulation,<br />racontée de l'intérieur.</h2>
-        <p class="lead reveal delay-2">
-          Plutôt qu'un schéma technique, suivez le chemin qu'emprunte le monde simulé,
-          de la première règle jusqu'à l'image à l'écran.
-        </p>
-
-        <ol class="flow">
-          <li class="flow-step reveal">
-            <span class="flow-marker" aria-hidden="true">1</span>
-            <div>
-              <h3>Le monde prend forme</h3>
-              <p>
-                Chaque parcelle du monde possède un état&nbsp;: densité, température, vitesse,
-                champs… Les constantes de la physique servent de référence commune à toute
-                la simulation.
-              </p>
-            </div>
-          </li>
-          <li class="flow-step reveal">
-            <span class="flow-marker" aria-hidden="true">2</span>
-            <div>
-              <h3>Les lois s'écrivent, puis s'appliquent</h3>
-              <p>
-                Des équations en toutes lettres décrivent comment le monde évolue. Envie de changer
-                la diffusion de la chaleur&nbsp;? On réécrit la ligne, on recharge, la simulation
-                continue.
-              </p>
-            </div>
-          </li>
-          <li class="flow-step reveal">
-            <span class="flow-marker" aria-hidden="true">3</span>
-            <div>
-              <h3>Les formes s'apprennent et se cultivent</h3>
-              <p>
-                Les objets du monde peuvent être appris plutôt que sculptés, puis faire l'objet
-                de populations qui mutent et se sélectionnent au fil des générations.
-              </p>
-            </div>
-          </li>
-          <li class="flow-step reveal">
-            <span class="flow-marker" aria-hidden="true">4</span>
-            <div>
-              <h3>Le monde s'anime et se raconte</h3>
-              <p>
-                Des agents sentients perçoivent et décident — à distinguer des PNJ scriptés d'un
-                moteur de jeu. Une assistance créative aide à décrire la scène, ajuster l'ambiance
-                ou esquisser de nouvelles formes — localement ou à distance.
-              </p>
-            </div>
-          </li>
-          <li class="flow-step reveal">
-            <span class="flow-marker" aria-hidden="true">5</span>
-            <div>
-              <h3>La simulation devient visible</h3>
-              <p>
-                Lumière, ombres, reflets et atmosphère traduisent l'état du monde simulé en
-                image. <strong>Synapse Studio</strong> réunit scène, lois, évolution, agents
-                sentients et vue 3D dans un seul atelier de simulation.
-              </p>
-            </div>
-          </li>
+        <p class="kicker reveal">Workflow</p>
+        <h2 class="reveal delay-1">De la loi à l'image, dans un seul atelier.</h2>
+        <ol class="workflow-steps reveal delay-2">
+          <li><strong>Définir</strong> — scène, entités, blueprints visuels</li>
+          <li><strong>Écrire</strong> — lois physiques en langage naturel mathématique</li>
+          <li><strong>Simuler</strong> — stepping temps réel, conservation, benchmarks</li>
+          <li><strong>Observer</strong> — viewport Vulkan, inspecteur live, captures</li>
+          <li><strong>Exporter</strong> — glTF, WASM preview, USD mesh-pack</li>
         </ol>
       </div>
     </section>
 
-    <!-- ============ 5. POURQUOI C'EST DIFFÉRENT ============ -->
-    <section class="section section-deep" id="difference">
-      <div class="container narrow">
-        <p class="kicker reveal">Pourquoi c'est différent</p>
-        <h2 class="reveal delay-1">Ce que Synapse ose,<br />qu'un moteur de jeu ne fait pas.</h2>
-        <p class="lead reveal delay-1">
-          En une phrase&nbsp;: ailleurs on <em>assemble</em> des scènes pour le jeu&nbsp;;
-          ici on <em>simule</em> un monde qui apprend, se réécrit et évolue.
-        </p>
-
-        <ul class="contrast-list">
-          <li class="contrast reveal">
-            <p class="contrast-before">Ailleurs (moteurs de jeu), une forme est une sculpture figée.</p>
-            <p class="contrast-after">Ici, c'est une surface apprise — continue, compacte, sans limite de zoom.</p>
-          </li>
-          <li class="contrast reveal delay-1">
-            <p class="contrast-before">Ailleurs, la physique est gravée une fois pour toutes.</p>
-            <p class="contrast-after">Ici, chaque loi est un texte que l'on peut réécrire pendant la simulation.</p>
-          </li>
-          <li class="contrast reveal delay-2">
-            <p class="contrast-before">Ailleurs, chaque objet est modélisé à la main.</p>
-            <p class="contrast-after">Ici, on peut faire évoluer des populations de formes et garder les meilleures.</p>
-          </li>
-          <li class="contrast reveal delay-3">
-            <p class="contrast-before">Ailleurs, des PNJ scriptés réagissent à un joueur.</p>
-            <p class="contrast-after">Ici, des agents sentients perçoivent, décident et s'adaptent dans la simulation.</p>
-          </li>
-          <li class="contrast reveal">
-            <p class="contrast-before">Ailleurs, l'assistance créative passe souvent par un cloud imposé.</p>
-            <p class="contrast-after">Ici, vous choisissez entre aide locale et distante, selon vos contraintes.</p>
-          </li>
-          <li class="contrast reveal delay-1">
-            <p class="contrast-before">Ailleurs, simulation, évolution et rendu vivent dans des outils séparés.</p>
-            <p class="contrast-after">Ici, tout cohabite dans un seul outil de simulation 3D.</p>
-          </li>
-        </ul>
-
-        <aside class="honesty reveal" aria-label="Où en est le projet">
-          <h3>Accès anticipé 2.2</h3>
-          <p>
-            SYNAPSE OMNIA&nbsp;2.2 est en <strong>R&amp;D avancée</strong>, pas production-ready.
-            <strong>Synapse Studio</strong> permet d'explorer le monde simulé&nbsp;: scènes
-            <span class="mono">.synapse</span>, lois vivantes, agents, benchmarks headless.
-            Cible officielle&nbsp;: Windows&nbsp;x64 + GPU Vulkan. VR, P2P&nbsp;WAN et éditeur web
-            restent des scaffolds expérimentaux — détails dans
-            <a href="https://github.com/QuantumHacker10/Synapse/blob/main/docs/MATURITY.md">docs/MATURITY.md</a>.
-            Licence MIT — open source.
-          </p>
-        </aside>
-      </div>
-    </section>
-
-    <!-- ============ 6. APPEL À L'ACTION ============ -->
-    <section class="section section-final" id="telecharger">
-      <div class="container narrow center">
-        <p class="kicker reveal">Télécharger</p>
-        <h2 class="reveal delay-1">Synapse Studio pour Windows.<br />Ou compilez depuis les sources.</h2>
-        <p class="lead reveal delay-2">
-          Récupérez le zip win-x64 sur GitHub Releases, ou clonez le dépôt pour lancer
-          votre propre monde simulé.
-        </p>
-        <div class="hero-actions reveal delay-2" style="justify-content:center;margin-bottom:2rem">
-          <a class="btn btn-primary" href="https://github.com/QuantumHacker10/Synapse/releases" rel="noopener">Télécharger sur GitHub Releases</a>
-          <a class="btn btn-ghost" href="https://github.com/QuantumHacker10/Synapse" rel="noopener">Dépôt &amp; README</a>
-        </div>
-        <div class="terminal reveal delay-3" role="img" aria-label="Commandes pour compiler, tester et lancer Synapse">
-          <div class="terminal-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-          <pre><code><span class="t-comment"># Compiler</span>
-<span class="t-prompt">$</span> dotnet build
-
-<span class="t-comment"># Tests</span>
-<span class="t-prompt">$</span> dotnet test
-
-<span class="t-comment"># Lancer Synapse Studio</span>
-<span class="t-prompt">$</span> dotnet run --project src/Synapse.Studio</code></pre>
-        </div>
+    <section class="section section-deep" id="tarifs-apercu">
+      <div class="container center">
+        <p class="kicker reveal">Tarification</p>
+        <h2 class="reveal delay-1">À partir de 29 €/mois.</h2>
+        <p class="lead reveal delay-2">Personal · Pro · Studio · Enterprise — essai Pro 14 jours sans engagement.</p>
+        <a class="btn btn-primary reveal delay-3" href="pricing.html">Comparer les offres</a>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <p><span class="brand-dot small" aria-hidden="true"></span> Synapse — Outil de simulation 3D · v2.2 (accès anticipé)</p>
-      <p class="footer-meta">Apprendre · Réécrire · Cultiver · Site sans cookies ni traceurs</p>
+      <p>© 2026 Synapse · SYNAPSE OMNIA v1.0 · Logiciel propriétaire</p>
+      <nav aria-label="Pied de page">
+        <a href="pricing.html">Tarifs</a>
+        <a href="editor/index.html">Démo Web</a>
+        <a href="mailto:sales@synapse-omnia.com">Contact</a>
+      </nav>
     </div>
   </footer>
 
-  <script src="main.js" defer></script>
+  <script src="main.js"></script>
 </body>
 </html>

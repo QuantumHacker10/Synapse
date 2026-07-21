@@ -10,58 +10,29 @@ utilisateurs et auditeurs.
 | 2026-07-18 | `3a76f01` | **MIT** | Import initial SYNAPSE OMNIA 1.1 |
 | 2026-07-19 | `22321d8` | **Propriétaire** | Remplacement temporaire par une licence anti-plagiat propriétaire |
 | 2026-07-20 | `3f08df1` | **MIT** | Retour à l'open source MIT (release v1.2.0) |
+| 2026-07-21 | `integrate-29-28` | **Propriétaire commercial** | Synapse OMNIA **v1.0** — EULA, tarification, dépôt privé |
 
 ## Statut actuel
 
-**Licence MIT** — le projet est open source depuis la release **v1.2.0** (2026-07-20).
+**Licence propriétaire commerciale** (v1.0). Voir `LICENSE`, `EULA.md`, `docs/PRICING.md`.
+Le dépôt GitHub est **privé**. Les composants tiers restent sous leurs licences open source (`THIRD_PARTY_NOTICES.md`).
 
-Voir [`LICENSE`](LICENSE) pour le texte complet.
+## Implications
 
-## Implications pour les contributeurs
-
-- Toutes les contributions acceptées et mergées à partir du **2026-07-20** sont
-  sous licence MIT.
-- Le code publié entre le **2026-07-19** et le **2026-07-20** sous licence propriétaire
-  a été **re-licencié en MIT** lors du commit `3f08df1`. Les tags `v1.1.0` et antérieurs
-  reflètent cette période ; le tag `v1.2.0` marque le retour définitif à MIT.
-- En contribuant, vous acceptez que vos contributions soient intégrées sous la
-  licence MIT du projet (voir [CONTRIBUTING.md](CONTRIBUTING.md)).
-
-## Implications pour les utilisateurs
-
-- Vous pouvez utiliser, modifier, distribuer et créer des œuvres dérivées du code
-  source sous les conditions de la licence MIT.
-- Les marques **SYNAPSE OMNIA**, **Synapse Engine** et **Synapse Studio** ne sont
-  pas couvertes par la licence logicielle (voir [`COPYRIGHT`](COPYRIGHT)).
-- Les dépendances tierces ont leurs propres licences — voir
-  [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+- Accès au code réservé aux licenciés et à l'équipe Synapse.
+- Utilisation soumise à [EULA.md](EULA.md) et à un abonnement valide ([docs/PRICING.md](docs/PRICING.md)).
+- Les marques **SYNAPSE OMNIA** et **Synapse Studio** appartiennent à Synapse ([COPYRIGHT](COPYRIGHT)).
 
 ## Fichiers légaux associés
 
 | Fichier | Rôle |
 |---|---|
-| [`LICENSE`](LICENSE) | Texte MIT actuel |
-| [`COPYRIGHT`](COPYRIGHT) | Avis copyright et marques |
-| [`NOTICE`](NOTICE) | Avis standard (crédits, marques) |
+| [`LICENSE`](LICENSE) | Avis propriétaire |
+| [`EULA.md`](EULA.md) | Contrat utilisateur |
+| [`docs/PRICING.md`](docs/PRICING.md) | Tarifs v1 |
+| [`COPYRIGHT`](COPYRIGHT) | Copyright et marques |
 | [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Licences des dépendances |
 
-## Vérification git
+## Contact
 
-Pour consulter l'historique des changements de licence :
-
-```bash
-git log --oneline -- LICENSE
-```
-
-Résultat attendu :
-
-```
-3f08df1 chore: passer à la licence MIT (open source)
-22321d8 legal: replace MIT with proprietary anti-plagiarism license
-3a76f01 Import SYNAPSE OMNIA 1.1: moteur, G-DNN Studio, site, README et licence.
-```
-
-## Questions
-
-Pour toute question sur la licence ou l'historique, ouvrez une
-[issue](https://github.com/QuantumHacker10/Synapse/issues) avec le label `legal`.
+**licensing@synapse-omnia.com**

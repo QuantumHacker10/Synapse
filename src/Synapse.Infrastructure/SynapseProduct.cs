@@ -10,5 +10,8 @@ public static class SynapseProduct
     public static string Version =>
         typeof(SynapseProduct).Assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-        ?? "2.0.0";
+        ?? "1.0.0";
+
+    public const string LicenseTierUrl = "https://synapse-omnia.com/pricing";
+    public const string SupportEmail = "support@synapse-omnia.com";
 }

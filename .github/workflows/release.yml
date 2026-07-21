@@ -57,7 +57,7 @@ jobs:
           Copy-Item README.md, LICENSE, COPYRIGHT, docs/REQUIREMENTS.md artifacts/${{ matrix.artifact }}/
           @"
           SYNAPSE OMNIA — Outil de simulation 3D (${{ matrix.rid }})
-          MIT License — open source. See LICENSE, COPYRIGHT, REQUIREMENTS.md.
+          Proprietary — see EULA.md, docs/PRICING.md, REQUIREMENTS.md.
           Minimum: mid-range CPU (AVX2/NEON baseline, AVX-512 optional) + Vulkan 1.1+ GPU + GLFW.
           Launch: Synapse.Studio.exe | Engine: Synapse.Studio.exe --engine
           "@ | Set-Content artifacts/${{ matrix.artifact }}/RELEASE_NOTES.txt

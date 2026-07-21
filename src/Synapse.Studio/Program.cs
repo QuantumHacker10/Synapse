@@ -113,7 +113,8 @@ namespace Synapse.Studio
         private static void RunEngineOnly(string[] args)
         {
             Console.WriteLine("=================================================");
-            Console.WriteLine($"  {SynapseProduct.Name} — Moteur de simulation 3D · v{SynapseProduct.Version}");
+            Console.WriteLine($"  {SynapseProduct.Name} v{SynapseProduct.Version} — Simulation 3D professionnelle");
+            Console.WriteLine("  Logiciel propriétaire · synapse-omnia.com/pricing");
             Console.WriteLine("  Apprendre · Réécrire · Cultiver");
             Console.WriteLine("=================================================");
 

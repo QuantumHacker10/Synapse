@@ -5,14 +5,33 @@
         xmlns:contracts="using:Synapse.Studio.Contracts"
         x:Class="Synapse.Studio.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="Synapse Studio — SYNAPSE OMNIA"
+        Title="Synapse Studio"
         Width="1440" Height="900"
         MinWidth="1100" MinHeight="700"
-        Background="#0E1218"
+        Background="#080C10"
         KeyDown="OnWindowKeyDown">
 
   <DockPanel>
-    <Menu DockPanel.Dock="Top" Background="#161B22">
+    <Border DockPanel.Dock="Top" Background="#0A1018" BorderBrush="#1A2433" BorderThickness="0,0,0,1" Padding="16,10">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <Border Width="28" Height="28" CornerRadius="14" Background="#122820" BorderBrush="#45E0B8" BorderThickness="1.5">
+            <Ellipse Width="10" Height="10" Fill="#45E0B8" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel VerticalAlignment="Center" Spacing="0">
+            <TextBlock Text="Synapse Studio" FontWeight="SemiBold" FontSize="15" Foreground="#EEF4FC" />
+            <TextBlock Text="SYNAPSE OMNIA · Simulation 3D professionnelle" FontSize="10" Foreground="#6B8299" />
+          </StackPanel>
+        </StackPanel>
+        <TextBlock Grid.Column="1" Text="{Binding ViewportHint}" Foreground="#5A7088" FontSize="11"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <Border Grid.Column="2" Background="#122820" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
+          <TextBlock Text="v1.0" Foreground="#45E0B8" FontSize="11" FontWeight="SemiBold" FontFamily="Consolas" />
+        </Border>
+      </Grid>
+    </Border>
+
+    <Menu DockPanel.Dock="Top" Background="#0E141C">
       <MenuItem Header="_Fichier">
         <MenuItem Header="Nouveau projet" Command="{Binding NewProjectCommand}" />
         <MenuItem Header="Ouvrir…" Command="{Binding OpenProjectCommand}" />
@@ -39,18 +58,20 @@
       </MenuItem>
       <MenuItem Header="_Aide">
         <MenuItem Header="À propos" Command="{Binding AboutCommand}" />
+        <MenuItem Header="Tarifs &amp; licence" Command="{Binding OpenPricingCommand}" />
         <MenuItem Header="Masquer l'accueil" Command="{Binding DismissWelcomeCommand}" />
       </MenuItem>
     </Menu>
 
-    <Border DockPanel.Dock="Bottom" Background="#161B22" Padding="12,6">
-      <Grid ColumnDefinitions="*,*,*,*,*,*">
-        <TextBlock Grid.Column="0" Foreground="#8B9BB4" Text="{Binding StatusFps}" />
-        <TextBlock Grid.Column="1" Foreground="#8B9BB4" Text="{Binding StatusPhysics}" />
-        <TextBlock Grid.Column="2" Foreground="#8B9BB4" Text="{Binding StatusSimulation}" />
-        <TextBlock Grid.Column="3" Foreground="#8B9BB4" Text="{Binding StatusQuality}" />
-        <TextBlock Grid.Column="4" Foreground="#8B9BB4" Text="{Binding CollaborationStatus}" TextTrimming="CharacterEllipsis" />
-        <TextBlock Grid.Column="5" Foreground="#45E0B8" Text="{Binding StatusLaw}" HorizontalAlignment="Right" />
+    <Border DockPanel.Dock="Bottom" Background="#0E141C" BorderBrush="#1A2433" BorderThickness="0,1,0,0" Padding="14,7">
+      <Grid ColumnDefinitions="Auto,*,*,*,*,*,Auto">
+        <TextBlock Grid.Column="0" Foreground="#45E0B8" Text="Synapse" FontWeight="SemiBold" FontSize="11" Margin="0,0,16,0" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Foreground="#7A92A8" Text="{Binding StatusFps}" FontSize="11" />
+        <TextBlock Grid.Column="2" Foreground="#7A92A8" Text="{Binding StatusPhysics}" FontSize="11" />
+        <TextBlock Grid.Column="3" Foreground="#7A92A8" Text="{Binding StatusSimulation}" FontSize="11" />
+        <TextBlock Grid.Column="4" Foreground="#7A92A8" Text="{Binding StatusQuality}" FontSize="11" />
+        <TextBlock Grid.Column="5" Foreground="#7A92A8" Text="{Binding CollaborationStatus}" FontSize="11" TextTrimming="CharacterEllipsis" />
+        <TextBlock Grid.Column="6" Foreground="#45E0B8" Text="{Binding StatusLaw}" FontSize="11" HorizontalAlignment="Right" />
       </Grid>
     </Border>
 
@@ -58,13 +79,19 @@
       <!-- Left: tabbed tools -->
       <Border Grid.Column="0" Background="#12171F" BorderBrush="#1E2633" BorderThickness="0,0,1,0" Padding="8">
         <DockPanel>
-          <Border DockPanel.Dock="Top" Background="#161B22" CornerRadius="6" Padding="10" Margin="0,0,0,8"
+          <Border DockPanel.Dock="Top" Background="#101820" CornerRadius="8" Padding="14" Margin="0,0,0,10"
+                  BorderBrush="#1E3040" BorderThickness="1"
                   IsVisible="{Binding ShowWelcomeTips}">
-            <StackPanel Spacing="6">
-              <TextBlock Text="Bienvenue dans Synapse Studio" FontWeight="SemiBold" Foreground="#45E0B8" />
-              <TextBlock Text="1. Sélectionnez une entité · 2. Modifiez l'inspecteur · 3. Utilisez l'assistant pour l'éclairage · 4. Lancez la simulation (Espace)"
-                         Foreground="#C5D0E0" TextWrapping="Wrap" FontSize="12" />
-              <Button Content="Compris" Command="{Binding DismissWelcomeCommand}" HorizontalAlignment="Left" />
+            <StackPanel Spacing="8">
+              <TextBlock Text="Bienvenue dans Synapse Studio v1" FontWeight="SemiBold" Foreground="#45E0B8" FontSize="14" />
+              <TextBlock Text="Plateforme de simulation 3D — formes apprises, lois réécrivables, évolution et agents sentients dans un seul atelier."
+                         Foreground="#B8C8D8" TextWrapping="Wrap" FontSize="12" LineHeight="18" />
+              <TextBlock Text="① Scène · ② Lois · ③ Simulation (Espace) · ④ Assistant créatif"
+                         Foreground="#6B8299" FontSize="11" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Commencer" Command="{Binding DismissWelcomeCommand}" />
+                <Button Content="Tarifs" Command="{Binding OpenPricingCommand}" />
+              </StackPanel>
             </StackPanel>
           </Border>
 

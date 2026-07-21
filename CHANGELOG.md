@@ -4,7 +4,24 @@ Toutes les modifications notables de **Synapse OMNIA** sont documentées ici.
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Non publié]
+## [1.0.0] — 2026-07-21
+
+**Synapse OMNIA v1.0** — première release commerciale propriétaire.
+
+### Ajouté
+
+- Repositionnement produit v1 (licence propriétaire, tarification Personal/Pro/Studio/Enterprise)
+- Site vitrine refondu (`site/index.html`, `site/pricing.html`)
+- Packaging Synapse Studio v1 (barre de marque, accueil, statut, menu tarifs)
+- Intégration #29 + #28 : OpenUSD 2.10, hardening production, collaboration, WASM Studio
+
+### Modifié
+
+- Version produit **1.0.0** (`Directory.Build.props`) — reset depuis la ligne 2.x interne
+- Dépôt GitHub passé en **privé**
+- `LICENSE` → propriétaire ; `EULA.md`, `docs/PRICING.md` ajoutés
+
+## [Non publié — pré-v1 interne]
 
 ### Ajouté
 
