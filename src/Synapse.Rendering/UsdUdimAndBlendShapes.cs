@@ -75,6 +75,25 @@ public sealed class MeshBlendShape
         for (int i = 0; i < n; i++)
             positions[i] += DeltaPositions[i] * weight;
     }
+
+    /// <summary>Applies weighted position and normal deltas onto mesh vertices (in-place).</summary>
+    public void Apply(IList<MeshVertex> vertices, float weight)
+    {
+        int n = Math.Min(vertices.Count, DeltaPositions.Count);
+        for (int i = 0; i < n; i++)
+        {
+            var v = vertices[i];
+            v.Position += DeltaPositions[i] * weight;
+            if (i < DeltaNormals.Count)
+            {
+                var nrm = v.Normal + DeltaNormals[i] * weight;
+                if (nrm.LengthSquared() > 1e-12f)
+                    v.Normal = Vector3.Normalize(nrm);
+            }
+
+            vertices[i] = v;
+        }
+    }
 }
 
 /// <summary>Parses UsdSkel BlendShape prims and mesh blendShape bindings.</summary>

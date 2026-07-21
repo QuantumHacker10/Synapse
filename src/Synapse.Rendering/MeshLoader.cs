@@ -244,6 +244,8 @@ namespace GDNN.Rendering.MeshIO
         public float ClearcoatRoughness { get; set; }
         public float Ior { get; set; } = 1.5f;
         public float Occlusion { get; set; } = 1.0f;
+        /// <summary>UsdUVTexture <c>inputs:sourceColorSpace</c> (e.g. sRGB / raw).</summary>
+        public string ColorSpace { get; set; } = "";
         public string AlbedoTexturePath { get; set; } = "";
         public string NormalTexturePath { get; set; } = "";
         public string MetallicRoughnessTexturePath { get; set; } = "";
@@ -255,6 +257,8 @@ namespace GDNN.Rendering.MeshIO
         public string OpacityTexturePath { get; set; } = "";
         /// <summary>UDIM tile index (1001+) → resolved file path for albedo (primary) or multi-channel maps.</summary>
         public Dictionary<int, string> UdimTiles { get; set; } = new();
+        /// <summary>Per-slot UDIM maps (normal, orm, …) when templates use &lt;UDIM&gt;.</summary>
+        public Dictionary<string, Dictionary<int, string>> UdimMapsBySlot { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         /// <summary>Optional NVIDIA MDL module asset path (<c>sourceAsset</c>).</summary>
         public string MdlAssetPath { get; set; } = "";
         /// <summary>MDL material name inside the module.</summary>
@@ -284,6 +288,14 @@ namespace GDNN.Rendering.MeshIO
         public float ImportDepth { get; set; } = -1;
         /// <summary>Active USD variantSelections: variantSet name → variant name.</summary>
         public Dictionary<string, string> UsdVariantSelections { get; set; } = new(StringComparer.Ordinal);
+        /// <summary>When false, <c>payload</c> / <c>payloads</c> composition arcs are skipped.</summary>
+        public bool UsdIncludePayloads { get; set; } = true;
+        /// <summary>Which mesh <c>purpose</c> values to import (default: default+render).</summary>
+        public UsdPurposeMask UsdPurposeMask { get; set; } = UsdPurposeMask.Production;
+        /// <summary>Skip prims with <c>visibility = "invisible"</c>.</summary>
+        public bool UsdSkipInvisible { get; set; } = true;
+        /// <summary>Collect structured MeshIO diagnostics into <see cref="MeshLoadResult.Warnings"/>.</summary>
+        public bool CollectUsdDiagnostics { get; set; } = true;
     }
 
     /// <summary>Configuration for mesh export.</summary>

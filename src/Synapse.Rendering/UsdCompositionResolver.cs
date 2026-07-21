@@ -19,16 +19,16 @@ public static class UsdCompositionResolver
     public const int DefaultMaxReferences = 32;
 
     private static readonly Regex ReferencePath = new(
-        @"(?:references|payload|payloads|subLayers|inherits)\s*=\s*@([^@]+)@(?:\s*<([^>]+)>)?",
+        @"(references|payload|payloads|subLayers|inherits)\s*=\s*@([^@]+)@(?:\s*<([^>]+)>)?",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
     private static readonly Regex ReferenceListPaths = new(
-        @"(?:references|payload|payloads|subLayers|inherits)\s*=\s*\[([^\]]*)\]",
+        @"(references|payload|payloads|subLayers|inherits)\s*=\s*\[([^\]]*)\]",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
     private static readonly Regex AtPath = new(@"@([^@]+)@(?:\s*<([^>]+)>)?", RegexOptions.Compiled);
 
-    public readonly record struct CompositionRef(string AssetPath, string? PrimPath);
+    public readonly record struct CompositionRef(string AssetPath, string? PrimPath, string Kind = "references");
 
     public static IReadOnlyList<string> ExtractReferencePaths(string usdaText) =>
         ExtractCompositionRefs(usdaText).Select(r => r.AssetPath).ToList();
@@ -38,22 +38,24 @@ public static class UsdCompositionResolver
         var paths = new List<CompositionRef>();
         foreach (Match m in ReferencePath.Matches(usdaText))
         {
-            var p = m.Groups[1].Value.Trim();
+            var kind = m.Groups[1].Value.Trim().ToLowerInvariant();
+            var p = m.Groups[2].Value.Trim();
             if (string.IsNullOrEmpty(p))
                 continue;
-            var prim = m.Groups[2].Success ? m.Groups[2].Value.Trim() : null;
-            paths.Add(new CompositionRef(p, string.IsNullOrEmpty(prim) ? null : prim));
+            var prim = m.Groups[3].Success ? m.Groups[3].Value.Trim() : null;
+            paths.Add(new CompositionRef(p, string.IsNullOrEmpty(prim) ? null : prim, kind));
         }
 
         foreach (Match m in ReferenceListPaths.Matches(usdaText))
         {
-            foreach (Match at in AtPath.Matches(m.Groups[1].Value))
+            var kind = m.Groups[1].Value.Trim().ToLowerInvariant();
+            foreach (Match at in AtPath.Matches(m.Groups[2].Value))
             {
                 var p = at.Groups[1].Value.Trim();
                 if (string.IsNullOrEmpty(p))
                     continue;
                 var prim = at.Groups[2].Success ? at.Groups[2].Value.Trim() : null;
-                paths.Add(new CompositionRef(p, string.IsNullOrEmpty(prim) ? null : prim));
+                paths.Add(new CompositionRef(p, string.IsNullOrEmpty(prim) ? null : prim, kind));
             }
         }
 
@@ -123,6 +125,12 @@ public static class UsdCompositionResolver
                     var refs = ExtractCompositionRefs(text);
                     foreach (var r in refs)
                     {
+                        if (IsPayloadKind(r.Kind) && !config.UsdIncludePayloads)
+                        {
+                            errors.Add($"Skipped payload (UsdIncludePayloads=false): {r.AssetPath}");
+                            continue;
+                        }
+
                         if (refCount++ >= maxReferences)
                         {
                             errors.Add($"Composition reference limit exceeded ({maxReferences}).");
@@ -250,6 +258,10 @@ public static class UsdCompositionResolver
             errors.Add(leaf.ErrorMessage!);
         }
     }
+
+    private static bool IsPayloadKind(string kind) =>
+        kind.Equals("payload", StringComparison.OrdinalIgnoreCase) ||
+        kind.Equals("payloads", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsBinary(string path)
     {

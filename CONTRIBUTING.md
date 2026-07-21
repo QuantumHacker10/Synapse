@@ -92,7 +92,7 @@ Le workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) pub
 
 | Tag | Description |
 |---|---|
-| `v2.9.0` | UDIM/MDL, blend shapes, texture stream, marketplace distant (voir docs/PRODUCTION.md) |
+| `v2.10.0` | OpenUSD MeshIO production-complete (topology DCC, normals, multi-mesh, health usd=ok — voir docs/PRODUCTION.md) |
 | `v2.8.0` | UsdSkel SkelAnimation clips |
 | `v2.7.0` | OpenUSD PBR textures avancées |
 | `v2.6.0` | STUN/TURN + OpenUSD materials/skel/variants |

@@ -78,7 +78,9 @@ public sealed class UsdBinaryLoader
         if (TryExtractHeuristic(data, name, out asset, out error))
             return asset != null;
 
-        error ??= "USDC crate recognized but no mesh points/indices could be extracted. Export USDA or a Synapse mesh-pack USDC.";
+        error ??= "USDC crate recognized but no mesh points/indices could be extracted. " +
+                  "Synapse supports Synapse mesh-pack USDC round-trip and best-effort OpenUSD crates; " +
+                  "export USDA or a Synapse mesh-pack USDC for production MeshIO.";
         return false;
     }
 

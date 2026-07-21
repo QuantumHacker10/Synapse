@@ -2,7 +2,15 @@
 
 Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.9 — Actuel (2026-07) — UDIM/MDL, blend shapes, texture stream, marketplace distant
+## v2.10 — Actuel (2026-07) — OpenUSD MeshIO production-complete
+
+- [x] `faceVertexCounts` + authored normals + multi-mesh
+- [x] purpose / visibility / extent / doubleSided
+- [x] payload mute, stage timeCodesPerSecond, bindTransforms preference
+- [x] `UsdProductionSmoke` + `--health` `usd=ok`
+- [x] Sample `production_dcc.usda`
+
+## v2.9 — Livré (2026-07) — UDIM/MDL, blend shapes, texture stream, marketplace distant
 
 - [x] UDIM tiles + MDL material references
 - [x] UsdSkel BlendShape morph targets

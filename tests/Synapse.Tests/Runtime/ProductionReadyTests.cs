@@ -22,7 +22,8 @@ public sealed class ProductionReadyTests
         host.InitializeModules();
         var report = host.GetProductionHealth();
         report.IsCoreReady.Should().BeTrue();
-        report.ProductVersion.Should().StartWith("2.9");
+        report.ProductVersion.Should().StartWith("2.10");
+        report.UsdRuntimeReady.Should().BeTrue(report.UsdRuntimeDetail);
         report.ExperimentalNotes.Should().NotBeEmpty();
         report.ExperimentalNotes.Should().OnlyContain(n =>
             n.Contains("OpenXR", StringComparison.OrdinalIgnoreCase) ||
@@ -30,6 +31,7 @@ public sealed class ProductionReadyTests
             n.Contains("OpenUSD", StringComparison.OrdinalIgnoreCase) ||
             n.Contains("USD", StringComparison.OrdinalIgnoreCase));
         report.ToString().Should().Contain("Synapse");
+        report.ToString().Should().Contain("usd=ok");
     }
 
     [Fact]

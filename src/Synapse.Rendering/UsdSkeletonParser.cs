@@ -23,7 +23,11 @@ public static class UsdSkeletonParser
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
     private static readonly Regex BindTransforms = new(
-        @"matrix4d\[\]\s+(?:restTransforms|bindTransforms)\s*=\s*\[",
+        @"matrix4d\[\]\s+bindTransforms\s*=\s*\[",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static readonly Regex RestTransforms = new(
+        @"matrix4d\[\]\s+restTransforms\s*=\s*\[",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public static MeshSkeleton? ParseSkeleton(string usdaText, MeshLoadConfig? config = null)
@@ -129,7 +133,10 @@ public static class UsdSkeletonParser
     public static List<Matrix4x4> ParseMatrixArray(string text)
     {
         var list = new List<Matrix4x4>();
+        // Prefer bindTransforms (skin bind pose) over restTransforms.
         var m = BindTransforms.Match(text);
+        if (!m.Success)
+            m = RestTransforms.Match(text);
         if (!m.Success)
             return list;
 

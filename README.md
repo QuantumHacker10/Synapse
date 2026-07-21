@@ -1,4 +1,4 @@
-# SYNAPSE OMNIA — Outil de simulation 3D · v2.9
+# SYNAPSE OMNIA — Outil de simulation 3D · v2.10
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
@@ -16,7 +16,7 @@ comment formes, lois et agents sentients changent ensemble.
 Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
 Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
-> **Produit v2.9 — production-ready** — OpenUSD étendu (UDIM/MDL/blend shapes), streaming textures,
+> **Produit v2.10 — production-ready** — OpenUSD MeshIO complet (topology DCC, UDIM/MDL/blend shapes), streaming textures,
 > marketplace plugins distant, STUN/TURN, OpenXR — [docs/PRODUCTION.md](docs/PRODUCTION.md).
 
 **Config minimale :** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **Production :** [docs/PRODUCTION.md](docs/PRODUCTION.md) · **Site :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
@@ -149,7 +149,7 @@ Le routeur [`HybridLlmRouter`](src/Synapse.LLM/HybridLlmRouter.cs) bascule autom
 
 ## Production
 
-Synapse **2.9** est **production-ready** pour l'outil desktop (OpenUSD étendu UDIM/MDL/blend shapes, streaming textures, marketplace plugins distant, WAN+STUN/TURN, OpenXR).
+Synapse **2.10** est **production-ready** pour l'outil desktop (OpenUSD MeshIO complet, streaming textures, marketplace plugins distant, WAN+STUN/TURN, OpenXR).
 Matrice détaillée et checklist release :
 
 → **[docs/PRODUCTION.md](docs/PRODUCTION.md)** · **[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)**

@@ -135,20 +135,68 @@ public static class UsdMaterialParser
 
     public static void FinalizeUdimMaps(MeshMaterial mat, string? baseDirectory)
     {
-        if (!string.IsNullOrEmpty(mat.AlbedoTexturePath) &&
-            (mat.AlbedoTexturePath.Contains("<UDIM>", StringComparison.OrdinalIgnoreCase) ||
-             mat.AlbedoTexturePath.Contains("%(UDIM)", StringComparison.OrdinalIgnoreCase)))
+        ExpandSlotUdim(mat, nameof(MeshMaterial.AlbedoTexturePath), mat.AlbedoTexturePath, baseDirectory, primary: true);
+        ExpandSlotUdim(mat, nameof(MeshMaterial.NormalTexturePath), mat.NormalTexturePath, baseDirectory, primary: false);
+        ExpandSlotUdim(mat, nameof(MeshMaterial.MetallicRoughnessTexturePath), mat.MetallicRoughnessTexturePath, baseDirectory, primary: false);
+        ExpandSlotUdim(mat, nameof(MeshMaterial.EmissiveTexturePath), mat.EmissiveTexturePath, baseDirectory, primary: false);
+        ExpandSlotUdim(mat, nameof(MeshMaterial.AOTexturePath), mat.AOTexturePath, baseDirectory, primary: false);
+        ExpandSlotUdim(mat, nameof(MeshMaterial.OpacityTexturePath), mat.OpacityTexturePath, baseDirectory, primary: false);
+    }
+
+    private static void ExpandSlotUdim(
+        MeshMaterial mat,
+        string slotName,
+        string path,
+        string? baseDirectory,
+        bool primary)
+    {
+        if (string.IsNullOrEmpty(path))
+            return;
+
+        bool hasToken = path.Contains("<UDIM>", StringComparison.OrdinalIgnoreCase) ||
+                        path.Contains("%(UDIM)", StringComparison.OrdinalIgnoreCase);
+        if (!hasToken)
         {
-            mat.UdimTiles = UsdUdim.ExpandTiles(mat.AlbedoTexturePath, baseDirectory);
-            if (mat.UdimTiles.TryGetValue(UsdUdim.BaseTile, out var t1001))
-                mat.AlbedoTexturePath = t1001;
+            if (primary)
+            {
+                var m = Regex.Match(path, @"(\d{4})(?=\.|$)");
+                if (m.Success && int.TryParse(m.Groups[1].Value, out var tile) && tile >= 1001)
+                    mat.UdimTiles[tile] = path;
+            }
+
+            return;
         }
-        else if (!string.IsNullOrEmpty(mat.AlbedoTexturePath))
+
+        var tiles = UsdUdim.ExpandTiles(path, baseDirectory);
+        mat.UdimMapsBySlot[slotName] = tiles;
+        if (tiles.TryGetValue(UsdUdim.BaseTile, out var t1001))
+            AssignPathBySlot(mat, slotName, t1001);
+        if (primary)
+            mat.UdimTiles = tiles;
+    }
+
+    private static void AssignPathBySlot(MeshMaterial mat, string slotName, string path)
+    {
+        switch (slotName)
         {
-            // Still record primary as tile 1001 when path looks like ...1001...
-            var m = Regex.Match(mat.AlbedoTexturePath, @"(\d{4})(?=\.|$)");
-            if (m.Success && int.TryParse(m.Groups[1].Value, out var tile) && tile >= 1001)
-                mat.UdimTiles[tile] = mat.AlbedoTexturePath;
+            case nameof(MeshMaterial.AlbedoTexturePath):
+                mat.AlbedoTexturePath = path;
+                break;
+            case nameof(MeshMaterial.NormalTexturePath):
+                mat.NormalTexturePath = path;
+                break;
+            case nameof(MeshMaterial.MetallicRoughnessTexturePath):
+                mat.MetallicRoughnessTexturePath = path;
+                break;
+            case nameof(MeshMaterial.EmissiveTexturePath):
+                mat.EmissiveTexturePath = path;
+                break;
+            case nameof(MeshMaterial.AOTexturePath):
+                mat.AOTexturePath = path;
+                break;
+            case nameof(MeshMaterial.OpacityTexturePath):
+                mat.OpacityTexturePath = path;
+                break;
         }
     }
 
@@ -282,7 +330,11 @@ public static class UsdMaterialParser
         mat.Roughness = ParseFloat(body, "inputs:roughness", mat.Roughness);
         mat.Metallic = ParseFloat(body, "inputs:metallic", mat.Metallic);
         mat.Opacity = ParseFloat(body, "inputs:opacity", mat.Opacity);
+        mat.AlphaCutoff = ParseFloat(body, "inputs:opacityThreshold", mat.AlphaCutoff);
         mat.EmissiveColor = ParseColor3(body, "inputs:emissiveColor", mat.EmissiveColor);
+        mat.EmissiveIntensity = ParseFloat(body, "inputs:emissiveIntensity", mat.EmissiveIntensity);
+        if (mat.EmissiveIntensity <= 0f && mat.EmissiveColor.LengthSquared() > 1e-8f)
+            mat.EmissiveIntensity = 1f;
         mat.Clearcoat = ParseFloat(body, "inputs:clearcoat", mat.Clearcoat);
         mat.ClearcoatRoughness = ParseFloat(body, "inputs:clearcoatRoughness", mat.ClearcoatRoughness);
         mat.Ior = ParseFloat(body, "inputs:ior", mat.Ior);
@@ -330,7 +382,17 @@ public static class UsdMaterialParser
 
             string resolved = ResolveTexturePath(file, baseDirectory);
             AssignTextureSlot(mat, input, resolved);
+            ApplyUvTextureColorSpace(mat, shader.Body);
         }
+    }
+
+    private static void ApplyUvTextureColorSpace(MeshMaterial mat, string shaderBody)
+    {
+        var cs = Regex.Match(shaderBody,
+            @"(?:token|string)\s+inputs:sourceColorSpace\s*=\s*""([^""]+)""",
+            RegexOptions.IgnoreCase);
+        if (cs.Success && string.IsNullOrEmpty(mat.ColorSpace))
+            mat.ColorSpace = cs.Groups[1].Value;
     }
 
     private static void ApplyDirectUvTexturesInScope(

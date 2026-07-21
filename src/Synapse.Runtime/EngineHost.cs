@@ -9,6 +9,7 @@ using GDNN.Core.NEAT;
 using GDNN.Llm;
 using GDNN.Platform;
 using GDNN.Rendering.Engine;
+using GDNN.Rendering.MeshIO;
 using GDNN.Rendering.Quality;
 using GDNN.Scene;
 using GDNN.Sentience;
@@ -1323,6 +1324,7 @@ namespace Synapse.Runtime
         {
             var caps = PlatformCaps;
             var cpu = caps.Cpu;
+            bool usdOk = UsdProductionSmoke.TryVerify(out var usdDetail);
             return new ProductionHealthReport
             {
                 ProductVersion = Synapse.Infrastructure.SynapseProduct.Version,
@@ -1337,11 +1339,15 @@ namespace Synapse.Runtime
                 ActiveLawId = _activeLawId,
                 BlueprintLiveEdit = BlueprintLiveEdit,
                 MeetsMinimumCpu = cpu.MeetsMinimumCpu,
+                UsdRuntimeReady = usdOk,
+                UsdRuntimeDetail = usdDetail,
                 ExperimentalNotes =
                 {
                     "OpenXR uses native Vulkan2 swapchains when loader+HMD+Vulkan bind succeed; otherwise production simulated images (IsSimulated).",
                     "WAN NAT supports STUN reflexive candidates and TURN Allocate/CreatePermission/ChannelData for symmetric NAT (--stun-server / --turn-server).",
-                    "OpenUSD DCC (Synapse runtime): UDIM/MDL refs, blend shapes, SkelAnimation, PBR textures; GpuTextureStreamer; remote plugin marketplace."
+                    usdOk
+                        ? $"OpenUSD MeshIO production-ready: {usdDetail} (faceVertexCounts, normals, multi-mesh, purpose/visibility, UDIM/MDL, Skel/blend, streamer, remote marketplace)."
+                        : $"OpenUSD MeshIO smoke FAILED: {usdDetail}"
                 }
             };
         }
@@ -1363,6 +1369,9 @@ namespace Synapse.Runtime
         public bool BlueprintLiveEdit { get; init; }
         public bool MeetsMinimumCpu { get; init; }
         public List<string> ExperimentalNotes { get; init; } = new();
+        /// <summary>True when embedded OpenUSD MeshIO production smoke passes.</summary>
+        public bool UsdRuntimeReady { get; init; }
+        public string UsdRuntimeDetail { get; init; } = "";
 
         /// <summary>True when core runtime can run (modules + CPU baseline). Vulkan optional for headless.</summary>
         public bool IsCoreReady => ModulesInitialized && MeetsMinimumCpu;
@@ -1373,7 +1382,8 @@ namespace Synapse.Runtime
         public override string ToString()
         {
             var mode = IsInteractiveReady ? "interactive-ready" : IsCoreReady ? "core-ready (headless/edit)" : "not-ready";
-            return $"Synapse {ProductVersion} [{mode}] SIMD={SimdBaseline} | {PlatformSummary} | entities={EntityCount} law={ActiveLawId ?? "-"}";
+            var usd = UsdRuntimeReady ? "usd=ok" : "usd=fail";
+            return $"Synapse {ProductVersion} [{mode}] {usd} SIMD={SimdBaseline} | {PlatformSummary} | entities={EntityCount} law={ActiveLawId ?? "-"}";
         }
     }
 }

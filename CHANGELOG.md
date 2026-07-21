@@ -6,6 +6,23 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+## [2.10.0] — 2026-07-21
+
+**OpenUSD MeshIO production-complete** — topology DCC, normals, multi-mesh, purpose, health smoke.
+
+### Ajouté
+
+- **`faceVertexCounts`** triangulation (+ sentinels / flat tris)
+- **Authored normals**, multi-`def Mesh`, `purpose` / `visibility`, `extent`, `doubleSided`
+- **`UsdMeshTopology`**, **`UsdProductionSmoke`**, health `usd=ok` / `UsdRuntimeReady`
+- Material `opacityThreshold`, `emissiveIntensity`, `sourceColorSpace`, UDIM multi-slot
+- Composition **payload mute** (`UsdIncludePayloads`), prefer `bindTransforms`, stage FPS
+- BlendShape **normalOffsets** Apply; sample `production_dcc.usda`
+
+### Modifié
+
+- Version **2.10.0**, `docs/PRODUCTION.md` honesty (MeshIO first-party, pas Hydra)
+
 ## [2.9.0] — 2026-07-21
 
 **Runtime USD étendu** — UDIM/MDL, blend shapes, streaming GPU textures, marketplace plugins distant.
