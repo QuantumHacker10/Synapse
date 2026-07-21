@@ -115,8 +115,12 @@ public sealed class UsdPixarRuntimeSurfaceTests
         }
         finally
         {
-            try { Directory.Delete(pluginDir, true); } catch { }
-            try { Directory.Delete(serveDir, true); } catch { }
+            try
+            { Directory.Delete(pluginDir, true); }
+            catch { }
+            try
+            { Directory.Delete(serveDir, true); }
+            catch { }
         }
     }
 

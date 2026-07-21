@@ -99,7 +99,7 @@ public static class UsdSkelBlendShapeParser
             string name = m.Groups[1].Value;
             string body = ExtractBlock(usdaText, m.Index + m.Length - 1);
             var shape = new MeshBlendShape { Name = name };
-            shape.DeltaPositions.AddRange(ParsePointArray(body, "offsets") 
+            shape.DeltaPositions.AddRange(ParsePointArray(body, "offsets")
                 .Concat(ParsePointArray(body, "point3f[] offsets")));
             if (shape.DeltaPositions.Count == 0)
                 shape.DeltaPositions.AddRange(ParsePointArrayLoose(body, "offsets"));

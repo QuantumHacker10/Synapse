@@ -120,7 +120,8 @@ public sealed class GpuTextureStreamer : IAsyncDisposable
     public void EvictAll()
     {
         _resident.Clear();
-        while (_lru.TryDequeue(out _)) { }
+        while (_lru.TryDequeue(out _))
+        { }
         Interlocked.Exchange(ref _bytesResident, 0);
     }
 
