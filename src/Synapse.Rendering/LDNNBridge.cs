@@ -161,6 +161,21 @@ namespace GDNN.Rendering.Bridge
             });
         }
 
+        /// <summary>
+        /// Overlays meshlet visibility (depth/normal/albedo) onto the CPU G-buffer so Hybrid GI
+        /// samples real cluster geometry instead of constant fill.
+        /// </summary>
+        public void OverlayMeshletGBuffer(
+            Action<float[], Vector3[], Vector3[], int, int> painter)
+        {
+            if (!_initialized || painter == null)
+                return;
+            painter(_gbuffer.Depth, _gbuffer.Normals, _gbuffer.Albedo, _width, _height);
+            _gbufferVersion++;
+            _lastFillWasConstants = false;
+            _residentGi.UpdateFromGBuffer(_gbuffer);
+        }
+
         /// <summary>Copies depth/normal/albedo/emissive arrays into the internal G-Buffer.</summary>
         public void FillGBuffer(
             float[] depthData,
@@ -322,15 +337,8 @@ namespace GDNN.Rendering.Bridge
                 _lastStateHash = stateHash;
             }
 
-            // Prefer GPU-resident SSGI compute when we already have a GPU-origin G-buffer
-            // and no fresh constant fill was forced this frame.
-            if (!_lastFillWasConstants && _residentGi.HasResidentGBuffer)
-            {
-                var resident = _residentGi.ComputeResidentIrradiance(_ldnn, _cameraState, _lights);
-                _cachedIrradiance = resident;
-                return resident;
-            }
-
+            // Always run the full Hybrid L-DNN stack (SSGI + Radiance Cascades + neural + specular).
+            // The resident-only SSGI shortcut skipped cascades and killed visual quality.
             var context = new RenderContext
             {
                 FrameIndex = _ldnn.FrameIndex,
@@ -349,6 +357,10 @@ namespace GDNN.Rendering.Bridge
                 for (int y = 0; y < _height; y++)
                     for (int x = 0; x < _width; x++)
                         irradiance[x, y] = giField[x, y];
+            }
+            else if (!_lastFillWasConstants && _residentGi.HasResidentGBuffer)
+            {
+                irradiance = _residentGi.ComputeResidentIrradiance(_ldnn, _cameraState, _lights);
             }
             else
             {
@@ -375,10 +387,21 @@ namespace GDNN.Rendering.Bridge
             if (px < 0 || px >= _width || py < 0 || py >= _height)
                 return 1.0f;
 
-            if (!_initialized || _ldnn == null)
+            var ao = EnsureAoBuffer();
+            if (ao == null || ao.Length != _width * _height)
                 return SampleLocalDepthAO(px, py);
 
-            // Ensure AO buffer is current for this G-buffer version.
+            return Math.Clamp(ao[py * _width + px], 0f, 1f);
+        }
+
+        /// <summary>
+        /// Ensures the industrial SSAO buffer is up to date and returns it (row-major, length = width*height).
+        /// </summary>
+        public float[]? EnsureAoBuffer()
+        {
+            if (!_initialized || _ldnn == null)
+                return null;
+
             if (_aoGbufferVersion != _gbufferVersion)
             {
                 _ldnn.DispatchComputeShaders(
@@ -409,9 +432,65 @@ namespace GDNN.Rendering.Bridge
 
             var ao = _ldnn.AmbientOcclusion?.AOBuffer;
             if (ao == null || ao.Length != _width * _height)
-                return SampleLocalDepthAO(px, py);
+                return null;
+            return ao;
+        }
 
-            return Math.Clamp(ao[py * _width + px], 0f, 1f);
+        /// <summary>Screen-space AO as a dense WxH field for GPU upload (1 = unoccluded).</summary>
+        public float[,] GetAoField()
+        {
+            var field = new float[_width, _height];
+            var ao = EnsureAoBuffer();
+            if (ao == null)
+            {
+                for (int y = 0; y < _height; y++)
+                    for (int x = 0; x < _width; x++)
+                        field[x, y] = SampleLocalDepthAO(x, y);
+                return field;
+            }
+
+            for (int y = 0; y < _height; y++)
+            {
+                int row = y * _width;
+                for (int x = 0; x < _width; x++)
+                    field[x, y] = Math.Clamp(ao[row + x], 0f, 1f);
+            }
+            return field;
+        }
+
+        /// <summary>
+        /// Collapses L-DNN froxel in-scatter to a screen-sized RGB field for the deferred fog composite.
+        /// Uses a sparse sample grid then bilinear-fills for speed.
+        /// </summary>
+        public Vector3[,] GetFogInScatterField()
+        {
+            var field = new Vector3[_width, _height];
+            var vol = _ldnn?.Volumetrics;
+            if (!_initialized || vol == null || _width <= 0 || _height <= 0)
+                return field;
+
+            int step = Math.Max(2, Math.Max(_width, _height) / 64);
+            for (int y = 0; y < _height; y += step)
+            {
+                for (int x = 0; x < _width; x += step)
+                {
+                    float u = (x + 0.5f) / _width;
+                    float v = (y + 0.5f) / _height;
+                    var screen = new Vector2(u, v);
+                    var viewDir = Vector3.Normalize(
+                        _cameraState.Forward
+                        + _cameraState.Right * ((u - 0.5f) * 2f * _cameraState.AspectRatio * MathF.Tan(_cameraState.FieldOfView * 0.5f * MathF.PI / 180f))
+                        + _cameraState.Up * ((0.5f - v) * 2f * MathF.Tan(_cameraState.FieldOfView * 0.5f * MathF.PI / 180f)));
+                    var scatter = vol.IntegrateVolumeScattering(_cameraState, screen, viewDir, _lights);
+                    int x1 = Math.Min(_width, x + step);
+                    int y1 = Math.Min(_height, y + step);
+                    for (int yy = y; yy < y1; yy++)
+                        for (int xx = x; xx < x1; xx++)
+                            field[xx, yy] = scatter;
+                }
+            }
+
+            return field;
         }
 
         /// <summary>Fast local depth-based AO fallback when the full SSAO pass is unavailable.</summary>
@@ -453,17 +532,18 @@ namespace GDNN.Rendering.Bridge
             return new LDNNConfig
             {
                 QualityMode = LDNNQualityMode.HybridRT,
+                // Hybrid = SSGI + Radiance Cascades + neural refine + specular (L-DNN full stack).
                 GIComputationMode = GIComputationMode.Hybrid,
                 CascadeConfig = new CascadeConfig
                 {
-                    NumLevels = 4,
-                    BaseResolution = CascadeResolution.Medium128,
+                    NumLevels = 6,
+                    BaseResolution = CascadeResolution.High256,
                     AllocationStrategy = CascadeAllocationStrategy.Logarithmic,
-                    MemoryBudgetBytes = 256 * 1024 * 1024,
-                    TimeBudgetMs = 4.0f,
+                    MemoryBudgetBytes = 512 * 1024 * 1024,
+                    TimeBudgetMs = 10.0f,
                     EnableTemporalAccumulation = true,
-                    TemporalBlendFactor = 0.1f,
-                    SpatialFilterRadius = 2,
+                    TemporalBlendFactor = 0.10f,
+                    SpatialFilterRadius = 3,
                     DistanceScale = 1.0f,
                     AngularCoverage = 1.0f
                 },
@@ -471,56 +551,57 @@ namespace GDNN.Rendering.Bridge
                 {
                     PrimaryDenoiser = DenoiserType.SpatialBilateral,
                     SecondaryDenoiser = DenoiserType.TemporalAccumulation,
-                    SpatialRadius = 3,
-                    TemporalFrames = 4,
-                    NormalThreshold = 0.5f,
+                    SpatialRadius = 4,
+                    TemporalFrames = 8,
+                    NormalThreshold = 0.45f,
                     DepthThreshold = 0.01f,
-                    LuminanceThreshold = 0.3f,
-                    Strength = 0.8f,
-                    Iterations = 2,
+                    LuminanceThreshold = 0.25f,
+                    Strength = 0.9f,
+                    Iterations = 3,
                     UseHalfRes = false
                 },
                 TemporalConfig = new TemporalConfig
                 {
                     Mode = TemporalFilterMode.VarianceClipping,
-                    BaseBlendFactor = 0.1f,
-                    MaxHistoryLength = 16,
-                    VarianceClippingStrength = 0.5f,
-                    DisocclusionThreshold = 0.3f,
-                    ResponseSpeed = 0.5f,
-                    AccumulationSpeed = 0.1f,
+                    BaseBlendFactor = 0.08f,
+                    MaxHistoryLength = 24,
+                    VarianceClippingStrength = 0.55f,
+                    DisocclusionThreshold = 0.25f,
+                    ResponseSpeed = 0.4f,
+                    AccumulationSpeed = 0.12f,
                     UseYCoCg = true
                 },
                 VolumeFogConfig = new VolumeFogConfig
                 {
-                    MaxDensity = 0.02f,
-                    HeightFalloff = 0.5f,
+                    MaxDensity = 0.035f,
+                    HeightFalloff = 0.35f,
                     ReferenceHeight = 0.0f,
-                    FogColor = new Vector3(0.7f, 0.8f, 1.0f),
-                    Anisotropy = 0.3f,
-                    StartDistance = 5.0f,
-                    MaxDistance = 100.0f,
-                    DepthSlices = 64,
-                    GridResolutionXY = 16,
-                    TemporalReprojectionStrength = 0.8f,
-                    NoiseScale = 0.05f,
-                    NoiseSpeed = 0.1f,
-                    ShadowIntensity = 0.5f,
+                    FogColor = new Vector3(0.65f, 0.75f, 0.95f),
+                    Anisotropy = 0.45f,
+                    StartDistance = 3.0f,
+                    MaxDistance = 180.0f,
+                    DepthSlices = 96,
+                    GridResolutionXY = 48,
+                    TemporalReprojectionStrength = 0.85f,
+                    NoiseScale = 0.04f,
+                    NoiseSpeed = 0.12f,
+                    ShadowIntensity = 0.65f,
                     EnableClouds = true,
-                    CloudAltitude = 80.0f,
-                    CloudThickness = 40.0f,
-                    CloudCoverage = 0.45f,
-                    CloudDensityScale = 2.0f,
-                    CloudNoiseScale = 0.02f
+                    CloudAltitude = 90.0f,
+                    CloudThickness = 45.0f,
+                    CloudCoverage = 0.4f,
+                    CloudDensityScale = 2.2f,
+                    CloudNoiseScale = 0.018f
                 },
                 SamplingMode = HemisphereSamplingMode.CosineWeighted,
-                MaxPathDepth = 4,
-                ReferenceSamplesPerPixel = 64,
-                EnableNeuralTemporal = false,
+                MaxPathDepth = 6,
+                ReferenceSamplesPerPixel = 32,
+                EnableNeuralTemporal = true,
                 NeuralLearningRate = 0.001f,
                 NeuralBatchSize = 32,
                 NeuralNetworkProfile = NeuralNetworkProfile.Full,
-                EnableOnlineTeacherTraining = true,
+                // Teacher path-trace every frame kills realtime — keep off the present path.
+                EnableOnlineTeacherTraining = false,
                 TeacherPixelStride = 16,
                 TeacherSamplesPerPixel = 1,
                 EnableNeuralSpecular = true
