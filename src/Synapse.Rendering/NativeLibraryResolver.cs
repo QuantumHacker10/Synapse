@@ -13,13 +13,27 @@ namespace GDNN.Platform
     public static class NativeLibraryResolver
     {
         private static bool _registered;
+        private static readonly object RegisterLock = new();
 
         public static void EnsureRegistered()
         {
             if (_registered)
                 return;
-            NativeLibrary.SetDllImportResolver(typeof(NativeLibraryResolver).Assembly, Resolve);
-            _registered = true;
+
+            lock (RegisterLock)
+            {
+                if (_registered)
+                    return;
+                try
+                {
+                    NativeLibrary.SetDllImportResolver(typeof(NativeLibraryResolver).Assembly, Resolve);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Resolver already installed for this assembly (multi-host / parallel tests).
+                }
+                _registered = true;
+            }
         }
 
         public static string GlfwLibraryName =>

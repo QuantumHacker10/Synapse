@@ -50,7 +50,9 @@ public sealed class NativeFramePipelineTests
         stats.EntityCount.Should().BeGreaterThan(0);
         stats.ActiveLawId.Should().NotBeNullOrEmpty();
         stats.RenderReady.Should().BeFalse();
-        stats.ContinuumModules.Should().Contain("Sph");
+        host.Multiphysics!.Config.EnabledModules.Should().HaveFlag(ContinuumModules.Sph);
+        host.Multiphysics.Config.EnabledModules.Should().HaveFlag(ContinuumModules.Elasticity);
+        host.Multiphysics.Config.EnabledModules.Should().HaveFlag(ContinuumModules.LivingLaws);
         host.AverageFieldTemperature.Should().BeGreaterThan(0f);
     }
 
