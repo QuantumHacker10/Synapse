@@ -149,10 +149,14 @@ des ressources Vulkan ; `RenderEngine` appelle `ExecuteFrame` qui orchestre le g
 
 ### Cible d’impact Nanite Neural 3.0 / Lumen Neural 3.0
 
-| Tech | Present path Synapse (industriel) | Capacité |
+| Tech | Present path Synapse (industriel + cinématique) | Capacité |
 |---|---|---|
-| **G-DNN — Nanite Neural 3.0** | Continuous LOD (`NaniteNeural30`), densités meshlets pilotées par erreur écran, visibility buffer jusqu’à **768²**, resolve matériau cluster → G-buffer / fog / irradiance ; page keys virtuelles | Géométrie neuronale dense, peinte chaque frame |
-| **L-DNN — Lumen Neural 3.0** | Surface radiance cache + multi-bounce refine + couplage thermo-volumétrique Physics→Fog/Emissive (`LumenNeural30`, `PhysicsFieldGiCoupler`) ; Hybrid SSGI + 6 cascades + neural | GI dynamique couplée aux lois vivantes |
+| **G-DNN — Nanite Neural 3.0** | Continuous LOD + **MeshletMaterialResolvePass** full-res ; `NaniteCinematicResolve` / `MeshShaderCompatGenerator` ; visibility jusqu’à **2048²** (Cinematic) | Géométrie neuronale dense + material resolve viewport |
+| **L-DNN — Lumen Neural 3.0** | Surface cache + multi-bounce + **`LumenCinematicGi`** (GPU cache 96³ + full path-trace blend) | GI dynamique + mode Cinematic path-trace |
+| **Upscaling** | **`UpscalePass`** après tonemap : FSR spatial / DLSS-compatible / MetalFX-compatible | Render scale &lt; 1 → display |
+| **Continuum GPU-friendly** | **`GpuContinuumScheduler`** SPH+LBM+élasticité (Demo/Industrial/Cinematic) | Fluides / LBM / FEM-grille scène |
+
+Activation native : `EngineHost.EnableCinematicStack()` ou `QualityPreset=Cinematic`.
 
 ## Pipeline industriel par frame — LLM → Physics → Rendering → Simulation
 
