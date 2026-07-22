@@ -478,11 +478,13 @@ namespace Synapse.Studio.ViewModels
             ChatInput = "";
             ChatMessages.Add(new ChatMessageRecord { Role = "Vous", Content = prompt });
 
-            // Steer the model toward structured lighting/SDF JSON when relevant.
+            // Steer the model toward structured industrial world-delta JSON when relevant.
             string routedPrompt = LooksLikeSceneControlPrompt(prompt)
-                ? prompt + "\n\nRespond with a JSON object including any of: " +
-                  "directionalDirection [x,y,z], color (#RRGGBB), intensity, fogDensity, " +
-                  "enableClouds, and/or primitive/center/radius for an SDF hint."
+                ? prompt + "\n\nRespond with a JSON object for the Synapse industrial pipeline " +
+                  "(LLM→Physics→Rendering→Simulation). Include any of: " +
+                  "directionalDirection [x,y,z], color (#RRGGBB), intensity, fogDensity, enableClouds, " +
+                  "primitive/center/radius (SDF), lawId/expression/enableModules (living law), " +
+                  "metallic/roughness (material), impulse/heatDeposit/profile (simulation)."
                 : prompt;
 
             var response = await _host.ChatAsync(routedPrompt);
@@ -494,12 +496,12 @@ namespace Synapse.Studio.ViewModels
                 Provider = response?.Provider ?? ""
             });
 
-            // Auto-apply scene or behavior hints when parseable.
-            LlmApplyStatus = _host.ApplyLlmSceneHints(content);
-            if (!LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
-                LlmApplyStatus = _host.ApplyLlmBehaviorHints(content);
-            if (LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
-                LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+            // Auto-apply full industrial cascade: LLM → Physics → Rendering → Simulation.
+            LlmApplyStatus = _host.ApplyLlmWorldDelta(content);
+            if (LlmApplyStatus.Contains("Applied:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("law:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("agent:", StringComparison.Ordinal))
                 RefreshEntities();
         }
 
@@ -514,11 +516,11 @@ namespace Synapse.Studio.ViewModels
                 return;
             }
 
-            LlmApplyStatus = _host.ApplyLlmSceneHints(last.Content);
-            if (!LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
-                LlmApplyStatus = _host.ApplyLlmBehaviorHints(last.Content);
-            if (LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
-                LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+            LlmApplyStatus = _host.ApplyLlmWorldDelta(last.Content);
+            if (LlmApplyStatus.Contains("Applied:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("law:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("agent:", StringComparison.Ordinal))
                 RefreshEntities();
         }
 
@@ -548,6 +550,22 @@ namespace Synapse.Studio.ViewModels
         }
 
         [RelayCommand]
+        private void InsertLawPrompt()
+        {
+            ChatInput =
+                "Apply a living physics law as JSON with lawId (e.g. heat_equation), " +
+                "optional expression, and enableModules [\"sph\",\"elasticity\"] if needed.";
+        }
+
+        [RelayCommand]
+        private void InsertWorldDeltaPrompt()
+        {
+            ChatInput =
+                "Create a full Synapse world delta as JSON: warm sunset lighting, " +
+                "a sphere SDF at [0,1,0], lawId heat_equation, and an agent impulse at origin.";
+        }
+
+        [RelayCommand]
         private void AddBlueprintLlmNode()
         {
             _blueprint.Nodes.Add(new BlueprintNode
@@ -570,6 +588,10 @@ namespace Synapse.Studio.ViewModels
                 || prompt.Contains("cloud", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("sdf", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("sun", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("law", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("physics", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("impulse", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("world delta", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("éclair", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("éclairage", StringComparison.OrdinalIgnoreCase);
         }

@@ -176,6 +176,37 @@ namespace GDNN.Rendering.Bridge
             _residentGi.UpdateFromGBuffer(_gbuffer);
         }
 
+        private PhysicsFieldGiCoupler? _fieldCoupler;
+        private readonly LumenNeural30.SurfaceRadianceCache _surfaceCache = new(48);
+        private MaterialHint? _materialHint;
+
+        /// <summary>Applies LLM material hint as emissive / albedo bias for Lumen Neural 3.0.</summary>
+        public void ApplyMaterialHint(MaterialHint hint)
+        {
+            _materialHint = hint ?? throw new ArgumentNullException(nameof(hint));
+            InvalidateGICache();
+        }
+
+        /// <summary>Physics → L-DNN thermo-volumetric coupling (Lumen Neural 3.0).</summary>
+        public void ApplyPhysicsFieldCoupling(PhysicsFieldGiCoupler coupler)
+        {
+            _fieldCoupler = coupler ?? throw new ArgumentNullException(nameof(coupler));
+            if (!_initialized || _ldnn == null || _config == null)
+                return;
+
+            _config.VolumeFogConfig = coupler.ApplyToFog(_config.VolumeFogConfig);
+            _ldnn.Config.VolumeFogConfig = _config.VolumeFogConfig;
+            _ldnn.Volumetrics?.Initialize(_config.VolumeFogConfig, _width, _height);
+
+            // Seed surface radiance cache from heat (world mid-plane).
+            var (_, emissive, _) = LumenNeural30.CouplePhysicsFields(
+                coupler.LastAverageTemperature,
+                coupler.LastAverageDensity,
+                coupler.LastTemperatureVariance);
+            _surfaceCache.Accumulate(Vector3.Zero, emissive, weight: 1.5f);
+            InvalidateGICache();
+        }
+
         /// <summary>Copies depth/normal/albedo/emissive arrays into the internal G-Buffer.</summary>
         public void FillGBuffer(
             float[] depthData,
@@ -352,22 +383,67 @@ namespace GDNN.Rendering.Bridge
 
             var irradiance = new Vector3[_width, _height];
             var giField = _ldnn.GetLastIrradianceField(_width, _height);
-            if (giField != null && giField.GetLength(0) == _width && giField.GetLength(1) == _height)
+            bool usedHybridField = giField != null
+                && giField.GetLength(0) == _width
+                && giField.GetLength(1) == _height;
+
+            if (usedHybridField)
             {
                 for (int y = 0; y < _height; y++)
                     for (int x = 0; x < _width; x++)
-                        irradiance[x, y] = giField[x, y];
+                        irradiance[x, y] = giField![x, y];
             }
-            else if (!_lastFillWasConstants && _residentGi.HasResidentGBuffer)
+
+            // Resident compute path: always refresh when a non-constant G-buffer is resident
+            // so LastGiPath stays GpuResidentCompute for industrial diagnostics.
+            if (!_lastFillWasConstants && _residentGi.HasResidentGBuffer)
             {
-                irradiance = _residentGi.ComputeResidentIrradiance(_ldnn, _cameraState, _lights);
+                var resident = _residentGi.ComputeResidentIrradiance(_ldnn, _cameraState, _lights);
+                if (usedHybridField)
+                {
+                    for (int y = 0; y < _height; y++)
+                        for (int x = 0; x < _width; x++)
+                            irradiance[x, y] = irradiance[x, y] * 0.65f + resident[x, y] * 0.35f;
+                }
+                else
+                {
+                    irradiance = resident;
+                }
             }
-            else
+            else if (!usedHybridField)
             {
                 for (int y = 0; y < _height; y++)
                     for (int x = 0; x < _width; x++)
                         irradiance[x, y] = _gbuffer.Albedo[y * _width + x] * 0.3f;
             }
+
+            // Lumen Neural 3.0: multi-bounce refine + surface cache + physics heat boost.
+            Vector3 cacheSample = _surfaceCache.Sample(_cameraState.Position);
+            Vector3 specularHint = Vector3.One * 0.15f;
+            if (_materialHint?.EmissiveStrength is { } em && em > 0f)
+                specularHint += Vector3.One * em;
+
+            for (int y = 0; y < _height; y += Math.Max(1, _height / 64))
+            {
+                for (int x = 0; x < _width; x += Math.Max(1, _width / 64))
+                {
+                    int idx = y * _width + x;
+                    Vector3 albedo = _gbuffer.Albedo[idx];
+                    Vector3 refined = LumenNeural30.MultiBounceRefine(
+                        irradiance[x, y],
+                        irradiance[x, y] * 1.1f,
+                        cacheSample,
+                        albedo,
+                        specularHint);
+                    irradiance[x, y] = refined;
+                    _surfaceCache.Accumulate(
+                        _cameraState.Position + _cameraState.Forward * MathF.Max(0.5f, _gbuffer.Depth[idx]),
+                        refined,
+                        weight: 0.35f);
+                }
+            }
+
+            _fieldCoupler?.BoostIrradiance(irradiance);
 
             if (_lastFillWasConstants)
                 _residentGi.MarkConstantFallback();
@@ -600,8 +676,8 @@ namespace GDNN.Rendering.Bridge
                 NeuralLearningRate = 0.001f,
                 NeuralBatchSize = 32,
                 NeuralNetworkProfile = NeuralNetworkProfile.Full,
-                // Teacher path-trace every frame kills realtime — keep off the present path.
-                EnableOnlineTeacherTraining = false,
+                // Sparse teacher (stride 16) keeps Lumen Neural online learning industrial-viable.
+                EnableOnlineTeacherTraining = true,
                 TeacherPixelStride = 16,
                 TeacherSamplesPerPixel = 1,
                 EnableNeuralSpecular = true

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using GDNN.Core.NEAT;
 using GDNN.Llm;
 using GDNN.Platform;
+using GDNN.Rendering;
 using GDNN.Rendering.Engine;
 using GDNN.Rendering.Quality;
 using GDNN.Scene;
@@ -52,9 +53,14 @@ namespace Synapse.Runtime
         private bool _simulationPlaying = true;
         private string _llmProviderSummary = "LLM not initialized";
         private readonly ViewportEditorState _viewportEditor = new();
+        private OmniaIndustrialPipeline? _industrialPipeline;
+        private MaterialHint? _lastMaterialHint;
 
         /// <summary>Viewport gizmo/grid/selection state for Studio.</summary>
         public ViewportEditorState ViewportEditor => _viewportEditor;
+
+        /// <summary>Industrial LLM→Physics→Rendering→Simulation cascade.</summary>
+        public OmniaIndustrialPipeline? IndustrialPipeline => _industrialPipeline;
 
         /// <summary>Creates a host bound to application config and logging.</summary>
         public EngineHost(SynapseConfig config, ISynapseLogger logger)
@@ -152,14 +158,21 @@ namespace Synapse.Runtime
                     EnabledModules = ContinuumModules.LivingLaws | ContinuumModules.RigidBodies,
                     FixedTimeStep = 1f / 60f,
                     MaxSubSteps = 4,
-                    Gravity = new Vector3(0f, -9.81f, 0f)
+                    Gravity = new Vector3(0f, -9.81f, 0f),
+                    SyncFieldFromRigidBodies = true
                 });
+            // Industrial continuum ready: solvers warm; LLM law EnableModules can turn them on.
+            _multiphysics.EnableSph();
+            _multiphysics.EnableElasticity();
+            _multiphysics.Config.EnabledModules = ContinuumModules.LivingLaws | ContinuumModules.RigidBodies;
             _meshProvider = new SynapseMeshProvider(_logger);
             _sentience = new SentienceManager();
             _llmRouter = new HybridLlmRouter();
             _llmProviderSummary = LlmProviderBootstrap.Register(_llmRouter, _config, _logger).Summary;
             WireBehaviorLlmRouter();
             _quality = new RuntimeQualityManager(ParseQuality(_config.QualityPreset), AdaptationMode.Dynamic);
+            _industrialPipeline = new OmniaIndustrialPipeline(this, _logger);
+            _industrialPipeline.BindPhysics(_multiphysics);
 
             _activeLawId = _scene.ActiveLawId ?? "heat_equation";
             EnsureLawCompiled(_activeLawId, _scene.ActiveLawExpression);
@@ -174,7 +187,7 @@ namespace Synapse.Runtime
 
             PlatformCaps = NativePlatform.Probe();
             _modulesInitialized = true;
-            _logger.Info("EngineHost", "Modules initialized (Physics, Simulation, LLM, Quality, Twins, MeshProvider)");
+            _logger.Info("EngineHost", "Modules initialized (Physics+SPH+Elasticity, Simulation, LLM, IndustrialPipeline, Quality, Twins, MeshProvider)");
             _logger.Info("Platform", PlatformCaps.Summary);
         }
 
@@ -586,6 +599,8 @@ namespace Synapse.Runtime
                         sdfEntity.Scale = new Vec3(radius, radius, radius);
                 }
 
+                // Drive G-DNN Nanite Neural SDF hint into the algorithm hub when render is live.
+                _renderEngine?.SceneRenderer?.ApplySdfHint(sdf);
                 applied.Add($"sdf:{primitive}");
             }
 
@@ -596,6 +611,126 @@ namespace Synapse.Runtime
             _logger.Info("LLM", summary);
             SyncSceneToRenderer();
             return summary;
+        }
+
+        /// <summary>
+        /// Industrial cascade: LLM → Physics → Rendering → Simulation in one call.
+        /// </summary>
+        public string ApplyLlmWorldDelta(string llmText)
+        {
+            InitializeModules();
+            _industrialPipeline ??= new OmniaIndustrialPipeline(this, _logger);
+            _industrialPipeline.BindPhysics(_multiphysics);
+            var result = _industrialPipeline.ApplyWorldDelta(llmText);
+            RaiseInspector("OmniaPipeline", result.Success ? "WorldDelta" : "Empty", result.Summary);
+            return result.Summary;
+        }
+
+        /// <summary>Applies a living-law hint (library id and/or expression) from the LLM.</summary>
+        public string ApplyLlmLawHint(LivingLawHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            InitializeModules();
+
+            if (hint.EnableModules is { Length: > 0 } && _multiphysics != null)
+            {
+                foreach (var mod in hint.EnableModules)
+                {
+                    if (mod.Contains("sph", StringComparison.OrdinalIgnoreCase))
+                        _multiphysics.EnableSph();
+                    if (mod.Contains("elastic", StringComparison.OrdinalIgnoreCase))
+                        _multiphysics.EnableElasticity();
+                }
+            }
+
+            string lawId = string.IsNullOrWhiteSpace(hint.LawId)
+                ? (hint.Name ?? "llm_law").Replace(' ', '_').ToLowerInvariant()
+                : hint.LawId.Trim();
+
+            string? expression = hint.Expression;
+            if (string.IsNullOrWhiteSpace(expression))
+            {
+                var entry = _lawCompiler!.Library.GetLaw(lawId);
+                if (entry == null)
+                    return $"Unknown law '{lawId}' and no expression provided.";
+                expression = entry.Expression;
+            }
+
+            var compile = CompileLaw(lawId, expression);
+            if (!compile.Success)
+                return $"Law compile failed: {compile.Message}";
+
+            return $"Applied: law:{lawId} ({compile.InstructionCount} ops)";
+        }
+
+        /// <summary>Stores and applies a material hint to the live renderer.</summary>
+        public string ApplyLlmMaterialHint(MaterialHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            InitializeModules();
+            _lastMaterialHint = hint;
+            _renderEngine?.SceneRenderer?.ApplyMaterialHint(hint);
+            string name = string.IsNullOrWhiteSpace(hint.Name) ? "material" : hint.Name!;
+            return $"material:{name}(m={hint.Metallic ?? 0:F2},r={hint.Roughness ?? 0.5f:F2})";
+        }
+
+        /// <summary>Spawns / impulses from an LLM simulation hint (Simulation → Physics).</summary>
+        public string ApplyLlmImpulseHint(SimulationImpulseHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            InitializeModules();
+            var applied = new List<string>();
+
+            Vector3 pos = hint.Position is { } p
+                ? new Vector3(p.X, p.Y, p.Z)
+                : Vector3.Zero;
+
+            if (!string.IsNullOrWhiteSpace(hint.Profile) || !string.IsNullOrWhiteSpace(hint.BehaviorTreeName))
+            {
+                string profile = hint.Profile ?? hint.BehaviorTreeName ?? "patrol";
+                SpawnAgent(profile, pos);
+                applied.Add($"agent:{profile}");
+            }
+
+            if (hint.Impulse is { } imp && _multiphysics != null)
+            {
+                var impulse = new Vector3(imp.X, imp.Y, imp.Z);
+                if (_multiphysics.ApplyWorldImpulse(pos, impulse))
+                    applied.Add($"impulse=({impulse.X:F1},{impulse.Y:F1},{impulse.Z:F1})");
+            }
+
+            if (hint.HeatDeposit is { } heat && MathF.Abs(heat) > 1e-4f)
+            {
+                _multiphysics?.DepositHeat(pos, heat);
+                applied.Add($"heat={heat:F2}");
+            }
+
+            return applied.Count == 0 ? "impulse:noop" : string.Join(", ", applied);
+        }
+
+        /// <summary>
+        /// Physics → Rendering: feeds living-law field stats into L-DNN fog / irradiance.
+        /// </summary>
+        public void ApplyPhysicsFieldToRenderer(PhysicsFieldGiCoupler coupler)
+        {
+            if (coupler == null || _renderEngine?.SceneRenderer == null || !_renderInitialized)
+                return;
+            _renderEngine.SceneRenderer.ApplyPhysicsFieldCoupling(coupler);
+        }
+
+        /// <summary>Per-frame industrial coupling tick (Physics↔Rendering↔Simulation).</summary>
+        public void TickIndustrialCoupling(float dt)
+        {
+            if (_industrialPipeline == null)
+                return;
+            try
+            {
+                _industrialPipeline.TickCoupling(dt);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("OmniaPipeline", $"Coupling tick failed: {ex.Message}");
+            }
         }
 
         /// <summary>Parses behavior-tree hints from LLM output, compiles, and registers the tree.</summary>

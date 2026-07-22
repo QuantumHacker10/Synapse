@@ -1,8 +1,20 @@
 # Roadmap — Synapse OMNIA
 
-Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
+Vision publique du projet. L'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.0 — Actuel (2026-07)
+## v2.3 — Actuel (2026-07) — Pipeline industriel
+
+- [x] Cascade unifiée **LLM → Physics → Rendering → Simulation** (`OmniaIndustrialPipeline`)
+- [x] Parsing world-delta LLM (éclairage, SDF, lois vivantes, matériaux, impulsions, BT)
+- [x] Couplage Physics → L-DNN (`PhysicsFieldGiCoupler` + Lumen Neural 3.0)
+- [x] Actuateur Simulation → Physics (`PhysicsActuator` heat/impulse)
+- [x] **G-DNN Nanite Neural 3.0** (continuous LOD, densités meshlets, resolve cluster)
+- [x] **L-DNN Lumen Neural 3.0** (surface radiance cache, multi-bounce, thermo-volumétrique)
+- [x] FrameOrchestrator : Physics → Simulation → Coupling → Render → Quality
+- [x] Continuum SPH / élasticité warm-ready (activation via `enableModules` LLM)
+- [x] Studio Apply = `ApplyLlmWorldDelta`
+
+## v2.0 — Fondations (2026-07)
 
 - [x] API plugin C# (chargement DLL sandboxé)
 - [x] Mode headless benchmarks automatisés
@@ -13,10 +25,10 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] Marketplace lois (`.synapse-law`)
 - [x] Découpage `LivingLawCompiler.cs` (68 fichiers)
 - [x] Couverture de code > 40 % (seuil CI Codecov)
-- [x] Fondations P2P, VR (OpenXR stub), preview web
+- [x] Fondations P2P, VR (OpenXR), preview web
 - [x] Tutoriels écrits + guide benchmarks (docs/)
 
-## v2.1 — Actuel (2026-07)
+## v2.1 — (2026-07)
 
 - [x] Captures PNG Studio dans README (`docs/screenshots/*.png`)
 - [x] Découpage `LivingLawLibrary.cs` et `EntityBehaviorSystem.cs`
@@ -24,14 +36,14 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] OpenXR session production (`OpenXrVulkanSession`)
 - [x] Éditeur web WebGPU (`site/editor/`, `WebEditorBuilder`)
 
-## v2.2 — Actuel (2026-07)
+## v2.2 — (2026-07)
 
 - [x] Captures PNG live Studio (`--screenshot`, Avalonia Headless + Skia)
 - [x] OpenXR swapchain Vulkan réel (`OpenXrVulkanSwapchain`)
 - [x] P2P WAN (NAT rendezvous UDP + chiffrement AES-GCM)
 - [x] Éditeur web glTF interactif (`site/editor/`, WebGPU)
 
-## v2.2+ — Prochaine release
+## v2.4 — Communauté & qualité
 
 ### Communauté
 - [ ] Tutoriels vidéo (YouTube)
@@ -41,33 +53,9 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [ ] Couverture de code > 50 %
 - [ ] Import USD binaire (USDC)
 
-### Moteur
+### Studio
 - [ ] Blueprint éditable temps réel dans Studio
 - [ ] Plugin marketplace hébergé
-
-## v2.5 — Moyen terme
-
-### Rendu
-- [ ] Path tracing L-DNN teacher offline (batch)
-- [ ] DLSS / FSR upscaling neural
-- [ ] Volumétriques avancées (fumée, incendie SPH couplé)
-
-### Physique
-- [ ] FEM tetrahedral (Corotational + Neo-Hookean)
-- [ ] Fluides incompressibles (LBM GPU)
-- [ ] Couplage thermo-mécanique bidirectionnel
-
-### IA & simulation
-- [ ] NEAT-G multi-objectif (forme + comportement)
-- [ ] Behavior trees éditables dans Studio
-- [ ] Jumeaux numériques persistants (export/import)
-
-## v3.0 — Long terme
-
-- [ ] Réseau P2P complet (simulations collaboratives multi-pairs)
-- [ ] Support VR OpenXR production
-- [ ] Éditeur web complet (WASM + WebGPU)
-- [ ] Marketplace d'assets et de lois avec signatures
 
 ## Comment contribuer à la roadmap
 

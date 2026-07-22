@@ -147,38 +147,37 @@ Bind-only / optionnel : `BindNeuralGeometry`, `BindMeshletPageFile`.
 `SceneRenderer` reste la façade publique (meshes, materials, Studio) et le propriétaire
 des ressources Vulkan ; `RenderEngine` appelle `ExecuteFrame` qui orchestre le graph.
 
-### Cible d’impact Nanite / Lumen (honnête)
+### Cible d’impact Nanite Neural 3.0 / Lumen Neural 3.0
 
-| Tech | Barre UE5.8 | Present path Synapse (session) | ~% impact on-screen vs UE5 |
-|---|---|---|---|
-| **G-DNN → Nanite** | Mesh shaders GPU, virtualized micropoly, continuous LOD, depth+material resolve | Dense meshlets (poly grid 20–36) + visibility buffer **256–512²** (GPU prefer / CPU fallback) → **G-buffer inject** + cluster albedo into GI/fog ; LOD neural + frustum/backface | **~18–25%** (lit geometry looks cluster-tiled; pas de vrai micropoly hardware / streaming pages UE) |
-| **L-DNN → Lumen** | Surface cache + software RT cascades, multi-bounce, specular | Hybrid SSGI (8 rays) + **6** radiance cascades + neural refine + multi-bounce proxy ; GI **domine** l’ambient plat ; AO/fog/GI upload **chaque frame** ; SSR proxy renforcé | **~20–28%** (ombres indirectes visibles ; pas de surface cache UE / RT hardware) |
+| Tech | Present path Synapse (industriel) | Capacité |
+|---|---|---|
+| **G-DNN — Nanite Neural 3.0** | Continuous LOD (`NaniteNeural30`), densités meshlets pilotées par erreur écran, visibility buffer jusqu’à **768²**, resolve matériau cluster → G-buffer / fog / irradiance ; page keys virtuelles | Géométrie neuronale dense, peinte chaque frame |
+| **L-DNN — Lumen Neural 3.0** | Surface radiance cache + multi-bounce refine + couplage thermo-volumétrique Physics→Fog/Emissive (`LumenNeural30`, `PhysicsFieldGiCoupler`) ; Hybrid SSGI + 6 cascades + neural | GI dynamique couplée aux lois vivantes |
 
-**Ce qui bloque encore la parité vraie** : pas de mesh-shader primary-device Nanite, pas de visibility-buffer material resolve GPU full-res, pas de Lumen surface cache / hardware ray tracing, Hybrid GI encore CPU-heavy (pas un compute GI resident chaque frame sur le device swapchain), second device optionnel pour meshlets/SDF.
-
-## Pipeline par frame (simulation + rendu)
+## Pipeline industriel par frame — LLM → Physics → Rendering → Simulation
 
 ```mermaid
 sequenceDiagram
-    participant S as Studio / Boucle
+    participant UI as Studio LLM Console
+    participant Pipe as OmniaIndustrialPipeline
     participant E as EngineHost
     participant P as Multiphysics
     participant Sim as Sentience
     participant R as RenderEngine
     participant FG as FrameGraph
 
-    S->>E: TickPhysics(dt)
-    E->>P: RigidWorld.Step + LivingLaw.Apply
-    P-->>E: État champ mis à jour
+    UI->>Pipe: ApplyLlmWorldDelta(JSON)
+    Pipe->>E: Law → Lighting/SDF → Material → BT/Impulse
+    Note over Pipe: Ordre déterministe LLM→Physics→Rendering→Simulation
 
-    S->>E: TickSimulationAsync()
-    E->>Sim: Behavior trees + perception
-    Sim-->>E: Entités mises à jour
-
-    S->>E: TickRender()
-    E->>R: ExecuteFrame
-    R->>FG: L-DNN → Cull → Shadow → GBuffer → Light → Post
-    FG-->>S: Frame présentée
+    E->>P: TickPhysics (lois + rigid + continuum opt.)
+    P-->>E: Champ T/ρ + transforms
+    E->>Sim: TickSimulationAsync (BT + perception)
+    Sim-->>P: PhysicsActuator (heat / impulse)
+    E->>Pipe: TickCoupling (field→L-DNN)
+    E->>R: TickRender
+    R->>FG: L-DNN Lumen Neural → Cull G-DNN Nanite Neural → Shadow → GBuffer → Light → Post
+    FG-->>UI: Frame présentée
 ```
 
 ## Modules et dépendances

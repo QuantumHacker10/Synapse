@@ -1843,6 +1843,44 @@ namespace GDNN.Rendering.Engine
             RefreshDynamicLightingFromScene();
         }
 
+        /// <summary>
+        /// Feeds an LLM SDF hint into G-DNN Nanite Neural 3.0 (continuous LOD + denser meshlets).
+        /// </summary>
+        public void ApplySdfHint(SdfHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            if (!_initialized || _algorithmHub == null)
+                return;
+
+            Vector3 center = hint.Center is { } c
+                ? new Vector3(c.X, c.Y, c.Z)
+                : Vector3.Zero;
+            float radius = hint.Radius ?? (hint.Size is { } s
+                ? MathF.Max(s.X, MathF.Max(s.Y, s.Z))
+                : 1f);
+            _algorithmHub.NotifySdfHint(center, MathF.Max(0.05f, radius), hint.Primitive ?? "sphere");
+        }
+
+        /// <summary>Applies LLM material hint to default PBR UBO + L-DNN emissive bias.</summary>
+        public void ApplyMaterialHint(MaterialHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            if (!_initialized)
+                return;
+            _ldnnBridge?.ApplyMaterialHint(hint);
+        }
+
+        /// <summary>
+        /// Physics → Rendering: thermo-volumetric coupling from living-law fields into L-DNN.
+        /// </summary>
+        public void ApplyPhysicsFieldCoupling(PhysicsFieldGiCoupler coupler)
+        {
+            ArgumentNullException.ThrowIfNull(coupler);
+            if (!_initialized || _ldnnBridge == null)
+                return;
+            _ldnnBridge.ApplyPhysicsFieldCoupling(coupler);
+        }
+
         /// <summary>Creates or updates a visible proxy mesh for a scene entity (Genome, Volume, Character, Mesh).</summary>
         public void SyncEntityProxy(Guid id, string type, Vector3 position, Vector3 scale, Vector3 rotationEuler = default)
         {
@@ -3049,8 +3087,10 @@ namespace GDNN.Rendering.Engine
             else
             {
                 UploadGiIrradianceTexture(irradiance);
-                if (aoField != null) UploadAoTexture(aoField);
-                if (fogField != null) UploadFogTexture(fogField);
+                if (aoField != null)
+                    UploadAoTexture(aoField);
+                if (fogField != null)
+                    UploadFogTexture(fogField);
             }
 
             RebuildLightingPipelineIfNeeded();

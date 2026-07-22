@@ -159,6 +159,25 @@ namespace GDNN.Rendering.FrameGraph
         /// <summary>Last batch SDF distances (used to paint contact AO into the present path).</summary>
         public float[] LastSdfDistances { get; private set; } = Array.Empty<float>();
         public Vector3 LastSdfSampleOrigin { get; private set; }
+        public float LastNaniteLod { get; private set; }
+        public int LastNanitePolyResolution { get; private set; }
+        private Vector3 _sdfHintCenter;
+        private float _sdfHintRadius = 1f;
+        private string _sdfHintPrimitive = "sphere";
+        private bool _sdfHintDirty;
+
+        /// <summary>Notifies G-DNN Nanite Neural 3.0 of an LLM SDF primitive hint.</summary>
+        public void NotifySdfHint(Vector3 center, float radius, string primitive)
+        {
+            _sdfHintCenter = center;
+            _sdfHintRadius = MathF.Max(0.05f, radius);
+            _sdfHintPrimitive = string.IsNullOrWhiteSpace(primitive) ? "sphere" : primitive;
+            _sdfHintDirty = true;
+            LastSdfSampleOrigin = center;
+            // Bias default SDF network sample origin toward the hinted primitive.
+            if (_sdfHintPrimitive.Contains("box", StringComparison.OrdinalIgnoreCase))
+                LastNaniteLod = Math.Max(LastNaniteLod, 0.55f);
+        }
 
         public RenderingAlgorithmHub(VulkanRhiDevice rhi, int width, int height)
         {
@@ -487,21 +506,34 @@ namespace GDNN.Rendering.FrameGraph
                 var report = NeuralGeometry.Tick(view, trainBudgetMs: 0.25);
                 LastVisibleMeshlets = report.VisibleClusters?.Count ?? 0;
 
-                // Dense Nanite-like meshlets: high poly extract + screen-scale visibility raster.
+                // Dense Nanite Neural 3.0 meshlets: continuous LOD + screen-error density.
                 // Prefer GPU dispatcher; fall back to SoftwareRasterizer. Feeds G-buffer inject + GI/fog.
-                if ((_gdnnTick % 3) == 1 && report.VisibleClusters is { Count: > 0 })
+                float projected = NaniteNeural30.ProjectedRadiusPx(
+                    _sdfHintCenter,
+                    _sdfHintRadius,
+                    cameraPos,
+                    MathF.PI / 3f,
+                    Math.Max(1, _lastCullHeight));
+                float lod01 = NaniteNeural30.ContinuousLod(
+                    Vector3.Distance(cameraPos, _sdfHintCenter),
+                    projected);
+                LastNaniteLod = lod01;
+
+                if (NaniteNeural30.ShouldRebuildMeshlets(_gdnnTick, _sdfHintDirty) &&
+                    report.VisibleClusters is { Count: > 0 })
                 {
                     try
                     {
-                        // denser grid → many small clusters filling the frame (Nanite-like look)
-                        int polyRes = Math.Clamp(Math.Max(_lastCullWidth, _lastCullHeight) / 48, 20, 36);
+                        int polyRes = NaniteNeural30.PolyResolution(
+                            lod01,
+                            Math.Max(_lastCullWidth, _lastCullHeight));
+                        LastNanitePolyResolution = polyRes;
                         var mesh = Polygonizer.Extract(DefaultSdfNetwork, DefaultBounds, resolution: polyRes);
                         var meshlets = MeshletBuilder.Build(mesh);
                         LastVisibleMeshlets = Math.Max(LastVisibleMeshlets, meshlets.Count);
 
-                        // Visibility buffer at ~½ viewport (capped) so clusters read as tiny tiles on screen.
-                        int rastW = Math.Clamp(_lastCullWidth / 2, 256, 512);
-                        int rastH = Math.Clamp(_lastCullHeight / 2, 256, 512);
+                        var (rastW, rastH) = NaniteNeural30.VisibilityBufferSize(
+                            _lastCullWidth, _lastCullHeight, lod01);
                         RasterTarget target = RasterizeMeshlets(mesh, meshlets, view, rastW, rastH);
                         LastRasterCoveredPixels = target.CountCoveredPixels();
                         _lastRasterTarget = target;
@@ -509,6 +541,7 @@ namespace GDNN.Rendering.FrameGraph
                         _lastRasterMesh = mesh;
                         QueuePresentMesh(mesh, report.ExtractedGeometryVersion);
                         FeedGeometryRenderer(mesh, meshlets);
+                        _sdfHintDirty = false;
                     }
                     catch (Exception ex)
                     {
@@ -717,16 +750,8 @@ namespace GDNN.Rendering.FrameGraph
             if (!target.TryDecode(sx, sy, out int meshletIdx, out int triIdx))
                 return new Vector3(0.55f, 0.58f, 0.62f);
 
-            // Hash meshlet+triangle → distinct tile color (virtualized cluster look).
-            uint h = unchecked((uint)(meshletIdx * 73856093) ^ (uint)(triIdx * 19349663));
-            float r = ((h) & 255) / 255f;
-            float g = ((h >> 8) & 255) / 255f;
-            float b = ((h >> 16) & 255) / 255f;
-            // Keep in a PBR-friendly mid range with slight cool bias for rock/metal feel.
-            return new Vector3(
-                0.28f + r * 0.55f,
-                0.30f + g * 0.50f,
-                0.32f + b * 0.48f);
+            var mat = NaniteNeural30.ResolveClusterMaterial(meshletIdx, triIdx, LastNaniteLod);
+            return new Vector3(mat.X, mat.Y, mat.Z);
         }
 
         /// <summary>
@@ -907,8 +932,12 @@ namespace GDNN.Rendering.FrameGraph
                 var p = mesh.Positions[i];
                 var n = i < mesh.Normals.Length ? mesh.Normals[i] : Vector3.UnitY;
                 int o = i * 6;
-                verts[o] = p.X; verts[o + 1] = p.Y; verts[o + 2] = p.Z;
-                verts[o + 3] = n.X; verts[o + 4] = n.Y; verts[o + 5] = n.Z;
+                verts[o] = p.X;
+                verts[o + 1] = p.Y;
+                verts[o + 2] = p.Z;
+                verts[o + 3] = n.X;
+                verts[o + 4] = n.Y;
+                verts[o + 5] = n.Z;
             }
 
             var indices = new uint[mesh.Indices.Length];
@@ -1080,15 +1109,21 @@ namespace GDNN.Rendering.FrameGraph
 
             if (_meshletPagePath != null)
             {
-                try { File.Delete(_meshletPagePath); } catch { /* ignore */ }
+                try
+                { File.Delete(_meshletPagePath); }
+                catch { /* ignore */ }
             }
             if (_polyCacheDir != null)
             {
-                try { Directory.Delete(_polyCacheDir, recursive: true); } catch { /* ignore */ }
+                try
+                { Directory.Delete(_polyCacheDir, recursive: true); }
+                catch { /* ignore */ }
             }
             if (_assetStreamRoot != null)
             {
-                try { Directory.Delete(_assetStreamRoot, recursive: true); } catch { /* ignore */ }
+                try
+                { Directory.Delete(_assetStreamRoot, recursive: true); }
+                catch { /* ignore */ }
             }
         }
     }
