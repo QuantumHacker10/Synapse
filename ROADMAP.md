@@ -2,7 +2,16 @@
 
 Vision publique du projet. L'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-## v2.3 — Actuel (2026-07) — Pipeline industriel
+## v2.4 — Actuel (2026-07) — Stack cinématique native
+
+- [x] G-DNN full-res material resolve (`MeshletMaterialResolvePass`, `NaniteCinematicResolve`)
+- [x] Mesh-shader compat compute (`MeshShaderCompatGenerator`)
+- [x] L-DNN cinematic GI (`LumenCinematicGi` surface cache + path-trace blend)
+- [x] Upscaling FrameGraph (`UpscalePass` : FSR / DLSS-compatible / MetalFX-compatible)
+- [x] Continuum scène (`GpuContinuumScheduler` SPH + LBM + élasticité, scales Demo→Cinematic)
+- [x] `EngineHost.EnableCinematicStack()` branché au present path
+
+## v2.3 — Pipeline industriel
 
 - [x] Cascade unifiée **LLM → Physics → Rendering → Simulation** (`OmniaIndustrialPipeline`)
 - [x] Parsing world-delta LLM (éclairage, SDF, lois vivantes, matériaux, impulsions, BT)

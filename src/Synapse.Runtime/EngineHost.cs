@@ -174,6 +174,10 @@ namespace Synapse.Runtime
             _industrialPipeline = new OmniaIndustrialPipeline(this, _logger);
             _industrialPipeline.BindPhysics(_multiphysics);
 
+            // Auto-arm cinematic native stack when quality preset requests it.
+            if (ParseQuality(_config.QualityPreset) == QualityPreset.Cinematic)
+                EnableCinematicStack(ContinuumScale.Cinematic);
+
             _activeLawId = _scene.ActiveLawId ?? "heat_equation";
             EnsureLawCompiled(_activeLawId, _scene.ActiveLawExpression);
             _multiphysics.SetActiveLaw(_activeLawId);
@@ -216,6 +220,8 @@ namespace Synapse.Runtime
             _renderEngine.Initialize(width, height, enableValidation);
             _renderInitialized = true;
             SyncSceneToRenderer();
+            if (string.Equals(_config.QualityPreset, "Cinematic", StringComparison.OrdinalIgnoreCase))
+                EnableCinematicStack(ContinuumScale.Cinematic);
             _logger.Info("EngineHost", $"RenderEngine initialized {width}x{height}");
         }
 
@@ -640,6 +646,11 @@ namespace Synapse.Runtime
                         _multiphysics.EnableSph();
                     if (mod.Contains("elastic", StringComparison.OrdinalIgnoreCase))
                         _multiphysics.EnableElasticity();
+                    if (mod.Contains("lbm", StringComparison.OrdinalIgnoreCase) ||
+                        mod.Contains("continuum", StringComparison.OrdinalIgnoreCase))
+                        _multiphysics.EnableGpuContinuum(ContinuumScale.Industrial);
+                    if (mod.Contains("cinematic", StringComparison.OrdinalIgnoreCase))
+                        EnableCinematicStack(ContinuumScale.Cinematic);
                 }
             }
 
@@ -1278,6 +1289,32 @@ namespace Synapse.Runtime
                         field.Pressure[x, y, z] = 101325f;
                     }
             return field;
+        }
+
+        /// <summary>
+        /// Arms the native cinematic stack: Nanite full-res resolve, Lumen path-trace GI,
+        /// FSR/DLSS/MetalFX upscaling, and scene-scale SPH/LBM/FEM continuum.
+        /// </summary>
+        public void EnableCinematicStack(ContinuumScale continuumScale = ContinuumScale.Cinematic)
+        {
+            InitializeModules();
+            _multiphysics?.EnableGpuContinuum(continuumScale);
+            _quality?.SetQualityPreset(QualityPreset.Cinematic);
+            _config.QualityPreset = "Cinematic";
+
+            if (_renderEngine?.SceneRenderer != null)
+            {
+                var sr = _renderEngine.SceneRenderer;
+                sr.CinematicGiEnabled = true;
+                sr.SetRenderScale(0.77f); // internal 77% → upscale to display (FSR Quality-ish)
+                sr.SetUpscalerBackend(GDNN.Rendering.Upscaling.UpscalerBackend.Auto);
+                if (sr.Algorithms != null)
+                    sr.Algorithms.CinematicNanite = true;
+            }
+
+            _logger.Info("Cinematic",
+                $"Native stack armed (continuum={continuumScale}, Nanite full-res, Lumen path-trace, upscaler=Auto)");
+            RaiseInspector("Cinematic", "Armed", continuumScale.ToString());
         }
 
         private static QualityPreset ParseQuality(string name) =>

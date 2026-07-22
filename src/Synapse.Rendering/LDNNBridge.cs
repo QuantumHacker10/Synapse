@@ -178,7 +178,15 @@ namespace GDNN.Rendering.Bridge
 
         private PhysicsFieldGiCoupler? _fieldCoupler;
         private readonly LumenNeural30.SurfaceRadianceCache _surfaceCache = new(48);
+        private readonly LumenCinematicGi _cinematicGi = new(96);
         private MaterialHint? _materialHint;
+        private bool _cinematicGiEnabled;
+
+        /// <summary>Enables Lumen Neural cinematic refine (GPU surface cache + full path-trace blend).</summary>
+        public void SetCinematicGi(bool enabled) => _cinematicGiEnabled = enabled;
+
+        public LumenCinematicGi.Mode LastCinematicMode => _cinematicGi.LastMode;
+        public int LastCinematicPathTraceSamples => _cinematicGi.LastPathTraceSamples;
 
         /// <summary>Applies LLM material hint as emissive / albedo bias for Lumen Neural 3.0.</summary>
         public void ApplyMaterialHint(MaterialHint hint)
@@ -444,6 +452,17 @@ namespace GDNN.Rendering.Bridge
             }
 
             _fieldCoupler?.BoostIrradiance(irradiance);
+
+            if (_cinematicGiEnabled)
+            {
+                irradiance = _cinematicGi.Refine(
+                    irradiance,
+                    _gbuffer,
+                    _cameraState,
+                    _lights,
+                    LumenCinematicGi.Mode.FullPathTrace,
+                    pathTraceSpp: 2);
+            }
 
             if (_lastFillWasConstants)
                 _residentGi.MarkConstantFallback();

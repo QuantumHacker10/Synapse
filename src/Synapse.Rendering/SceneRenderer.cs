@@ -152,6 +152,16 @@ namespace GDNN.Rendering.Engine
         private float[] _extraLightPack = Array.Empty<float>();
         private int _lastVtAtlasUploadFrame = -100;
 
+        // Cinematic native stack
+        private Vector3[]? _naniteAlbedo;
+        private Vector3[]? _naniteNormal;
+        private float[]? _naniteRoughness;
+        private GDNN.Rendering.Upscaling.ITemporalUpscaler? _upscaler;
+        private GDNN.Rendering.Upscaling.UpscalerBackend _upscalerBackend = GDNN.Rendering.Upscaling.UpscalerBackend.Auto;
+        private float _renderScale = 1f;
+        private Vector3[]? _upscaledColor;
+        private bool _cinematicGiEnabled;
+
         private int _width;
         private int _height;
         private bool _initialized;
@@ -2523,6 +2533,43 @@ namespace GDNN.Rendering.Engine
             RecordGBufferPass(context.Cmd, context.ImageIndex, context.FrameIndex);
         }
 
+        public void OnFrameGraphMeshletResolve(FrameGraphContext context)
+        {
+            if (_algorithmHub == null || !_initialized)
+                return;
+
+            int n = Math.Max(1, _width * _height);
+            if (_naniteAlbedo == null || _naniteAlbedo.Length != n)
+            {
+                _naniteAlbedo = new Vector3[n];
+                _naniteNormal = new Vector3[n];
+                _naniteRoughness = new float[n];
+            }
+
+            _algorithmHub.ResolveCinematicMaterials(
+                _width, _height,
+                _naniteAlbedo, _naniteNormal, _naniteRoughness);
+
+            // Inject full-res Nanite materials into L-DNN G-buffer for deferred/GI.
+            if (_ldnnBridge != null && _algorithmHub.LastRasterCoveredPixels > 0)
+            {
+                _ldnnBridge.OverlayMeshletGBuffer((depth, normals, albedo, w, h) =>
+                {
+                    _algorithmHub.CompositeMeshletsIntoLdnnGBuffer(depth, normals, albedo, w, h);
+                    // Prefer full-res cinematic resolve where available.
+                    int count = Math.Min(albedo.Length, _naniteAlbedo.Length);
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (_naniteAlbedo[i].LengthSquared() > 1e-6f)
+                        {
+                            albedo[i] = _naniteAlbedo[i];
+                            normals[i] = _naniteNormal[i];
+                        }
+                    }
+                });
+            }
+        }
+
         public void OnFrameGraphLighting(FrameGraphContext context)
         {
             RecordLightingPass(context.Cmd, context.ImageIndex, context.FrameIndex);
@@ -2531,6 +2578,75 @@ namespace GDNN.Rendering.Engine
         public void OnFrameGraphPost(FrameGraphContext context)
         {
             RecordPostPass(context.Cmd, context.ImageIndex, context.FrameIndex);
+        }
+
+        public void OnFrameGraphUpscale(FrameGraphContext context)
+        {
+            EnsureUpscaler();
+            int rw = Math.Max(1, (int)(_width * _renderScale));
+            int rh = Math.Max(1, (int)(_height * _renderScale));
+            _upscaler!.Configure(rw, rh, _width, _height);
+            LastUpscalerName = _upscaler.Name;
+
+            // Upscale last GI irradiance (CPU staging) to display when render scale < 1.
+            if (_lastGiIrradiance == null || _renderScale >= 0.999f)
+            {
+                LastUpscaleApplied = false;
+                return;
+            }
+
+            int srcW = _lastGiIrradiance.GetLength(0);
+            int srcH = _lastGiIrradiance.GetLength(1);
+            var src = new Vector3[srcW * srcH];
+            for (int y = 0; y < srcH; y++)
+                for (int x = 0; x < srcW; x++)
+                    src[y * srcW + x] = _lastGiIrradiance[x, y];
+
+            if (_upscaledColor == null || _upscaledColor.Length != _width * _height)
+                _upscaledColor = new Vector3[_width * _height];
+
+            _upscaler.Configure(srcW, srcH, _width, _height);
+            _upscaler.Upscale(src, _upscaledColor, ReadOnlySpan<Vector2>.Empty);
+            LastUpscaleApplied = true;
+
+            // Feed upscaled color back into GI texture path for next lighting.
+            var up = new Vector3[_width, _height];
+            for (int y = 0; y < _height; y++)
+                for (int x = 0; x < _width; x++)
+                    up[x, y] = _upscaledColor[y * _width + x];
+            _lastGiIrradiance = up;
+            if (_giIrradianceTexture != null)
+                UploadGiIrradianceTexture(up);
+        }
+
+        private void EnsureUpscaler()
+        {
+            _upscaler ??= GDNN.Rendering.Upscaling.UpscalerFactory.Create(_upscalerBackend);
+        }
+
+        /// <summary>Selects FSR / DLSS-compatible / MetalFX upscaler backend.</summary>
+        public void SetUpscalerBackend(GDNN.Rendering.Upscaling.UpscalerBackend backend)
+        {
+            _upscalerBackend = backend;
+            _upscaler = GDNN.Rendering.Upscaling.UpscalerFactory.Create(backend);
+        }
+
+        /// <summary>Internal render scale (&lt; 1 enables cinematic upscale).</summary>
+        public void SetRenderScale(float scale)
+        {
+            _renderScale = Math.Clamp(scale, 0.5f, 1f);
+        }
+
+        public string LastUpscalerName { get; private set; } = "none";
+        public bool LastUpscaleApplied { get; private set; }
+        public bool CinematicGiEnabled
+        {
+            get => _cinematicGiEnabled;
+            set
+            {
+                _cinematicGiEnabled = value;
+                _ldnnBridge?.SetCinematicGi(value);
+            }
         }
 
         public void RecordCommandBuffer(VulkanCommandBuffer cmd, uint imageIndex, int frameIndex)

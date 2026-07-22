@@ -19,7 +19,8 @@ public enum ContinuumModules
     RigidBodies = 2,
     Sph = 4,
     Elasticity = 8,
-    All = LivingLaws | RigidBodies | Sph | Elasticity
+    Lbm = 16,
+    All = LivingLaws | RigidBodies | Sph | Elasticity | Lbm
 }
 
 /// <summary>Configuration for the multiphysics frame pipeline.</summary>
@@ -57,6 +58,7 @@ public sealed class MultiphysicsOrchestrator : IDisposable
     private string? _activeLawId;
     private SphSolver? _sph;
     private ElasticitySolver? _elasticity;
+    private GpuContinuumScheduler? _gpuContinuum;
     private float _accumulator;
     private bool _disposed;
 
@@ -76,6 +78,7 @@ public sealed class MultiphysicsOrchestrator : IDisposable
     public string? ActiveLawId => _activeLawId;
     public MultiphysicsStepStats LastStats { get; } = new();
     public MultiphysicsConfig Config => _config;
+    public GpuContinuumScheduler? GpuContinuum => _gpuContinuum;
 
     public void SetField(PhysicsField field) =>
         _field = field ?? throw new ArgumentNullException(nameof(field));
@@ -103,6 +106,20 @@ public sealed class MultiphysicsOrchestrator : IDisposable
         _elasticity = new ElasticitySolver(cfg);
         _config.EnabledModules |= ContinuumModules.Elasticity;
         return _elasticity;
+    }
+
+    /// <summary>
+    /// Enables scene-scale GPU-friendly continuum (SPH + LBM + elasticity) at the given scale.
+    /// </summary>
+    public GpuContinuumScheduler EnableGpuContinuum(ContinuumScale scale = ContinuumScale.Industrial)
+    {
+        _gpuContinuum?.Dispose();
+        _gpuContinuum = new GpuContinuumScheduler();
+        _gpuContinuum.Configure(scale, _config.FixedTimeStep);
+        _sph = _gpuContinuum.Sph;
+        _elasticity = _gpuContinuum.Elasticity;
+        _config.EnabledModules |= ContinuumModules.Sph | ContinuumModules.Elasticity | ContinuumModules.Lbm;
+        return _gpuContinuum;
     }
 
     /// <summary>
@@ -301,7 +318,7 @@ public sealed class MultiphysicsOrchestrator : IDisposable
                 rbMs += (float)sw.Elapsed.TotalMilliseconds;
             }
 
-            if ((_config.EnabledModules & ContinuumModules.Sph) != 0 && _sph != null)
+            if ((_config.EnabledModules & ContinuumModules.Sph) != 0 && _sph != null && _gpuContinuum == null)
             {
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 _sph.Step(h);
@@ -309,10 +326,19 @@ public sealed class MultiphysicsOrchestrator : IDisposable
                 contMs += (float)sw.Elapsed.TotalMilliseconds;
             }
 
-            if ((_config.EnabledModules & ContinuumModules.Elasticity) != 0 && _elasticity != null)
+            if ((_config.EnabledModules & ContinuumModules.Elasticity) != 0 && _elasticity != null && _gpuContinuum == null)
             {
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 _elasticity.Step();
+                sw.Stop();
+                contMs += (float)sw.Elapsed.TotalMilliseconds;
+            }
+
+            if (_gpuContinuum != null &&
+                (_config.EnabledModules & (ContinuumModules.Sph | ContinuumModules.Elasticity | ContinuumModules.Lbm)) != 0)
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                _gpuContinuum.Step(h);
                 sw.Stop();
                 contMs += (float)sw.Elapsed.TotalMilliseconds;
             }
@@ -443,8 +469,10 @@ public sealed class MultiphysicsOrchestrator : IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        _gpuContinuum?.Dispose();
         _elasticity?.Dispose();
         _sph = null;
+        _gpuContinuum = null;
     }
 }
 

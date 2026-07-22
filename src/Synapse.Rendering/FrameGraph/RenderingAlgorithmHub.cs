@@ -179,6 +179,34 @@ namespace GDNN.Rendering.FrameGraph
                 LastNaniteLod = Math.Max(LastNaniteLod, 0.55f);
         }
 
+        public bool CinematicNanite { get; set; }
+
+        /// <summary>
+        /// Full-res cinematic material resolve from the last visibility buffer into viewport MRTs.
+        /// </summary>
+        public void ResolveCinematicMaterials(
+            int width,
+            int height,
+            Span<Vector3> albedo,
+            Span<Vector3> normals,
+            Span<float> roughness)
+        {
+            var policy = CinematicNanite ? NaniteCinematicResolve.Cinematic : NaniteNeural30.Industrial;
+            float lod = LastNaniteLod;
+            if (CinematicNanite)
+                lod = Math.Max(lod, 0.75f);
+            NaniteCinematicResolve.ResolveFullResMaterials(
+                _lastRasterTarget,
+                _lastMeshlets,
+                lod,
+                width,
+                height,
+                albedo,
+                normals,
+                roughness);
+            _ = policy;
+        }
+
         public RenderingAlgorithmHub(VulkanRhiDevice rhi, int width, int height)
         {
             _rhi = rhi ?? throw new ArgumentNullException(nameof(rhi));
@@ -519,21 +547,29 @@ namespace GDNN.Rendering.FrameGraph
                     projected);
                 LastNaniteLod = lod01;
 
-                if (NaniteNeural30.ShouldRebuildMeshlets(_gdnnTick, _sdfHintDirty) &&
+                var policy = CinematicNanite ? NaniteCinematicResolve.Cinematic : NaniteNeural30.Industrial;
+                if (NaniteNeural30.ShouldRebuildMeshlets(_gdnnTick, _sdfHintDirty, policy) &&
                     report.VisibleClusters is { Count: > 0 })
                 {
                     try
                     {
                         int polyRes = NaniteNeural30.PolyResolution(
                             lod01,
-                            Math.Max(_lastCullWidth, _lastCullHeight));
+                            Math.Max(_lastCullWidth, _lastCullHeight),
+                            policy);
                         LastNanitePolyResolution = polyRes;
                         var mesh = Polygonizer.Extract(DefaultSdfNetwork, DefaultBounds, resolution: polyRes);
                         var meshlets = MeshletBuilder.Build(mesh);
                         LastVisibleMeshlets = Math.Max(LastVisibleMeshlets, meshlets.Count);
 
                         var (rastW, rastH) = NaniteNeural30.VisibilityBufferSize(
-                            _lastCullWidth, _lastCullHeight, lod01);
+                            _lastCullWidth, _lastCullHeight, lod01, policy);
+                        if (CinematicNanite)
+                        {
+                            // Full-res cinematic visibility (capped by policy max).
+                            rastW = Math.Clamp(_lastCullWidth, policy.MinVisibilityWidth, policy.MaxVisibilityWidth) & ~1;
+                            rastH = Math.Clamp(_lastCullHeight, policy.MinVisibilityWidth, policy.MaxVisibilityWidth) & ~1;
+                        }
                         RasterTarget target = RasterizeMeshlets(mesh, meshlets, view, rastW, rastH);
                         LastRasterCoveredPixels = target.CountCoveredPixels();
                         _lastRasterTarget = target;
