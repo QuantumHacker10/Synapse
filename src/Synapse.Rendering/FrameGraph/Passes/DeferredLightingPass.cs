@@ -6,6 +6,7 @@ namespace GDNN.Rendering.FrameGraph.Passes
     public sealed class DeferredLightingPass : IRenderPass
     {
         public string Name => "DeferredLighting";
+        public RenderPassPhase Phase => RenderPassPhase.Gpu;
 
         public void Setup(FrameGraphBuilder builder)
         {

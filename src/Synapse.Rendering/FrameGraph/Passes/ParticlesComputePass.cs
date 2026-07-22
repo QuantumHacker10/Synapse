@@ -9,6 +9,7 @@ namespace GDNN.Rendering.FrameGraph.Passes
     public sealed class ParticlesComputePass : IRenderPass
     {
         public string Name => "ParticlesCompute";
+        public RenderPassPhase Phase => RenderPassPhase.Gpu;
 
         public void Setup(FrameGraphBuilder builder)
         {

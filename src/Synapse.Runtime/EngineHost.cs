@@ -24,8 +24,8 @@ namespace Synapse.Runtime
     /// and scene I/O. Call <see cref="InitializeModules"/> once, then either
     /// <see cref="InitializeRender"/> (GLFW) or <see cref="InitializeRenderFromHwnd"/>
     /// (embedded Windows viewport). Per-frame work is driven by <see cref="FrameOrchestrator"/>
-    /// via <see cref="TickPhysics"/>, <see cref="TickSimulationAsync"/>, and
-    /// <see cref="TickRender"/>.
+    /// via the native <see cref="NativeFramePipeline"/> (Physics → Simulation → Sync →
+    /// Render FrameGraph → Quality).
     /// </summary>
     public sealed class EngineHost : IAsyncDisposable
     {
@@ -94,7 +94,7 @@ namespace Synapse.Runtime
         public IDigitalTwinRegistry Twins => _twins;
 
         /// <summary>Whether <see cref="InitializeRender"/> or <see cref="InitializeRenderFromHwnd"/> completed.</summary>
-        public bool IsRenderInitialized => _renderInitialized;
+        public bool IsRenderInitialized => _renderInitialized && _renderEngine != null;
 
         /// <summary>When false, <see cref="TickSimulationAsync"/> is skipped.</summary>
         public bool SimulationPlaying
@@ -111,6 +111,9 @@ namespace Synapse.Runtime
 
         /// <summary>Number of sentient entities in the simulation.</summary>
         public int EntityCount => _sentience?.EntityCount ?? 0;
+
+        /// <summary>Scene document entity count (status bar / FrameGraph sync).</summary>
+        public int SceneEntityCount => _scene.Entities.Count;
 
         /// <summary>Human-readable quality preset from the adaptive quality manager.</summary>
         public string QualityPresetName => _quality?.CurrentLevel.Preset.ToString() ?? _config.QualityPreset;
@@ -154,6 +157,9 @@ namespace Synapse.Runtime
                     MaxSubSteps = 4,
                     Gravity = new Vector3(0f, -9.81f, 0f)
                 });
+            // Native continuum folders (SPH + elasticity) — wired into the multiphysics step.
+            _multiphysics.EnableSph();
+            _multiphysics.EnableElasticity();
             _meshProvider = new SynapseMeshProvider(_logger);
             _sentience = new SentienceManager();
             _llmRouter = new HybridLlmRouter();
@@ -174,7 +180,8 @@ namespace Synapse.Runtime
 
             PlatformCaps = NativePlatform.Probe();
             _modulesInitialized = true;
-            _logger.Info("EngineHost", "Modules initialized (Physics, Simulation, LLM, Quality, Twins, MeshProvider)");
+            _logger.Info("EngineHost",
+                "Modules initialized (Physics[LivingLaws+Rigid+SPH+Elasticity], Simulation, LLM, Quality, Twins, MeshProvider)");
             _logger.Info("Platform", PlatformCaps.Summary);
         }
 
@@ -318,6 +325,47 @@ namespace Synapse.Runtime
             }
         }
 
+        /// <summary>
+        /// Writes sentience agent transforms back into the scene document and renderer.
+        /// Native Simulation → Scene → Rendering bridge.
+        /// </summary>
+        public void SyncSimulationTransformsToScene()
+        {
+            if (_sentience == null)
+                return;
+
+            bool dirty = false;
+            foreach (var agent in _sentience.GetAllEntities())
+            {
+                var entity = _scene.Entities.Find(e => e.Id == agent.EntityId);
+                if (entity == null)
+                    continue;
+
+                var p = agent.Position;
+                if (MathF.Abs(p.X - entity.Position.X) > 1e-4f
+                    || MathF.Abs(p.Y - entity.Position.Y) > 1e-4f
+                    || MathF.Abs(p.Z - entity.Position.Z) > 1e-4f)
+                {
+                    entity.Position = Vec3.From(p);
+                    dirty = true;
+                }
+            }
+
+            if (dirty && _renderInitialized)
+                SyncSceneToRenderer();
+        }
+
+        /// <summary>
+        /// Pushes living-law / continuum field temperature into L-DNN volumetric fog.
+        /// Native Physics → Rendering bridge (no-op when render is not ready).
+        /// </summary>
+        public void PushPhysicsFieldToRenderer()
+        {
+            if (!_renderInitialized || _renderEngine == null)
+                return;
+            _renderEngine.ApplyPhysicsFieldInfluence(AverageFieldTemperature);
+        }
+
         /// <summary>Submits one Vulkan frame when the render engine is initialized and not paused.</summary>
         public void TickRender()
         {
@@ -328,14 +376,31 @@ namespace Synapse.Runtime
             _renderEngine.RenderFrame();
         }
 
-        /// <summary>Feeds frame timing into the adaptive quality manager.</summary>
-        public void TickQuality(float dt, float frameMs)
+        /// <summary>
+        /// Feeds frame timing into the adaptive quality manager and applies the
+        /// resulting level to the FrameGraph (LOD / shadows / GI / post).
+        /// </summary>
+        public void TickQuality(float dt, float physicsMs, float simulationMs, float renderMs)
         {
             if (_quality == null)
                 return;
-            _quality.ReportFrame(frameMs, 0, 0, frameMs);
+
+            float frameMs = Math.Max(0.01f, physicsMs + simulationMs + renderMs);
+            int draws = _renderEngine?.SceneRenderer?.MeshCount ?? 0;
+            int tris = _renderEngine?.SceneRenderer?.TriangleCount ?? 0;
+            _quality.ReportFrame(frameMs, draws, tris, renderMs);
             _quality.Update(dt);
+
+            if (_renderInitialized && _renderEngine != null)
+            {
+                var level = _quality.GetEffectiveQuality();
+                _renderEngine.ApplyRuntimeQuality(RuntimeQualityMapper.FromLevel(level));
+            }
         }
+
+        /// <summary>Feeds frame timing into the adaptive quality manager (render-only budget).</summary>
+        public void TickQuality(float dt, float frameMs)
+            => TickQuality(dt, 0f, 0f, frameMs);
 
         /// <summary>Activates a built-in law from the library by id.</summary>
         public CompilationResult ApplyLaw(string lawId)

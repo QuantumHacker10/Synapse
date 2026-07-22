@@ -43,12 +43,17 @@ flowchart TB
     LLM --> EH
 
     EH --> FO
-    FO --> PHY
-    FO --> AI
-    FO --> SIM
-    FO --> FG
+    FO --> NFP[NativeFramePipeline]
+    NFP --> PHY
+    NFP --> AI
+    NFP --> SIM
+    NFP --> FG
+    NFP --> QUAL[RuntimeQuality]
     FG --> GDNN
     FG --> LDNN
+    QUAL --> FG
+    PHY -->|field temp| LDNN
+    SIM -->|transforms| SD
 
     PHY --> LL[LivingLawCompiler]
     GDNN --> VK
@@ -59,15 +64,17 @@ flowchart TB
 ## Pipeline de rendu — FrameGraph GPU-first
 
 Le present path Vulkan n’est plus une séquence ad-hoc dans `SceneRenderer` :
-il est piloté par un **FrameGraph** (`GDNN.Rendering.FrameGraph`) qui conserve
-G-DNN et L-DNN comme modules de tech.
+il est piloté par un **FrameGraph natif** (`GDNN.Rendering.FrameGraph`) en deux phases
+(`ExecuteCpuProducers` → `cmd.Begin` → `ExecuteGpuPasses`) qui conserve
+G-DNN et L-DNN comme modules de tech. `SceneRenderer.ExecuteFrame` délègue
+entièrement à `RenderFrameGraph` (plus de boucle manuelle parallèle).
 
 ```mermaid
 flowchart TB
-  RE[RenderEngine.ExecuteFrame]
+  RE[RenderEngine.RenderFrame]
   FG[RenderFrameGraph]
-  LDNN[LdnnGiPass_CPU_or_Compute]
-  CULL[SceneCullPass_GDNN_LOD]
+  LDNN[LdnnGiPass_CPU]
+  CULL[SceneCullPass_GDNN]
   ALG[AlgorithmSystemsPass]
   SH[ShadowCascadesPass]
   GB[GBufferPass]
@@ -75,8 +82,12 @@ flowchart TB
   PART[ParticlesComputePass]
   PP[PostTonemapPass]
   SW[Swapchain]
+  Q[RuntimeQuality→LOD/shadows/GI]
+  PHY[PhysicsField→fog]
 
   RE --> FG
+  PHY --> LDNN
+  Q --> FG
   FG --> LDNN
   FG --> CULL --> ALG --> SH --> GB --> LIT --> PART --> PP --> SW
   LDNN -->|GI_AO_Fog textures| LIT
@@ -161,25 +172,28 @@ des ressources Vulkan ; `RenderEngine` appelle `ExecuteFrame` qui orchestre le g
 ```mermaid
 sequenceDiagram
     participant S as Studio / Boucle
-    participant E as EngineHost
+    participant FO as FrameOrchestrator
+    participant N as NativeFramePipeline
     participant P as Multiphysics
     participant Sim as Sentience
     participant R as RenderEngine
     participant FG as FrameGraph
 
-    S->>E: TickPhysics(dt)
-    E->>P: RigidWorld.Step + LivingLaw.Apply
-    P-->>E: État champ mis à jour
-
-    S->>E: TickSimulationAsync()
-    E->>Sim: Behavior trees + perception
-    Sim-->>E: Entités mises à jour
-
-    S->>E: TickRender()
-    E->>R: ExecuteFrame
-    R->>FG: L-DNN → Cull → Shadow → GBuffer → Light → Post
-    FG-->>S: Frame présentée
+    S->>FO: TickAsync()
+    FO->>N: ExecuteAsync(dt)
+    N->>P: LivingLaws + Rigid + SPH + Elasticity
+    P-->>N: Transforms + température champ
+    N->>Sim: Behavior trees + perception
+    Sim-->>N: Agents mis à jour
+    N->>N: SyncSimulation→Scene + Field→L-DNN fog
+    N->>R: TickRender (si Vulkan prêt)
+    R->>FG: CpuProducers(L-DNN) puis GpuPasses
+    FG-->>S: Frame présentée (ou tick headless)
+    N->>N: Quality→LOD/shadows/GI
 ```
+
+La boucle native (`NativeFramePipeline`) avance **Physics + Simulation même si Vulkan échoue**
+(headless / `vulkan-1.dll` absent). Le viewport Studio démarre toujours le timer d’orchestration.
 
 ## Modules et dépendances
 

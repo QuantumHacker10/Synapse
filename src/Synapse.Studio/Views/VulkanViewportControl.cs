@@ -11,11 +11,14 @@ namespace Synapse.Studio.Views
     /// <summary>
     /// Hosts a Win32 child HWND on Windows, otherwise falls back to a GLFW sibling window
     /// (Linux/macOS and Windows fallback).
+    /// The native frame pipeline timer always starts after module init so Physics /
+    /// Simulation advance even when Vulkan fails to load (headless / missing vulkan-1.dll).
     /// </summary>
     public sealed class VulkanViewportControl : NativeControlHost
     {
         private IntPtr _childHwnd;
-        private bool _engineStarted;
+        private bool _startAttempted;
+        private bool _timerStarted;
         private DispatcherTimer? _timer;
         private int _width = 800;
         private int _height = 600;
@@ -99,8 +102,9 @@ namespace Synapse.Studio.Views
 
         private void StartEngine(IntPtr hwnd, bool embedded)
         {
-            if (_engineStarted || App.Host == null || App.Orchestrator == null)
+            if (_startAttempted || App.Host == null || App.Orchestrator == null)
                 return;
+            _startAttempted = true;
 
             try
             {
@@ -108,23 +112,40 @@ namespace Synapse.Studio.Views
                     App.Host.InitializeRenderFromHwnd(hwnd, _width, _height, App.Config.EnableValidation);
                 else
                     App.Host.InitializeRender(App.Config.Width, App.Config.Height, App.Config.EnableValidation);
-
-                _engineStarted = true;
-                _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
-                _timer.Tick += async (_, _) =>
-                {
-                    if (App.Orchestrator == null)
-                        return;
-                    try
-                    { await App.Orchestrator.TickAsync(); }
-                    catch (Exception ex) { App.Logger.Warn("Viewport", ex.Message); }
-                };
-                _timer.Start();
             }
             catch (Exception ex)
             {
                 App.Logger.Error("Viewport", "Failed to start render engine", ex);
+                // Modules remain initialized — native pipeline still ticks Physics/Simulation.
             }
+
+            EnsureFrameTimer();
+        }
+
+        /// <summary>
+        /// Starts the native FrameOrchestrator timer even when Vulkan init failed,
+        /// so Physics / Simulation / Quality keep advancing in Studio.
+        /// </summary>
+        private void EnsureFrameTimer()
+        {
+            if (_timerStarted || App.Orchestrator == null)
+                return;
+
+            _timerStarted = true;
+            _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+            _timer.Tick += async (_, _) =>
+            {
+                if (App.Orchestrator == null)
+                    return;
+                try
+                { await App.Orchestrator.TickAsync(); }
+                catch (Exception ex) { App.Logger.Warn("Viewport", ex.Message); }
+            };
+            _timer.Start();
+            App.Logger.Info("Viewport",
+                App.Host?.IsRenderInitialized == true
+                    ? "Native frame pipeline started (Physics + Simulation + FrameGraph)"
+                    : "Native frame pipeline started headless (Physics + Simulation; render deferred)");
         }
     }
 }
