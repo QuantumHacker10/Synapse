@@ -1042,7 +1042,16 @@ namespace Synapse.Runtime
                             }
 
                             if (e.BakeNeuralSdf)
-                                _ = _meshProvider.BakeNeuralSdfAsync(meshId);
+                            {
+                                _ = _meshProvider.BakeNeuralSdfAsync(meshId).ContinueWith(t =>
+                                {
+                                    if (t.IsFaulted)
+                                        return;
+                                    // Push baked .gnn into the live G-DNN FrameGraph path when render is up.
+                                    var hub = _renderEngine?.SceneRenderer?.Algorithms;
+                                    hub?.BindBakedNeuralAsset(meshId);
+                                }, TaskScheduler.Default);
+                            }
                         }
                     }
                     catch (Exception ex)

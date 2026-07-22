@@ -132,20 +132,20 @@ Bind-only / optionnel : `BindNeuralGeometry`, `BindMeshletPageFile`.
 
 | Zone | Statut |
 |---|---|
-| Polygonization/* | **WIRED** — pipeline + cache + meshlets + raster GPU/CPU → fog/GBuffer |
-| Evaluation/* | **WIRED** — SceneEvaluator assets, tracers, WarpSpace, validation one-shot |
-| Streaming/* | **WIRED** — RequestAsset + AsyncPipeline stage + Compression + MeshletStreamer |
-| SIMD/* | **WIRED** — batch/wave + Intrinsics/Matrix/VectorOps chaque cull |
-| Memory/* | **WIRED** — Stack/ZeroCopy/Native/Tracker/Span/StreamingBuffer |
-| GPU/* | **WIRED** — codegen + compile + variants + CB pack + 2× Shared dispatchers |
-| Animation/* | **WIRED** — clip idle + skeleton + blender + skinning + JointTransform |
-| Core/NeuralNetwork/* | **WIRED** — nets + Hyper + MeshToSdf/Offline/Online trainers + NeuralAsset |
-| Core/DataStructures/* | **WIRED** — Octree/Loose/Spatial/Concurrent/AABBTree/StreamingBuffer |
-| Core/Mathematics/* | **WIRED** — utilisés par tick anim / coverage |
-| Threading/* | **WIRED** — JobSystem + ParallelEvaluator + SynchronizedBuffer + WorkStealingPool |
-| Utilities/* | **WIRED** — Profiler + Hash/Math/Debug/Binary helpers |
+| Polygonization/* | **LIVE** — `NeuralGeometry.RenderFrame` (LOD chain) → meshlets → fog/GI/G-buffer ; fallback `Polygonizer.Extract(LivePolygonSdf)` |
+| Evaluation/* | **LIVE** — SceneEvaluator + BatchTrace + GridEvaluator + Warp LBS/DQS ; validation one-shot |
+| Streaming/* | **LIVE** — AssetRoot préservé (scène) ; `BindBakedNeuralAsset` ; MeshletStreamer → present |
+| SIMD/* | **LIVE** — batch/wave sur `LivePolygonSdf` + Intrinsics/Matrix/VectorOps |
+| Memory/* | **LIVE** — Stack/ZeroCopy/Native/Tracker/Span/StreamingBuffer |
+| GPU/* | **LIVE** — codegen + variants + 2× Shared dispatchers (CPU fallback headless) |
+| Animation/* | **LIVE** — BlendTree + layers + AimIK + LBS/DQS + SkinningWeights |
+| Core/NeuralNetwork/* | **LIVE** — MeshToSdf/Offline → `PromoteTrainedSdfToLive` ; Online seed edit ; Hyper → AO |
+| Core/DataStructures/* | **LIVE** — Insert + QueryAABB (octree/loose/AABBTree) chaque cull |
+| Core/Mathematics/* | **LIVE** — tick anim / coverage |
+| Threading/* | **LIVE** — JobSystem + ParallelEvaluator + SynchronizedBuffer + WorkStealingPool |
+| Utilities/* | **LIVE** — Profiler + Hash/Math/Debug bounding boxes + Binary helpers |
 
-**Ne peint pas pleinement (infra / offline)** : `OfflineHashMeshTrainer` / `MeshToSdfPipeline` / `GDNNValidationProtocol` (one-shot init, pas un pass FrameGraph dédié) ; `ShaderCompiler` simule ou SPIR-V selon toolchain ; `AssetStreamer` sans fichiers `.gnn` génère un placeholder MicroMLP ; GPU 2ᵉ device absent → fallback CPU (`HlslCompatibleEvaluator` / `SoftwareRasterizer`).
+**Present path dataflow** : offline/MeshToSdf train → `PromoteTrainedSdfToLive` → `NeuralGeometryPipeline` → `RenderFrame` / MeshletStreamer → `QueuePresentMesh` + GeometryRenderer flush → fog/AO/VSM/G-buffer. `TickPost` est idempotent par tick (plus de double advance particules).
 
 **Device Vulkan optionnel (G-DNN SDF)** : `VulkanNeuralSdfDispatcher.Shared` crée un **2ᵉ `VulkanRhiDevice`** dédié au compute DeepMicroMLP (SPIR-V via glslang/DXC). Le present path Studio garde son device swapchain ; le hub ne dispose pas ce Shared (durée de vie process). Si SPIR-V/Vulkan init échoue (headless Linux sans `vulkan-1.dll`, toolchain absente), le hub retombe sur `HlslCompatibleEvaluator` (CPU). Coût : mémoire/driver d’un second device + `WaitForIdle` sur les dispatches SDF (cadencés ~toutes les 15 frames). Les distances SDF peignent l’AO contact sur le present path.
 

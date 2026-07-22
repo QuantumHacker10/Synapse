@@ -3074,7 +3074,12 @@ namespace GDNN.Rendering.Engine
             _lastFogUploadFrame = _auxUploadFrame;
 
             if (aoField != null && _algorithmHub != null)
+            {
                 _algorithmHub.CompositeSdfAo(aoField, _width, _height);
+                // VSM samples darken AO so VirtualShadowMap paints the present path.
+                var fwd = _activeFgContext?.CameraForward ?? -Vector3.UnitZ;
+                _algorithmHub.CompositeVsmIntoAo(aoField, _cameraPos, fwd, _width, _height);
+            }
 
             // Meshlet cluster albedo → irradiance so deferred lighting sees Nanite-like tiles.
             if (_algorithmHub != null)
