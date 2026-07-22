@@ -3106,8 +3106,10 @@ namespace GDNN.Rendering.Engine
             else
             {
                 UploadGiIrradianceTexture(irradiance);
-                if (aoField != null) UploadAoTexture(aoField);
-                if (fogField != null) UploadFogTexture(fogField);
+                if (aoField != null)
+                    UploadAoTexture(aoField);
+                if (fogField != null)
+                    UploadFogTexture(fogField);
             }
 
             RebuildLightingPipelineIfNeeded();
