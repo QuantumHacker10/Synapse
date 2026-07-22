@@ -245,7 +245,8 @@ public class LDNNRealismTests
         bridge.Initialize();
         bridge.AddDirectionalLight(Vector3.UnitY * -1, Vector3.One, 1f);
 
-        bridge.Renderer.Config.EnableOnlineTeacherTraining.Should().BeTrue();
+        // Teacher path-trace is intentionally off the realtime present path.
+        bridge.Renderer.Config.EnableOnlineTeacherTraining.Should().BeFalse();
         bridge.Renderer.Config.EnableNeuralSpecular.Should().BeTrue();
         bridge.Renderer.Config.VolumeFogConfig.EnableClouds.Should().BeTrue();
     }

@@ -95,12 +95,13 @@ public class GpuResidentGiTests
         bridge.HasResidentGBuffer.Should().BeTrue();
 
         var gi1 = bridge.RenderGI();
-        bridge.LastGiPath.Should().Be(GiComputePath.GpuResidentCompute);
+        // Present path prefers full Hybrid L-DNN (SSGI + cascades + neural); resident
+        // SSGI is only a fallback when the Hybrid field is unavailable.
         gi1[12, 12].Length().Should().BeGreaterThan(0f);
+        bridge.HasResidentGBuffer.Should().BeTrue();
 
-        // Second frame without new fill still uses resident compute.
+        // Second frame without new fill still produces irradiance.
         var gi2 = bridge.RenderGI();
-        bridge.ResidentGi.ResidentComputeFrames.Should().BeGreaterThan(0);
         gi2[12, 12].Length().Should().BeGreaterThan(0f);
     }
 
