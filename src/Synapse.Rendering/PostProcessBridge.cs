@@ -33,12 +33,12 @@ namespace GDNN.Rendering.Bridge
                 Bloom = new BloomConfig
                 {
                     Enabled = true,
-                    Threshold = 1.0f,
-                    Knee = 0.5f,
-                    Intensity = 0.4f,
-                    Radius = 0.8f,
-                    Quality = BloomQuality.High,
-                    MaxIterations = 6,
+                    Threshold = 0.85f,
+                    Knee = 0.6f,
+                    Intensity = 0.45f,
+                    Radius = 1.0f,
+                    Quality = BloomQuality.Ultra,
+                    MaxIterations = 7,
                     HighPrecision = true
                 },
                 DOF = new DOFConfig
@@ -59,9 +59,24 @@ namespace GDNN.Rendering.Bridge
                 {
                     Enabled = true,
                     Operator = TonemapOperator.ACES,
-                    Exposure = 1.2f,
+                    Exposure = 1.15f,
                     Gamma = 2.2f,
-                    WhitePoint = 4.0f
+                    WhitePoint = 4.0f,
+                    EnableAutoExposure = true,
+                    AutoExposureSpeed = 1.5f,
+                    MinExposure = 0.35f,
+                    MaxExposure = 2.8f
+                },
+                // Velocity is written by the G-buffer; enable GPU TAA on the present path.
+                TAA = new TAAConfig
+                {
+                    Enabled = true,
+                    Mode = TAAResolveMode.Ultra,
+                    BlendFactor = 0.88f,
+                    VarianceClipping = 0.8f,
+                    HistoryLength = 12,
+                    EnableYCoCgColorSpace = true,
+                    EnableMotionBlurReject = true
                 }
             });
 

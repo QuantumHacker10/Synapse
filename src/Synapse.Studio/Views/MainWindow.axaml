@@ -98,11 +98,25 @@
             <TabItem Header="Physique">
               <ScrollViewer>
                 <StackPanel Spacing="10" Margin="4">
-                  <TextBlock Text="Lois vivantes" FontWeight="SemiBold" Foreground="#E8EEF7" />
-                  <TextBlock Text="Choisissez une loi, éditez l'expression, puis compilez sans arrêter la simulation."
-                             Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
-                  <ComboBox ItemsSource="{Binding LawIds}" SelectedItem="{Binding SelectedLawId}" />
-                  <TextBox Text="{Binding LawExpression}" AcceptsReturn="True" Height="90"
+                  <TextBlock Text="Catalogue de lois" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="{Binding LawCatalogSummary}" Foreground="#45E0B8" FontSize="11" TextWrapping="Wrap" />
+                  <TextBox Text="{Binding LawSearchText}" Watermark="Rechercher (id, nom, domaine)…" />
+                  <ListBox ItemsSource="{Binding FilteredLawCatalog}"
+                           SelectedItem="{Binding SelectedLawEntry}"
+                           Background="#0E1218" MaxHeight="220">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate DataType="contracts:LawCatalogEntry">
+                        <StackPanel Spacing="2" Margin="0,2">
+                          <TextBlock Text="{Binding DisplayLine}" Foreground="#E8EEF7" FontSize="12" />
+                          <TextBlock Text="{Binding CategoryLabel}" Foreground="#6B7A94" FontSize="10" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                  <TextBlock Text="{Binding SelectedLawSummary}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" MaxHeight="72" />
+                  <Button Content="Appliquer au monde" Command="{Binding ApplySelectedLawCommand}" HorizontalAlignment="Stretch" />
+                  <TextBlock Text="Expression (hot-reload)" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,4,0,0" />
+                  <TextBox Text="{Binding LawExpression}" AcceptsReturn="True" Height="72"
                            Watermark="Expression de loi…" TextWrapping="Wrap" />
                   <Button Content="Compiler &amp; hot-reload" Command="{Binding CompileLawCommand}" HorizontalAlignment="Stretch" />
                   <TextBlock Text="{Binding LawStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />

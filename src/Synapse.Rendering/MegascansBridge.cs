@@ -724,8 +724,28 @@ namespace GDNN.Rendering.ArtPipeline
                 else if (filename.Contains("detail_normal") || filename.Contains("detail_nrm"))
                     textures.DetailNormal = file;
             }
+            textures.Format = InferDominantFormat(textures);
             return textures;
         }
+
+        private static string InferDominantFormat(MegascansTextureSet textures)
+        {
+            foreach (var path in new[] { textures.BaseColor, textures.Normal, textures.packed_ORM, textures.Roughness })
+            {
+                if (string.IsNullOrEmpty(path)) continue;
+                var ext = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
+                if (ext is "png" or "jpg" or "jpeg" or "tga" or "bmp" or "exr" or "tif" or "tiff")
+                    return ext == "jpeg" ? "jpg" : ext;
+            }
+            return "png";
+        }
+
+        /// <summary>
+        /// Decodes a Megascans texture file from disk (PNG/JPEG/BMP/TGA) for GPU upload.
+        /// Returns false for missing/corrupt/unsupported formats (caller keeps procedural fallback).
+        /// </summary>
+        public static bool TryDecodeTextureFile(string path, out DecodedImage image)
+            => MegascansImageDecoder.TryDecodeFile(path, out image);
 
         private Megascans3DAssetData Discover3DData(string directory)
         {

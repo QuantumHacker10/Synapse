@@ -473,6 +473,14 @@ namespace GDNN.Rendering.Quality
             _transitionProgress = 0;
         }
 
+        /// <summary>Immediately applies the target preset (no blend).</summary>
+        public void SnapToTarget()
+        {
+            _current = _target;
+            _transitionProgress = 1f;
+            OnQualityChanged?.Invoke(_current, _target);
+        }
+
         public void Update(float deltaTime)
         {
             if (_mode == AdaptationMode.Disabled)
@@ -651,6 +659,7 @@ namespace GDNN.Rendering.Quality
         {
             _basePreset = preset;
             _adapter.SetTarget(preset);
+            _adapter.SnapToTarget();
         }
 
         public void SetAdaptationMode(AdaptationMode mode)
