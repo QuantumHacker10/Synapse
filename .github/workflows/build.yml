@@ -27,7 +27,7 @@ jobs:
       run: dotnet test Synapse.slnx --no-build --configuration Release --verbosity normal --settings coverlet.runsettings --collect:"XPlat Code Coverage"
 
     - name: Upload coverage artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: always()
       with:
         name: coverage-report
@@ -112,7 +112,7 @@ jobs:
         fi
 
     - name: Upload publish artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: synapse-${{ matrix.rid }}
         path: artifacts/Synapse-${{ matrix.rid }}
