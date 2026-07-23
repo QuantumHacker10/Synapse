@@ -652,9 +652,21 @@ namespace GDNN.Lighting.LDNN
                     Vector3 indirect = Vector3.Zero;
                     int samples = 0;
 
-                    // 8-tap screen-space gather weighted by normal agreement.
-                    ReadOnlySpan<int> ox = stackalloc int[] { -3, -1, 1, 3, -3, 3, -1, 1 };
-                    ReadOnlySpan<int> oy = stackalloc int[] { -3, -1, 1, 3, 1, -1, 3, -3 };
+                    // 24-tap screen-space gather (AAA SSGI) weighted by normal agreement + depth.
+                    ReadOnlySpan<int> ox = stackalloc int[]
+                    {
+                        -5, -3, -1, 1, 3, 5,
+                        -5, -3, -1, 1, 3, 5,
+                        -4, -2, 2, 4, -4, -2, 2, 4,
+                        0, 0, -6, 6
+                    };
+                    ReadOnlySpan<int> oy = stackalloc int[]
+                    {
+                        -5, -3, -1, 1, 3, 5,
+                        5, 3, 1, -1, -3, -5,
+                        -2, -4, 4, 2, 2, 4, -4, -2,
+                        -6, 6, 0, 0
+                    };
                     for (int s = 0; s < ox.Length; s++)
                     {
                         int sx = Math.Clamp(x + ox[s], 0, w - 1);
@@ -663,9 +675,11 @@ namespace GDNN.Lighting.LDNN
                         float sd = gbuffer.Depth[sidx];
                         if (sd <= 0f)
                             continue;
-                        float depthWeight = 1f - Math.Clamp(MathF.Abs(sd - depth) / MathF.Max(0.05f, depth * 0.25f), 0f, 1f);
+                        float depthWeight = 1f - Math.Clamp(MathF.Abs(sd - depth) / MathF.Max(0.05f, depth * 0.22f), 0f, 1f);
                         float nDot = MathF.Max(0f, Vector3.Dot(normal, gbuffer.Normals[sidx]));
-                        indirect += gbuffer.Albedo[sidx] * (0.15f * depthWeight * nDot);
+                        float distPx = MathF.Sqrt(ox[s] * ox[s] + oy[s] * oy[s]);
+                        float spat = 1f / (1f + distPx * 0.08f);
+                        indirect += gbuffer.Albedo[sidx] * (0.18f * depthWeight * nDot * spat);
                         samples++;
                     }
 

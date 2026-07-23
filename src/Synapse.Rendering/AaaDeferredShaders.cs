@@ -458,13 +458,16 @@ namespace GDNN.Rendering.Shaders
             uint ambScale = b.F(tF, ambient + 0.045f);
             uint ambientRgb = b.Scale(tV3, b.FMul(tV3, albedo, hemi), b.FMul(tF, ambScale, ao));
 
-            // Strong multi-bounce GI: irradiance × albedo × AO, plus a cheap 2nd-bounce proxy.
+            // Strong multi-bounce GI: irradiance × albedo × AO, plus energy-conserving bounce proxies.
             uint giRgb = b.Rgb(tF, tV3, gi4);
             uint gi = b.Scale(tV3, b.FMul(tV3, giRgb, albedo), ao);
-            gi = b.Scale(tV3, gi, b.F(tF, 2.85f + giBoost * 0.9f));
+            gi = b.Scale(tV3, gi, b.F(tF, 2.55f + giBoost * 0.75f));
             uint giLum = b.Dot(tF, giRgb, b.Comp(tV3, b.F(tF, 0.299f), b.F(tF, 0.587f), b.F(tF, 0.114f)));
-            uint bounce2 = b.Scale(tV3, b.FMul(tV3, gi, albedo), b.FMul(tF, giLum, b.F(tF, 0.35f)));
+            uint bounce2 = b.Scale(tV3, b.FMul(tV3, gi, albedo), b.FMul(tF, giLum, b.F(tF, 0.28f)));
             gi = b.FAdd(tV3, gi, bounce2);
+            // Tertiary bounce (AAA): weaker albedo re-scatter from GI luminance.
+            uint bounce3 = b.Scale(tV3, b.FMul(tV3, bounce2, albedo), b.F(tF, 0.18f));
+            gi = b.FAdd(tV3, gi, bounce3);
 
             uint invV = b.Scale(tV3, V, b.F(tF, -1f));
             uint R = b.Normalize(glsl, tV3, b.FSub(tV3, invV, b.Scale(tV3, N, b.FMul(tF, b.F(tF, 2f), b.Dot(tF, N, invV)))));
@@ -473,10 +476,10 @@ namespace GDNN.Rendering.Shaders
             uint gloss = b.FMul(tF, b.FSub(tF, one, roughness), b.FSub(tF, one, roughness));
             uint iblSpec = b.Scale(tV3, b.FMul(tV3, env, F0), b.FMul(tF, gloss, ao));
             // Stronger SSR / reflection proxy from GI (Lumen-like specular).
-            uint rOff = b.Scale(tV2, b.Comp(tV2, b.Extract(tF, R, 0), b.Extract(tF, R, 2)), b.FMul(tF, b.F(tF, 0.12f), gloss));
+            uint rOff = b.Scale(tV2, b.Comp(tV2, b.Extract(tF, R, 0), b.Extract(tF, R, 2)), b.FMul(tF, b.F(tF, 0.16f), gloss));
             uint ssrUv = b.FAdd(tV2, uv, rOff);
             uint ssrGi = b.Rgb(tF, tV3, b.Sample(tV4, b.Load(tSImg, tex4), ssrUv));
-            uint ssr = b.Scale(tV3, b.FMul(tV3, ssrGi, F0), b.FMul(tF, gloss, b.F(tF, 0.95f)));
+            uint ssr = b.Scale(tV3, b.FMul(tV3, ssrGi, F0), b.FMul(tF, gloss, b.F(tF, 1.05f)));
 
             uint emissive = b.Scale(tV3, albedo, emissiveI);
             uint hdr = b.FAdd(tV3, b.FAdd(tV3, b.FAdd(tV3, direct, ambientRgb), gi), emissive);

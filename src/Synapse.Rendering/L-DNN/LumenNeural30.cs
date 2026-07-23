@@ -1,7 +1,7 @@
 // =============================================================================
-// L-DNN — Lumen Neural 3.0
+// L-DNN — Lumen Neural 3.0 (AAA)
 // Surface radiance cache, multi-bounce neural refine, and physics-coupled
-// volumetrics — the industrial GI brain for Synapse OMNIA.
+// volumetrics — the industrial / cinematic GI brain for Synapse OMNIA.
 // =============================================================================
 
 using System;
@@ -27,9 +27,53 @@ public static class LumenNeural30
         public float PhysicsEmissiveCoupling { get; init; } = 0.40f;
         public float AmbientFloor { get; init; } = 0.02f;
         public float CascadeDominance { get; init; } = 1.15f;
+        /// <summary>Screen refine density divisor (lower = denser). AAA uses ≤32.</summary>
+        public int RefineGridDivisor { get; init; } = 64;
+        /// <summary>Path-trace samples per pixel when cinematic refine is armed.</summary>
+        public int PathTraceSpp { get; init; } = 2;
+        /// <summary>SSAO hemisphere kernel size.</summary>
+        public int AoKernelSize { get; init; } = 32;
+        /// <summary>Fog sparse sample divisor (lower = denser).</summary>
+        public int FogGridDivisor { get; init; } = 64;
     }
 
     public static Policy Industrial { get; } = new();
+
+    /// <summary>High-tier realtime AAA defaults (dense refine, deeper bounces).</summary>
+    public static Policy Aaa { get; } = new()
+    {
+        SurfaceCacheResolution = 96,
+        MaxBounces = 6,
+        BounceFalloff = 0.58f,
+        SpecularWeight = 0.48f,
+        DiffuseWeight = 0.92f,
+        CascadeDominance = 1.28f,
+        AmbientFloor = 0.012f,
+        PhysicsFogCoupling = 0.62f,
+        PhysicsEmissiveCoupling = 0.48f,
+        RefineGridDivisor = 32,
+        PathTraceSpp = 4,
+        AoKernelSize = 48,
+        FogGridDivisor = 96
+    };
+
+    /// <summary>Offline / cinematic reference policy.</summary>
+    public static Policy Cinematic { get; } = new()
+    {
+        SurfaceCacheResolution = 128,
+        MaxBounces = 8,
+        BounceFalloff = 0.55f,
+        SpecularWeight = 0.55f,
+        DiffuseWeight = 0.95f,
+        CascadeDominance = 1.35f,
+        AmbientFloor = 0.008f,
+        PhysicsFogCoupling = 0.72f,
+        PhysicsEmissiveCoupling = 0.55f,
+        RefineGridDivisor = 16,
+        PathTraceSpp = 8,
+        AoKernelSize = 64,
+        FogGridDivisor = 128
+    };
 
     /// <summary>
     /// World-space surface radiance cache (Lumen surface-cache analog).
@@ -45,7 +89,7 @@ public static class LumenNeural30
 
         public SurfaceRadianceCache(int resolution = 64, Vector3? origin = null, float cellSize = 0.5f)
         {
-            _res = Math.Clamp(resolution, 8, 128);
+            _res = Math.Clamp(resolution, 8, 256);
             _irradiance = new Vector3[_res * _res * _res];
             _confidence = new float[_res * _res * _res];
             _origin = origin ?? new Vector3(-16f, -2f, -16f);
@@ -54,6 +98,8 @@ public static class LumenNeural30
 
         public int Resolution => _res;
         public int CellCount => _irradiance.Length;
+        public float CellSize => _cellSize;
+        public Vector3 Origin => _origin;
 
         public void Clear()
         {
@@ -71,6 +117,9 @@ public static class LumenNeural30
                 return -1;
             return x + _res * (y + _res * z);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int Pack(int x, int y, int z) => x + _res * (y + _res * z);
 
         public void Accumulate(Vector3 worldPos, Vector3 radiance, float weight = 1f)
         {
@@ -92,6 +141,57 @@ public static class LumenNeural30
             return _irradiance[i];
         }
 
+        /// <summary>
+        /// Trilinear filtered sample — AAA path. Falls back to nearest outside volume.
+        /// </summary>
+        public Vector3 SampleFiltered(Vector3 worldPos)
+        {
+            float fx = (worldPos.X - _origin.X) / _cellSize - 0.5f;
+            float fy = (worldPos.Y - _origin.Y) / _cellSize - 0.5f;
+            float fz = (worldPos.Z - _origin.Z) / _cellSize - 0.5f;
+            int x0 = (int)MathF.Floor(fx);
+            int y0 = (int)MathF.Floor(fy);
+            int z0 = (int)MathF.Floor(fz);
+            if (x0 < -1 || y0 < -1 || z0 < -1 || x0 >= _res || y0 >= _res || z0 >= _res)
+                return Sample(worldPos);
+
+            float tx = fx - x0;
+            float ty = fy - y0;
+            float tz = fz - z0;
+            Vector3 acc = Vector3.Zero;
+            float wSum = 0f;
+            for (int dz = 0; dz <= 1; dz++)
+            {
+                int z = z0 + dz;
+                if ((uint)z >= (uint)_res)
+                    continue;
+                float wz = dz == 0 ? 1f - tz : tz;
+                for (int dy = 0; dy <= 1; dy++)
+                {
+                    int y = y0 + dy;
+                    if ((uint)y >= (uint)_res)
+                        continue;
+                    float wy = dy == 0 ? 1f - ty : ty;
+                    for (int dx = 0; dx <= 1; dx++)
+                    {
+                        int x = x0 + dx;
+                        if ((uint)x >= (uint)_res)
+                            continue;
+                        float wx = dx == 0 ? 1f - tx : tx;
+                        int i = Pack(x, y, z);
+                        float c = _confidence[i];
+                        if (c < 1e-3f)
+                            continue;
+                        float w = wx * wy * wz * MathF.Min(1f, c);
+                        acc += _irradiance[i] * w;
+                        wSum += w;
+                    }
+                }
+            }
+
+            return wSum > 1e-5f ? acc / wSum : Sample(worldPos);
+        }
+
         /// <summary>Temporal decay so stale cache cells fade (Lumen-like invalidation).</summary>
         public void TemporalDecay(float factor = 0.97f)
         {
@@ -106,7 +206,7 @@ public static class LumenNeural30
 
     /// <summary>
     /// Multi-bounce neural refine: mixes SSGI, cascade, and surface-cache samples
-    /// into a single irradiance with exponential bounce falloff.
+    /// into energy-conserving irradiance with Fresnel-weighted specular.
     /// </summary>
     public static Vector3 MultiBounceRefine(
         Vector3 ssgi,
@@ -117,19 +217,32 @@ public static class LumenNeural30
         Policy? policy = null)
     {
         policy ??= Industrial;
-        Vector3 diffuse = (ssgi * 0.55f + cascade * policy.CascadeDominance + surfaceCache * 0.75f)
+        // Energy-conserving diffuse mix: SSGI near-field + cascades far-field + cache feedback.
+        Vector3 diffuse = (ssgi * 0.48f + cascade * policy.CascadeDominance + surfaceCache * 0.82f)
                           * policy.DiffuseWeight;
+
+        // Albedo-clamped bounce chain (prevents fireflies while deepening AAA multi-bounce).
         Vector3 bounce = Vector3.Zero;
         Vector3 carry = diffuse;
         float atten = 1f;
+        Vector3 albedoClamp = Vector3.Clamp(albedo, Vector3.Zero, Vector3.One * 0.92f);
         for (int b = 0; b < policy.MaxBounces; b++)
         {
             atten *= policy.BounceFalloff;
-            carry = carry * albedo * atten;
+            carry = carry * albedoClamp * atten;
             bounce += carry;
+            // Secondary cascade bleed every other bounce (Lumen-like probe reuse).
+            if ((b & 1) == 1)
+                bounce += cascade * (0.08f * atten);
         }
 
-        Vector3 specular = specularHint * policy.SpecularWeight;
+        // Schlick-ish specular lobe weight from luma of specular hint.
+        float specLuma = 0.2126f * specularHint.X + 0.7152f * specularHint.Y + 0.0722f * specularHint.Z;
+        float fresnel = 0.04f + 0.96f * MathF.Pow(1f - Math.Clamp(specLuma, 0f, 1f), 5f);
+        Vector3 specular = specularHint * (policy.SpecularWeight * (0.55f + 0.45f * fresnel));
+        // Specular also picks up a fraction of cascade (glossy reflection proxy).
+        specular += cascade * (0.12f * policy.SpecularWeight);
+
         Vector3 result = diffuse + bounce + specular;
         float floor = policy.AmbientFloor;
         return new Vector3(
@@ -223,5 +336,32 @@ public static class LumenNeural30
                 irradiance[x, y] += emissive * 0.25f;
             }
         }
+    }
+
+    /// <summary>Selects Lumen policy from a named quality preset string.</summary>
+    public static Policy PolicyFromPreset(string? presetName)
+    {
+        if (string.IsNullOrWhiteSpace(presetName))
+            return Industrial;
+        return presetName.Trim().ToLowerInvariant() switch
+        {
+            "cinematic" => Cinematic,
+            "ultra" or "aaa" => Aaa,
+            "high" => new Policy
+            {
+                SurfaceCacheResolution = 80,
+                MaxBounces = 5,
+                BounceFalloff = 0.60f,
+                SpecularWeight = 0.42f,
+                DiffuseWeight = 0.88f,
+                CascadeDominance = 1.22f,
+                AmbientFloor = 0.015f,
+                RefineGridDivisor = 40,
+                PathTraceSpp = 3,
+                AoKernelSize = 40,
+                FogGridDivisor = 80
+            },
+            _ => Industrial
+        };
     }
 }

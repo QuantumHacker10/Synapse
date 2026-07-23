@@ -177,16 +177,99 @@ namespace GDNN.Rendering.Bridge
         }
 
         private PhysicsFieldGiCoupler? _fieldCoupler;
-        private readonly LumenNeural30.SurfaceRadianceCache _surfaceCache = new(48);
-        private readonly LumenCinematicGi _cinematicGi = new(96);
+        private LumenNeural30.SurfaceRadianceCache _surfaceCache = new(96);
+        private readonly LumenCinematicGi _cinematicGi = new(128);
         private MaterialHint? _materialHint;
         private bool _cinematicGiEnabled;
+        private LumenNeural30.Policy _lumenPolicy = LumenNeural30.Aaa;
+        private int _aoKernelSize = 48;
+        private int _fogGridDivisor = 96;
+        private int _refineGridDivisor = 32;
+        private int _pathTraceSpp = 4;
+        private string _qualityPresetName = "High";
 
         /// <summary>Enables Lumen Neural cinematic refine (GPU surface cache + full path-trace blend).</summary>
         public void SetCinematicGi(bool enabled) => _cinematicGiEnabled = enabled;
 
         public LumenCinematicGi.Mode LastCinematicMode => _cinematicGi.LastMode;
         public int LastCinematicPathTraceSamples => _cinematicGi.LastPathTraceSamples;
+        public bool LastCinematicUsedRealPathTracer => _cinematicGi.UsedRealPathTracer;
+        public LumenNeural30.Policy ActiveLumenPolicy => _lumenPolicy;
+        public int ActiveRefineGridDivisor => _refineGridDivisor;
+        public int ActivePathTraceSpp => _pathTraceSpp;
+        public int SurfaceCacheResolution => _surfaceCache.Resolution;
+
+        /// <summary>
+        /// Pushes AAA quality knobs from <see cref="Synapse.Infrastructure.QualityLevel"/> /
+        /// preset name into Lumen Neural refine, AO, fog, and cinematic SPP.
+        /// </summary>
+        public void ApplyAaaQuality(string presetName, int giMaxBounces = 0, int giCascadeResolution = 0, int ssaoQuality = 0)
+        {
+            _qualityPresetName = presetName ?? "High";
+            _lumenPolicy = LumenNeural30.PolicyFromPreset(_qualityPresetName);
+            if (giMaxBounces > 0)
+            {
+                _lumenPolicy = new LumenNeural30.Policy
+                {
+                    SurfaceCacheResolution = _lumenPolicy.SurfaceCacheResolution,
+                    MaxBounces = Math.Clamp(giMaxBounces, 1, 16),
+                    BounceFalloff = _lumenPolicy.BounceFalloff,
+                    SpecularWeight = _lumenPolicy.SpecularWeight,
+                    DiffuseWeight = _lumenPolicy.DiffuseWeight,
+                    PhysicsFogCoupling = _lumenPolicy.PhysicsFogCoupling,
+                    PhysicsEmissiveCoupling = _lumenPolicy.PhysicsEmissiveCoupling,
+                    AmbientFloor = _lumenPolicy.AmbientFloor,
+                    CascadeDominance = _lumenPolicy.CascadeDominance,
+                    RefineGridDivisor = _lumenPolicy.RefineGridDivisor,
+                    PathTraceSpp = _lumenPolicy.PathTraceSpp,
+                    AoKernelSize = _lumenPolicy.AoKernelSize,
+                    FogGridDivisor = _lumenPolicy.FogGridDivisor
+                };
+            }
+
+            _refineGridDivisor = Math.Max(8, _lumenPolicy.RefineGridDivisor);
+            _pathTraceSpp = Math.Clamp(_lumenPolicy.PathTraceSpp, 1, 16);
+            _aoKernelSize = Math.Clamp(_lumenPolicy.AoKernelSize, 16, 64);
+            if (ssaoQuality >= 3)
+                _aoKernelSize = Math.Max(_aoKernelSize, 56);
+            if (ssaoQuality >= 4)
+                _aoKernelSize = 64;
+            _fogGridDivisor = Math.Max(32, _lumenPolicy.FogGridDivisor);
+
+            if (_surfaceCache.Resolution < _lumenPolicy.SurfaceCacheResolution)
+            {
+                _surfaceCache = new LumenNeural30.SurfaceRadianceCache(
+                    _lumenPolicy.SurfaceCacheResolution,
+                    origin: new Vector3(-20f, -3f, -20f),
+                    cellSize: _lumenPolicy.SurfaceCacheResolution >= 96 ? 0.35f : 0.5f);
+            }
+
+            if (_initialized && _config != null && _ldnn != null)
+            {
+                if (giCascadeResolution >= 256)
+                    _config.CascadeConfig = _config.CascadeConfig with { BaseResolution = CascadeResolution.High256 };
+                _config.MaxPathDepth = Math.Max(_config.MaxPathDepth, _lumenPolicy.MaxBounces);
+                _config.VolumeFogConfig = _config.VolumeFogConfig with
+                {
+                    DepthSlices = Math.Max(_config.VolumeFogConfig.DepthSlices, _qualityPresetName.Equals("Cinematic", StringComparison.OrdinalIgnoreCase) ? 128 : 96),
+                    GridResolutionXY = Math.Max(_config.VolumeFogConfig.GridResolutionXY, _qualityPresetName.Equals("Cinematic", StringComparison.OrdinalIgnoreCase) ? 64 : 48)
+                };
+                _ldnn.Config.VolumeFogConfig = _config.VolumeFogConfig;
+                _ldnn.Config.MaxPathDepth = _config.MaxPathDepth;
+                if (_qualityPresetName.Equals("Cinematic", StringComparison.OrdinalIgnoreCase) ||
+                    _qualityPresetName.Equals("Ultra", StringComparison.OrdinalIgnoreCase))
+                {
+                    _config.TeacherPixelStride = Math.Min(_config.TeacherPixelStride, 8);
+                    _config.TeacherSamplesPerPixel = Math.Max(_config.TeacherSamplesPerPixel, 2);
+                    _ldnn.Config.TeacherPixelStride = _config.TeacherPixelStride;
+                    _ldnn.Config.TeacherSamplesPerPixel = _config.TeacherSamplesPerPixel;
+                }
+            }
+
+            _cinematicGiEnabled = _cinematicGiEnabled
+                || _qualityPresetName.Equals("Cinematic", StringComparison.OrdinalIgnoreCase);
+            InvalidateGICache();
+        }
 
         /// <summary>Applies LLM material hint as emissive / albedo bias for Lumen Neural 3.0.</summary>
         public void ApplyMaterialHint(MaterialHint hint)
@@ -356,6 +439,11 @@ namespace GDNN.Rendering.Bridge
                 hash.Add(light.ShadowMethod);
             }
 
+            hash.Add(_qualityPresetName);
+            hash.Add(_refineGridDivisor);
+            hash.Add(_pathTraceSpp);
+            hash.Add(_cinematicGiEnabled);
+            hash.Add(_lumenPolicy.MaxBounces);
             return hash.ToHashCode();
         }
 
@@ -425,32 +513,68 @@ namespace GDNN.Rendering.Bridge
                         irradiance[x, y] = _gbuffer.Albedo[y * _width + x] * 0.3f;
             }
 
-            // Lumen Neural 3.0: multi-bounce refine + surface cache + physics heat boost.
-            Vector3 cacheSample = _surfaceCache.Sample(_cameraState.Position);
-            Vector3 specularHint = Vector3.One * 0.15f;
+            // Lumen Neural 3.0 AAA: dense multi-bounce refine + filtered surface cache + cascade mix.
+            Vector3 specularHint = Vector3.One * 0.18f;
             if (_materialHint?.EmissiveStrength is { } em && em > 0f)
                 specularHint += Vector3.One * em;
 
-            for (int y = 0; y < _height; y += Math.Max(1, _height / 64))
+            int refineDiv = Math.Max(8, _refineGridDivisor);
+            int stepY = Math.Max(1, _height / refineDiv);
+            int stepX = Math.Max(1, _width / refineDiv);
+            // Half-res dense refine for High+; full-res for Cinematic divisor ≤16.
+            bool fullResRefine = refineDiv <= 16;
+            if (fullResRefine)
             {
-                for (int x = 0; x < _width; x += Math.Max(1, _width / 64))
+                stepX = 1;
+                stepY = 1;
+            }
+
+            for (int y = 0; y < _height; y += stepY)
+            {
+                for (int x = 0; x < _width; x += stepX)
                 {
                     int idx = y * _width + x;
                     Vector3 albedo = _gbuffer.Albedo[idx];
+                    float depth = MathF.Max(0.5f, _gbuffer.Depth[idx]);
+                    Vector3 world = _cameraState.Position + _cameraState.Forward * depth;
+                    Vector3 cacheSample = _surfaceCache.SampleFiltered(world);
+                    // Cascade: lift hybrid + cache feedback (true cascade already baked in Hybrid field).
+                    Vector3 cascade = irradiance[x, y] * 1.12f + cacheSample * 0.22f;
+                    Vector3 spec = _gbuffer.Specular != null && _gbuffer.Specular[idx].LengthSquared() > 1e-6f
+                        ? _gbuffer.Specular[idx] + specularHint * 0.25f
+                        : specularHint;
                     Vector3 refined = LumenNeural30.MultiBounceRefine(
                         irradiance[x, y],
-                        irradiance[x, y] * 1.1f,
+                        cascade,
                         cacheSample,
                         albedo,
-                        specularHint);
+                        spec,
+                        _lumenPolicy);
                     irradiance[x, y] = refined;
-                    _surfaceCache.Accumulate(
-                        _cameraState.Position + _cameraState.Forward * MathF.Max(0.5f, _gbuffer.Depth[idx]),
-                        refined,
-                        weight: 0.35f);
+                    _surfaceCache.Accumulate(world, refined, weight: 0.55f);
+
+                    // Bilinear-ish fill of the refine block so sparse grids don't leave tiles.
+                    if (stepX > 1 || stepY > 1)
+                    {
+                        int x1 = Math.Min(_width, x + stepX);
+                        int y1 = Math.Min(_height, y + stepY);
+                        for (int yy = y; yy < y1; yy++)
+                        {
+                            for (int xx = x; xx < x1; xx++)
+                            {
+                                if (xx == x && yy == y)
+                                    continue;
+                                float wx = stepX <= 1 ? 0f : (xx - x) / (float)stepX;
+                                float wy = stepY <= 1 ? 0f : (yy - y) / (float)stepY;
+                                float t = 0.55f + 0.45f * (1f - 0.5f * (wx + wy));
+                                irradiance[xx, yy] = Vector3.Lerp(irradiance[xx, yy], refined, t);
+                            }
+                        }
+                    }
                 }
             }
 
+            _surfaceCache.TemporalDecay(0.985f);
             _fieldCoupler?.BoostIrradiance(irradiance);
 
             if (_cinematicGiEnabled)
@@ -461,7 +585,8 @@ namespace GDNN.Rendering.Bridge
                     _cameraState,
                     _lights,
                     LumenCinematicGi.Mode.FullPathTrace,
-                    pathTraceSpp: 2);
+                    pathTraceSpp: _pathTraceSpp,
+                    policyOverride: _lumenPolicy);
             }
 
             if (_lastFillWasConstants)
@@ -508,8 +633,8 @@ namespace GDNN.Rendering.Bridge
                     {
                         ["gbuffer"] = _gbuffer,
                         ["camera"] = _cameraState,
-                        ["kernelSize"] = 32,
-                        ["radius"] = 0.75f
+                        ["kernelSize"] = _aoKernelSize,
+                        ["radius"] = _cinematicGiEnabled ? 0.95f : 0.75f
                     });
                 _ldnn.DispatchComputeShaders(
                     "blur_ao",
@@ -564,11 +689,18 @@ namespace GDNN.Rendering.Bridge
             if (!_initialized || vol == null || _width <= 0 || _height <= 0)
                 return field;
 
-            int step = Math.Max(2, Math.Max(_width, _height) / 64);
-            for (int y = 0; y < _height; y += step)
+            int divisor = Math.Max(32, _fogGridDivisor);
+            int step = Math.Max(1, Math.Max(_width, _height) / divisor);
+            // Sparse samples on a grid, then bilinear upsample to full res (AAA fog smoothness).
+            int gridW = (_width + step - 1) / step;
+            int gridH = (_height + step - 1) / step;
+            var sparse = new Vector3[gridW, gridH];
+            for (int gy = 0; gy < gridH; gy++)
             {
-                for (int x = 0; x < _width; x += step)
+                int y = Math.Min(_height - 1, gy * step);
+                for (int gx = 0; gx < gridW; gx++)
                 {
+                    int x = Math.Min(_width - 1, gx * step);
                     float u = (x + 0.5f) / _width;
                     float v = (y + 0.5f) / _height;
                     var screen = new Vector2(u, v);
@@ -576,12 +708,27 @@ namespace GDNN.Rendering.Bridge
                         _cameraState.Forward
                         + _cameraState.Right * ((u - 0.5f) * 2f * _cameraState.AspectRatio * MathF.Tan(_cameraState.FieldOfView * 0.5f * MathF.PI / 180f))
                         + _cameraState.Up * ((0.5f - v) * 2f * MathF.Tan(_cameraState.FieldOfView * 0.5f * MathF.PI / 180f)));
-                    var scatter = vol.IntegrateVolumeScattering(_cameraState, screen, viewDir, _lights);
-                    int x1 = Math.Min(_width, x + step);
-                    int y1 = Math.Min(_height, y + step);
-                    for (int yy = y; yy < y1; yy++)
-                        for (int xx = x; xx < x1; xx++)
-                            field[xx, yy] = scatter;
+                    sparse[gx, gy] = vol.IntegrateVolumeScattering(_cameraState, screen, viewDir, _lights);
+                }
+            }
+
+            for (int y = 0; y < _height; y++)
+            {
+                float gy = step <= 1 ? y : y / (float)step;
+                int y0 = Math.Clamp((int)gy, 0, gridH - 1);
+                int y1 = Math.Min(y0 + 1, gridH - 1);
+                float fy = gy - y0;
+                for (int x = 0; x < _width; x++)
+                {
+                    float gx = step <= 1 ? x : x / (float)step;
+                    int x0 = Math.Clamp((int)gx, 0, gridW - 1);
+                    int x1 = Math.Min(x0 + 1, gridW - 1);
+                    float fx = gx - x0;
+                    Vector3 c00 = sparse[x0, y0];
+                    Vector3 c10 = sparse[x1, y0];
+                    Vector3 c01 = sparse[x0, y1];
+                    Vector3 c11 = sparse[x1, y1];
+                    field[x, y] = Vector3.Lerp(Vector3.Lerp(c00, c10, fx), Vector3.Lerp(c01, c11, fx), fy);
                 }
             }
 

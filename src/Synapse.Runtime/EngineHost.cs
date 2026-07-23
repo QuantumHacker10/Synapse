@@ -354,6 +354,21 @@ namespace Synapse.Runtime
                 return;
             _quality.ReportFrame(frameMs, 0, 0, frameMs);
             _quality.Update(dt);
+            PushAaaQualityToRenderer();
+        }
+
+        /// <summary>Pushes RuntimeQualityManager effective level into SceneRenderer / L-DNN / Nanite.</summary>
+        private void PushAaaQualityToRenderer()
+        {
+            if (_quality == null || _renderEngine?.SceneRenderer == null)
+                return;
+            var level = _quality.GetEffectiveQuality();
+            _renderEngine.SceneRenderer.ApplyAaaQuality(
+                level.Preset.ToString(),
+                shadowResolution: level.ShadowResolution,
+                giMaxBounces: level.GIMaxBounces,
+                giCascadeResolution: level.GICascadeResolution,
+                ssaoQuality: level.SSAOQuality);
         }
 
         /// <summary>Activates a built-in law from the library by id.</summary>
@@ -1306,15 +1321,21 @@ namespace Synapse.Runtime
             {
                 var sr = _renderEngine.SceneRenderer;
                 sr.CinematicGiEnabled = true;
-                sr.SetRenderScale(0.77f); // internal 77% → upscale to display (FSR Quality-ish)
+                sr.SetRenderScale(0.85f); // AAA internal 85% → FSR upscale to display
                 sr.SetUpscalerBackend(GDNN.Rendering.Upscaling.UpscalerBackend.Auto);
                 if (sr.Algorithms != null)
                     sr.Algorithms.CinematicNanite = true;
+                sr.ApplyAaaQuality(
+                    "Cinematic",
+                    shadowResolution: 4096,
+                    giMaxBounces: 8,
+                    giCascadeResolution: 512,
+                    ssaoQuality: 4);
             }
 
             _logger.Info("Cinematic",
-                $"Native stack armed (continuum={continuumScale}, Nanite full-res, Lumen path-trace, upscaler=Auto)");
-            RaiseInspector("Cinematic", "Armed", continuumScale.ToString());
+                $"Native AAA stack armed (continuum={continuumScale}, Nanite full-res, Lumen path-trace, shadows=4096, upscaler=Auto)");
+            RaiseInspector("Cinematic", "Armed AAA", continuumScale.ToString());
         }
 
         private static QualityPreset ParseQuality(string name) =>
