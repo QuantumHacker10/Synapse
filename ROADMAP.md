@@ -1,6 +1,6 @@
 # Roadmap — Synapse OMNIA
 
-Vision publique du projet. Les dates sont indicatives ; l'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
+Vision publique du projet. L'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
 ## v2.10 — Actuel (2026-07) — OpenUSD MeshIO production-complete
 
@@ -65,6 +65,28 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] Durcissement sécurité plugins (path jail + allowlist) et P2P (auth HMAC + decrypt-or-drop)
 
 ## v2.0 — Livré (2026-07)
+## v2.4 — Actuel (2026-07) — Stack cinématique native
+
+- [x] G-DNN full-res material resolve (`MeshletMaterialResolvePass`, `NaniteCinematicResolve`)
+- [x] Mesh-shader compat compute (`MeshShaderCompatGenerator`)
+- [x] L-DNN cinematic GI (`LumenCinematicGi` surface cache + path-trace blend)
+- [x] Upscaling FrameGraph (`UpscalePass` : FSR / DLSS-compatible / MetalFX-compatible)
+- [x] Continuum scène (`GpuContinuumScheduler` SPH + LBM + élasticité, scales Demo→Cinematic)
+- [x] `EngineHost.EnableCinematicStack()` branché au present path
+
+## v2.3 — Pipeline industriel
+
+- [x] Cascade unifiée **LLM → Physics → Rendering → Simulation** (`OmniaIndustrialPipeline`)
+- [x] Parsing world-delta LLM (éclairage, SDF, lois vivantes, matériaux, impulsions, BT)
+- [x] Couplage Physics → L-DNN (`PhysicsFieldGiCoupler` + Lumen Neural 3.0)
+- [x] Actuateur Simulation → Physics (`PhysicsActuator` heat/impulse)
+- [x] **G-DNN Nanite Neural 3.0** (continuous LOD, densités meshlets, resolve cluster)
+- [x] **L-DNN Lumen Neural 3.0** (surface radiance cache, multi-bounce, thermo-volumétrique)
+- [x] FrameOrchestrator : Physics → Simulation → Coupling → Render → Quality
+- [x] Continuum SPH / élasticité warm-ready (activation via `enableModules` LLM)
+- [x] Studio Apply = `ApplyLlmWorldDelta`
+
+## v2.0 — Fondations (2026-07)
 
 - [x] API plugin C# (chargement DLL sandboxé)
 - [x] Mode headless benchmarks automatisés
@@ -75,10 +97,11 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] Marketplace lois (`.synapse-law`)
 - [x] Découpage `LivingLawCompiler.cs` (68 fichiers)
 - [x] Couverture de code > 40 % (seuil CI Codecov)
-- [x] Fondations P2P, VR (OpenXR stub), preview web
+- [x] Fondations P2P, VR (OpenXR), preview web
 - [x] Tutoriels écrits + guide benchmarks (docs/)
 
 ## v2.1 — Livré (2026-07)
+## v2.1 — (2026-07)
 
 - [x] Captures PNG Studio dans README (`docs/screenshots/*.png`)
 - [x] Découpage `LivingLawLibrary.cs` et `EntityBehaviorSystem.cs`
@@ -87,6 +110,7 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] Éditeur web WebGPU (`site/editor/`, `WebEditorBuilder`)
 
 ## v2.2 — Livré (2026-07)
+## v2.2 — (2026-07)
 
 - [x] Captures PNG live Studio (`--screenshot`, Avalonia Headless + Skia)
 - [x] OpenXR swapchain Vulkan réel (`OpenXrVulkanSwapchain`)
@@ -94,6 +118,7 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 - [x] Éditeur web glTF interactif (`site/editor/`, WebGPU)
 
 ## v2.7+ — Prochaine release
+## v2.4 — Communauté & qualité
 
 ### Communauté
 - [ ] Tutoriels vidéo (YouTube)
@@ -129,6 +154,10 @@ Vision publique du projet. Les dates sont indicatives ; l'avancement réel est s
 
 - [ ] Éditeur web complet (WASM + WebGPU)
 - [ ] Marketplace d'assets et de lois avec signatures
+
+### Studio
+- [ ] Blueprint éditable temps réel dans Studio
+- [ ] Plugin marketplace hébergé
 
 ## Comment contribuer à la roadmap
 

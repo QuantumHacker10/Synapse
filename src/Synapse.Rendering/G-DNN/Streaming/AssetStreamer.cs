@@ -1124,7 +1124,9 @@ namespace GDNN.Streaming
             var asset = new NeuralAsset { TargetMeshId = Guid.Empty };
             var mlp = new MicroMLP();
             asset.CompressedWeights = mlp.CompressWeights();
-            return asset.Serialize();
+            byte[] raw = asset.Serialize();
+            // LoadAssetAsync always LZ4-decompresses — compress so the placeholder path is valid.
+            return _compression.Compress(raw, CompressionAlgorithm.LZ4).Data;
         }
 
         private static async Task<byte[]> ReadAssetFileAsync(string path, CancellationToken cancellationToken)

@@ -21,6 +21,8 @@ namespace Synapse.Infrastructure.Configuration
         public string? PluginDirectory { get; set; }
         public string? BenchmarkConfigPath { get; set; }
         public string? BenchmarkOutputPath { get; set; }
+        public string? LawBenchmarkOutputPath { get; set; }
+        public bool RunLawBenchmark { get; set; }
         public string? ExportScenePath { get; set; }
         public string? ScreenshotPath { get; set; }
         public string? WanSessionCode { get; set; }
@@ -175,6 +177,12 @@ namespace Synapse.Infrastructure.Configuration
                         break;
                     case "--benchmark-out":
                         config.BenchmarkOutputPath = Next();
+                        break;
+                    case "--law-benchmark":
+                        config.RunLawBenchmark = true;
+                        break;
+                    case "--law-benchmark-out":
+                        config.LawBenchmarkOutputPath = Next();
                         break;
                     case "--export-scene":
                         config.ExportScenePath = Next();

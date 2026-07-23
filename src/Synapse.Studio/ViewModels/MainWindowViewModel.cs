@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GDNN.Rendering.ArtPipeline;
+using GDNN.Rendering.Bridge;
 using Synapse.Infrastructure;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
@@ -81,7 +82,7 @@ namespace Synapse.Studio.ViewModels
         }
 
         public ObservableCollection<SceneEntity> Entities { get; } = new();
-        public ObservableCollection<string> LawIds { get; } = new();
+        public ObservableCollection<LawCatalogEntry> FilteredLawCatalog { get; } = new();
         public ObservableCollection<EntityType> EntityTypes { get; } = new();
         public ObservableCollection<ChatMessageRecord> ChatMessages { get; } = new();
         public ObservableCollection<string> BlueprintNodes { get; } = new();
@@ -100,6 +101,10 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private bool showAboutText;
         [ObservableProperty] private string aboutText = "";
         [ObservableProperty] private string? selectedLawId;
+        [ObservableProperty] private LawCatalogEntry? selectedLawEntry;
+        [ObservableProperty] private string lawSearchText = "";
+        [ObservableProperty] private string lawCatalogSummary = "";
+        [ObservableProperty] private string selectedLawSummary = "";
         [ObservableProperty] private string lawExpression = "∂T/∂t = α*∇²T";
         [ObservableProperty] private string lawStatus = "Prêt";
         [ObservableProperty] private string chatInput = "";
@@ -282,12 +287,49 @@ namespace Synapse.Studio.ViewModels
 
         partial void OnSelectedLawIdChanged(string? value)
         {
+            if (string.IsNullOrWhiteSpace(value))
+                return;
+            var law = _host.ListLawCatalog().FirstOrDefault(l => l.Id == value);
+            if (string.IsNullOrWhiteSpace(law.Id))
+                return;
+
+            LawExpression = law.Expression;
+            var entry = FindCatalogEntry(value);
+            if (entry != null && !ReferenceEquals(SelectedLawEntry, entry))
+                SelectedLawEntry = entry;
+            UpdateSelectedLawSummary();
+        }
+
+        partial void OnSelectedLawEntryChanged(LawCatalogEntry? value)
+        {
             if (value == null)
                 return;
-            var law = _host.ListLaws().FirstOrDefault(l => l.Id == value);
-            if (law.Id != null)
-                LawExpression = law.Expression;
+            if (!string.Equals(SelectedLawId, value.Id, StringComparison.OrdinalIgnoreCase))
+                SelectedLawId = value.Id;
+            LawExpression = value.Expression;
+            UpdateSelectedLawSummary();
         }
+
+        partial void OnLawSearchTextChanged(string value) => ApplyLawCatalogFilter();
+
+        private readonly List<LawCatalogEntry> _allLawCatalog = new();
+
+        private void UpdateSelectedLawSummary()
+        {
+            if (SelectedLawEntry == null)
+            {
+                SelectedLawSummary = "";
+                return;
+            }
+
+            SelectedLawSummary =
+                $"{SelectedLawEntry.Name}\n" +
+                $"Catégorie : {SelectedLawEntry.CategoryLabel}\n" +
+                $"{SelectedLawEntry.Description}";
+        }
+
+        private LawCatalogEntry? FindCatalogEntry(string id) =>
+            _allLawCatalog.FirstOrDefault(l => string.Equals(l.Id, id, StringComparison.OrdinalIgnoreCase));
 
         [RelayCommand]
         private void RefreshEntities()
@@ -322,10 +364,42 @@ namespace Synapse.Studio.ViewModels
 
         private void RefreshLaws()
         {
-            LawIds.Clear();
-            foreach (var law in _host.ListLaws())
-                LawIds.Add(law.Id);
-            SelectedLawId = _host.ActiveLawId ?? LawIds.FirstOrDefault();
+            _allLawCatalog.Clear();
+            foreach (var law in _host.ListLawCatalog())
+            {
+                _allLawCatalog.Add(new LawCatalogEntry
+                {
+                    Id = law.Id,
+                    Name = law.Name,
+                    Category = law.Category,
+                    Description = law.Description,
+                    Expression = law.Expression
+                });
+            }
+
+            LawCatalogSummary = $"{_allLawCatalog.Count} lois dans le catalogue · actif : {_host.ActiveLawId ?? "—"}";
+            ApplyLawCatalogFilter();
+            SelectedLawId = _host.ActiveLawId ?? _allLawCatalog.FirstOrDefault()?.Id;
+            SelectedLawEntry = FindCatalogEntry(SelectedLawId ?? "") ?? _allLawCatalog.FirstOrDefault();
+            UpdateSelectedLawSummary();
+        }
+
+        private void ApplyLawCatalogFilter()
+        {
+            FilteredLawCatalog.Clear();
+            string q = LawSearchText.Trim();
+            IEnumerable<LawCatalogEntry> query = _allLawCatalog;
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                query = _allLawCatalog.Where(l =>
+                    l.Id.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    l.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    l.Category.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    l.Description.Contains(q, StringComparison.OrdinalIgnoreCase));
+            }
+
+            foreach (var entry in query)
+                FilteredLawCatalog.Add(entry);
         }
 
         private void RefreshStatus()
@@ -348,8 +422,15 @@ namespace Synapse.Studio.ViewModels
             else if (!EvolutionStatus.StartsWith("Terminé", StringComparison.Ordinal))
                 EvolutionStatus = "Inactif";
 
-            var giGpu = _host.RenderEngine?.SceneRenderer?.GiUsesGpuReadback ?? false;
-            GiStatus = giGpu ? "GI : lecture G-buffer GPU active" : "GI : constantes de repli";
+            var fillMode = _host.RenderEngine?.SceneRenderer?.LastGiFillMode ?? GiGBufferFillMode.None;
+            GiStatus = fillMode switch
+            {
+                GiGBufferFillMode.GpuReadback => "GI : lecture G-buffer GPU active",
+                GiGBufferFillMode.GpuResident => "GI : G-buffer GPU résident",
+                GiGBufferFillMode.ProceduralPreview => "GI : preview procédurale L-DNN",
+                GiGBufferFillMode.Constants => "GI : constantes de repli",
+                _ => "GI : lecture GPU en attente"
+            };
         }
 
         [RelayCommand]
@@ -501,6 +582,21 @@ namespace Synapse.Studio.ViewModels
             LawStatus = result.Success
                 ? $"OK — {result.InstructionCount} ops, {result.CompilationTimeMs} ms"
                 : $"Échec : {result.Message}";
+            LawCatalogSummary = $"{_allLawCatalog.Count} lois · actif : {_host.ActiveLawId ?? id}";
+        }
+
+        [RelayCommand]
+        private void ApplySelectedLaw()
+        {
+            if (SelectedLawEntry == null)
+                return;
+            var result = _host.ApplyLaw(SelectedLawEntry.Id);
+            LawExpression = SelectedLawEntry.Expression;
+            LawStatus = result.Success
+                ? $"Loi active : {SelectedLawEntry.Id} ({result.InstructionCount} ops)"
+                : $"Échec : {result.Message}";
+            LawCatalogSummary = $"{_allLawCatalog.Count} lois · actif : {_host.ActiveLawId ?? SelectedLawEntry.Id}";
+            RefreshStatus();
         }
 
         [RelayCommand]
@@ -512,11 +608,13 @@ namespace Synapse.Studio.ViewModels
             ChatInput = "";
             ChatMessages.Add(new ChatMessageRecord { Role = "Vous", Content = prompt });
 
-            // Steer the model toward structured lighting/SDF JSON when relevant.
+            // Steer the model toward structured industrial world-delta JSON when relevant.
             string routedPrompt = LooksLikeSceneControlPrompt(prompt)
-                ? prompt + "\n\nRespond with a JSON object including any of: " +
-                  "directionalDirection [x,y,z], color (#RRGGBB), intensity, fogDensity, " +
-                  "enableClouds, and/or primitive/center/radius for an SDF hint."
+                ? prompt + "\n\nRespond with a JSON object for the Synapse industrial pipeline " +
+                  "(LLM→Physics→Rendering→Simulation). Include any of: " +
+                  "directionalDirection [x,y,z], color (#RRGGBB), intensity, fogDensity, enableClouds, " +
+                  "primitive/center/radius (SDF), lawId/expression/enableModules (living law), " +
+                  "metallic/roughness (material), impulse/heatDeposit/profile (simulation)."
                 : prompt;
 
             var response = await _host.ChatAsync(routedPrompt);
@@ -528,12 +626,12 @@ namespace Synapse.Studio.ViewModels
                 Provider = response?.Provider ?? ""
             });
 
-            // Auto-apply scene or behavior hints when parseable.
-            LlmApplyStatus = _host.ApplyLlmSceneHints(content);
-            if (!LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
-                LlmApplyStatus = _host.ApplyLlmBehaviorHints(content);
-            if (LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
-                LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+            // Auto-apply full industrial cascade: LLM → Physics → Rendering → Simulation.
+            LlmApplyStatus = _host.ApplyLlmWorldDelta(content);
+            if (LlmApplyStatus.Contains("Applied:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("law:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("agent:", StringComparison.Ordinal))
                 RefreshEntities();
         }
 
@@ -548,11 +646,11 @@ namespace Synapse.Studio.ViewModels
                 return;
             }
 
-            LlmApplyStatus = _host.ApplyLlmSceneHints(last.Content);
-            if (!LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
-                LlmApplyStatus = _host.ApplyLlmBehaviorHints(last.Content);
-            if (LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
-                LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+            LlmApplyStatus = _host.ApplyLlmWorldDelta(last.Content);
+            if (LlmApplyStatus.Contains("Applied:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("law:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("agent:", StringComparison.Ordinal))
                 RefreshEntities();
         }
 
@@ -582,6 +680,22 @@ namespace Synapse.Studio.ViewModels
         }
 
         [RelayCommand]
+        private void InsertLawPrompt()
+        {
+            ChatInput =
+                "Apply a living physics law as JSON with lawId (e.g. heat_equation), " +
+                "optional expression, and enableModules [\"sph\",\"elasticity\"] if needed.";
+        }
+
+        [RelayCommand]
+        private void InsertWorldDeltaPrompt()
+        {
+            ChatInput =
+                "Create a full Synapse world delta as JSON: warm sunset lighting, " +
+                "a sphere SDF at [0,1,0], lawId heat_equation, and an agent impulse at origin.";
+        }
+
+        [RelayCommand]
         private void AddBlueprintLlmNode()
         {
             _blueprint.Nodes.Add(new BlueprintNode
@@ -604,6 +718,10 @@ namespace Synapse.Studio.ViewModels
                 || prompt.Contains("cloud", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("sdf", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("sun", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("law", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("physics", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("impulse", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("world delta", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("éclair", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("éclairage", StringComparison.OrdinalIgnoreCase);
         }

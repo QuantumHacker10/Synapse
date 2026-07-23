@@ -86,6 +86,8 @@ namespace GDNN.Rendering.Engine
         public string SceneName => _sceneName;
         /// <summary>Deferred renderer (G-Buffer, L-DNN, shadows) when initialized.</summary>
         public SceneRenderer? SceneRenderer => _sceneRenderer;
+        /// <summary>GPU-first FrameGraph owned by the scene renderer (null until init).</summary>
+        public GDNN.Rendering.FrameGraph.RenderFrameGraph? FrameGraph => _sceneRenderer?.FrameGraph;
 
         public unsafe void Initialize(int width = 1280, int height = 720, bool enableValidation = true)
         {
@@ -707,11 +709,17 @@ namespace GDNN.Rendering.Engine
             if (_sceneRenderer != null && _sceneRenderer.IsInitialized)
             {
                 _sceneRenderer.ConsumePendingGBufferReadback();
-                _sceneRenderer.UpdateUniforms((int)_currentFrame, view, proj, _cameraPos, _totalTime);
                 var right = Vector3.Normalize(Vector3.Cross(_cameraFront, _cameraUp));
-                _sceneRenderer.RenderGI(view, proj, _cameraPos, _cameraFront, right);
-                _sceneRenderer.RecordCommandBuffer(_commandBuffers[_currentFrame], imageIndex, (int)_currentFrame);
-                _sceneRenderer.RenderPostProcess((float)fbW / fbH);
+                _sceneRenderer.ExecuteFrame(
+                    _commandBuffers[_currentFrame],
+                    imageIndex,
+                    (int)_currentFrame,
+                    view,
+                    proj,
+                    _cameraPos,
+                    _cameraFront,
+                    right,
+                    _totalTime);
             }
             else
             {

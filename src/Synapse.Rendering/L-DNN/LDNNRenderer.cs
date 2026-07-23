@@ -289,6 +289,23 @@ namespace GDNN.Lighting.LDNN
                 _cascadesManager.SpatialFilter(_config.CascadeConfig.SpatialFilterRadius);
                 _cascadesManager.MergeAdjacentCascades();
             });
+
+            // Export cascade probes to the screen GI buffer so the Vulkan present path can sample them.
+            Parallel.For(0, gbuffer.Height, y =>
+            {
+                for (int x = 0; x < gbuffer.Width; x++)
+                {
+                    int idx = gbuffer.GetIndex(x, y);
+                    GBufferSample sample = gbuffer.GetSample(x, y);
+                    if (sample.Depth <= 0)
+                    {
+                        _previousGIResult[idx] = Vector3.Zero;
+                        continue;
+                    }
+                    Vector3 worldPos = ReconstructWorldPosition(x, y, sample.Depth, gbuffer, camera);
+                    _previousGIResult[idx] = ComputeIrradianceFromProbes(worldPos, sample.Normal);
+                }
+            });
         }
 
         /// <summary>
@@ -635,9 +652,21 @@ namespace GDNN.Lighting.LDNN
                     Vector3 indirect = Vector3.Zero;
                     int samples = 0;
 
-                    // 8-tap screen-space gather weighted by normal agreement.
-                    ReadOnlySpan<int> ox = stackalloc int[] { -3, -1, 1, 3, -3, 3, -1, 1 };
-                    ReadOnlySpan<int> oy = stackalloc int[] { -3, -1, 1, 3, 1, -1, 3, -3 };
+                    // 24-tap screen-space gather (AAA SSGI) weighted by normal agreement + depth.
+                    ReadOnlySpan<int> ox = stackalloc int[]
+                    {
+                        -5, -3, -1, 1, 3, 5,
+                        -5, -3, -1, 1, 3, 5,
+                        -4, -2, 2, 4, -4, -2, 2, 4,
+                        0, 0, -6, 6
+                    };
+                    ReadOnlySpan<int> oy = stackalloc int[]
+                    {
+                        -5, -3, -1, 1, 3, 5,
+                        5, 3, 1, -1, -3, -5,
+                        -2, -4, 4, 2, 2, 4, -4, -2,
+                        -6, 6, 0, 0
+                    };
                     for (int s = 0; s < ox.Length; s++)
                     {
                         int sx = Math.Clamp(x + ox[s], 0, w - 1);
@@ -646,9 +675,11 @@ namespace GDNN.Lighting.LDNN
                         float sd = gbuffer.Depth[sidx];
                         if (sd <= 0f)
                             continue;
-                        float depthWeight = 1f - Math.Clamp(MathF.Abs(sd - depth) / MathF.Max(0.05f, depth * 0.25f), 0f, 1f);
+                        float depthWeight = 1f - Math.Clamp(MathF.Abs(sd - depth) / MathF.Max(0.05f, depth * 0.22f), 0f, 1f);
                         float nDot = MathF.Max(0f, Vector3.Dot(normal, gbuffer.Normals[sidx]));
-                        indirect += gbuffer.Albedo[sidx] * (0.15f * depthWeight * nDot);
+                        float distPx = MathF.Sqrt(ox[s] * ox[s] + oy[s] * oy[s]);
+                        float spat = 1f / (1f + distPx * 0.08f);
+                        indirect += gbuffer.Albedo[sidx] * (0.18f * depthWeight * nDot * spat);
                         samples++;
                     }
 
@@ -1053,12 +1084,12 @@ namespace GDNN.Lighting.LDNN
         private void RenderHybrid(GBuffer gbuffer, CameraState camera, List<LightConfig> lights, AdaptiveQualityTarget adaptiveTarget)
         {
             _telemetry.ScreenSpaceGITimeMs = MeasureTime(() =>
-                _screenSpaceGI.ComputeSSGI(gbuffer, camera, lights, 4, _rng));
+                _screenSpaceGI.ComputeSSGI(gbuffer, camera, lights, 8, _rng));
 
             _telemetry.CascadeRenderTimeMs = MeasureTime(() =>
             {
                 int levelsToRender = adaptiveTarget.ReduceCascadeCount
-                    ? Math.Max(2, _config.CascadeConfig.NumLevels - 2)
+                    ? Math.Max(3, _config.CascadeConfig.NumLevels - 1)
                     : _config.CascadeConfig.NumLevels;
 
                 for (int level = 0; level < levelsToRender; level++)
@@ -1085,18 +1116,27 @@ namespace GDNN.Lighting.LDNN
                         sample = sample with { WorldPosition = worldPos };
                         Vector3 cascadeIrradiance = ComputeIrradianceFromProbes(worldPos, sample.Normal);
                         float ssgiConfidence = _screenSpaceGI.Confidence[idx];
-                        Vector3 diffuse = Vector3.Lerp(cascadeIrradiance, ssgi, ssgiConfidence);
+                        // Prefer cascades in low-confidence / shadowed regions (Lumen-like fill).
+                        float cascadeW = Math.Clamp(1f - ssgiConfidence * 0.85f, 0.25f, 0.9f);
+                        Vector3 diffuse = Vector3.Lerp(ssgi, cascadeIrradiance, cascadeW);
 
                         // Neural GI refine: blend a fraction of the MLP prediction.
                         var features = _neuralPredictor.ExtractFeatures(sample, gbuffer, x, y, camera);
                         Vector3 neuralGi = _neuralPredictor.ForwardPass(features);
-                        diffuse = Vector3.Lerp(diffuse, neuralGi, 0.35f);
+                        diffuse = Vector3.Lerp(diffuse, neuralGi, 0.28f);
+
+                        // Cheap multi-bounce: re-scatter through local albedo (Lumen energy feel).
+                        Vector3 albedo = sample.Albedo;
+                        float bounce = Math.Clamp(albedo.Length() * 0.22f, 0.08f, 0.45f);
+                        diffuse += diffuse * albedo * bounce;
+                        // Lift shadowed floors so GI dominates flat ambient on screen.
+                        diffuse += cascadeIrradiance * (0.18f * (1f - ssgiConfidence));
 
                         if (useSpecular)
                         {
                             Vector3 specular = _specularPredictor.Predict(sample, camera);
                             Vector3 refraction = _specularPredictor.PredictRefraction(sample, camera);
-                            diffuse += specular + refraction;
+                            diffuse += specular * 1.35f + refraction;
                         }
 
                         _previousGIResult[idx] = diffuse;

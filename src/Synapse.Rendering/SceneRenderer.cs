@@ -6,9 +6,12 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using GDNN.Lighting.LDNN;
 using GDNN.Materials.SubstrateOmega;
+using GDNN.Polygonization;
 using GDNN.Rendering;
 using GDNN.Rendering.Bridge;
 using GDNN.Rendering.Compat;
+using GDNN.Rendering.FrameGraph;
+using GDNN.Rendering.FrameGraph.Passes;
 using GDNN.Rendering.LOD;
 using GDNN.Rendering.MeshIO;
 using GDNN.Rendering.RayTracing;
@@ -24,7 +27,10 @@ namespace GDNN.Rendering.Engine
         private const int MAX_FRAMES_IN_FLIGHT = 2;
         /// <summary>Albedo, normals, depth, material, velocity.</summary>
         private const int GBUFFER_ATTACHMENT_COUNT = 5;
-        private const int SHADOW_MAP_SIZE = 2048;
+        private int _shadowMapSize = 2048;
+        /// <summary>Vulkan minUniformBufferOffsetAlignment is typically ≤256.</summary>
+        private const int UboAlign = 256;
+        private const int MinDrawSlots = 32;
 
         private VulkanRhiDevice _rhi;
         private MaterialBridge _materialBridge;
@@ -55,15 +61,23 @@ namespace GDNN.Rendering.Engine
         private IntPtr[] _modelMapped = new IntPtr[MAX_FRAMES_IN_FLIGHT];
         private VulkanBuffer[] _materialUBOs = new VulkanBuffer[MAX_FRAMES_IN_FLIGHT];
         private IntPtr[] _materialMapped = new IntPtr[MAX_FRAMES_IN_FLIGHT];
+        private VulkanBuffer[] _shadowDrawUBOs = new VulkanBuffer[MAX_FRAMES_IN_FLIGHT];
+        private IntPtr[] _shadowDrawMapped = new IntPtr[MAX_FRAMES_IN_FLIGHT];
+        private int _drawSlotCount;
 
         private VulkanRenderPass _lightingRenderPass;
         private VulkanPipelineLayout _lightingPipelineLayout;
         private VulkanPipeline _lightingPipeline;
         private VulkanFramebuffer[] _lightingFramebuffers;
+        private VulkanTexture? _hdrColorTarget;
         private DescriptorSetLayout _lightingDescriptorSetLayout;
         private DescriptorPool _lightingDescriptorPool;
         private DescriptorSet[] _lightingDescriptorSets;
         private Sampler _gbufferSampler;
+        private Sampler _shadowSampler;
+        private Vector3 _cameraPos = new(0, 2, 8);
+        private Vector3 _bakedCameraPos = new(0, 2, 8);
+        private float _lightIntensity = 3.2f;
         private VulkanBuffer _fullscreenVertexBuffer;
 
         private VulkanRenderPass _shadowRenderPass;
@@ -80,6 +94,7 @@ namespace GDNN.Rendering.Engine
         private VulkanRenderPass _postProcessRenderPass;
         private VulkanPipelineLayout _postProcessPipelineLayout;
         private VulkanPipeline _postProcessPipeline;
+        private VulkanFramebuffer[]? _postProcessFramebuffers;
         private DescriptorSetLayout _postProcessDescriptorSetLayout;
         private DescriptorPool _postProcessDescriptorPool;
         private DescriptorSet[] _postProcessDescriptorSets;
@@ -91,6 +106,7 @@ namespace GDNN.Rendering.Engine
         private List<SceneMeshData> _sceneMeshes = new();
         private List<SceneLightData> _sceneLights = new();
         private List<SubstrateMaterial> _sceneMaterials = new();
+        private readonly List<MeshDraw> _draws = new();
         private readonly Dictionary<Guid, int> _entityProxyMeshes = new();
         private readonly Dictionary<Guid, (Vector3 Center, Vector3 HalfExtents)> _entityBounds = new();
         private readonly Dictionary<Guid, int> _gizmoProxyMeshes = new();
@@ -104,11 +120,47 @@ namespace GDNN.Rendering.Engine
         private static readonly Guid GizmoAxisZId = Guid.Parse("00000000-0000-0000-0000-000000000014");
 
         private Vector3 _dynamicLightDir = Vector3.Normalize(new Vector3(0.5f, 1f, 0.5f));
-        private float _dynamicAmbient = 0.15f;
+        private float _dynamicAmbient = 0.04f;
         private float _giBoost;
         private Vector3 _lastLightingHash;
         private VulkanTexture? _giIrradianceTexture;
+        private VulkanTexture? _aoTexture;
+        private VulkanTexture? _fogTexture;
         private Vector3[,]? _lastGiIrradiance;
+
+        private int _auxUploadFrame;
+        private int _lastFogUploadFrame = -100;
+        private float _smoothedExposure = 1.15f;
+
+        private RenderFrameGraph _frameGraph = null!;
+        private SceneWorld _sceneWorld = null!;
+        private BatchedTextureUploader? _batchedUploader;
+        private MaterialTextureSystem? _materialTextures;
+        private LdnnComputeSupport? _ldnnCompute;
+        private RenderingAlgorithmHub? _algorithmHub;
+        private FrameGraphContext? _activeFgContext;
+        private Matrix4x4 _prevViewProjection = Matrix4x4.Identity;
+        private Matrix4x4 _currentViewProjection = Matrix4x4.Identity;
+        private bool _hasPrevViewProjection;
+        private readonly Matrix4x4[] _cascadeLightVP = new Matrix4x4[3];
+        private readonly Dictionary<int, int> _lodGroupToDraw = new();
+        private int _gdnnPresentMeshIndex = -1;
+        private VulkanTexture? _taaHistory;
+        private VulkanTexture?[]? _drawAlbedoCache;
+        private VulkanTexture?[]? _drawNormalCache;
+        private VulkanTexture?[]? _drawOrmCache;
+        private float[] _extraLightPack = Array.Empty<float>();
+        private int _lastVtAtlasUploadFrame = -100;
+
+        // Cinematic native stack
+        private Vector3[]? _naniteAlbedo;
+        private Vector3[]? _naniteNormal;
+        private float[]? _naniteRoughness;
+        private GDNN.Rendering.Upscaling.ITemporalUpscaler? _upscaler;
+        private GDNN.Rendering.Upscaling.UpscalerBackend _upscalerBackend = GDNN.Rendering.Upscaling.UpscalerBackend.Auto;
+        private float _renderScale = 1f;
+        private Vector3[]? _upscaledColor;
+        private bool _cinematicGiEnabled;
 
         private int _width;
         private int _height;
@@ -123,6 +175,12 @@ namespace GDNN.Rendering.Engine
         public PostProcessBridge PostProcess => _postProcessBridge;
         public MeshLoader Meshes => _meshLoader;
         public LodManager LOD => _lodManager;
+        /// <summary>GPU-first frame graph driving the present path.</summary>
+        public RenderFrameGraph FrameGraph => _frameGraph;
+        /// <summary>Scene snapshot shared with FrameGraph passes.</summary>
+        public SceneWorld World => _sceneWorld;
+        public MaterialTextureSystem? MaterialTextures => _materialTextures;
+        public RenderingAlgorithmHub? Algorithms => _algorithmHub;
         public int MeshCount => _sceneMeshes.Count;
         public int TriangleCount => (int)(_indexCount / 3);
         /// <summary>True when the last GI pass consumed GPU readback G-buffer data.</summary>
@@ -158,6 +216,13 @@ namespace GDNN.Rendering.Engine
             _postProcessBridge = new PostProcessBridge(width, height);
             _meshLoader = new MeshLoader();
             _lodManager = new LodManager();
+            _sceneWorld = new SceneWorld { Lod = _lodManager };
+            _frameGraph = FrameGraphFactory.CreateDefault();
+            _batchedUploader = new BatchedTextureUploader(_rhi);
+            _materialTextures = new MaterialTextureSystem(_rhi);
+            _ldnnCompute = new LdnnComputeSupport(_rhi);
+            _algorithmHub = new RenderingAlgorithmHub(_rhi, width, height);
+            _ldnnCompute.AttachDispatcher(_algorithmHub.Compute);
 
             CreateGBufferRenderPass();
             CreateGBufferResources();
@@ -166,9 +231,12 @@ namespace GDNN.Rendering.Engine
             CreateGBufferPipeline();
 
             CreateLightingRenderPass();
+            CreateHdrColorTargets();
             CreateLightingFramebuffers();
             CreateLightingDescriptorResources();
             CreateLightingPipeline();
+
+            CreateUniformBuffers();
 
             CreateShadowRenderPass();
             CreateShadowResources();
@@ -177,7 +245,6 @@ namespace GDNN.Rendering.Engine
             CreateShadowPipeline();
 
             CreatePostProcessResources();
-            CreateUniformBuffers();
 
             _rtPipeline = new RayTracingPipeline(_rhi);
             if (_rtPipeline.IsSupported)
@@ -191,6 +258,13 @@ namespace GDNN.Rendering.Engine
         {
             var empty = new Vector3[_width, _height];
             UploadGiIrradianceTexture(empty);
+            UploadFogTexture(empty);
+
+            var aoOne = new float[_width, _height];
+            for (int y = 0; y < _height; y++)
+                for (int x = 0; x < _width; x++)
+                    aoOne[x, y] = 1f;
+            UploadAoTexture(aoOne);
         }
 
         private void CreateGBufferRenderPass()
@@ -345,8 +419,11 @@ namespace GDNN.Rendering.Engine
                 Bindings = new[]
                 {
                     new DescriptorSetLayoutBinding { Binding = 0, DescriptorType = DescriptorType.UniformBuffer, DescriptorCount = 1, StageFlags = ShaderStageFlag.Vertex | ShaderStageFlag.Fragment },
-                    new DescriptorSetLayoutBinding { Binding = 1, DescriptorType = DescriptorType.UniformBuffer, DescriptorCount = 1, StageFlags = ShaderStageFlag.Vertex },
-                    new DescriptorSetLayoutBinding { Binding = 2, DescriptorType = DescriptorType.UniformBuffer, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 1, DescriptorType = DescriptorType.UniformBufferDynamic, DescriptorCount = 1, StageFlags = ShaderStageFlag.Vertex },
+                    new DescriptorSetLayoutBinding { Binding = 2, DescriptorType = DescriptorType.UniformBufferDynamic, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 3, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 4, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 5, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
                 }
             });
 
@@ -354,7 +431,9 @@ namespace GDNN.Rendering.Engine
             {
                 PoolSizes = new[]
                 {
-                    new DescriptorPoolSize { Type = DescriptorType.UniformBuffer, DescriptorCount = MAX_FRAMES_IN_FLIGHT * 3 },
+                    new DescriptorPoolSize { Type = DescriptorType.UniformBuffer, DescriptorCount = MAX_FRAMES_IN_FLIGHT },
+                    new DescriptorPoolSize { Type = DescriptorType.UniformBufferDynamic, DescriptorCount = MAX_FRAMES_IN_FLIGHT * 2 },
+                    new DescriptorPoolSize { Type = DescriptorType.CombinedImageSampler, DescriptorCount = MAX_FRAMES_IN_FLIGHT * 3 },
                 },
                 MaxSets = MAX_FRAMES_IN_FLIGHT
             });
@@ -368,8 +447,8 @@ namespace GDNN.Rendering.Engine
 
         private void CreateGBufferPipeline()
         {
-            var vertSpv = EmbeddedShaders.CompileGBufferVertex();
-            var fragSpv = EmbeddedShaders.CompileGBufferFragment();
+            var vertSpv = AaaDeferredShaders.CompileGBufferVertex();
+            var fragSpv = AaaDeferredShaders.CompileGBufferFragment();
 
             var vertModule = _rhi.CreateShaderModule(vertSpv);
             var fragModule = _rhi.CreateShaderModule(fragSpv);
@@ -435,14 +514,14 @@ namespace GDNN.Rendering.Engine
         {
             var colorAttachment = new AttachmentDescription
             {
-                Format = _rhi.Swapchain.GetSurfaceFormat(),
+                Format = VulkanFormat.R16G16B16A16Sfloat,
                 Samples = SampleCountFlag.Count1,
                 LoadOp = AttachmentLoadOp.Clear,
                 StoreOp = AttachmentStoreOp.Store,
                 StencilLoadOp = AttachmentLoadOp.DontCare,
                 StencilStoreOp = AttachmentStoreOp.DontCare,
                 InitialLayout = ImageLayout.Undefined,
-                FinalLayout = ImageLayout.PresentSrcKHR
+                FinalLayout = ImageLayout.ShaderReadOnlyOptimal
             };
 
             var subpass = new SubpassDescription
@@ -469,20 +548,42 @@ namespace GDNN.Rendering.Engine
             });
         }
 
+        private void CreateHdrColorTargets()
+        {
+            var extent = _rhi.Swapchain.Extent;
+            _hdrColorTarget?.Dispose();
+            _hdrColorTarget = _rhi.CreateTexture(new TextureDescription
+            {
+                Width = extent.Width,
+                Height = extent.Height,
+                Format = VulkanFormat.R16G16B16A16Sfloat,
+                Usage = ImageUsageFlag.ColorAttachment | ImageUsageFlag.Sampled | ImageUsageFlag.TransferSrc | ImageUsageFlag.TransferDst,
+                Tiling = ImageTiling.Optimal,
+                InitialLayout = ImageLayout.Undefined,
+                Samples = SampleCountFlag.Count1,
+            });
+        }
+
         private void CreateLightingFramebuffers()
         {
             var extent = _rhi.Swapchain.Extent;
+            if (_hdrColorTarget == null)
+                CreateHdrColorTargets();
+
+            if (_lightingFramebuffers != null)
+            {
+                foreach (var fb in _lightingFramebuffers)
+                    fb?.Dispose();
+            }
+
             var images = _rhi.Swapchain.GetImages();
             _lightingFramebuffers = new VulkanFramebuffer[images.Length];
-
             for (int i = 0; i < images.Length; i++)
             {
-                var attachments = new IntPtr[] { _rhi.Swapchain.GetImageView((uint)i) };
-
                 _lightingFramebuffers[i] = _rhi.CreateFramebuffer(new FramebufferDescription
                 {
                     RenderPass = _lightingRenderPass.Handle,
-                    Attachments = attachments,
+                    Attachments = new[] { _hdrColorTarget!.GetImageView() },
                     Width = extent.Width,
                     Height = extent.Height,
                     Layers = 1
@@ -493,6 +594,8 @@ namespace GDNN.Rendering.Engine
         private void CreateLightingDescriptorResources()
         {
             CreateGiIrradianceTexture();
+            CreateAoTexture();
+            CreateFogTexture();
 
             _lightingDescriptorSetLayout = _rhi.CreateDescriptorSetLayout(new LayoutDescription
             {
@@ -503,6 +606,12 @@ namespace GDNN.Rendering.Engine
                     new DescriptorSetLayoutBinding { Binding = 2, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
                     new DescriptorSetLayoutBinding { Binding = 3, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
                     new DescriptorSetLayoutBinding { Binding = 4, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 5, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 6, DescriptorType = DescriptorType.UniformBuffer, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 7, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 8, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 9, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
+                    new DescriptorSetLayoutBinding { Binding = 10, DescriptorType = DescriptorType.CombinedImageSampler, DescriptorCount = 1, StageFlags = ShaderStageFlag.Fragment },
                 }
             });
 
@@ -510,7 +619,8 @@ namespace GDNN.Rendering.Engine
             {
                 PoolSizes = new[]
                 {
-                    new DescriptorPoolSize { Type = DescriptorType.CombinedImageSampler, DescriptorCount = MAX_FRAMES_IN_FLIGHT * 5 },
+                    new DescriptorPoolSize { Type = DescriptorType.CombinedImageSampler, DescriptorCount = MAX_FRAMES_IN_FLIGHT * 10 },
+                    new DescriptorPoolSize { Type = DescriptorType.UniformBuffer, DescriptorCount = MAX_FRAMES_IN_FLIGHT },
                 },
                 MaxSets = MAX_FRAMES_IN_FLIGHT
             });
@@ -536,47 +646,126 @@ namespace GDNN.Rendering.Engine
                 MaxLod = 1.0f,
             });
 
-            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+            _shadowSampler = _rhi.CreateSampler(new SamplerDescription
             {
-                _rhi.UpdateDescriptorSets(new[]
-                {
-                    new DescriptorWrite
-                    {
-                        DescriptorSet = _lightingDescriptorSets[i].Handle,
-                        DstBinding = 0, DstArrayElement = 0,
-                        DescriptorType = DescriptorType.CombinedImageSampler,
-                        ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _gbufferAlbedo[i].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
-                    },
-                    new DescriptorWrite
-                    {
-                        DescriptorSet = _lightingDescriptorSets[i].Handle,
-                        DstBinding = 1, DstArrayElement = 0,
-                        DescriptorType = DescriptorType.CombinedImageSampler,
-                        ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _gbufferNormals[i].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
-                    },
-                    new DescriptorWrite
-                    {
-                        DescriptorSet = _lightingDescriptorSets[i].Handle,
-                        DstBinding = 2, DstArrayElement = 0,
-                        DescriptorType = DescriptorType.CombinedImageSampler,
-                        ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _gbufferDepth[i].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
-                    },
-                    new DescriptorWrite
-                    {
-                        DescriptorSet = _lightingDescriptorSets[i].Handle,
-                        DstBinding = 3, DstArrayElement = 0,
-                        DescriptorType = DescriptorType.CombinedImageSampler,
-                        ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _gbufferMaterial[i].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
-                    },
-                    new DescriptorWrite
-                    {
-                        DescriptorSet = _lightingDescriptorSets[i].Handle,
-                        DstBinding = 4, DstArrayElement = 0,
-                        DescriptorType = DescriptorType.CombinedImageSampler,
-                        ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _giIrradianceTexture?.GetImageView() ?? _gbufferAlbedo[i].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
-                    },
-                });
+                MagFilter = Filter.Nearest,
+                MinFilter = Filter.Nearest,
+                AddressModeU = SamplerAddressMode.ClampToBorder,
+                AddressModeV = SamplerAddressMode.ClampToBorder,
+                AddressModeW = SamplerAddressMode.ClampToBorder,
+                AnisotropyEnable = false,
+                MaxAnisotropy = 1.0f,
+                CompareEnable = false,
+                CompareOp = CompareOp.Always,
+                MinLod = 0.0f,
+                MaxLod = 1.0f,
+            });
+        }
+
+        /// <summary>Binds G-buffer (by swapchain image), GI, shadow map, and light VP for the lighting pass.</summary>
+        private void UpdateLightingDescriptors(uint imageIndex, int frameIndex)
+        {
+            int img = (int)imageIndex;
+            if (_gbufferAlbedo == null || img < 0 || img >= _gbufferAlbedo.Length)
+                return;
+            if (frameIndex < 0 || frameIndex >= MAX_FRAMES_IN_FLIGHT)
+                return;
+
+            var shadowView = _shadowDepthImages != null && frameIndex < _shadowDepthImages.Length
+                ? _shadowDepthImages[frameIndex].GetImageView()
+                : _gbufferDepth[img].GetImageView();
+
+            EnsureShadowCascades();
+            WriteCascadeShadowUbo(frameIndex);
+
+            var cascade1View = shadowView;
+            var cascade2View = shadowView;
+            if (_shadowCascadeDepth != null && _shadowCascadeDepth.Length >= frameIndex * 2 + 2)
+            {
+                cascade1View = _shadowCascadeDepth[frameIndex * 2].GetImageView();
+                cascade2View = _shadowCascadeDepth[frameIndex * 2 + 1].GetImageView();
             }
+
+            _rhi.UpdateDescriptorSets(new[]
+            {
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 0, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _gbufferAlbedo[img].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 1, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _gbufferNormals[img].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 2, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _gbufferDepth[img].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 3, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _gbufferMaterial[img].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 4, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _giIrradianceTexture?.GetImageView() ?? _gbufferAlbedo[img].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 5, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[] { new DescriptorImageInfo { Sampler = _shadowSampler.Handle, ImageView = shadowView, ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 6, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.UniformBuffer,
+                    BufferInfos = new[] { new DescriptorBufferInfo { Buffer = _shadowUBOs[frameIndex].Handle, Offset = 0, Range = (ulong)Marshal.SizeOf<CascadeShadowUBO>() } }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 7, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _aoTexture?.GetImageView() ?? _gbufferAlbedo[img].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 8, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[] { new DescriptorImageInfo { Sampler = _gbufferSampler.Handle, ImageView = _fogTexture?.GetImageView() ?? _gbufferAlbedo[img].GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 9, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[] { new DescriptorImageInfo { Sampler = _shadowSampler.Handle, ImageView = cascade1View, ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _lightingDescriptorSets[frameIndex].Handle,
+                    DstBinding = 10, DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[] { new DescriptorImageInfo { Sampler = _shadowSampler.Handle, ImageView = cascade2View, ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                },
+            });
         }
 
         private void CreateGiIrradianceTexture()
@@ -593,6 +782,149 @@ namespace GDNN.Rendering.Engine
                 Samples = SampleCountFlag.Count1,
             });
         }
+
+        private void CreateAoTexture()
+        {
+            var extent = _rhi.Swapchain.Extent;
+            _aoTexture = _rhi.CreateTexture(new TextureDescription
+            {
+                Width = extent.Width,
+                Height = extent.Height,
+                Format = VulkanFormat.R16G16B16A16Sfloat,
+                Usage = ImageUsageFlag.Sampled | ImageUsageFlag.TransferDst,
+                Tiling = ImageTiling.Optimal,
+                InitialLayout = ImageLayout.Undefined,
+                Samples = SampleCountFlag.Count1,
+            });
+        }
+
+        private void CreateFogTexture()
+        {
+            var extent = _rhi.Swapchain.Extent;
+            _fogTexture?.Dispose();
+            _fogTexture = _rhi.CreateTexture(new TextureDescription
+            {
+                Width = extent.Width,
+                Height = extent.Height,
+                Format = VulkanFormat.R16G16B16A16Sfloat,
+                Usage = ImageUsageFlag.Sampled | ImageUsageFlag.TransferDst,
+                Tiling = ImageTiling.Optimal,
+                InitialLayout = ImageLayout.Undefined,
+                Samples = SampleCountFlag.Count1,
+            });
+        }
+
+        private unsafe void UploadHalfRgbaTexture(VulkanTexture? texture, Vector3[,] field)
+        {
+            if (!_initialized || texture == null || field == null)
+                return;
+
+            int w = field.GetLength(0);
+            int h = field.GetLength(1);
+            if (w <= 0 || h <= 0 || w != _width || h != _height)
+                return;
+
+            int pixelCount = w * h;
+            var bytes = new byte[pixelCount * 8];
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    var c = field[x, y];
+                    int idx = (y * w + x) * 8;
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx, 2), (Half)c.X);
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx + 2, 2), (Half)c.Y);
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx + 4, 2), (Half)c.Z);
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx + 6, 2), (Half)1f);
+                }
+            }
+
+            UploadHalfBytes(texture, bytes);
+        }
+
+        private unsafe void UploadHalfBytes(VulkanTexture texture, byte[] bytes)
+        {
+            var staging = _rhi.CreateBuffer(new BufferDescription
+            {
+                Size = (ulong)bytes.Length,
+                Usage = BufferUsageFlag.TransferSrc,
+                MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent
+            });
+            var mapped = staging.Map();
+            Marshal.Copy(bytes, 0, mapped, bytes.Length);
+            staging.Unmap();
+
+            var cmd = _rhi.CreateCommandBuffer();
+            cmd.Begin(CommandBufferUsageFlag.OneTimeSubmit);
+            cmd.PipelineBarrier(
+                PipelineStageFlag.TopOfPipe,
+                PipelineStageFlag.Transfer,
+                imageBarriers: new[]
+                {
+                    new ImageMemoryBarrier
+                    {
+                        Image = texture.Handle,
+                        OldLayout = ImageLayout.Undefined,
+                        NewLayout = ImageLayout.TransferDstOptimal,
+                        DstAccessMask = AccessFlag.TransferWrite,
+                        SubresourceRange = new ImageSubresourceRange
+                        {
+                            AspectMask = ImageAspectFlag.Color,
+                            BaseMipLevel = 0,
+                            LevelCount = 1,
+                            BaseArrayLayer = 0,
+                            LayerCount = 1
+                        }
+                    }
+                });
+            cmd.CopyBufferToImage(staging, texture, ImageLayout.TransferDstOptimal, new[]
+            {
+                new BufferImageCopy
+                {
+                    BufferOffset = 0,
+                    BufferRowLength = 0,
+                    BufferImageHeight = 0,
+                    ImageSubresource = new ImageSubresourceLayers
+                    {
+                        AspectMask = ImageAspectFlag.Color,
+                        MipLevel = 0,
+                        BaseArrayLayer = 0,
+                        LayerCount = 1
+                    },
+                    ImageOffset = new Offset3D(),
+                    ImageExtent = new Extent3D((uint)_width, (uint)_height, 1)
+                }
+            });
+            cmd.PipelineBarrier(
+                PipelineStageFlag.Transfer,
+                PipelineStageFlag.FragmentShader,
+                imageBarriers: new[]
+                {
+                    new ImageMemoryBarrier
+                    {
+                        Image = texture.Handle,
+                        OldLayout = ImageLayout.TransferDstOptimal,
+                        NewLayout = ImageLayout.ShaderReadOnlyOptimal,
+                        SrcAccessMask = AccessFlag.TransferWrite,
+                        DstAccessMask = AccessFlag.ShaderRead,
+                        SubresourceRange = new ImageSubresourceRange
+                        {
+                            AspectMask = ImageAspectFlag.Color,
+                            BaseMipLevel = 0,
+                            LevelCount = 1,
+                            BaseArrayLayer = 0,
+                            LayerCount = 1
+                        }
+                    }
+                });
+            cmd.End();
+            _rhi.SubmitCommandBuffer(cmd, _rhi.GraphicsQueue, null);
+            _rhi.WaitForIdle();
+            staging.Dispose();
+        }
+
+        private void UploadFogTexture(Vector3[,] fog)
+            => UploadHalfRgbaTexture(_fogTexture, fog);
 
         private unsafe void UploadGiIrradianceTexture(Vector3[,] irradiance)
         {
@@ -701,12 +1033,121 @@ namespace GDNN.Rendering.Engine
             _lastGiIrradiance = irradiance;
         }
 
+        private unsafe void UploadAoTexture(float[,] ao)
+        {
+            if (!_initialized || _aoTexture == null || ao == null)
+                return;
+
+            int w = ao.GetLength(0);
+            int h = ao.GetLength(1);
+            if (w != _width || h != _height || w <= 0 || h <= 0)
+                return;
+
+            int pixelCount = w * h;
+            var bytes = new byte[pixelCount * 8];
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    float v = Math.Clamp(ao[x, y], 0f, 1f);
+                    int idx = (y * w + x) * 8;
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx, 2), (Half)v);
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx + 2, 2), (Half)v);
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx + 4, 2), (Half)v);
+                    BitConverter.TryWriteBytes(bytes.AsSpan(idx + 6, 2), (Half)1f);
+                }
+            }
+
+            var staging = _rhi.CreateBuffer(new BufferDescription
+            {
+                Size = (ulong)bytes.Length,
+                Usage = BufferUsageFlag.TransferSrc,
+                MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent
+            });
+            var mapped = staging.Map();
+            Marshal.Copy(bytes, 0, mapped, bytes.Length);
+            staging.Unmap();
+
+            var cmd = _rhi.CreateCommandBuffer();
+            cmd.Begin(CommandBufferUsageFlag.OneTimeSubmit);
+            cmd.PipelineBarrier(
+                PipelineStageFlag.TopOfPipe,
+                PipelineStageFlag.Transfer,
+                imageBarriers: new[]
+                {
+                    new ImageMemoryBarrier
+                    {
+                        Image = _aoTexture.Handle,
+                        OldLayout = ImageLayout.Undefined,
+                        NewLayout = ImageLayout.TransferDstOptimal,
+                        DstAccessMask = AccessFlag.TransferWrite,
+                        SubresourceRange = new ImageSubresourceRange
+                        {
+                            AspectMask = ImageAspectFlag.Color,
+                            BaseMipLevel = 0,
+                            LevelCount = 1,
+                            BaseArrayLayer = 0,
+                            LayerCount = 1
+                        }
+                    }
+                });
+
+            cmd.CopyBufferToImage(staging, _aoTexture, ImageLayout.TransferDstOptimal, new[]
+            {
+                new BufferImageCopy
+                {
+                    BufferOffset = 0,
+                    ImageSubresource = new ImageSubresourceLayers
+                    {
+                        AspectMask = ImageAspectFlag.Color,
+                        MipLevel = 0,
+                        BaseArrayLayer = 0,
+                        LayerCount = 1
+                    },
+                    ImageExtent = new Extent3D((uint)w, (uint)h, 1)
+                }
+            });
+
+            cmd.PipelineBarrier(
+                PipelineStageFlag.Transfer,
+                PipelineStageFlag.FragmentShader,
+                imageBarriers: new[]
+                {
+                    new ImageMemoryBarrier
+                    {
+                        Image = _aoTexture.Handle,
+                        OldLayout = ImageLayout.TransferDstOptimal,
+                        NewLayout = ImageLayout.ShaderReadOnlyOptimal,
+                        SrcAccessMask = AccessFlag.TransferWrite,
+                        DstAccessMask = AccessFlag.ShaderRead,
+                        SubresourceRange = new ImageSubresourceRange
+                        {
+                            AspectMask = ImageAspectFlag.Color,
+                            BaseMipLevel = 0,
+                            LevelCount = 1,
+                            BaseArrayLayer = 0,
+                            LayerCount = 1
+                        }
+                    }
+                });
+            cmd.End();
+            _rhi.SubmitCommandBuffer(cmd, _rhi.GraphicsQueue, null);
+            _rhi.WaitForIdle();
+            staging.Dispose();
+        }
+
         private void CreateLightingPipeline()
         {
             var dir = _dynamicLightDir;
+            PackExtraLights();
             var vertSpv = EmbeddedShaders.CompileLightingVertex();
-            var fragSpv = EmbeddedShaders.CompileLightingFragment(
-                dir.X, dir.Y, dir.Z, _dynamicAmbient, _giBoost);
+            var fragSpv = AaaDeferredShaders.CompileLightingFragment(
+                dir.X, dir.Y, dir.Z,
+                _dynamicAmbient, _giBoost,
+                _cameraPos.X, _cameraPos.Y, _cameraPos.Z,
+                _lightIntensity,
+                bloomStrength: 0.3f,
+                extraLights: _extraLightPack);
 
             _lightingPipeline?.Dispose();
 
@@ -762,6 +1203,41 @@ namespace GDNN.Rendering.Engine
             });
         }
 
+        private void PackExtraLights()
+        {
+            // Up to 3 extra lights after the primary directional (8 floats each).
+            int extra = Math.Min(3, Math.Max(0, _sceneLights.Count - 1));
+            if (_extraLightPack.Length != extra * 8)
+                _extraLightPack = new float[extra * 8];
+            for (int i = 0; i < extra; i++)
+            {
+                var L = _sceneLights[i + 1];
+                var dir = Vector3.Normalize(-L.Direction);
+                // Point-ish: encode position relative to camera via dir*range when Range is finite.
+                bool point = L.Range > 0.01f && L.Range < 500f;
+                int o = i * 8;
+                if (point)
+                {
+                    var rel = L.Position - _cameraPos;
+                    _extraLightPack[o] = rel.X;
+                    _extraLightPack[o + 1] = rel.Y;
+                    _extraLightPack[o + 2] = rel.Z;
+                    _extraLightPack[o + 7] = L.Range;
+                }
+                else
+                {
+                    _extraLightPack[o] = dir.X;
+                    _extraLightPack[o + 1] = dir.Y;
+                    _extraLightPack[o + 2] = dir.Z;
+                    _extraLightPack[o + 7] = 0f;
+                }
+                _extraLightPack[o + 3] = L.Color.X;
+                _extraLightPack[o + 4] = L.Color.Y;
+                _extraLightPack[o + 5] = L.Color.Z;
+                _extraLightPack[o + 6] = Math.Clamp(L.Intensity, 0.2f, 6f);
+            }
+        }
+
         private void CreateShadowRenderPass()
         {
             var depthAttachment = new AttachmentDescription
@@ -808,8 +1284,8 @@ namespace GDNN.Rendering.Engine
             {
                 _shadowDepthImages[i] = _rhi.CreateTexture(new TextureDescription
                 {
-                    Width = (uint)SHADOW_MAP_SIZE,
-                    Height = (uint)SHADOW_MAP_SIZE,
+                    Width = (uint)_shadowMapSize,
+                    Height = (uint)_shadowMapSize,
                     Format = VulkanFormat.D32Sfloat,
                     Usage = ImageUsageFlag.DepthStencilAttachment | ImageUsageFlag.Sampled,
                     Tiling = ImageTiling.Optimal,
@@ -829,8 +1305,8 @@ namespace GDNN.Rendering.Engine
                 {
                     RenderPass = _shadowRenderPass.Handle,
                     Attachments = new[] { _shadowDepthImages[i].GetImageView() },
-                    Width = (uint)SHADOW_MAP_SIZE,
-                    Height = (uint)SHADOW_MAP_SIZE,
+                    Width = (uint)_shadowMapSize,
+                    Height = (uint)_shadowMapSize,
                     Layers = 1
                 });
             }
@@ -842,7 +1318,7 @@ namespace GDNN.Rendering.Engine
             {
                 Bindings = new[]
                 {
-                    new DescriptorSetLayoutBinding { Binding = 0, DescriptorType = DescriptorType.UniformBuffer, DescriptorCount = 1, StageFlags = ShaderStageFlag.Vertex },
+                    new DescriptorSetLayoutBinding { Binding = 0, DescriptorType = DescriptorType.UniformBufferDynamic, DescriptorCount = 1, StageFlags = ShaderStageFlag.Vertex },
                 }
             });
 
@@ -850,7 +1326,7 @@ namespace GDNN.Rendering.Engine
             {
                 PoolSizes = new[]
                 {
-                    new DescriptorPoolSize { Type = DescriptorType.UniformBuffer, DescriptorCount = MAX_FRAMES_IN_FLIGHT },
+                    new DescriptorPoolSize { Type = DescriptorType.UniformBufferDynamic, DescriptorCount = MAX_FRAMES_IN_FLIGHT },
                 },
                 MaxSets = MAX_FRAMES_IN_FLIGHT
             });
@@ -860,6 +1336,90 @@ namespace GDNN.Rendering.Engine
                 layouts[i] = _shadowDescriptorSetLayout.Handle;
 
             _shadowDescriptorSets = _rhi.AllocateDescriptorSets(new DescriptorSetAllocation { Pool = _shadowDescriptorPool.Handle, Layouts = layouts });
+            BindDrawUniformDescriptors();
+        }
+
+        private void CreateUniformBuffers()
+        {
+            ulong cameraSize = (ulong)Marshal.SizeOf<CameraUBO>();
+            ulong shadowSize = (ulong)Marshal.SizeOf<CascadeShadowUBO>();
+
+            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+            {
+                _cameraUBOs[i] = _rhi.CreateBuffer(new BufferDescription
+                {
+                    Size = cameraSize,
+                    Usage = BufferUsageFlag.UniformBuffer,
+                    MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent
+                });
+                _cameraMapped[i] = _cameraUBOs[i].Map();
+
+                // Light VP for lighting pass (world → shadow clip), not per-draw.
+                _shadowUBOs[i] = _rhi.CreateBuffer(new BufferDescription
+                {
+                    Size = shadowSize,
+                    Usage = BufferUsageFlag.UniformBuffer,
+                    MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent
+                });
+                _shadowMapped[i] = _shadowUBOs[i].Map();
+            }
+
+            EnsureDrawUniformRings(MinDrawSlots);
+        }
+
+        /// <summary>Allocates/resizes per-draw dynamic UBO rings (model, material, shadow MVP).</summary>
+        private void EnsureDrawUniformRings(int drawCount)
+        {
+            int slots = Math.Max(MinDrawSlots, drawCount);
+            if (slots <= _drawSlotCount && _modelUBOs[0] != null)
+                return;
+
+            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+            {
+                _modelUBOs[i]?.Unmap();
+                _modelUBOs[i]?.Dispose();
+                _materialUBOs[i]?.Unmap();
+                _materialUBOs[i]?.Dispose();
+                _shadowDrawUBOs[i]?.Unmap();
+                _shadowDrawUBOs[i]?.Dispose();
+
+                ulong modelBytes = (ulong)(slots * UboAlign);
+                _modelUBOs[i] = _rhi.CreateBuffer(new BufferDescription
+                {
+                    Size = modelBytes,
+                    Usage = BufferUsageFlag.UniformBuffer,
+                    MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent
+                });
+                _modelMapped[i] = _modelUBOs[i].Map();
+
+                _materialUBOs[i] = _rhi.CreateBuffer(new BufferDescription
+                {
+                    Size = modelBytes,
+                    Usage = BufferUsageFlag.UniformBuffer,
+                    MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent
+                });
+                _materialMapped[i] = _materialUBOs[i].Map();
+
+                _shadowDrawUBOs[i] = _rhi.CreateBuffer(new BufferDescription
+                {
+                    Size = modelBytes,
+                    Usage = BufferUsageFlag.UniformBuffer,
+                    MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent
+                });
+                _shadowDrawMapped[i] = _shadowDrawUBOs[i].Map();
+            }
+
+            _drawSlotCount = slots;
+            BindDrawUniformDescriptors();
+        }
+
+        private void BindDrawUniformDescriptors()
+        {
+            if (_gbufferDescriptorSets == null || _modelUBOs[0] == null)
+                return;
+
+            ulong modelRange = (ulong)Marshal.SizeOf<Matrix4x4>();
+            ulong matRange = (ulong)Marshal.SizeOf<MaterialUBO>();
 
             for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
             {
@@ -867,12 +1427,37 @@ namespace GDNN.Rendering.Engine
                 {
                     new DescriptorWrite
                     {
-                        DescriptorSet = _shadowDescriptorSets[i].Handle,
-                        DstBinding = 0, DstArrayElement = 0,
+                        DescriptorSet = _gbufferDescriptorSets[i].Handle, DstBinding = 0, DstArrayElement = 0,
                         DescriptorType = DescriptorType.UniformBuffer,
-                        BufferInfos = new[] { new DescriptorBufferInfo { Buffer = _shadowUBOs[i].Handle, Offset = 0, Range = (ulong)Marshal.SizeOf<Matrix4x4>() } }
-                    }
+                        BufferInfos = new[] { new DescriptorBufferInfo { Buffer = _cameraUBOs[i].Handle, Offset = 0, Range = (ulong)Marshal.SizeOf<CameraUBO>() } }
+                    },
+                    new DescriptorWrite
+                    {
+                        DescriptorSet = _gbufferDescriptorSets[i].Handle, DstBinding = 1, DstArrayElement = 0,
+                        DescriptorType = DescriptorType.UniformBufferDynamic,
+                        BufferInfos = new[] { new DescriptorBufferInfo { Buffer = _modelUBOs[i].Handle, Offset = 0, Range = modelRange } }
+                    },
+                    new DescriptorWrite
+                    {
+                        DescriptorSet = _gbufferDescriptorSets[i].Handle, DstBinding = 2, DstArrayElement = 0,
+                        DescriptorType = DescriptorType.UniformBufferDynamic,
+                        BufferInfos = new[] { new DescriptorBufferInfo { Buffer = _materialUBOs[i].Handle, Offset = 0, Range = matRange } }
+                    },
                 });
+
+                if (_shadowDescriptorSets != null && _shadowDrawUBOs[i] != null)
+                {
+                    _rhi.UpdateDescriptorSets(new[]
+                    {
+                        new DescriptorWrite
+                        {
+                            DescriptorSet = _shadowDescriptorSets[i].Handle,
+                            DstBinding = 0, DstArrayElement = 0,
+                            DescriptorType = DescriptorType.UniformBufferDynamic,
+                            BufferInfos = new[] { new DescriptorBufferInfo { Buffer = _shadowDrawUBOs[i].Handle, Offset = 0, Range = modelRange } }
+                        }
+                    });
+                }
             }
         }
 
@@ -939,31 +1524,267 @@ namespace GDNN.Rendering.Engine
 
         private void CreatePostProcessResources()
         {
-            _postProcessRenderPass = _lightingRenderPass;
+            var colorAttachment = new AttachmentDescription
+            {
+                Format = _rhi.Swapchain.GetSurfaceFormat(),
+                Samples = SampleCountFlag.Count1,
+                LoadOp = AttachmentLoadOp.Clear,
+                StoreOp = AttachmentStoreOp.Store,
+                StencilLoadOp = AttachmentLoadOp.DontCare,
+                StencilStoreOp = AttachmentStoreOp.DontCare,
+                InitialLayout = ImageLayout.Undefined,
+                FinalLayout = ImageLayout.PresentSrcKHR
+            };
+
+            var subpass = new SubpassDescription
+            {
+                PipelineBindPoint = PipelineBindPoint.Graphics,
+                ColorAttachments = new[] { new AttachmentReference(0, ImageLayout.ColorAttachmentOptimal) },
+            };
+
+            var dependency = new SubpassDependency
+            {
+                SrcSubpass = 0xFFFFFFFF,
+                DstSubpass = 0,
+                SrcStageMask = PipelineStageFlag.ColorAttachmentOutput | PipelineStageFlag.FragmentShader,
+                DstStageMask = PipelineStageFlag.ColorAttachmentOutput,
+                SrcAccessMask = AccessFlag.ShaderRead | AccessFlag.ColorAttachmentWrite,
+                DstAccessMask = AccessFlag.ColorAttachmentWrite,
+            };
+
+            _postProcessRenderPass = _rhi.CreateRenderPass(new RenderPassDescription
+            {
+                Attachments = new[] { colorAttachment },
+                Subpasses = new[] { subpass },
+                Dependencies = new[] { dependency }
+            });
+
+            var extent = _rhi.Swapchain.Extent;
+            var images = _rhi.Swapchain.GetImages();
+            _postProcessFramebuffers = new VulkanFramebuffer[images.Length];
+            for (int i = 0; i < images.Length; i++)
+            {
+                _postProcessFramebuffers[i] = _rhi.CreateFramebuffer(new FramebufferDescription
+                {
+                    RenderPass = _postProcessRenderPass.Handle,
+                    Attachments = new[] { _rhi.Swapchain.GetImageView((uint)i) },
+                    Width = extent.Width,
+                    Height = extent.Height,
+                    Layers = 1
+                });
+            }
+
+            _postProcessDescriptorSetLayout = _rhi.CreateDescriptorSetLayout(new LayoutDescription
+            {
+                Bindings = new[]
+                {
+                    new DescriptorSetLayoutBinding
+                    {
+                        Binding = 0,
+                        DescriptorType = DescriptorType.CombinedImageSampler,
+                        DescriptorCount = 1,
+                        StageFlags = ShaderStageFlag.Fragment
+                    },
+                    new DescriptorSetLayoutBinding
+                    {
+                        Binding = 1,
+                        DescriptorType = DescriptorType.CombinedImageSampler,
+                        DescriptorCount = 1,
+                        StageFlags = ShaderStageFlag.Fragment
+                    },
+                    new DescriptorSetLayoutBinding
+                    {
+                        Binding = 2,
+                        DescriptorType = DescriptorType.CombinedImageSampler,
+                        DescriptorCount = 1,
+                        StageFlags = ShaderStageFlag.Fragment
+                    },
+                }
+            });
+
+            _postProcessDescriptorPool = _rhi.CreateDescriptorPool(new PoolDescription
+            {
+                PoolSizes = new[]
+                {
+                    new DescriptorPoolSize { Type = DescriptorType.CombinedImageSampler, DescriptorCount = MAX_FRAMES_IN_FLIGHT * 3 }
+                },
+                MaxSets = MAX_FRAMES_IN_FLIGHT
+            });
+
+            var layouts = new IntPtr[MAX_FRAMES_IN_FLIGHT];
+            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+                layouts[i] = _postProcessDescriptorSetLayout.Handle;
+            _postProcessDescriptorSets = _rhi.AllocateDescriptorSets(new DescriptorSetAllocation
+            {
+                Pool = _postProcessDescriptorPool.Handle,
+                Layouts = layouts
+            });
+
+            _postProcessPipelineLayout = _rhi.CreatePipelineLayout(new[] { _postProcessDescriptorSetLayout.Handle });
+
+            EnsureTaaHistory();
+
+            var vertSpv = EmbeddedShaders.CompilePostProcessVertex();
+            float tw = _width > 0 ? 1f / _width : 1f / 1920f;
+            float th = _height > 0 ? 1f / _height : 1f / 1080f;
+            var tonemapSpv = AaaDeferredShaders.CompileHdrPostFragment(0.45f, _smoothedExposure, tw, th);
+            var vertModule = _rhi.CreateShaderModule(vertSpv);
+            var tonemapModule = _rhi.CreateShaderModule(tonemapSpv);
+
+            _postProcessPipeline = CreateFullscreenPipeline(vertModule.Handle, tonemapModule.Handle, _postProcessPipelineLayout.Handle, _postProcessRenderPass.Handle);
+            _lastPostExposure = _smoothedExposure;
         }
 
-        private void CreateUniformBuffers()
+        private void EnsureTaaHistory()
         {
-            ulong cameraSize = (ulong)Marshal.SizeOf<CameraUBO>();
-            ulong modelSize = (ulong)Marshal.SizeOf<Matrix4x4>();
-            ulong materialSize = (ulong)Marshal.SizeOf<MaterialUBO>();
-            ulong lightUboSize = (ulong)Marshal.SizeOf<LightUBO>();
-            ulong shadowSize = (ulong)Marshal.SizeOf<Matrix4x4>();
-
-            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+            var extent = _rhi.Swapchain.Extent;
+            if (_taaHistory != null && _taaHistory.Width == extent.Width && _taaHistory.Height == extent.Height)
+                return;
+            _taaHistory?.Dispose();
+            _taaHistory = _rhi.CreateTexture(new TextureDescription
             {
-                _cameraUBOs[i] = _rhi.CreateBuffer(new BufferDescription { Size = cameraSize, Usage = BufferUsageFlag.UniformBuffer, MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent });
-                _cameraMapped[i] = _cameraUBOs[i].Map();
+                Width = extent.Width,
+                Height = extent.Height,
+                Format = VulkanFormat.R16G16B16A16Sfloat,
+                Usage = ImageUsageFlag.Sampled | ImageUsageFlag.TransferDst | ImageUsageFlag.TransferSrc | ImageUsageFlag.ColorAttachment,
+                Tiling = ImageTiling.Optimal,
+                InitialLayout = ImageLayout.Undefined,
+                Samples = SampleCountFlag.Count1,
+            });
+        }
 
-                _modelUBOs[i] = _rhi.CreateBuffer(new BufferDescription { Size = modelSize, Usage = BufferUsageFlag.UniformBuffer, MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent });
-                _modelMapped[i] = _modelUBOs[i].Map();
+        private float _lastPostExposure = 1.15f;
 
-                _materialUBOs[i] = _rhi.CreateBuffer(new BufferDescription { Size = materialSize, Usage = BufferUsageFlag.UniformBuffer, MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent });
-                _materialMapped[i] = _materialUBOs[i].Map();
+        private void MaybeRebuildPostProcessPipeline()
+        {
+            if (_postProcessPipeline == null || _postProcessPipelineLayout == null || _postProcessRenderPass == null)
+                return;
+            if (MathF.Abs(_smoothedExposure - _lastPostExposure) < 0.04f)
+                return;
 
-                _shadowUBOs[i] = _rhi.CreateBuffer(new BufferDescription { Size = shadowSize, Usage = BufferUsageFlag.UniformBuffer, MemoryProperties = MemoryPropertyFlag.HostVisible | MemoryPropertyFlag.HostCoherent });
-                _shadowMapped[i] = _shadowUBOs[i].Map();
-            }
+            float tw = _width > 0 ? 1f / _width : 1f / 1920f;
+            float th = _height > 0 ? 1f / _height : 1f / 1080f;
+            var tonemapSpv = AaaDeferredShaders.CompileHdrPostFragment(0.45f, _smoothedExposure, tw, th);
+            var vertSpv = EmbeddedShaders.CompilePostProcessVertex();
+            var vertModule = _rhi.CreateShaderModule(vertSpv);
+            var tonemapModule = _rhi.CreateShaderModule(tonemapSpv);
+            _postProcessPipeline.Dispose();
+            _postProcessPipeline = CreateFullscreenPipeline(vertModule.Handle, tonemapModule.Handle, _postProcessPipelineLayout.Handle, _postProcessRenderPass.Handle);
+            _lastPostExposure = _smoothedExposure;
+        }
+
+        private VulkanPipeline CreateFullscreenPipeline(IntPtr vertModule, IntPtr fragModule, IntPtr layout, IntPtr renderPass)
+        {
+            return _rhi.CreatePipeline(new PipelineDescription
+            {
+                ShaderStages = new[]
+                {
+                    new PipelineShaderStageCreateInfo { Stage = ShaderStageFlag.Vertex, Module = vertModule, Name = "main" },
+                    new PipelineShaderStageCreateInfo { Stage = ShaderStageFlag.Fragment, Module = fragModule, Name = "main" }
+                },
+                VertexInputState = new PipelineVertexInputStateCreateInfo
+                {
+                    VertexBindingDescriptions = Array.Empty<VertexInputBindingDescription>(),
+                    VertexAttributeDescriptions = Array.Empty<VertexInputAttributeDescription>()
+                },
+                InputAssemblyState = new PipelineInputAssemblyStateCreateInfo { Topology = GDNN.RHI.Vulkan.PrimitiveTopology.TriangleList },
+                TessellationState = new PipelineTessellationStateCreateInfo { PatchControlPoints = 0 },
+                ViewportState = new PipelineViewportStateCreateInfo { ViewportCount = 1, ScissorCount = 1 },
+                RasterizationState = new PipelineRasterizationStateCreateInfo
+                {
+                    DepthClampEnable = false,
+                    RasterizerDiscardEnable = false,
+                    PolygonMode = PolygonMode.Fill,
+                    CullMode = CullModeFlag.None,
+                    FrontFace = FrontFace.CounterClockwise,
+                    DepthBiasEnable = false,
+                    LineWidth = 1.0f
+                },
+                MultisampleState = new PipelineMultisampleStateCreateInfo { RasterizationSamples = SampleCountFlag.Count1 },
+                DepthStencilState = new PipelineDepthStencilStateCreateInfo
+                {
+                    DepthTestEnable = false,
+                    DepthWriteEnable = false
+                },
+                ColorBlendState = new PipelineColorBlendStateCreateInfo
+                {
+                    Attachments = new[] { PipelineColorBlendAttachmentState.Disabled() }
+                },
+                DynamicState = new PipelineDynamicStateCreateInfo
+                {
+                    DynamicStates = new[] { DynamicState.Viewport, DynamicState.Scissor }
+                },
+                PipelineLayout = layout,
+                RenderPass = renderPass,
+                Subpass = 0
+            });
+        }
+
+        private void UpdatePostProcessDescriptors(int frameIndex)
+        {
+            if (_postProcessDescriptorSets == null || _hdrColorTarget == null)
+                return;
+            if (frameIndex < 0 || frameIndex >= MAX_FRAMES_IN_FLIGHT)
+                return;
+
+            EnsureTaaHistory();
+            int img = Math.Clamp(frameIndex, 0, (_gbufferVelocity?.Length ?? 1) - 1);
+            var velView = _gbufferVelocity != null && img < _gbufferVelocity.Length
+                ? _gbufferVelocity[img].GetImageView()
+                : _hdrColorTarget.GetImageView();
+            var histView = _taaHistory?.GetImageView() ?? _hdrColorTarget.GetImageView();
+
+            _rhi.UpdateDescriptorSets(new[]
+            {
+                new DescriptorWrite
+                {
+                    DescriptorSet = _postProcessDescriptorSets[frameIndex].Handle,
+                    DstBinding = 0,
+                    DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[]
+                    {
+                        new DescriptorImageInfo
+                        {
+                            Sampler = _gbufferSampler.Handle,
+                            ImageView = _hdrColorTarget.GetImageView(),
+                            ImageLayout = ImageLayout.ShaderReadOnlyOptimal
+                        }
+                    }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _postProcessDescriptorSets[frameIndex].Handle,
+                    DstBinding = 1,
+                    DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[]
+                    {
+                        new DescriptorImageInfo
+                        {
+                            Sampler = _gbufferSampler.Handle,
+                            ImageView = velView,
+                            ImageLayout = ImageLayout.ShaderReadOnlyOptimal
+                        }
+                    }
+                },
+                new DescriptorWrite
+                {
+                    DescriptorSet = _postProcessDescriptorSets[frameIndex].Handle,
+                    DstBinding = 2,
+                    DstArrayElement = 0,
+                    DescriptorType = DescriptorType.CombinedImageSampler,
+                    ImageInfos = new[]
+                    {
+                        new DescriptorImageInfo
+                        {
+                            Sampler = _gbufferSampler.Handle,
+                            ImageView = histView,
+                            ImageLayout = ImageLayout.ShaderReadOnlyOptimal
+                        }
+                    }
+                }
+            });
         }
 
         public int AddMesh(float[] vertices, int vertexStride, uint[] indices, int materialIndex = 0)
@@ -1030,6 +1851,44 @@ namespace GDNN.Rendering.Engine
 
             _ldnnBridge.ApplyLlmLighting(parameters);
             RefreshDynamicLightingFromScene();
+        }
+
+        /// <summary>
+        /// Feeds an LLM SDF hint into G-DNN Nanite Neural 3.0 (continuous LOD + denser meshlets).
+        /// </summary>
+        public void ApplySdfHint(SdfHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            if (!_initialized || _algorithmHub == null)
+                return;
+
+            Vector3 center = hint.Center is { } c
+                ? new Vector3(c.X, c.Y, c.Z)
+                : Vector3.Zero;
+            float radius = hint.Radius ?? (hint.Size is { } s
+                ? MathF.Max(s.X, MathF.Max(s.Y, s.Z))
+                : 1f);
+            _algorithmHub.NotifySdfHint(center, MathF.Max(0.05f, radius), hint.Primitive ?? "sphere");
+        }
+
+        /// <summary>Applies LLM material hint to default PBR UBO + L-DNN emissive bias.</summary>
+        public void ApplyMaterialHint(MaterialHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            if (!_initialized)
+                return;
+            _ldnnBridge?.ApplyMaterialHint(hint);
+        }
+
+        /// <summary>
+        /// Physics → Rendering: thermo-volumetric coupling from living-law fields into L-DNN.
+        /// </summary>
+        public void ApplyPhysicsFieldCoupling(PhysicsFieldGiCoupler coupler)
+        {
+            ArgumentNullException.ThrowIfNull(coupler);
+            if (!_initialized || _ldnnBridge == null)
+                return;
+            _ldnnBridge.ApplyPhysicsFieldCoupling(coupler);
         }
 
         /// <summary>Creates or updates a visible proxy mesh for a scene entity (Genome, Volume, Character, Mesh).</summary>
@@ -1198,13 +2057,18 @@ namespace GDNN.Rendering.Engine
 
             var primary = _sceneLights[0];
             _dynamicLightDir = Vector3.Normalize(-primary.Direction);
+            _lightIntensity = Math.Clamp(primary.Intensity, 0.5f, 8f);
+            PackExtraLights();
             RebuildLightingPipelineIfNeeded();
         }
 
         private void RebuildLightingPipelineIfNeeded()
         {
-            var hash = new Vector3(_dynamicLightDir.X, _dynamicAmbient + _giBoost, _dynamicLightDir.Z);
-            if (Vector3.DistanceSquared(hash, _lastLightingHash) < 1e-6f)
+            var hash = new Vector3(
+                _dynamicLightDir.X + _cameraPos.X * 0.01f + _sceneLights.Count * 0.1f,
+                _dynamicAmbient + _giBoost + _lightIntensity * 0.1f,
+                _extraLightPack.Length * 0.01f + _dynamicLightDir.Z + _cameraPos.Z * 0.01f);
+            if (Vector3.DistanceSquared(hash, _lastLightingHash) < 1e-8f)
                 return;
             _lastLightingHash = hash;
             CreateLightingPipeline();
@@ -1255,11 +2119,6 @@ namespace GDNN.Rendering.Engine
                     subMat.SetProperty("EmissiveIntensity", meshMat.EmissiveIntensity);
                     _sceneMeshes[^1].MaterialIndex = AddMaterial(subMat);
                 }
-
-                var lodGroup = _lodManager.RegisterGroup(
-                    asset.Name + "_prim" + prim.Bounds.Center.ToString(),
-                    prim.Bounds.Extents.Length());
-                lodGroup.ReferenceRadius = prim.Bounds.Extents.Length();
             }
 
             return true;
@@ -1280,9 +2139,13 @@ namespace GDNN.Rendering.Engine
 
             var allVertices = new float[totalVertices * 12];
             var allIndices = new uint[totalIndices];
+            _draws.Clear();
+            _lodGroupToDraw.Clear();
+            _lodManager?.Clear();
             int vOffset = 0;
             int iOffset = 0;
             int vertexOffset = 0;
+            int meshIndex = 0;
 
             foreach (var mesh in _sceneMeshes)
             {
@@ -1290,17 +2153,58 @@ namespace GDNN.Rendering.Engine
                 Array.Copy(mesh.VertexData, 0, allVertices, vOffset, mesh.VertexData.Length);
                 vOffset += mesh.VertexData.Length;
 
+                int firstIndex = iOffset;
+                int indexCount = 0;
                 if (mesh.IndexData != null)
                 {
+                    indexCount = mesh.IndexData.Length;
                     for (int i = 0; i < mesh.IndexData.Length; i++)
                         allIndices[iOffset + i] = mesh.IndexData[i] + (uint)vertexOffset;
                     iOffset += mesh.IndexData.Length;
                 }
 
+                if (indexCount > 0)
+                {
+                    int drawIndex = _draws.Count;
+                    _draws.Add(new MeshDraw
+                    {
+                        MeshIndex = meshIndex,
+                        FirstIndex = (uint)firstIndex,
+                        IndexCount = (uint)indexCount,
+                        MaterialIndex = mesh.MaterialIndex,
+                        WorldMatrix = mesh.WorldMatrix
+                    });
+
+                    // Wire LodManager → draw index ranges (LOD0 full, LOD1 half indices).
+                    var lodGroup = _lodManager.RegisterGroup($"mesh_{meshIndex}", 2f);
+                    lodGroup.LocalReferencePoint = mesh.WorldMatrix.Translation;
+                    lodGroup.Levels.Add(new LodLevel
+                    {
+                        Level = 0,
+                        ScreenCoverageThreshold = 0.15f,
+                        MinDistance = 0f,
+                        MaxDistance = 40f,
+                        TriangleCount = indexCount / 3,
+                        MeshData = new LodMeshRange((uint)firstIndex, (uint)indexCount)
+                    });
+                    lodGroup.Levels.Add(new LodLevel
+                    {
+                        Level = 1,
+                        ScreenCoverageThreshold = 0.04f,
+                        MinDistance = 40f,
+                        MaxDistance = 500f,
+                        TriangleCount = Math.Max(1, indexCount / 6),
+                        MeshData = new LodMeshRange((uint)firstIndex, (uint)Math.Max(3, (indexCount / 6) * 3))
+                    });
+                    _lodGroupToDraw[lodGroup.Id] = drawIndex;
+                }
+
                 vertexOffset += meshVertexCount;
+                meshIndex++;
             }
 
             _indexCount = (uint)totalIndices;
+            EnsureDrawUniformRings(_draws.Count);
 
             var vertexBytes = MemoryMarshal.AsBytes(allVertices.AsSpan());
             _vertexBuffer = _rhi.CreateBuffer(new BufferDescription
@@ -1320,31 +2224,6 @@ namespace GDNN.Rendering.Engine
 
             UploadToGpu(_vertexBuffer, vertexBytes);
             UploadToGpu(_indexBuffer, indexBytes);
-
-            for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-            {
-                _rhi.UpdateDescriptorSets(new[]
-                {
-                    new DescriptorWrite
-                    {
-                        DescriptorSet = _gbufferDescriptorSets[i].Handle, DstBinding = 0, DstArrayElement = 0,
-                        DescriptorType = DescriptorType.UniformBuffer,
-                        BufferInfos = new[] { new DescriptorBufferInfo { Buffer = _cameraUBOs[i].Handle, Offset = 0, Range = (ulong)Marshal.SizeOf<CameraUBO>() } }
-                    },
-                    new DescriptorWrite
-                    {
-                        DescriptorSet = _gbufferDescriptorSets[i].Handle, DstBinding = 1, DstArrayElement = 0,
-                        DescriptorType = DescriptorType.UniformBuffer,
-                        BufferInfos = new[] { new DescriptorBufferInfo { Buffer = _modelUBOs[i].Handle, Offset = 0, Range = (ulong)Marshal.SizeOf<Matrix4x4>() } }
-                    },
-                    new DescriptorWrite
-                    {
-                        DescriptorSet = _gbufferDescriptorSets[i].Handle, DstBinding = 2, DstArrayElement = 0,
-                        DescriptorType = DescriptorType.UniformBuffer,
-                        BufferInfos = new[] { new DescriptorBufferInfo { Buffer = _materialUBOs[i].Handle, Offset = 0, Range = (ulong)Marshal.SizeOf<MaterialUBO>() } }
-                    },
-                });
-            }
         }
 
         private unsafe void UploadToGpu(VulkanBuffer dst, ReadOnlySpan<byte> data)
@@ -1372,41 +2251,477 @@ namespace GDNN.Rendering.Engine
 
         public unsafe void UpdateUniforms(int frameIndex, Matrix4x4 view, Matrix4x4 projection, Vector3 cameraPos, float time)
         {
+            _cameraPos = cameraPos;
             var extent = _rhi.Swapchain.Extent;
             var camUBO = _materialBridge.BuildCameraUBO(view, projection, cameraPos, time, extent.Width, extent.Height);
-            Marshal.StructureToPtr(camUBO, _cameraMapped[frameIndex], false);
-
-            var model = Matrix4x4.Identity;
-            Marshal.StructureToPtr(model, _modelMapped[frameIndex], false);
-
-            if (_sceneMaterials.Count > 0)
-            {
-                var matUBO = _materialBridge.ExtractProperties(_sceneMaterials[0]);
-                Marshal.StructureToPtr(matUBO, _materialMapped[frameIndex], false);
-            }
+            // Camera binding 0: { mat4 ViewProjection; mat4 PrevViewProjection } for velocity.
+            var vp = camUBO.ViewProjection;
+            var prevVp = _hasPrevViewProjection ? _prevViewProjection : vp;
+            Marshal.StructureToPtr(vp, _cameraMapped[frameIndex], false);
+            Marshal.StructureToPtr(prevVp, IntPtr.Add(_cameraMapped[frameIndex], 64), false);
 
             var lightVP = Matrix4x4.Identity;
+            Matrix4x4 lightView = Matrix4x4.Identity;
+            Matrix4x4 lightProj = Matrix4x4.Identity;
             if (_sceneLights.Count > 0)
             {
                 var light = _sceneLights[0];
                 var lightDir = Vector3.Normalize(light.Direction);
-                var lightPos = -lightDir * 20.0f;
-                var lightView = Matrix4x4.CreateLookAt(lightPos, Vector3.Zero, Vector3.UnitY);
-                var lightProj = Matrix4x4.CreateOrthographic(40.0f, 40.0f, 0.1f, 100.0f);
-                lightProj.M11 *= -1;
+                // Camera-centered ortho (PSSM-lite): near-field shadow resolution stays high.
+                var focus = cameraPos;
+                var lightPos = focus - lightDir * 35.0f;
+                var up = MathF.Abs(Vector3.Dot(lightDir, Vector3.UnitY)) > 0.95f ? Vector3.UnitZ : Vector3.UnitY;
+                lightView = Matrix4x4.CreateLookAt(lightPos, focus, up);
+                lightProj = Matrix4x4.CreateOrthographic(28.0f, 28.0f, 0.5f, 90.0f);
+                lightProj.M22 *= -1;
                 lightVP = lightView * lightProj;
             }
-            Marshal.StructureToPtr(lightVP, _shadowMapped[frameIndex], false);
+            _cascadeLightVP[0] = lightVP;
+            WriteCascadeShadowUbo(frameIndex);
+
+            // G-DNN LOD selection for registered groups.
+            _lodManager?.UpdateAll(cameraPos, MathF.PI / 3f, extent.Height);
+            ApplySelectedLodDraws();
+
+            EnsureDrawUniformRings(Math.Max(1, _draws.Count));
+            if (_drawAlbedoCache == null || _drawAlbedoCache.Length < _draws.Count)
+            {
+                _drawAlbedoCache = new VulkanTexture[_draws.Count];
+                _drawNormalCache = new VulkanTexture[_draws.Count];
+                _drawOrmCache = new VulkanTexture[_draws.Count];
+            }
+            int drawCount = Math.Min(_draws.Count, _drawSlotCount);
+            for (int d = 0; d < drawCount; d++)
+            {
+                var draw = _draws[d];
+                if (draw.MeshIndex >= 0 && draw.MeshIndex < _sceneMeshes.Count)
+                {
+                    draw.WorldMatrix = _sceneMeshes[draw.MeshIndex].WorldMatrix;
+                    draw.MaterialIndex = _sceneMeshes[draw.MeshIndex].MaterialIndex;
+                    _draws[d] = draw;
+                }
+
+                var modelPtr = IntPtr.Add(_modelMapped[frameIndex], d * UboAlign);
+                Marshal.StructureToPtr(draw.WorldMatrix, modelPtr, false);
+
+                MaterialUBO matUBO;
+                SubstrateMaterial? subMat = null;
+                if (draw.MaterialIndex >= 0 && draw.MaterialIndex < _sceneMaterials.Count)
+                {
+                    subMat = _sceneMaterials[draw.MaterialIndex];
+                    matUBO = _materialBridge.ExtractProperties(subMat);
+                    _drawAlbedoCache![d] = _materialTextures?.ResolveAlbedo(subMat);
+                    _drawNormalCache![d] = _materialTextures?.ResolveNormal(subMat);
+                    // Floor / material 0: prefer VT atlas when resident tiles exist.
+                    if (d == 0 && _materialTextures?.VirtualTextureAtlas != null &&
+                        (_algorithmHub?.VirtualTextures.ResidentTiles ?? 0) > 0)
+                        _drawAlbedoCache[d] = _materialTextures.VirtualTextureAtlas;
+                    _drawOrmCache![d] = _materialTextures?.ResolveOrm(subMat);
+                }
+                else
+                {
+                    matUBO = DefaultMaterialUbo();
+                    _drawAlbedoCache![d] = _materialTextures?.White;
+                    _drawNormalCache![d] = _materialTextures?.FlatNormal;
+                    _drawOrmCache![d] = _materialTextures?.OrmDefault;
+                }
+
+                var matPtr = IntPtr.Add(_materialMapped[frameIndex], d * UboAlign);
+                Marshal.StructureToPtr(matUBO, matPtr, false);
+
+                var shadowMvp = draw.WorldMatrix * lightVP;
+                var shadowPtr = IntPtr.Add(_shadowDrawMapped[frameIndex], d * UboAlign);
+                Marshal.StructureToPtr(shadowMvp, shadowPtr, false);
+            }
+
+            if (_algorithmHub != null && _sceneLights.Count > 0)
+                _algorithmHub.TickShadows(cameraPos, lightView, lightProj);
+
+            if (Vector3.DistanceSquared(_cameraPos, _bakedCameraPos) > 0.25f)
+            {
+                _bakedCameraPos = _cameraPos;
+                _lastLightingHash = Vector3.Zero;
+                RebuildLightingPipelineIfNeeded();
+            }
+        }
+
+        private static MaterialUBO DefaultMaterialUbo() => new()
+        {
+            BaseColor = new Vector4(0.8f, 0.8f, 0.8f, 1f),
+            Emissive = Vector4.Zero,
+            Roughness = 0.5f,
+            Metallic = 0f,
+            AO = 1f,
+            NormalScale = 1f,
+            Opacity = 1f,
+            Specular = 0.5f
+        };
+
+        /// <summary>
+        /// Executes the full FrameGraph for one frame (L-DNN producers + GPU passes).
+        /// Preferred entry from <see cref="RenderEngine"/>.
+        /// </summary>
+        public void ExecuteFrame(
+            VulkanCommandBuffer cmd,
+            uint imageIndex,
+            int frameIndex,
+            Matrix4x4 view,
+            Matrix4x4 projection,
+            Vector3 cameraPos,
+            Vector3 cameraForward,
+            Vector3 cameraRight,
+            float time)
+        {
+            if (!_initialized)
+                return;
+
+            UpdateUniforms(frameIndex, view, projection, cameraPos, time);
+            _currentViewProjection = view * projection;
+
+            // L-DNN CPU producers + batched GPU upload must complete before cmd recording.
+            RenderGI(view, projection, cameraPos, cameraForward, cameraRight);
+
+            var ctx = new FrameGraphContext
+            {
+                Rhi = _rhi,
+                Cmd = cmd,
+                ImageIndex = imageIndex,
+                FrameIndex = frameIndex,
+                Width = _width,
+                Height = _height,
+                World = _sceneWorld,
+                Backend = this,
+                View = view,
+                Projection = projection,
+                CameraPos = cameraPos,
+                CameraForward = cameraForward,
+                CameraRight = cameraRight,
+                Time = time,
+                RunLdnnCpuProducers = false
+            };
+            _activeFgContext = ctx;
+
+            cmd.Begin(CommandBufferUsageFlag.OneTimeSubmit);
+            var setupBuilder = new FrameGraphBuilder();
+            foreach (var pass in _frameGraph.Passes)
+            {
+                if (pass is LdnnGiPass)
+                    continue;
+                pass.Setup(setupBuilder);
+                pass.Execute(ctx);
+            }
+            cmd.End();
+
+            _prevViewProjection = _currentViewProjection;
+            _hasPrevViewProjection = true;
+            _activeFgContext = null;
+        }
+
+        public void OnFrameGraphCull(FrameGraphContext context)
+        {
+            _lodManager.UpdateAll(context.CameraPos, MathF.PI / 3f, context.Height);
+            ApplySelectedLodDraws();
+        }
+
+        public void OnFrameGraphAlgorithms(FrameGraphContext context)
+        {
+            _algorithmHub?.TickCull(
+                context.CameraPos,
+                context.CameraForward,
+                context.View * context.Projection,
+                context.Width,
+                context.Height,
+                context.Time);
+            TryInjectGdnnPresentMesh();
+        }
+
+        /// <summary>
+        /// Uploads a freshly polygonized G-DNN mesh into the Vulkan G-buffer draw list
+        /// when <see cref="RenderingAlgorithmHub"/> signals a new present mesh.
+        /// </summary>
+        private void TryInjectGdnnPresentMesh()
+        {
+            var mesh = _algorithmHub?.PeekPendingPresentMesh();
+            if (mesh == null || mesh.TriangleCount <= 0 || !_initialized)
+                return;
+
+            try
+            {
+                var (vertices, indices) = PackNeuralMeshForGBuffer(mesh);
+                if (_gdnnPresentMeshIndex >= 0 && _gdnnPresentMeshIndex < _sceneMeshes.Count)
+                {
+                    var slot = _sceneMeshes[_gdnnPresentMeshIndex];
+                    slot.VertexData = vertices;
+                    slot.VertexStride = 12;
+                    slot.IndexData = indices;
+                    slot.WorldMatrix = Matrix4x4.Identity;
+                }
+                else
+                {
+                    _gdnnPresentMeshIndex = AddMesh(vertices, 12, indices, materialIndex: 3);
+                    SetMeshWorldMatrix(_gdnnPresentMeshIndex, Matrix4x4.Identity);
+                }
+
+                UploadSceneGeometry();
+                _algorithmHub?.AcknowledgePresentMesh();
+            }
+            catch (Exception ex)
+            {
+                Synapse.Infrastructure.Logging.SynapseLogger.Default.Warn(
+                    "SceneRenderer", "G-DNN present mesh inject skipped.", ex);
+            }
+        }
+
+        private static (float[] Vertices, uint[] Indices) PackNeuralMeshForGBuffer(NeuralPolygonMesh mesh)
+        {
+            var vertices = new float[mesh.VertexCount * 12];
+            for (int i = 0; i < mesh.VertexCount; i++)
+            {
+                var p = mesh.Positions[i];
+                var n = i < mesh.Normals.Length ? mesh.Normals[i] : Vector3.UnitY;
+                if (n.LengthSquared() < 1e-8f)
+                    n = Vector3.UnitY;
+                else
+                    n = Vector3.Normalize(n);
+
+                int o = i * 12;
+                vertices[o] = p.X;
+                vertices[o + 1] = p.Y;
+                vertices[o + 2] = p.Z;
+                vertices[o + 3] = n.X;
+                vertices[o + 4] = n.Y;
+                vertices[o + 5] = n.Z;
+                // Spherical UV so procedural / VT textures paint the neural mesh.
+                float u = 0.5f + MathF.Atan2(p.Z, p.X) / (MathF.PI * 2f);
+                float v = 0.5f - MathF.Asin(Math.Clamp(n.Y, -1f, 1f)) / MathF.PI;
+                vertices[o + 6] = u;
+                vertices[o + 7] = v;
+                // Genome / cluster-hash albedo so dense meshlets read as Nanite tiles in G-buffer.
+                uint h = unchecked((uint)(i * 2654435761u));
+                vertices[o + 8] = 0.30f + ((h) & 255) / 255f * 0.50f;
+                vertices[o + 9] = 0.32f + ((h >> 8) & 255) / 255f * 0.48f;
+                vertices[o + 10] = 0.34f + ((h >> 16) & 255) / 255f * 0.46f;
+                vertices[o + 11] = 1f;
+            }
+
+            var indices = new uint[mesh.Indices.Length];
+            for (int i = 0; i < mesh.Indices.Length; i++)
+                indices[i] = (uint)mesh.Indices[i];
+            return (vertices, indices);
+        }
+
+        public void OnFrameGraphParticles(FrameGraphContext context)
+        {
+            _algorithmHub?.TickPost(context.CameraPos, context.Time);
+        }
+
+        public void OnFrameGraphLdnn(FrameGraphContext context)
+        {
+            // Prefer compute SSAO when a module is bound; otherwise full Hybrid CPU path.
+            _ = _ldnnCompute?.TryDispatchSsao(context.Cmd, (_width + 7) / 8, (_height + 7) / 8);
+            RenderGI(context.View, context.Projection, context.CameraPos, context.CameraForward, context.CameraRight);
+        }
+
+        public void OnFrameGraphShadow(FrameGraphContext context)
+        {
+            RenderShadowPass(context.Cmd, context.FrameIndex);
+            RenderShadowCascadesExtra(context.Cmd, context.FrameIndex);
+        }
+
+        public void OnFrameGraphGBuffer(FrameGraphContext context)
+        {
+            RecordGBufferPass(context.Cmd, context.ImageIndex, context.FrameIndex);
+        }
+
+        public void OnFrameGraphMeshletResolve(FrameGraphContext context)
+        {
+            if (_algorithmHub == null || !_initialized)
+                return;
+
+            int n = Math.Max(1, _width * _height);
+            if (_naniteAlbedo == null || _naniteAlbedo.Length != n)
+            {
+                _naniteAlbedo = new Vector3[n];
+                _naniteNormal = new Vector3[n];
+                _naniteRoughness = new float[n];
+            }
+
+            _algorithmHub.ResolveCinematicMaterials(
+                _width, _height,
+                _naniteAlbedo, _naniteNormal, _naniteRoughness);
+
+            // Inject full-res Nanite materials into L-DNN G-buffer for deferred/GI.
+            if (_ldnnBridge != null && _algorithmHub.LastRasterCoveredPixels > 0)
+            {
+                _ldnnBridge.OverlayMeshletGBuffer((depth, normals, albedo, w, h) =>
+                {
+                    _algorithmHub.CompositeMeshletsIntoLdnnGBuffer(depth, normals, albedo, w, h);
+                    // Prefer full-res cinematic resolve where available.
+                    int count = Math.Min(albedo.Length, _naniteAlbedo.Length);
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (_naniteAlbedo[i].LengthSquared() > 1e-6f)
+                        {
+                            albedo[i] = _naniteAlbedo[i];
+                            normals[i] = _naniteNormal[i];
+                        }
+                    }
+                });
+            }
+        }
+
+        public void OnFrameGraphLighting(FrameGraphContext context)
+        {
+            RecordLightingPass(context.Cmd, context.ImageIndex, context.FrameIndex);
+        }
+
+        public void OnFrameGraphPost(FrameGraphContext context)
+        {
+            RecordPostPass(context.Cmd, context.ImageIndex, context.FrameIndex);
+        }
+
+        public void OnFrameGraphUpscale(FrameGraphContext context)
+        {
+            EnsureUpscaler();
+            int rw = Math.Max(1, (int)(_width * _renderScale));
+            int rh = Math.Max(1, (int)(_height * _renderScale));
+            _upscaler!.Configure(rw, rh, _width, _height);
+            LastUpscalerName = _upscaler.Name;
+
+            // Upscale last GI irradiance (CPU staging) to display when render scale < 1.
+            if (_lastGiIrradiance == null || _renderScale >= 0.999f)
+            {
+                LastUpscaleApplied = false;
+                return;
+            }
+
+            int srcW = _lastGiIrradiance.GetLength(0);
+            int srcH = _lastGiIrradiance.GetLength(1);
+            var src = new Vector3[srcW * srcH];
+            for (int y = 0; y < srcH; y++)
+                for (int x = 0; x < srcW; x++)
+                    src[y * srcW + x] = _lastGiIrradiance[x, y];
+
+            if (_upscaledColor == null || _upscaledColor.Length != _width * _height)
+                _upscaledColor = new Vector3[_width * _height];
+
+            _upscaler.Configure(srcW, srcH, _width, _height);
+            _upscaler.Upscale(src, _upscaledColor, ReadOnlySpan<Vector2>.Empty);
+            LastUpscaleApplied = true;
+
+            // Feed upscaled color back into GI texture path for next lighting.
+            var up = new Vector3[_width, _height];
+            for (int y = 0; y < _height; y++)
+                for (int x = 0; x < _width; x++)
+                    up[x, y] = _upscaledColor[y * _width + x];
+            _lastGiIrradiance = up;
+            if (_giIrradianceTexture != null)
+                UploadGiIrradianceTexture(up);
+        }
+
+        private void EnsureUpscaler()
+        {
+            _upscaler ??= GDNN.Rendering.Upscaling.UpscalerFactory.Create(_upscalerBackend);
+        }
+
+        /// <summary>Selects FSR / DLSS-compatible / MetalFX upscaler backend.</summary>
+        public void SetUpscalerBackend(GDNN.Rendering.Upscaling.UpscalerBackend backend)
+        {
+            _upscalerBackend = backend;
+            _upscaler = GDNN.Rendering.Upscaling.UpscalerFactory.Create(backend);
+        }
+
+        /// <summary>Internal render scale (&lt; 1 enables cinematic upscale).</summary>
+        public void SetRenderScale(float scale)
+        {
+            _renderScale = Math.Clamp(scale, 0.5f, 1f);
+        }
+
+        public int ShadowMapSize => _shadowMapSize;
+
+        /// <summary>
+        /// Pushes AAA quality settings into L-DNN, Nanite, shadows, and GI exposure.
+        /// </summary>
+        public void ApplyAaaQuality(
+            string presetName,
+            int shadowResolution = 0,
+            int giMaxBounces = 0,
+            int giCascadeResolution = 0,
+            int ssaoQuality = 0)
+        {
+            if (shadowResolution > 0)
+                _shadowMapSize = Math.Clamp(shadowResolution, 512, 8192);
+
+            _ldnnBridge?.ApplyAaaQuality(presetName, giMaxBounces, giCascadeResolution, ssaoQuality);
+            _algorithmHub?.ApplyAaaQuality(presetName);
+
+            bool cinematic = string.Equals(presetName, "Cinematic", StringComparison.OrdinalIgnoreCase);
+            bool ultra = string.Equals(presetName, "Ultra", StringComparison.OrdinalIgnoreCase)
+                         || string.Equals(presetName, "Aaa", StringComparison.OrdinalIgnoreCase);
+            if (cinematic || ultra)
+            {
+                CinematicGiEnabled = true;
+                if (_algorithmHub != null)
+                    _algorithmHub.CinematicNanite = true;
+            }
+
+            if (cinematic)
+            {
+                // Prefer full internal res for AAA reference; FSR Quality only if already scaled.
+                if (_renderScale < 0.85f)
+                    _renderScale = 0.85f;
+            }
+        }
+
+        public string LastUpscalerName { get; private set; } = "none";
+        public bool LastUpscaleApplied { get; private set; }
+        public bool CinematicGiEnabled
+        {
+            get => _cinematicGiEnabled;
+            set
+            {
+                _cinematicGiEnabled = value;
+                _ldnnBridge?.SetCinematicGi(value);
+            }
         }
 
         public void RecordCommandBuffer(VulkanCommandBuffer cmd, uint imageIndex, int frameIndex)
         {
+            // Legacy entry: GPU passes only (L-DNN must have been run via RenderGI / ExecuteFrame).
+            var ctx = new FrameGraphContext
+            {
+                Rhi = _rhi,
+                Cmd = cmd,
+                ImageIndex = imageIndex,
+                FrameIndex = frameIndex,
+                Width = _width,
+                Height = _height,
+                World = _sceneWorld,
+                Backend = this,
+                View = Matrix4x4.Identity,
+                Projection = Matrix4x4.Identity,
+                CameraPos = _cameraPos,
+                CameraForward = -Vector3.UnitZ,
+                CameraRight = Vector3.UnitX,
+                RunLdnnCpuProducers = false
+            };
+            _activeFgContext = ctx;
             cmd.Begin(CommandBufferUsageFlag.OneTimeSubmit);
+            // Skip LdnnGiPass when producers already ran.
+            foreach (var pass in _frameGraph.Passes)
+            {
+                if (pass is LdnnGiPass)
+                    continue;
+                pass.Setup(new FrameGraphBuilder());
+                pass.Execute(ctx);
+            }
+            cmd.End();
+            _activeFgContext = null;
+        }
+
+        private void RecordGBufferPass(VulkanCommandBuffer cmd, uint imageIndex, int frameIndex)
+        {
             var extent = _rhi.Swapchain.Extent;
-
-            // Shadow pass first so lighting can sample up-to-date occlusion.
-            RenderShadowPass(cmd, frameIndex);
-
             var gbufferClear = new ClearValue[]
             {
                 ClearValue.ColorClear(0, 0, 0, 0),
@@ -1422,15 +2737,65 @@ namespace GDNN.Rendering.Engine
             cmd.SetViewport(new Viewport { X = 0, Y = 0, Width = extent.Width, Height = extent.Height, MinDepth = 0, MaxDepth = 1 });
             cmd.SetScissor(new Rect2D { Extent = new Extent2D(extent.Width, extent.Height) });
 
-            if (_vertexBuffer != null && _indexCount > 0)
+            if (_vertexBuffer != null && _draws.Count > 0)
             {
                 cmd.BindVertexBuffer(_vertexBuffer);
                 cmd.BindIndexBuffer(_indexBuffer, 0, IndexType.Uint32);
-                cmd.BindDescriptorSets(PipelineBindPoint.Graphics, _gbufferPipelineLayout.Handle, 0, new[] { _gbufferDescriptorSets[frameIndex].Handle });
-                cmd.DrawIndexed(_indexCount, 1, 0, 0, 0);
+                int drawCount = Math.Min(_draws.Count, _drawSlotCount);
+                var samp = _materialTextures?.Sampler ?? _gbufferSampler;
+                for (int d = 0; d < drawCount; d++)
+                {
+                    var alb = _drawAlbedoCache != null && d < _drawAlbedoCache.Length && _drawAlbedoCache[d] != null
+                        ? _drawAlbedoCache[d]! : _materialTextures?.White ?? _gbufferAlbedo[0];
+                    var nrm = _drawNormalCache != null && d < _drawNormalCache.Length && _drawNormalCache[d] != null
+                        ? _drawNormalCache[d]! : _materialTextures?.FlatNormal ?? _gbufferNormals[0];
+                    var orm = _drawOrmCache != null && d < _drawOrmCache.Length && _drawOrmCache[d] != null
+                        ? _drawOrmCache[d]! : _materialTextures?.OrmDefault ?? _gbufferMaterial[0];
+
+                    _rhi.UpdateDescriptorSets(new[]
+                    {
+                        new DescriptorWrite
+                        {
+                            DescriptorSet = _gbufferDescriptorSets[frameIndex].Handle,
+                            DstBinding = 3, DstArrayElement = 0,
+                            DescriptorType = DescriptorType.CombinedImageSampler,
+                            ImageInfos = new[] { new DescriptorImageInfo { Sampler = samp.Handle, ImageView = alb.GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                        },
+                        new DescriptorWrite
+                        {
+                            DescriptorSet = _gbufferDescriptorSets[frameIndex].Handle,
+                            DstBinding = 4, DstArrayElement = 0,
+                            DescriptorType = DescriptorType.CombinedImageSampler,
+                            ImageInfos = new[] { new DescriptorImageInfo { Sampler = samp.Handle, ImageView = nrm.GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                        },
+                        new DescriptorWrite
+                        {
+                            DescriptorSet = _gbufferDescriptorSets[frameIndex].Handle,
+                            DstBinding = 5, DstArrayElement = 0,
+                            DescriptorType = DescriptorType.CombinedImageSampler,
+                            ImageInfos = new[] { new DescriptorImageInfo { Sampler = samp.Handle, ImageView = orm.GetImageView(), ImageLayout = ImageLayout.ShaderReadOnlyOptimal } }
+                        },
+                    });
+
+                    uint dyn = (uint)(d * UboAlign);
+                    cmd.BindDescriptorSets(
+                        PipelineBindPoint.Graphics,
+                        _gbufferPipelineLayout.Handle,
+                        0,
+                        new[] { _gbufferDescriptorSets[frameIndex].Handle },
+                        new[] { dyn, dyn });
+                    var draw = _draws[d];
+                    cmd.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, 0, 0);
+                }
             }
 
             cmd.EndRenderPass();
+        }
+
+        private void RecordLightingPass(VulkanCommandBuffer cmd, uint imageIndex, int frameIndex)
+        {
+            var extent = _rhi.Swapchain.Extent;
+            UpdateLightingDescriptors(imageIndex, frameIndex);
 
             var lightingClear = new ClearValue[]
             {
@@ -1444,13 +2809,133 @@ namespace GDNN.Rendering.Engine
             cmd.BindDescriptorSets(PipelineBindPoint.Graphics, _lightingPipelineLayout.Handle, 0, new[] { _lightingDescriptorSets[frameIndex].Handle });
             cmd.Draw(3, 1, 0, 0);
             cmd.EndRenderPass();
+        }
 
-            cmd.End();
+        private void RecordPostPass(VulkanCommandBuffer cmd, uint imageIndex, int frameIndex)
+        {
+            var extent = _rhi.Swapchain.Extent;
+            EnsureTaaHistory();
+            UpdatePostProcessDescriptors(frameIndex);
+
+            if (_gbufferVelocity != null && imageIndex < _gbufferVelocity.Length)
+            {
+                _rhi.UpdateDescriptorSets(new[]
+                {
+                    new DescriptorWrite
+                    {
+                        DescriptorSet = _postProcessDescriptorSets[frameIndex].Handle,
+                        DstBinding = 1, DstArrayElement = 0,
+                        DescriptorType = DescriptorType.CombinedImageSampler,
+                        ImageInfos = new[]
+                        {
+                            new DescriptorImageInfo
+                            {
+                                Sampler = _gbufferSampler.Handle,
+                                ImageView = _gbufferVelocity[imageIndex].GetImageView(),
+                                ImageLayout = ImageLayout.ShaderReadOnlyOptimal
+                            }
+                        }
+                    }
+                });
+            }
+
+            var postClear = new ClearValue[]
+            {
+                ClearValue.ColorClear(0.0f, 0.0f, 0.0f, 1.0f)
+            };
+            cmd.BeginRenderPass(_postProcessRenderPass, _postProcessFramebuffers![imageIndex], postClear);
+            cmd.BindPipeline(_postProcessPipeline);
+            cmd.SetViewport(new Viewport { X = 0, Y = 0, Width = extent.Width, Height = extent.Height, MinDepth = 0, MaxDepth = 1 });
+            cmd.SetScissor(new Rect2D { Extent = new Extent2D(extent.Width, extent.Height) });
+            cmd.BindDescriptorSets(PipelineBindPoint.Graphics, _postProcessPipelineLayout.Handle, 0, new[] { _postProcessDescriptorSets[frameIndex].Handle });
+            cmd.Draw(3, 1, 0, 0);
+            cmd.EndRenderPass();
+
+            // Copy HDR → TAA history for next-frame temporal blend.
+            if (_taaHistory != null && _hdrColorTarget != null)
+            {
+                cmd.PipelineBarrier(
+                    PipelineStageFlag.ColorAttachmentOutput,
+                    PipelineStageFlag.Transfer,
+                    imageBarriers: new[]
+                    {
+                        new ImageMemoryBarrier
+                        {
+                            Image = _hdrColorTarget.Handle,
+                            OldLayout = ImageLayout.ShaderReadOnlyOptimal,
+                            NewLayout = ImageLayout.TransferSrcOptimal,
+                            SrcAccessMask = AccessFlag.ShaderRead,
+                            DstAccessMask = AccessFlag.TransferRead,
+                            SubresourceRange = new ImageSubresourceRange
+                            {
+                                AspectMask = ImageAspectFlag.Color,
+                                BaseMipLevel = 0, LevelCount = 1,
+                                BaseArrayLayer = 0, LayerCount = 1
+                            }
+                        },
+                        new ImageMemoryBarrier
+                        {
+                            Image = _taaHistory.Handle,
+                            OldLayout = ImageLayout.Undefined,
+                            NewLayout = ImageLayout.TransferDstOptimal,
+                            DstAccessMask = AccessFlag.TransferWrite,
+                            SubresourceRange = new ImageSubresourceRange
+                            {
+                                AspectMask = ImageAspectFlag.Color,
+                                BaseMipLevel = 0, LevelCount = 1,
+                                BaseArrayLayer = 0, LayerCount = 1
+                            }
+                        }
+                    });
+                cmd.CopyImage(_hdrColorTarget, ImageLayout.TransferSrcOptimal, _taaHistory, ImageLayout.TransferDstOptimal, new[]
+                {
+                    new ImageCopy
+                    {
+                        SrcSubresource = new ImageSubresourceLayers { AspectMask = ImageAspectFlag.Color, MipLevel = 0, BaseArrayLayer = 0, LayerCount = 1 },
+                        DstSubresource = new ImageSubresourceLayers { AspectMask = ImageAspectFlag.Color, MipLevel = 0, BaseArrayLayer = 0, LayerCount = 1 },
+                        Extent = new Extent3D(extent.Width, extent.Height, 1)
+                    }
+                });
+                cmd.PipelineBarrier(
+                    PipelineStageFlag.Transfer,
+                    PipelineStageFlag.FragmentShader,
+                    imageBarriers: new[]
+                    {
+                        new ImageMemoryBarrier
+                        {
+                            Image = _taaHistory.Handle,
+                            OldLayout = ImageLayout.TransferDstOptimal,
+                            NewLayout = ImageLayout.ShaderReadOnlyOptimal,
+                            SrcAccessMask = AccessFlag.TransferWrite,
+                            DstAccessMask = AccessFlag.ShaderRead,
+                            SubresourceRange = new ImageSubresourceRange
+                            {
+                                AspectMask = ImageAspectFlag.Color,
+                                BaseMipLevel = 0, LevelCount = 1,
+                                BaseArrayLayer = 0, LayerCount = 1
+                            }
+                        },
+                        new ImageMemoryBarrier
+                        {
+                            Image = _hdrColorTarget.Handle,
+                            OldLayout = ImageLayout.TransferSrcOptimal,
+                            NewLayout = ImageLayout.ShaderReadOnlyOptimal,
+                            SrcAccessMask = AccessFlag.TransferRead,
+                            DstAccessMask = AccessFlag.ShaderRead,
+                            SubresourceRange = new ImageSubresourceRange
+                            {
+                                AspectMask = ImageAspectFlag.Color,
+                                BaseMipLevel = 0, LevelCount = 1,
+                                BaseArrayLayer = 0, LayerCount = 1
+                            }
+                        }
+                    });
+            }
         }
 
         public void RenderShadowPass(VulkanCommandBuffer cmd, int frameIndex)
         {
-            var shadowSize = new Extent2D((uint)SHADOW_MAP_SIZE, (uint)SHADOW_MAP_SIZE);
+            var shadowSize = new Extent2D((uint)_shadowMapSize, (uint)_shadowMapSize);
 
             var shadowClear = new ClearValue[]
             {
@@ -1462,15 +2947,175 @@ namespace GDNN.Rendering.Engine
             cmd.SetViewport(new Viewport { X = 0, Y = 0, Width = shadowSize.Width, Height = shadowSize.Height, MinDepth = 0, MaxDepth = 1 });
             cmd.SetScissor(new Rect2D { Extent = shadowSize });
 
-            if (_vertexBuffer != null && _indexCount > 0)
+            if (_vertexBuffer != null && _draws.Count > 0)
             {
                 cmd.BindVertexBuffer(_vertexBuffer);
                 cmd.BindIndexBuffer(_indexBuffer, 0, IndexType.Uint32);
-                cmd.BindDescriptorSets(PipelineBindPoint.Graphics, _shadowPipelineLayout.Handle, 0, new[] { _shadowDescriptorSets[frameIndex].Handle });
-                cmd.DrawIndexed(_indexCount, 1, 0, 0, 0);
+                int drawCount = Math.Min(_draws.Count, _drawSlotCount);
+                for (int d = 0; d < drawCount; d++)
+                {
+                    uint dyn = (uint)(d * UboAlign);
+                    cmd.BindDescriptorSets(
+                        PipelineBindPoint.Graphics,
+                        _shadowPipelineLayout.Handle,
+                        0,
+                        new[] { _shadowDescriptorSets[frameIndex].Handle },
+                        new[] { dyn });
+                    var draw = _draws[d];
+                    cmd.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, 0, 0);
+                }
             }
 
             cmd.EndRenderPass();
+        }
+
+        /// <summary>
+        /// Extra cascade shadow maps (near/mid/far) for CSM. Cascade 0 is the primary
+        /// <see cref="RenderShadowPass"/>; this records cascade 1–2 into dedicated targets when available.
+        /// </summary>
+        private void RenderShadowCascadesExtra(VulkanCommandBuffer cmd, int frameIndex)
+        {
+            EnsureShadowCascades();
+            if (_shadowCascadeDepth == null || _shadowCascadeFramebuffers == null)
+                return;
+
+            // Cascades 1 and 2 use wider orthos centered on the camera (PSSM-style).
+            float[] orthoSizes = { 56f, 120f };
+            for (int c = 0; c < 2; c++)
+            {
+                int slot = frameIndex * 2 + c;
+                if (slot >= _shadowCascadeFramebuffers.Length)
+                    break;
+
+                UpdateCascadeShadowDraws(frameIndex, orthoSizes[c]);
+
+                var shadowSize = new Extent2D((uint)_shadowMapSize, (uint)_shadowMapSize);
+                cmd.BeginRenderPass(_shadowRenderPass, _shadowCascadeFramebuffers[slot], new[]
+                {
+                    ClearValue.DepthStencilClear(1.0f, 0)
+                });
+                cmd.BindPipeline(_shadowPipeline);
+                cmd.SetViewport(new Viewport { X = 0, Y = 0, Width = shadowSize.Width, Height = shadowSize.Height, MinDepth = 0, MaxDepth = 1 });
+                cmd.SetScissor(new Rect2D { Extent = shadowSize });
+
+                if (_vertexBuffer != null && _draws.Count > 0)
+                {
+                    cmd.BindVertexBuffer(_vertexBuffer);
+                    cmd.BindIndexBuffer(_indexBuffer, 0, IndexType.Uint32);
+                    int drawCount = Math.Min(_draws.Count, _drawSlotCount);
+                    for (int d = 0; d < drawCount; d++)
+                    {
+                        uint dyn = (uint)(d * UboAlign);
+                        cmd.BindDescriptorSets(
+                            PipelineBindPoint.Graphics,
+                            _shadowPipelineLayout.Handle,
+                            0,
+                            new[] { _shadowDescriptorSets[frameIndex].Handle },
+                            new[] { dyn });
+                        var draw = _draws[d];
+                        cmd.DrawIndexed(draw.IndexCount, 1, draw.FirstIndex, 0, 0);
+                    }
+                }
+
+                cmd.EndRenderPass();
+            }
+        }
+
+        private VulkanTexture[]? _shadowCascadeDepth;
+        private VulkanFramebuffer[]? _shadowCascadeFramebuffers;
+
+        private void EnsureShadowCascades()
+        {
+            if (_shadowCascadeDepth != null)
+                return;
+
+            int count = MAX_FRAMES_IN_FLIGHT * 2;
+            _shadowCascadeDepth = new VulkanTexture[count];
+            _shadowCascadeFramebuffers = new VulkanFramebuffer[count];
+            for (int i = 0; i < count; i++)
+            {
+                _shadowCascadeDepth[i] = _rhi.CreateTexture(new TextureDescription
+                {
+                    Width = (uint)_shadowMapSize,
+                    Height = (uint)_shadowMapSize,
+                    Format = VulkanFormat.D32Sfloat,
+                    Usage = ImageUsageFlag.DepthStencilAttachment | ImageUsageFlag.Sampled,
+                    Tiling = ImageTiling.Optimal,
+                    InitialLayout = ImageLayout.Undefined,
+                    Samples = SampleCountFlag.Count1,
+                });
+                _shadowCascadeFramebuffers[i] = _rhi.CreateFramebuffer(new FramebufferDescription
+                {
+                    RenderPass = _shadowRenderPass.Handle,
+                    Attachments = new[] { _shadowCascadeDepth[i].GetImageView() },
+                    Width = (uint)_shadowMapSize,
+                    Height = (uint)_shadowMapSize,
+                    Layers = 1
+                });
+            }
+        }
+
+        private void UpdateCascadeShadowDraws(int frameIndex, float orthoSize)
+        {
+            if (_sceneLights.Count == 0 || frameIndex < 0 || frameIndex >= MAX_FRAMES_IN_FLIGHT)
+                return;
+
+            var light = _sceneLights[0];
+            var lightDir = Vector3.Normalize(light.Direction);
+            var focus = _cameraPos;
+            var lightPos = focus - lightDir * (orthoSize * 1.2f);
+            var up = MathF.Abs(Vector3.Dot(lightDir, Vector3.UnitY)) > 0.95f ? Vector3.UnitZ : Vector3.UnitY;
+            var lightView = Matrix4x4.CreateLookAt(lightPos, focus, up);
+            var lightProj = Matrix4x4.CreateOrthographic(orthoSize, orthoSize, 0.5f, orthoSize * 3.5f);
+            lightProj.M22 *= -1;
+            var lightVP = lightView * lightProj;
+            int cascadeIndex = orthoSize < 70f ? 1 : 2;
+            _cascadeLightVP[cascadeIndex] = lightVP;
+
+            int drawCount = Math.Min(_draws.Count, _drawSlotCount);
+            for (int d = 0; d < drawCount; d++)
+            {
+                var shadowMvp = _draws[d].WorldMatrix * lightVP;
+                var shadowPtr = IntPtr.Add(_shadowDrawMapped[frameIndex], d * UboAlign);
+                Marshal.StructureToPtr(shadowMvp, shadowPtr, false);
+            }
+        }
+
+        private void WriteCascadeShadowUbo(int frameIndex)
+        {
+            if (frameIndex < 0 || frameIndex >= MAX_FRAMES_IN_FLIGHT || _shadowMapped[frameIndex] == IntPtr.Zero)
+                return;
+
+            var ubo = new CascadeShadowUBO
+            {
+                Cascade0 = _cascadeLightVP[0],
+                Cascade1 = _cascadeLightVP[1] == default ? _cascadeLightVP[0] : _cascadeLightVP[1],
+                Cascade2 = _cascadeLightVP[2] == default ? _cascadeLightVP[0] : _cascadeLightVP[2],
+                // Distance splits matching ortho cascade sizes (28 / 56 / 120).
+                Splits = new Vector4(18f, 48f, 3f, 0f)
+            };
+            Marshal.StructureToPtr(ubo, _shadowMapped[frameIndex], false);
+        }
+
+        private void ApplySelectedLodDraws()
+        {
+            if (_lodManager == null || _draws.Count == 0)
+                return;
+
+            foreach (var (group, level) in _lodManager.GetAllSelectedLevels())
+            {
+                if (!_lodGroupToDraw.TryGetValue(group.Id, out int drawIndex))
+                    continue;
+                if ((uint)drawIndex >= (uint)_draws.Count)
+                    continue;
+                if (level.MeshData is not LodMeshRange range)
+                    continue;
+
+                var draw = _draws[drawIndex];
+                draw.FirstIndex = range.FirstIndex;
+                draw.IndexCount = range.IndexCount;
+                _draws[drawIndex] = draw;
+            }
         }
 
         /// <summary>
@@ -1499,19 +3144,28 @@ namespace GDNN.Rendering.Engine
             if (!_giUsesGpuReadback)
             {
                 if (!_ldnnBridge.TryRestoreResidentGBuffer())
-                    _ldnnBridge.FillGBufferFromConstants(10.0f, Vector3.UnitY, new Vector3(0.5f, 0.5f, 0.5f));
+                    _ldnnBridge.FillGBufferProceduralPreview();
             }
             _giUsesGpuReadback = false;
 
-            if (_rtPipeline != null && _rtPipeline.IsSupported)
-                RenderHybridRayTracingTeacher();
+            // Nanite-like: paint meshlet visibility into L-DNN CPU G-buffer before Hybrid GI.
+            if (_algorithmHub != null)
+            {
+                _ldnnBridge.OverlayMeshletGBuffer(
+                    (depth, normals, albedo, w, h) =>
+                        _algorithmHub.CompositeMeshletsIntoLdnnGBuffer(depth, normals, albedo, w, h));
+            }
 
+            // Hybrid RT teacher is synthetic + CPU-heavy — keep off the realtime present path.
             var irradiance = _ldnnBridge.RenderGI();
             ApplyGiBoostFromIrradiance(irradiance);
         }
 
         /// <summary>Last industrial GI path used by the L-DNN bridge.</summary>
         public GiComputePath LastGiPath => _ldnnBridge?.LastGiPath ?? GiComputePath.None;
+
+        /// <summary>How the global-illumination bridge last populated its G-buffer.</summary>
+        public GiGBufferFillMode LastGiFillMode => _ldnnBridge?.LastFillMode ?? GiGBufferFillMode.None;
 
         private void ApplyGiBoostFromIrradiance(Vector3[,] irradiance)
         {
@@ -1521,7 +3175,7 @@ namespace GDNN.Rendering.Engine
             double sum = 0;
             int w = irradiance.GetLength(0);
             int h = irradiance.GetLength(1);
-            int step = Math.Max(1, Math.Max(w, h) / 32);
+            int step = Math.Max(1, Math.Max(w, h) / 24);
             int samples = 0;
             for (int y = 0; y < h; y += step)
             {
@@ -1534,9 +3188,69 @@ namespace GDNN.Rendering.Engine
 
             if (samples == 0)
                 return;
-            _giBoost = Math.Clamp((float)(sum / samples) * 0.15f, 0f, 0.45f);
-            UploadGiIrradianceTexture(irradiance);
+
+            float mean = (float)(sum / samples);
+            // AAA: keep scalar boost modest so full-res L-DNN GI texture dominates lighting.
+            float boostCap = _cinematicGiEnabled ? 0.48f : 0.72f;
+            _giBoost = Math.Clamp(mean * (_cinematicGiEnabled ? 0.18f : 0.28f), 0.04f, boostCap);
+            _dynamicAmbient = Math.Clamp(0.032f - mean * 0.01f, 0.018f, 0.045f);
+            float targetExposure = Math.Clamp(1.28f / MathF.Max(0.35f, mean * 2.35f + 0.4f), 0.72f, 1.55f);
+            _smoothedExposure = _smoothedExposure * 0.92f + targetExposure * 0.08f;
+
+            _auxUploadFrame++;
+            // Every-frame full-res AO + fog + meshlet resolve (Lumen-like stability, no sparse fill).
+            float[,]? aoField = _ldnnBridge.GetAoField();
+            Vector3[,]? fogField = _ldnnBridge.GetFogInScatterField();
+            if (fogField != null && _algorithmHub != null)
+            {
+                _algorithmHub.TickPost(_cameraPos, _auxUploadFrame / 60f);
+                _algorithmHub.CompositeParticlesIntoFog(fogField, _currentViewProjection, _width, _height);
+                _algorithmHub.CompositeMeshletsIntoFog(fogField, _width, _height);
+                _algorithmHub.CompositeVirtualTexturesIntoFog(fogField, _width, _height);
+            }
+            _lastFogUploadFrame = _auxUploadFrame;
+
+            if (aoField != null && _algorithmHub != null)
+                _algorithmHub.CompositeSdfAo(aoField, _width, _height);
+
+            // Meshlet cluster albedo → irradiance so deferred lighting sees Nanite-like tiles.
+            if (_algorithmHub != null)
+                _algorithmHub.CompositeMeshletsIntoIrradiance(irradiance, _width, _height);
+
+            // Upload VT atlas for G-buffer sampling occasionally.
+            if (_materialTextures != null && _algorithmHub != null &&
+                (_auxUploadFrame - _lastVtAtlasUploadFrame >= 8))
+            {
+                var vt = _algorithmHub.VirtualTextures;
+                if (vt.ResidentTiles > 0)
+                {
+                    vt.BlitResidentPagesToAtlas();
+                    _materialTextures.UploadVirtualTextureAtlas(
+                        vt.PhysicalColorData, vt.PhysicalTextureWidth, vt.PhysicalTextureHeight);
+                    _lastVtAtlasUploadFrame = _auxUploadFrame;
+                }
+            }
+
+            // Phase 2: single Submit/Wait for GI (+ optional AO/fog).
+            if (_batchedUploader != null)
+            {
+                _batchedUploader.Upload(
+                    _giIrradianceTexture, irradiance,
+                    aoField != null ? _aoTexture : null, aoField,
+                    fogField != null ? _fogTexture : null, fogField,
+                    _width, _height);
+            }
+            else
+            {
+                UploadGiIrradianceTexture(irradiance);
+                if (aoField != null)
+                    UploadAoTexture(aoField);
+                if (fogField != null)
+                    UploadFogTexture(fogField);
+            }
+
             RebuildLightingPipelineIfNeeded();
+            MaybeRebuildPostProcessPipeline();
         }
 
         /// <summary>
@@ -1583,13 +3297,6 @@ namespace GDNN.Rendering.Engine
                 Matrix4x4.Identity, Matrix4x4.Identity, Vector3.Zero,
                 lightPos, lightCol, lightInt, lightCount,
                 maxBounces: 2, samplesPerPixel: 1);
-        }
-
-        public void RenderPostProcess(float aspectRatio)
-        {
-            if (!_initialized)
-                return;
-            _postProcessBridge.Process(aspectRatio);
         }
 
         public void LoadDemoScene()
@@ -1751,6 +3458,8 @@ namespace GDNN.Rendering.Engine
                 _materialUBOs[i]?.Dispose();
                 _shadowUBOs[i]?.Unmap();
                 _shadowUBOs[i]?.Dispose();
+                _shadowDrawUBOs[i]?.Unmap();
+                _shadowDrawUBOs[i]?.Dispose();
             }
 
             _vertexBuffer?.Dispose();
@@ -1769,6 +3478,12 @@ namespace GDNN.Rendering.Engine
             _lightingDescriptorPool?.Dispose();
             _lightingDescriptorSetLayout?.Dispose();
 
+            _postProcessPipeline?.Dispose();
+            _postProcessPipelineLayout?.Dispose();
+            _postProcessRenderPass?.Dispose();
+            _postProcessDescriptorPool?.Dispose();
+            _postProcessDescriptorSetLayout?.Dispose();
+
             _shadowPipeline?.Dispose();
             _shadowPipelineLayout?.Dispose();
             _shadowRenderPass?.Dispose();
@@ -1776,14 +3491,21 @@ namespace GDNN.Rendering.Engine
             _shadowDescriptorSetLayout?.Dispose();
 
             _gbufferSampler?.Dispose();
+            _shadowSampler?.Dispose();
 
             foreach (var fb in _gbufferFramebuffers)
                 fb?.Dispose();
             foreach (var fb in _lightingFramebuffers)
                 fb?.Dispose();
+            if (_postProcessFramebuffers != null)
+                foreach (var fb in _postProcessFramebuffers)
+                    fb?.Dispose();
             foreach (var fb in _shadowFramebuffers)
                 fb?.Dispose();
 
+            if (_hdrColorTarget != null)
+                _hdrColorTarget.Dispose();
+            _taaHistory?.Dispose();
             if (_gbufferAlbedo != null)
                 foreach (var t in _gbufferAlbedo)
                     t?.Dispose();
@@ -1809,11 +3531,56 @@ namespace GDNN.Rendering.Engine
             _gBufferReadback?.Dispose();
 
             _giIrradianceTexture?.Dispose();
+            _aoTexture?.Dispose();
+            _fogTexture?.Dispose();
+            _batchedUploader?.Dispose();
+            _materialTextures?.Dispose();
+            _ldnnCompute?.Dispose();
+            if (_shadowCascadeDepth != null)
+                foreach (var t in _shadowCascadeDepth)
+                    t?.Dispose();
+            if (_shadowCascadeFramebuffers != null)
+                foreach (var fb in _shadowCascadeFramebuffers)
+                    fb?.Dispose();
 
             _materialBridge?.Dispose();
             _ldnnBridge?.Dispose();
             _postProcessBridge?.Dispose();
+            _algorithmHub?.Dispose();
+            _batchedUploader?.Dispose();
+            _materialTextures?.Dispose();
+            _ldnnCompute?.Dispose();
             _lodManager?.Clear();
+            _lodGroupToDraw.Clear();
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct CascadeShadowUBO
+        {
+            public Matrix4x4 Cascade0;
+            public Matrix4x4 Cascade1;
+            public Matrix4x4 Cascade2;
+            public Vector4 Splits;
+        }
+
+        private readonly struct LodMeshRange
+        {
+            public readonly uint FirstIndex;
+            public readonly uint IndexCount;
+            public LodMeshRange(uint firstIndex, uint indexCount)
+            {
+                FirstIndex = firstIndex;
+                IndexCount = indexCount;
+            }
+        }
+
+        private struct MeshDraw
+        {
+            public int MeshIndex;
+            public uint FirstIndex;
+            public uint IndexCount;
+            public int MaterialIndex;
+            public Matrix4x4 WorldMatrix;
         }
 
         private class SceneMeshData

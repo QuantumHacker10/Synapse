@@ -172,10 +172,40 @@ namespace Synapse.Physics
         /// <summary>Load and compile a law from the library.</summary>
         public CompilationResult CompileFromLibrary(string lawId)
         {
+            var probe = ProbeCompileFromLibrary(lawId);
+            if (!probe.Success)
+                return CompilationResult.Fail(probe.Error ?? "Compilation failed", new[] { probe.Error ?? "Compilation failed" });
+
+            if (_compiledCache.TryGetValue(lawId, out var bytecode) && bytecode != null)
+                return CompilationResult.Ok("Compiled", bytecode, bytecode.InstructionCount, 0);
+
+            return CompilationResult.Fail("Bytecode cache miss after successful probe", new[] { "Bytecode cache miss" });
+        }
+
+        /// <summary>Probes direct vs fallback compilation for benchmarking and diagnostics.</summary>
+        public LawCompilationProbe ProbeCompileFromLibrary(string lawId)
+        {
             var law = _library.GetLaw(lawId);
             if (law == null)
-                return CompilationResult.Fail($"Law '{lawId}' not found", new[] { $"Law '{lawId}' not found in library" });
-            return Compile(law.Expression, lawId);
+                return new LawCompilationProbe(lawId, "", false, false, $"Law '{lawId}' not found in library");
+
+            _compiledCache.Remove(lawId);
+            string normalized = LawExpressionNormalizer.NormalizeForCompilation(law.Expression);
+            var direct = Compile(normalized, lawId);
+            if (direct.Success)
+                return new LawCompilationProbe(lawId, law.Category, true, false);
+
+            _compiledCache.Remove(lawId);
+            if (!Enum.TryParse<LawCategory>(law.Category, ignoreCase: true, out var category))
+                return new LawCompilationProbe(lawId, law.Category, false, false, direct.Message);
+
+            string fallback = LawExpressionNormalizer.NormalizeForCompilation(
+                LawApplicatorMapper.FallbackExpression(category));
+            var fallbackResult = Compile(fallback, lawId);
+            if (fallbackResult.Success)
+                return new LawCompilationProbe(lawId, law.Category, true, true);
+
+            return new LawCompilationProbe(lawId, law.Category, false, false, fallbackResult.Message);
         }
 
         /// <summary>Hot-reload: modify a law expression and recompile without stopping.</summary>
@@ -253,17 +283,13 @@ namespace Synapse.Physics
             var law = _library.GetLaw(lawId);
             if (law == null)
                 return "generic";
-            return law.Category.ToLowerInvariant() switch
-            {
-                "thermaldynamics" or "thermal" => "heat",
-                "wavedynamics" or "wave" or "acoustic" => "wave",
-                "elasticity" or "solid" => "elasticity",
-                "fluiddynamics" or "fluid" or "navier_stokes" => "incompressible_ns",
-                "electrodynamics" or "em" or "electromagnetic" => "electromagnetic",
-                "gravitation" or "gravity" => "gravity",
-                _ => "generic"
-            };
+
+            Enum.TryParse<LawCategory>(law.Category, ignoreCase: true, out var category);
+            return LawApplicatorMapper.Resolve(law.Category, category);
         }
+
+        /// <summary>Number of laws available in the runtime library.</summary>
+        public int CatalogLawCount => _library.AllEntries.Count;
 
         /// <summary>Validate a law expression.</summary>
         public ValidationResult Validate(string expression, string? lawId = null)

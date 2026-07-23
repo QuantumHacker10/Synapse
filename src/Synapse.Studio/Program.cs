@@ -5,6 +5,7 @@ using Synapse.Infrastructure;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
 using Synapse.Network;
+using Synapse.Physics;
 using Synapse.Plugins;
 using Synapse.Runtime;
 
@@ -24,6 +25,12 @@ namespace Synapse.Studio
             if (Array.Exists(args, a => a is "--engine" or "--glfw"))
             {
                 RunEngineOnly(args);
+                return;
+            }
+
+            if (Array.Exists(args, a => a == "--law-benchmark"))
+            {
+                RunLawBenchmark(args);
                 return;
             }
 
@@ -108,6 +115,19 @@ namespace Synapse.Studio
                 ?? Path.Combine(Directory.GetCurrentDirectory(), $"benchmark-{report.SuiteName}.json");
             runner.SaveReportAsync(report, outPath).GetAwaiter().GetResult();
             Console.WriteLine($"Benchmark complete: physics={report.PhysicsMsAvg:F2}ms sim={report.SimulationMsAvg:F2}ms -> {outPath}");
+        }
+
+        private static void RunLawBenchmark(string[] args)
+        {
+            var config = SynapseConfig.Load(args: args);
+            var report = LawCompilationBenchmarkRunner.Run();
+            var outPath = config.LawBenchmarkOutputPath
+                ?? Path.Combine(Directory.GetCurrentDirectory(), "law-compilation-report.json");
+            LawCompilationBenchmarkExporter.SaveAsync(report, outPath).GetAwaiter().GetResult();
+            Console.WriteLine(
+                $"Law compilation benchmark: total={report.TotalLaws} direct={report.CompiledDirect} " +
+                $"fallback={report.CompiledWithFallback} failed={report.Failed} " +
+                $"rate={report.DirectCompileRate:P1} -> {outPath}");
         }
 
         private static void RunEngineOnly(string[] args)

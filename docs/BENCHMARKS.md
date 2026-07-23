@@ -44,3 +44,34 @@ dotnet test
 ```
 
 Les runs avec la même graine produisent des séquences aléatoires identiques dans les modules utilisant `SimulationReproducibility`.
+
+## Benchmark compilation des lois
+
+Mesure combien de lois du catalogue runtime compilent **directement** vs via **fallback de catégorie** :
+
+```bash
+dotnet run --project src/Synapse.Studio -- --law-benchmark --law-benchmark-out law-compilation-report.json
+```
+
+### Rapport JSON (`LawCompilationBenchmarkReport`)
+
+| Champ | Description |
+|---|---|
+| `totalLaws` | Nombre de lois dans `LawLibrary.LoadBuiltIn()` |
+| `compiledDirect` | Compilation verbatim réussie |
+| `compiledWithFallback` | Fallback par catégorie (ex. `alpha * laplacian(T)`) |
+| `failed` | Échecs de compilation |
+| `directCompileRate` | Ratio direct / total |
+| `entries[]` | Détail par loi (`lawId`, `category`, `usedFallback`) |
+
+## Régression visuelle GI (golden hash)
+
+Test CI `GiGoldenSnapshotTests` compare un hash SHA-256 deterministe du champ d'irradiance L-DNN (preview procédurale 32×32).
+
+Mettre à jour la référence après un changement intentionnel du pipeline GI :
+
+```bash
+SYNAPSE_UPDATE_GI_GOLDEN=1 dotnet test tests/Synapse.Tests --filter GiGoldenSnapshot
+```
+
+Fichier de référence : `tests/Synapse.Tests/Rendering/Golden/gi-procedural-32x32.sha256`
