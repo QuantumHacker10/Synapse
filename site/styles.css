@@ -21,6 +21,7 @@
 
   --container: 72rem;
   --radius: 1.1rem;
+  --banner-h: 2.85rem;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -63,6 +64,63 @@ body {
   text-decoration: none;
 }
 .skip-link:focus { left: 0; }
+
+/* ---------- Bandeau Early Access ---------- */
+
+.early-access-banner {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 56;
+  background: linear-gradient(90deg, rgba(69, 224, 184, 0.12), rgba(78, 203, 224, 0.08));
+  border-bottom: 1px solid var(--line);
+  padding: 0.65rem 0;
+}
+
+.banner-inner p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--ink-dim);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.banner-inner strong {
+  color: var(--glow);
+  font-weight: 600;
+  margin-right: 0.35rem;
+}
+
+.banner-inner a {
+  color: var(--cyan);
+  text-decoration-underline-offset: 3px;
+}
+
+.pricing-hero { padding-top: calc(6rem + var(--banner-h)); }
+.pricing-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  margin-top: 2rem;
+}
+.price-card {
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+.price-card h3 { color: var(--glow); margin-bottom: 0.75rem; }
+.price-card ul { list-style: none; padding: 0; }
+.price-card li {
+  padding: 0.35rem 0;
+  color: var(--ink-dim);
+  border-bottom: 1px solid rgba(69, 224, 184, 0.08);
+}
+.price-card li:last-child { border-bottom: none; }
+.maturity-tier { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.tier-early { color: #e0c045; }
+.tier-experimental { color: #e07070; }
+.tier-supported { color: var(--glow); }
 
 a:focus-visible,
 button:focus-visible {
@@ -141,7 +199,7 @@ h3 { font-size: 1.35rem; margin-bottom: 0.6rem; }
 .site-header {
   position: fixed;
   inset-inline: 0;
-  top: 0;
+  top: var(--banner-h);
   z-index: 50;
   background: rgba(5, 11, 14, 0.78);
   backdrop-filter: blur(14px);
@@ -248,7 +306,7 @@ h3 { font-size: 1.35rem; margin-bottom: 0.6rem; }
   align-items: center;
   justify-content: center;
   position: relative;
-  padding: 7rem 0 5rem;
+  padding: calc(7rem + var(--banner-h)) 0 5rem;
   overflow: hidden;
 }
 

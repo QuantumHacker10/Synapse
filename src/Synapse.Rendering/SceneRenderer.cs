@@ -3144,7 +3144,7 @@ namespace GDNN.Rendering.Engine
             if (!_giUsesGpuReadback)
             {
                 if (!_ldnnBridge.TryRestoreResidentGBuffer())
-                    _ldnnBridge.FillGBufferFromConstants(10.0f, Vector3.UnitY, new Vector3(0.5f, 0.5f, 0.5f));
+                    _ldnnBridge.FillGBufferProceduralPreview();
             }
             _giUsesGpuReadback = false;
 
@@ -3163,6 +3163,9 @@ namespace GDNN.Rendering.Engine
 
         /// <summary>Last industrial GI path used by the L-DNN bridge.</summary>
         public GiComputePath LastGiPath => _ldnnBridge?.LastGiPath ?? GiComputePath.None;
+
+        /// <summary>How the global-illumination bridge last populated its G-buffer.</summary>
+        public GiGBufferFillMode LastGiFillMode => _ldnnBridge?.LastFillMode ?? GiGBufferFillMode.None;
 
         private void ApplyGiBoostFromIrradiance(Vector3[,] irradiance)
         {

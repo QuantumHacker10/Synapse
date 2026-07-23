@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transparence &amp; maturité — Synapse OMNIA</title>
+  <meta name="description" content="Synapse OMNIA v1.3 — statut Early Access honnête : ce qui est utilisable aujourd'hui vs expérimental." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
+
+  <div class="early-access-banner" role="status">
+    <div class="container banner-inner">
+      <p><strong>Accès anticipé · Early Access</strong> Cette page décrit honnêtement ce que Synapse assume — et ce qu'il ne promet pas.</p>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <nav class="nav" aria-label="Navigation principale">
+      <a class="brand" href="index.html"><span class="brand-dot"></span>Synapse</a>
+      <ul class="nav-menu" id="nav-menu">
+        <li><a href="index.html">Accueil</a></li>
+        <li><a href="pricing.html" aria-current="page">Transparence</a></li>
+        <li><a class="nav-cta" href="index.html#telecharger">Télécharger</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="contenu">
+    <section class="section pricing-hero">
+      <div class="container narrow">
+        <p class="kicker">Transparence produit</p>
+        <h1>Ce que Synapse est — et ce qu'il n'est pas encore.</h1>
+        <p class="lead">
+          Synapse OMNIA v1.3 est un <strong>outil de simulation 3D en accès anticipé</strong> (open source, licence MIT).
+          Le dépôt avance vite ; certaines surfaces sont solides, d'autres sont des scaffolds R&amp;D.
+        </p>
+      </div>
+    </section>
+
+    <section class="section section-deep">
+      <div class="container">
+        <h2 class="center">Matrice de maturité (honest)</h2>
+        <div class="pricing-grid">
+          <article class="price-card">
+            <p class="maturity-tier tier-early">Early Access</p>
+            <h3>Studio &amp; runtime local</h3>
+            <ul>
+              <li>Synapse Studio (édition, inspecteur, console LLM)</li>
+              <li>180+ lois physiques dans le catalogue runtime</li>
+              <li>Lois vivantes hot-reload + multiphysique</li>
+              <li>Benchmarks headless reproductibles</li>
+              <li>Import mesh glTF/OBJ, export glTF</li>
+            </ul>
+          </article>
+          <article class="price-card">
+            <p class="maturity-tier tier-early">Early Access</p>
+            <h3>Rendu &amp; GI L-DNN</h3>
+            <ul>
+              <li>Pipeline Vulkan + G-DNN / L-DNN fonctionnel</li>
+              <li>Preview procédurale CPU si pas de readback GPU</li>
+              <li>Régression GI automatisée (golden hash CI)</li>
+              <li>Pas de promesse photoréal type Unreal/Lumen</li>
+            </ul>
+          </article>
+          <article class="price-card">
+            <p class="maturity-tier tier-experimental">Experimental</p>
+            <h3>Réseau &amp; VR</h3>
+            <ul>
+              <li>P2P multi-pairs : labo localhost</li>
+              <li>WAN / STUN / TURN : Early Access, pas prod WAN</li>
+              <li>OpenXR : souvent simulé sans casque réel</li>
+              <li>Ne pas planifier de prod collaborative dessus</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container narrow">
+        <h2>Benchmarks publics</h2>
+        <p class="lead">Mesurez vous-même la couverture du catalogue de lois :</p>
+        <div class="terminal" role="img" aria-label="Commande benchmark compilation lois">
+          <div class="terminal-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+          <pre><code><span class="t-comment"># Combien de lois compilent sans fallback ?</span>
+<span class="t-prompt">$</span> dotnet run --project src/Synapse.Studio -- --law-benchmark --law-benchmark-out law-report.json
+
+<span class="t-comment"># Benchmark simulation headless</span>
+<span class="t-prompt">$</span> dotnet run --project src/Synapse.Studio -- --benchmark samples/benchmarks/default.json --headless</code></pre>
+        </div>
+        <p class="lead" style="margin-top:1.5rem">
+          Dernière mesure interne : <strong>~88&nbsp;%</strong> des lois compilent directement,
+          le reste via fallback de catégorie — <strong>0 échec</strong> sur le catalogue complet.
+        </p>
+      </div>
+    </section>
+
+    <section class="section section-deep">
+      <div class="container narrow center">
+        <h2>Licence &amp; usage</h2>
+        <p class="lead">
+          Synapse est <strong>open source (MIT)</strong> sur ce dépôt — gratuit pour apprendre, fork, contribuer.
+          Pas de paywall sur le code ; pas de garantie « production-ready » sur les surfaces Experimental.
+        </p>
+        <div class="hero-actions" style="justify-content:center;margin-top:2rem">
+          <a class="btn btn-primary" href="https://github.com/QuantumHacker10/Synapse/releases" rel="noopener">GitHub Releases</a>
+          <a class="btn btn-ghost" href="index.html">Retour à l'accueil</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p><span class="brand-dot small"></span> Synapse — Early Access v1.3 · MIT</p>
+    </div>
+  </footer>
+  <script src="main.js"></script>
+</body>
+</html>

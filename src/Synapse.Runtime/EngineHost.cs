@@ -78,6 +78,9 @@ namespace Synapse.Runtime
         /// <summary>Living-law compiler, available after <see cref="InitializeModules"/>.</summary>
         public LivingLawCompiler? LawCompiler => _lawCompiler;
 
+        /// <summary>Number of physical laws available in the runtime catalog.</summary>
+        public int CatalogLawCount => _lawCompiler?.CatalogLawCount ?? 0;
+
         /// <summary>Industrial multiphysics orchestrator (rigid bodies + living laws + continuum).</summary>
         public MultiphysicsOrchestrator? Multiphysics => _multiphysics;
 
@@ -406,6 +409,17 @@ namespace Synapse.Runtime
             InitializeModules();
             return _lawCompiler!.Library.AllEntries
                 .Select(e => (e.Id, e.Name, e.Expression))
+                .ToList();
+        }
+
+        /// <summary>Full catalog metadata for Studio law picker (100+ reference laws).</summary>
+        public IReadOnlyList<(string Id, string Name, string Category, string Description, string Expression)> ListLawCatalog()
+        {
+            InitializeModules();
+            return _lawCompiler!.Library.AllEntries
+                .Select(e => (e.Id, e.Name, e.Category, e.Description, e.Expression))
+                .OrderBy(e => e.Category, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
 
