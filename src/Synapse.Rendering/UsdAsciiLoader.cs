@@ -1,21 +1,43 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace GDNN.Rendering.MeshIO;
 
-/// <summary>Minimal USDA (ASCII USD) mesh importer for simple triangle meshes.</summary>
+/// <summary>USDA (ASCII USD) mesh importer with composition, materials, skeletons, and variants.</summary>
 public sealed class UsdAsciiLoader
 {
-    private static readonly Regex PointTuple = new(@"\(([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\)", RegexOptions.Compiled);
-
     public Task<MeshLoadResult> LoadAsync(string filePath, MeshLoadConfig? config = null, CancellationToken ct = default)
+    {
+        config ??= new MeshLoadConfig();
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+        if (ext is not (".usd" or ".usda" or ".usdc"))
+        {
+            return Task.FromResult(new MeshLoadResult { ErrorMessage = "Expected .usd, .usda or .usdc extension." });
+        }
+
+        if (ext == ".usdc" || (ext == ".usd" && IsBinaryUsd(filePath)))
+            return new UsdBinaryLoader().LoadAsync(filePath, config, ct);
+
+        return UsdCompositionResolver.LoadWithCompositionAsync(
+            filePath,
+            (path, cfg, token) => LoadLeafMeshAsync(path, cfg, applyLocalXform: false, token),
+            config,
+            ct);
+    }
+
+    public Task<MeshLoadResult> LoadLeafMeshAsync(string filePath, MeshLoadConfig? config, CancellationToken ct) =>
+        LoadLeafMeshAsync(filePath, config, applyLocalXform: true, ct);
+
+    public Task<MeshLoadResult> LoadLeafMeshAsync(
+        string filePath,
+        MeshLoadConfig? config,
+        bool applyLocalXform,
+        CancellationToken ct)
     {
         config ??= new MeshLoadConfig();
         var result = new MeshLoadResult();
@@ -24,48 +46,29 @@ public sealed class UsdAsciiLoader
         try
         {
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
-            if (ext is not (".usd" or ".usda" or ".usdc"))
+            if (ext == ".usdc" || (ext == ".usd" && IsBinaryUsd(filePath)))
+                return new UsdBinaryLoader().LoadAsync(filePath, config, ct);
+
+            var raw = File.ReadAllText(filePath);
+            var text = UsdVariantResolver.ApplyVariants(raw, config);
+
+            if (UsdCompositionResolver.ExtractReferencePaths(text).Count > 0 &&
+                text.IndexOf("point3f[] points", StringComparison.Ordinal) < 0 &&
+                text.IndexOf("point3d[] points", StringComparison.Ordinal) < 0)
             {
-                result.ErrorMessage = "Expected .usd, .usda or .usdc extension.";
+                result.Success = true;
+                result.Asset = new MeshAsset { Name = Path.GetFileNameWithoutExtension(filePath) };
+                sw.Stop();
+                result.LoadTime = sw.Elapsed;
                 return Task.FromResult(result);
             }
 
-            if (ext == ".usdc")
-            {
-                result.ErrorMessage = "Binary USD (usdc) requires v2.1; use USDA ASCII for now.";
-                return Task.FromResult(result);
-            }
-
-            var text = File.ReadAllText(filePath);
-            var points = ParsePointsArray(text);
-            var indices = ParseFaceIndices(text);
-
-            if (points.Count == 0)
-            {
-                result.ErrorMessage = "No point positions found in USD file.";
-                return Task.FromResult(result);
-            }
-
-            if (indices.Count == 0)
-            {
-                for (uint i = 0; i < points.Count; i++)
-                    indices.Add(i);
-            }
-
-            var asset = new MeshAsset { Name = Path.GetFileNameWithoutExtension(filePath) };
-            var primitive = new MeshPrimitive { Topology = PrimitiveTopology.TriangleList };
-            foreach (var p in points)
-                primitive.Vertices.Add(new MeshVertex { Position = p, Normal = Vector3.UnitY });
-            primitive.Indices.AddRange(indices);
-            asset.Primitives.Add(primitive);
-            asset.Bounds = new BoundingBox3D
-            {
-                Min = points.Aggregate(Vector3.One * float.MaxValue, Vector3.Min),
-                Max = points.Aggregate(Vector3.One * float.MinValue, Vector3.Max)
-            };
-
-            result.Success = true;
-            result.Asset = asset;
+            result = LoadLeafFromText(
+                text,
+                Path.GetFileNameWithoutExtension(filePath),
+                config,
+                applyLocalXform,
+                Path.GetDirectoryName(Path.GetFullPath(filePath)));
         }
         catch (Exception ex)
         {
@@ -77,69 +80,193 @@ public sealed class UsdAsciiLoader
         return Task.FromResult(result);
     }
 
-    private static List<Vector3> ParsePointsArray(string text)
+    /// <summary>Parses a USDA text buffer (already variant-resolved) into a mesh asset.</summary>
+    public MeshLoadResult LoadLeafFromText(
+        string text,
+        string assetName,
+        MeshLoadConfig? config,
+        bool applyLocalXform,
+        string? baseDirectory = null)
     {
-        var points = new List<Vector3>();
-        var marker = "point3f[] points = [";
-        int idx = text.IndexOf(marker, StringComparison.Ordinal);
-        if (idx < 0)
-            return points;
+        config ??= new MeshLoadConfig();
+        var result = new MeshLoadResult();
+        var warnings = config.CollectUsdDiagnostics ? result.Warnings : null;
 
-        int start = idx + marker.Length;
-        int end = text.IndexOf(']', start);
-        if (end < start)
-            return points;
+        var materials = UsdMaterialParser.ParseMaterials(text, baseDirectory);
+        var skeleton = UsdSkeletonParser.ParseSkeleton(text, config);
+        var clips = UsdSkelAnimationParser.ParseClips(text);
+        ApplyStageTiming(text, clips);
+        var blends = UsdSkelBlendShapeParser.ParseBlendShapes(text);
+        var binding = UsdMaterialParser.ParseBindingPath(text);
+        int defaultMatIndex = UsdMaterialParser.ResolveMaterialIndex(materials, binding);
 
-        var body = text[start..end];
-        foreach (Match match in PointTuple.Matches(body))
+        var asset = new MeshAsset { Name = assetName };
+        asset.Materials.AddRange(materials);
+        asset.Skeleton = skeleton;
+        asset.AnimationClips.AddRange(clips);
+        asset.BlendShapes.AddRange(blends);
+
+        var meshBodies = UsdMeshTopology.EnumerateMeshBodies(text);
+        if (meshBodies.Count == 0)
         {
-            if (float.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var x) &&
-                float.TryParse(match.Groups[2].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var y) &&
-                float.TryParse(match.Groups[3].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
-            {
-                points.Add(new Vector3(x, y, z));
-            }
+            // Flat stage without def Mesh — treat whole buffer as one mesh body.
+            meshBodies = new List<(string Name, string Body)> { (assetName, text) };
         }
 
-        return points;
-    }
+        Matrix4x4 local = applyLocalXform ? UsdXform.ParseLocalMatrix(text) : Matrix4x4.Identity;
+        var allPoints = new List<Vector3>();
 
-    private static List<uint> ParseFaceIndices(string text)
-    {
-        var indices = new List<uint>();
-        var marker = "int[] faceVertexIndices = [";
-        int idx = text.IndexOf(marker, StringComparison.Ordinal);
-        if (idx < 0)
-            return indices;
-
-        int start = idx + marker.Length;
-        int end = text.IndexOf(']', start);
-        if (end < start)
-            return indices;
-
-        var body = text[start..end];
-        var nums = body.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var poly = new List<int>();
-        foreach (var n in nums)
+        foreach (var (meshName, body) in meshBodies)
         {
-            if (!int.TryParse(n, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v))
-                continue;
-            if (v == -1)
+            if (UsdMeshTopology.ShouldSkipPrim(body, config, out var skipReason))
             {
-                for (int i = 1; i < poly.Count - 1; i++)
-                {
-                    indices.Add((uint)poly[0]);
-                    indices.Add((uint)poly[i]);
-                    indices.Add((uint)poly[i + 1]);
-                }
-                poly.Clear();
+                warnings?.Add($"{meshName}: {skipReason}");
+                continue;
             }
+
+            var points = UsdMeshTopology.ParsePoints(body);
+            if (points.Count == 0)
+                continue;
+
+            if (applyLocalXform && !local.IsIdentity)
+                UsdXform.ApplyToPoints(points, local);
+
+            var indices = UsdMeshTopology.ParseTriangulatedIndices(body, warnings);
+            if (indices.Count == 0)
+            {
+                for (uint i = 0; i < points.Count; i++)
+                    indices.Add(i);
+                warnings?.Add($"{meshName}: no faceVertexIndices; using point order.");
+            }
+
+            var uvs = UsdMeshTopology.ParseUvs(body);
+            var normals = UsdMeshTopology.ParseNormals(body);
+
+            // Per-mesh material binding overrides stage binding when present.
+            var meshBinding = UsdMaterialParser.ParseBindingPath(body) ?? binding;
+            int matIndex = UsdMaterialParser.ResolveMaterialIndex(materials, meshBinding);
+            if (matIndex < 0 || matIndex >= materials.Count)
+                matIndex = defaultMatIndex;
+
+            if (UsdMeshTopology.ParseDoubleSided(body) && matIndex >= 0 && matIndex < materials.Count)
+                materials[matIndex].DoubleSided = true;
+
+            var primitive = new MeshPrimitive
+            {
+                Name = meshName,
+                Topology = PrimitiveTopology.TriangleList,
+                MaterialIndex = matIndex,
+                ActiveAttributes = VertexAttribute.Position | VertexAttribute.Normal
+            };
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                var v = new MeshVertex { Position = points[i], Normal = Vector3.UnitY };
+                if (i < uvs.Count)
+                {
+                    v.TexCoord0 = uvs[i];
+                    primitive.ActiveAttributes |= VertexAttribute.TexCoord0;
+                }
+
+                primitive.Vertices.Add(v);
+            }
+
+            primitive.Indices.AddRange(indices);
+            UsdMeshTopology.AssignNormals(primitive.Vertices, primitive.Indices, normals, config.ProcessFlags, warnings);
+
+            // Skin primvars are usually authored on the mesh body.
+            UsdSkeletonParser.ApplySkinPrimvars(body, primitive.Vertices, config);
+            if (body.Contains("primvars:skel:jointIndices", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("primvars:skel:jointIndices", StringComparison.OrdinalIgnoreCase))
+            {
+                // Fall back to whole-stage primvars when mesh body lacks them.
+                if (!body.Contains("primvars:skel:jointIndices", StringComparison.OrdinalIgnoreCase))
+                    UsdSkeletonParser.ApplySkinPrimvars(text, primitive.Vertices, config);
+                primitive.ActiveAttributes |= VertexAttribute.BoneWeights | VertexAttribute.BoneIndices;
+            }
+
+            if (UsdMeshTopology.TryParseExtent(body, out var extent))
+                primitive.Bounds = extent;
             else
             {
-                poly.Add(v);
+                primitive.Bounds = new BoundingBox3D
+                {
+                    Min = points.Aggregate(Vector3.One * float.MaxValue, Vector3.Min),
+                    Max = points.Aggregate(Vector3.One * float.MinValue, Vector3.Max)
+                };
             }
+
+            allPoints.AddRange(points);
+            asset.Primitives.Add(primitive);
+            asset.GlobalAttributes |= primitive.ActiveAttributes;
         }
 
-        return indices;
+        if (asset.Primitives.Count == 0)
+        {
+            if (materials.Count > 0 || skeleton != null || clips.Count > 0 || blends.Count > 0)
+            {
+                result.Success = true;
+                result.Asset = asset;
+                result.WarningsCount = result.Warnings.Count;
+                return result;
+            }
+
+            result.ErrorMessage = "No point positions found in USD file.";
+            result.WarningsCount = result.Warnings.Count;
+            return result;
+        }
+
+        if (UsdMeshTopology.TryParseExtent(text, out var stageExtent))
+            asset.Bounds = stageExtent;
+        else if (allPoints.Count > 0)
+        {
+            asset.Bounds = new BoundingBox3D
+            {
+                Min = allPoints.Aggregate(Vector3.One * float.MaxValue, Vector3.Min),
+                Max = allPoints.Aggregate(Vector3.One * float.MinValue, Vector3.Max)
+            };
+        }
+
+        result.Success = true;
+        result.Asset = asset;
+        result.WarningsCount = result.Warnings.Count;
+        return result;
+    }
+
+    public static Vector3 ParseTranslate(string text) =>
+        UsdXform.ParseVec3Op(text, "xformOp:translate");
+
+    private static void ApplyStageTiming(string text, List<MeshAnimationClip> clips)
+    {
+        if (clips.Count == 0)
+            return;
+        float? tps = UsdMeshTopology.ParseStageFloat(text, "timeCodesPerSecond")
+                     ?? UsdMeshTopology.ParseStageFloat(text, "framesPerSecond");
+        float? start = UsdMeshTopology.ParseStageFloat(text, "startTimeCode");
+        float? end = UsdMeshTopology.ParseStageFloat(text, "endTimeCode");
+        foreach (var clip in clips)
+        {
+            if (tps is > 0f)
+                clip.FrameRate = tps.Value;
+            if (end is float e && start is float s && e >= s && tps is > 0f)
+                clip.Duration = (e - s) / tps.Value;
+            else if (end is float e2 && tps is > 0f && clip.Duration <= 0f)
+                clip.Duration = e2 / tps.Value;
+        }
+    }
+
+    private static bool IsBinaryUsd(string filePath)
+    {
+        try
+        {
+            Span<byte> header = stackalloc byte[8];
+            using var fs = File.OpenRead(filePath);
+            int read = fs.Read(header);
+            return read == 8 && UsdBinaryLoader.IsUsdc(header);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

@@ -82,34 +82,38 @@ namespace GDNN.RHI.Vulkan
         private VkDestroyDebugUtilsMessengerDelegate _vkDestroyDebugUtilsMessenger;
 
         // Core Vulkan P/Invokes
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern IntPtr vkGetInstanceProcAddr(IntPtr instance, IntPtr pName);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern IntPtr vkGetDeviceProcAddr(IntPtr device, IntPtr pName);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern VulkanResult vkCreateInstance(ref VkInstanceCreateInfo pCreateInfo, IntPtr pAllocator, ref IntPtr pInstance);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern void vkDestroyInstance(IntPtr instance, IntPtr pAllocator);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern VulkanResult vkEnumeratePhysicalDevices(IntPtr instance, ref uint pPhysicalDeviceCount, IntPtr pPhysicalDevices);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern void vkGetPhysicalDeviceProperties(IntPtr physicalDevice, IntPtr pProperties);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern void vkGetPhysicalDeviceQueueFamilyProperties(IntPtr physicalDevice, ref uint pQueueFamilyPropertyCount, IntPtr pQueueFamilyProperties);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern VulkanResult vkGetPhysicalDeviceSurfaceSupport(IntPtr physicalDevice, uint queueFamilyIndex, IntPtr surface, ref IntPtr pSupported);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern VulkanResult vkGetPhysicalDeviceSurfaceCapabilities(IntPtr physicalDevice, IntPtr surface, IntPtr pSurfaceCapabilities);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern VulkanResult vkGetPhysicalDeviceSurfaceFormats(IntPtr physicalDevice, IntPtr surface, ref uint pSurfaceFormatCount, IntPtr pSurfaceFormats);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern VulkanResult vkGetPhysicalDeviceSurfacePresentModes(IntPtr physicalDevice, IntPtr surface, ref uint pPresentModeCount, IntPtr pPresentModes);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern void vkGetPhysicalDeviceMemoryProperties(IntPtr physicalDevice, IntPtr pMemoryProperties);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern VulkanResult vkCreateDevice(IntPtr physicalDevice, ref VkDeviceCreateInfo pCreateInfo, IntPtr pAllocator, ref IntPtr pDevice);
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern void vkDestroyDevice(IntPtr device, IntPtr pAllocator);
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
+        private static extern VulkanResult vkEnumerateDeviceExtensionProperties(IntPtr physicalDevice, IntPtr pLayerName, ref uint pPropertyCount, IntPtr pProperties);
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
+        private static extern void vkGetPhysicalDeviceFeatures(IntPtr physicalDevice, IntPtr pFeatures);
 
         private T? GetDeviceProc<T>(string name) where T : Delegate
         {
@@ -566,10 +570,24 @@ namespace GDNN.RHI.Vulkan
                 throw new InvalidOperationException("No Vulkan physical devices found");
 
             var devicesPtr = Marshal.AllocHGlobal((int)(deviceCount * IntPtr.Size));
+            IntPtr bestDevice = IntPtr.Zero;
+            int bestScore = int.MinValue;
             try
             {
                 vkEnumeratePhysicalDevices(_instance, ref deviceCount, devicesPtr);
-                _physicalDevice = Marshal.ReadIntPtr(devicesPtr);
+                for (uint d = 0; d < deviceCount; d++)
+                {
+                    var candidate = Marshal.ReadIntPtr(devicesPtr, (int)(d * IntPtr.Size));
+                    int score = ScorePhysicalDevice(candidate);
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestDevice = candidate;
+                    }
+                }
+                _physicalDevice = bestDevice != IntPtr.Zero
+                    ? bestDevice
+                    : Marshal.ReadIntPtr(devicesPtr);
             }
             finally { Marshal.FreeHGlobal(devicesPtr); }
             _device.PhysicalDevice = _physicalDevice;
@@ -577,19 +595,36 @@ namespace GDNN.RHI.Vulkan
             // Get device properties
             var properties = new VkPhysicalDeviceProperties();
             var propertiesPtr = Marshal.AllocHGlobal(Marshal.SizeOf<VkPhysicalDeviceProperties>());
+            // Real VkPhysicalDeviceProperties is larger (deviceName[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE], etc.)
+            var fullPropsPtr = Marshal.AllocHGlobal(512);
             try
             {
-                vkGetPhysicalDeviceProperties(_physicalDevice, propertiesPtr);
-                properties = Marshal.PtrToStructure<VkPhysicalDeviceProperties>(propertiesPtr);
+                vkGetPhysicalDeviceProperties(_physicalDevice, fullPropsPtr);
+                // Official layout: apiVersion@0, driverVersion@4, vendorID@8, deviceID@12, deviceType@16, deviceName@20
+                uint apiVersion = (uint)Marshal.ReadInt32(fullPropsPtr, 0);
+                uint driverVersion = (uint)Marshal.ReadInt32(fullPropsPtr, 4);
+                uint vendorId = (uint)Marshal.ReadInt32(fullPropsPtr, 8);
+                uint deviceId = (uint)Marshal.ReadInt32(fullPropsPtr, 12);
                 _physicalDeviceInfo.Handle = _physicalDevice;
-                _physicalDeviceInfo.DeviceName = Marshal.PtrToStringAnsi((IntPtr)((long)propertiesPtr + 16)) ?? "Unknown";
-                _physicalDeviceInfo.VendorId = properties.vendorID;
-                _physicalDeviceInfo.DeviceId = properties.deviceID;
-                _physicalDeviceInfo.ApiVersion = properties.apiVersion;
-                _physicalDeviceInfo.DriverVersion = properties.driverVersion;
+                _physicalDeviceInfo.DeviceName = Marshal.PtrToStringAnsi(fullPropsPtr + 20) ?? "Unknown";
+                _physicalDeviceInfo.VendorId = vendorId;
+                _physicalDeviceInfo.DeviceId = deviceId;
+                _physicalDeviceInfo.ApiVersion = apiVersion;
+                _physicalDeviceInfo.DriverVersion = driverVersion;
                 _device.PhysicalDeviceInfo = _physicalDeviceInfo;
+
+                properties.apiVersion = apiVersion;
+                properties.driverVersion = driverVersion;
+                properties.vendorID = vendorId;
+                properties.deviceID = deviceId;
+                properties.deviceType = (uint)Marshal.ReadInt32(fullPropsPtr, 16);
+                _ = propertiesPtr;
             }
-            finally { Marshal.FreeHGlobal(propertiesPtr); }
+            finally
+            {
+                Marshal.FreeHGlobal(propertiesPtr);
+                Marshal.FreeHGlobal(fullPropsPtr);
+            }
 
             // Get queue family properties
             uint queueFamilyCount = 0;
@@ -653,6 +688,81 @@ namespace GDNN.RHI.Vulkan
             finally { Marshal.FreeHGlobal(memPropsPtr); }
         }
 
+        /// <summary>Scores GPUs for mid-range compatibility: prefer discrete, then integrated, avoid CPU-only.</summary>
+        private int ScorePhysicalDevice(IntPtr physicalDevice)
+        {
+            var propsPtr = Marshal.AllocHGlobal(512);
+            try
+            {
+                vkGetPhysicalDeviceProperties(physicalDevice, propsPtr);
+                uint deviceType = (uint)Marshal.ReadInt32(propsPtr, 16); // OTHER=0 INTEGRATED=1 DISCRETE=2 VIRTUAL=3 CPU=4
+                uint apiVersion = (uint)Marshal.ReadInt32(propsPtr, 0);
+                int score = deviceType switch
+                {
+                    2 => 1000, // discrete
+                    1 => 700,  // integrated (Intel UHD, AMD iGPU, Apple) — first-class mid-range target
+                    3 => 500,  // virtual
+                    0 => 200,
+                    4 => 50,   // CPU / lavapipe — last resort
+                    _ => 100
+                };
+                // Prefer devices that expose at least Vulkan 1.2
+                if (apiVersion >= RhiDeviceCreationInfo.VK_API_VERSION_1_2)
+                    score += 50;
+                else if (apiVersion >= RhiDeviceCreationInfo.VK_API_VERSION_1_1)
+                    score += 20;
+
+                if (_surface != IntPtr.Zero)
+                {
+                    uint queueFamilyCount = 0;
+                    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, ref queueFamilyCount, IntPtr.Zero);
+                    bool canPresent = false;
+                    for (uint i = 0; i < queueFamilyCount; i++)
+                    {
+                        IntPtr supported = IntPtr.Zero;
+                        vkGetPhysicalDeviceSurfaceSupport(physicalDevice, i, _surface, ref supported);
+                        if (supported != IntPtr.Zero)
+                        {
+                            canPresent = true;
+                            break;
+                        }
+                    }
+                    if (canPresent)
+                        score += 200;
+                    else
+                        score -= 400;
+                }
+
+                return score;
+            }
+            finally { Marshal.FreeHGlobal(propsPtr); }
+        }
+
+        private HashSet<string> EnumerateDeviceExtensions(IntPtr physicalDevice)
+        {
+            var result = new HashSet<string>(StringComparer.Ordinal);
+            uint count = 0;
+            vkEnumerateDeviceExtensionProperties(physicalDevice, IntPtr.Zero, ref count, IntPtr.Zero);
+            if (count == 0)
+                return result;
+
+            // VkExtensionProperties: name[256] + specVersion
+            const int extPropsSize = 260;
+            var ptr = Marshal.AllocHGlobal((int)(count * extPropsSize));
+            try
+            {
+                vkEnumerateDeviceExtensionProperties(physicalDevice, IntPtr.Zero, ref count, ptr);
+                for (uint i = 0; i < count; i++)
+                {
+                    string? name = Marshal.PtrToStringAnsi(ptr + (int)(i * extPropsSize));
+                    if (!string.IsNullOrEmpty(name))
+                        result.Add(name);
+                }
+            }
+            finally { Marshal.FreeHGlobal(ptr); }
+            return result;
+        }
+
         private void CreateLogicalDevice()
         {
             var queueCreateInfos = new List<VkDeviceQueueCreateInfo>();
@@ -673,32 +783,52 @@ namespace GDNN.RHI.Vulkan
                 queueCreateInfos.Add(qci);
             }
 
+            // Mid-range safe features: only enable widely available bits.
+            // wideLines / fillModeNonSolid / largePoints often missing on Intel iGPU & MoltenVK.
             var deviceFeatures = new VkPhysicalDeviceFeatures();
             deviceFeatures.samplerAnisotropy = VulkanBool32.True;
-            deviceFeatures.fillModeNonSolid = VulkanBool32.True;
-            deviceFeatures.wideLines = VulkanBool32.True;
-            deviceFeatures.largePoints = VulkanBool32.True;
-            deviceFeatures.shaderImageGatherExtended = VulkanBool32.True;
-            deviceFeatures.samplerLodClamp = VulkanBool32.True;
 
             var featuresPtr = Marshal.AllocHGlobal(Marshal.SizeOf<VkPhysicalDeviceFeatures>());
             Marshal.StructureToPtr(deviceFeatures, featuresPtr, false);
 
-            var extensions = new List<string>(_creationInfo.RequiredExtensions);
-            extensions.Add("VK_KHR_swapchain");
-            extensions.Add("VK_KHR_maintenance1");
-            extensions.Add("VK_KHR_maintenance2");
-            extensions.Add("VK_KHR_maintenance3");
-            extensions.Add("VK_KHR_maintenance4");
-            extensions.Add("VK_KHR_synchronization2");
-            extensions.Add("VK_KHR_dynamic_rendering");
-            extensions.Add("VK_KHR_depth_stencil_resolve");
-            extensions.Add("VK_KHR_create_renderpass2");
-            extensions.Add("VK_EXT_descriptor_indexing");
-            extensions.Add("VK_EXT_subgroup_size_control");
-            extensions.Add("VK_KHR_8bit_storage");
-            extensions.Add("VK_KHR_16bit_storage");
-            extensions.Add("VK_KHR_shader_float16_int8");
+            var available = EnumerateDeviceExtensions(_physicalDevice);
+            var extensions = new List<string>();
+            foreach (var required in _creationInfo.RequiredExtensions)
+            {
+                if (!string.IsNullOrWhiteSpace(required) && !extensions.Contains(required))
+                    extensions.Add(required);
+            }
+
+            // Core presentation — required when a surface exists.
+            void AddIfAvailable(string ext, bool required = false)
+            {
+                if (extensions.Contains(ext))
+                    return;
+                if (available.Count == 0 || available.Contains(ext))
+                    extensions.Add(ext);
+                else if (required)
+                    throw new InvalidOperationException($"Required Vulkan device extension missing: {ext}");
+            }
+
+            AddIfAvailable("VK_KHR_swapchain", required: _surface != IntPtr.Zero);
+            // Widely available on mid-range (Vulkan 1.1+ promoted / common)
+            AddIfAvailable("VK_KHR_maintenance1");
+            AddIfAvailable("VK_KHR_maintenance2");
+            AddIfAvailable("VK_KHR_maintenance3");
+            AddIfAvailable("VK_KHR_create_renderpass2");
+            AddIfAvailable("VK_KHR_depth_stencil_resolve");
+            // Optional modern extensions — enable only when present (high-end / recent drivers)
+            AddIfAvailable("VK_KHR_maintenance4");
+            AddIfAvailable("VK_KHR_synchronization2");
+            AddIfAvailable("VK_KHR_dynamic_rendering");
+            AddIfAvailable("VK_EXT_descriptor_indexing");
+            AddIfAvailable("VK_EXT_subgroup_size_control");
+            AddIfAvailable("VK_KHR_8bit_storage");
+            AddIfAvailable("VK_KHR_16bit_storage");
+            AddIfAvailable("VK_KHR_shader_float16_int8");
+            // MoltenVK / macOS portability
+            if (OperatingSystem.IsMacOS())
+                AddIfAvailable("VK_KHR_portability_subset");
 
             var extensionPtrs = extensions.Select(e => Marshal.StringToHGlobalAnsi(e)).ToArray();
             var layerNames = new List<string>();

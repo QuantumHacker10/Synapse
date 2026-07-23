@@ -28,7 +28,7 @@ dotnet build
 
 ```bash
 dotnet test
-# Attendu : 248 tests passés
+# Attendu : suite xUnit verte (voir badge Tests du README)
 ```
 
 Avec couverture de code (comme en CI) :

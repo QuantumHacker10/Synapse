@@ -298,8 +298,25 @@ public static class IntrinsicsHelper
     /// <returns>The highest-tier SIMD platform detected.</returns>
     private static SimdPlatform DetectPlatform()
     {
-        if (Avx512F.IsSupported)
+        // Mid-range production baseline: honour CpuCapabilityProbe ceiling (AVX2 by default).
+        var ceiling = GDNN.Platform.CpuCapabilityProbe.Probe().EffectiveCeiling;
+        if (ceiling == GDNN.Platform.SimdCeiling.Avx512 && Avx512F.IsSupported)
             return SimdPlatform.Simd512;
+        if (ceiling >= GDNN.Platform.SimdCeiling.Avx2 && Avx2.IsSupported)
+            return SimdPlatform.Simd256;
+        if (ceiling >= GDNN.Platform.SimdCeiling.Sse2OrNeon)
+        {
+            if (Sse2.IsSupported)
+                return SimdPlatform.Simd128;
+            if (Sve.IsSupported || Sve2.IsSupported)
+                return SimdPlatform.ArmSve;
+            if (AdvSimd.IsSupported)
+                return SimdPlatform.Simd128;
+        }
+        if (ceiling == GDNN.Platform.SimdCeiling.Scalar)
+            return SimdPlatform.Scalar;
+
+        // Fallback when Auto path did not set a ceiling above (should not happen).
         if (Avx2.IsSupported)
             return SimdPlatform.Simd256;
         if (Sse2.IsSupported)
@@ -316,13 +333,13 @@ public static class IntrinsicsHelper
     /// </summary>
     private static int DetectPreferredVectorSize()
     {
-        if (Avx512F.IsSupported)
-            return 64;
-        if (Avx2.IsSupported)
-            return 32;
-        if (AdvSimd.IsSupported || Sse2.IsSupported)
-            return 16;
-        return sizeof(float);
+        return DetectPlatform() switch
+        {
+            SimdPlatform.Simd512 => 64,
+            SimdPlatform.Simd256 => 32,
+            SimdPlatform.Simd128 or SimdPlatform.ArmSve => 16,
+            _ => sizeof(float)
+        };
     }
 
     /// <summary>

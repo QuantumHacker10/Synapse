@@ -165,6 +165,9 @@ namespace GDNN.Rendering.MeshIO
         public MeshFileType SourceFormat { get; set; }
         public List<MeshPrimitive> Primitives { get; set; } = new();
         public List<MeshMaterial> Materials { get; set; } = new();
+        public MeshSkeleton? Skeleton { get; set; }
+        public List<MeshAnimationClip> AnimationClips { get; set; } = new();
+        public List<MeshBlendShape> BlendShapes { get; set; } = new();
         public BoundingBox3D Bounds { get; set; }
         public int TotalVertexCount => Primitives.Sum(p => p.Vertices.Count);
         public int TotalIndexCount => Primitives.Sum(p => p.Indices.Count);
@@ -237,12 +240,29 @@ namespace GDNN.Rendering.MeshIO
         public float Opacity { get; set; } = 1.0f;
         public float AlphaCutoff { get; set; }
         public bool DoubleSided { get; set; }
+        public float Clearcoat { get; set; }
+        public float ClearcoatRoughness { get; set; }
+        public float Ior { get; set; } = 1.5f;
+        public float Occlusion { get; set; } = 1.0f;
+        /// <summary>UsdUVTexture <c>inputs:sourceColorSpace</c> (e.g. sRGB / raw).</summary>
+        public string ColorSpace { get; set; } = "";
         public string AlbedoTexturePath { get; set; } = "";
         public string NormalTexturePath { get; set; } = "";
         public string MetallicRoughnessTexturePath { get; set; } = "";
         public string EmissiveTexturePath { get; set; } = "";
         public string AOTexturePath { get; set; } = "";
         public string HeightTexturePath { get; set; } = "";
+        public string ClearcoatTexturePath { get; set; } = "";
+        public string SpecularTexturePath { get; set; } = "";
+        public string OpacityTexturePath { get; set; } = "";
+        /// <summary>UDIM tile index (1001+) → resolved file path for albedo (primary) or multi-channel maps.</summary>
+        public Dictionary<int, string> UdimTiles { get; set; } = new();
+        /// <summary>Per-slot UDIM maps (normal, orm, …) when templates use &lt;UDIM&gt;.</summary>
+        public Dictionary<string, Dictionary<int, string>> UdimMapsBySlot { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        /// <summary>Optional NVIDIA MDL module asset path (<c>sourceAsset</c>).</summary>
+        public string MdlAssetPath { get; set; } = "";
+        /// <summary>MDL material name inside the module.</summary>
+        public string MdlMaterialName { get; set; } = "";
     }
 
     /// <summary>Result of a mesh loading operation.</summary>
@@ -266,6 +286,16 @@ namespace GDNN.Rendering.MeshIO
         public int MaxBoneWeightsPerVertex { get; set; } = 4;
         public int MaxBones { get; set; } = 256;
         public float ImportDepth { get; set; } = -1;
+        /// <summary>Active USD variantSelections: variantSet name → variant name.</summary>
+        public Dictionary<string, string> UsdVariantSelections { get; set; } = new(StringComparer.Ordinal);
+        /// <summary>When false, <c>payload</c> / <c>payloads</c> composition arcs are skipped.</summary>
+        public bool UsdIncludePayloads { get; set; } = true;
+        /// <summary>Which mesh <c>purpose</c> values to import (default: default+render).</summary>
+        public UsdPurposeMask UsdPurposeMask { get; set; } = UsdPurposeMask.Production;
+        /// <summary>Skip prims with <c>visibility = "invisible"</c>.</summary>
+        public bool UsdSkipInvisible { get; set; } = true;
+        /// <summary>Collect structured MeshIO diagnostics into <see cref="MeshLoadResult.Warnings"/>.</summary>
+        public bool CollectUsdDiagnostics { get; set; } = true;
     }
 
     /// <summary>Configuration for mesh export.</summary>
@@ -1317,12 +1347,13 @@ namespace GDNN.Rendering.MeshIO
         private readonly ObjLoader _objLoader = new();
         private readonly FbxAsciiLoader _fbxLoader = new();
         private readonly UsdAsciiLoader _usdLoader = new();
+        private readonly UsdBinaryLoader _usdcLoader = new();
         private readonly GlTFExporter _gltfExporter = new();
         private readonly Dictionary<string, MeshAsset> _cache = new();
         private readonly object _cacheLock = new();
 
         public IReadOnlyList<string> SupportedFormats { get; } =
-            new[] { ".gltf", ".glb", ".obj", ".fbx", ".stl", ".ply", ".usd", ".usda" };
+            new[] { ".gltf", ".glb", ".obj", ".fbx", ".stl", ".ply", ".usd", ".usda", ".usdc" };
 
         public int CacheSize { get { lock (_cacheLock) { return _cache.Count; } } }
 
@@ -1341,7 +1372,7 @@ namespace GDNN.Rendering.MeshIO
         public bool CanLoad(string filePath)
         {
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
-            return ext is ".gltf" or ".glb" or ".obj" or ".fbx" or ".stl" or ".ply" or ".usd" or ".usda";
+            return ext is ".gltf" or ".glb" or ".obj" or ".fbx" or ".stl" or ".ply" or ".usd" or ".usda" or ".usdc";
         }
 
         public async Task<MeshLoadResult> LoadAsync(string filePath, MeshLoadConfig? config = null, CancellationToken ct = default)
@@ -1360,6 +1391,7 @@ namespace GDNN.Rendering.MeshIO
                 ".gltf" or ".glb" => await _gltfLoader.LoadAsync(filePath, config, ct),
                 ".obj" => await _objLoader.LoadAsync(filePath, config, ct),
                 ".fbx" => await _fbxLoader.LoadAsync(filePath, config, ct),
+                ".usdc" => await _usdcLoader.LoadAsync(filePath, config, ct),
                 ".usd" or ".usda" => await _usdLoader.LoadAsync(filePath, config, ct),
                 _ => new MeshLoadResult { ErrorMessage = $"Unsupported format: {ext}" }
             };

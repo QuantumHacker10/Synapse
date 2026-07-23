@@ -10,6 +10,7 @@ using GDNN.Llm;
 using GDNN.Platform;
 using GDNN.Rendering;
 using GDNN.Rendering.Engine;
+using GDNN.Rendering.MeshIO;
 using GDNN.Rendering.Quality;
 using GDNN.Scene;
 using GDNN.Sentience;
@@ -53,6 +54,13 @@ namespace Synapse.Runtime
         private bool _simulationPlaying = true;
         private string _llmProviderSummary = "LLM not initialized";
         private readonly ViewportEditorState _viewportEditor = new();
+        private BlueprintRuntimeExecutor? _blueprintExecutor;
+        private string? _liveBlueprintName;
+        private Guid? _liveBlueprintAgentId;
+        private bool _disposed;
+
+        /// <summary>When true, blueprint graph edits hot-reload the live agent tree without respawning.</summary>
+        public bool BlueprintLiveEdit { get; set; } = true;
         private OmniaIndustrialPipeline? _industrialPipeline;
         private MaterialHint? _lastMaterialHint;
 
@@ -332,6 +340,8 @@ namespace Synapse.Runtime
                 return;
             try
             {
+                if (_blueprintExecutor is { IsRunning: true })
+                    await _blueprintExecutor.TickAsync(dt, cancellationToken).ConfigureAwait(false);
                 await _sentience.UpdateAsync(dt).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -818,9 +828,56 @@ namespace Synapse.Runtime
                 Position = Vec3.From(position),
                 BehaviorProfile = document.Name
             });
+            _liveBlueprintName = document.Name;
+            _liveBlueprintAgentId = entity.EntityId;
+            _blueprintExecutor ??= new BlueprintRuntimeExecutor(this, _logger);
+            _blueprintExecutor.Load(document);
             SyncSceneToRenderer();
             return entity;
         }
+
+        /// <summary>
+        /// Hot-reloads a blueprint into the running simulation: recompiles the behavior tree in place
+        /// and refreshes the live <see cref="BlueprintRuntimeExecutor"/> graph without spawning a new agent.
+        /// </summary>
+        public bool HotReloadBlueprint(BlueprintDocument document)
+        {
+            ArgumentNullException.ThrowIfNull(document);
+            InitializeModules();
+            var (ok, msg) = document.Validate();
+            if (!ok)
+            {
+                _logger.Warn("Blueprint", $"Live edit rejected: {msg}");
+                return false;
+            }
+
+            var blueprint = document.CompileToBehaviorTreeBlueprint();
+            var tree = _sentience!.Compiler.CompileFromBlueprint(document.Name, blueprint);
+            _sentience.RegisterBehaviorTree(document.Name, tree);
+
+            // Update existing agents that were spawned from this blueprint (cloned trees).
+            foreach (var entity in _sentience.GetAllEntities())
+            {
+                var treeName = entity.BehaviorTree?.Name;
+                if (treeName == null)
+                    continue;
+                if (treeName == document.Name ||
+                    treeName.StartsWith(document.Name + "_", StringComparison.Ordinal) ||
+                    (_liveBlueprintAgentId is Guid id && entity.EntityId == id))
+                {
+                    entity.BehaviorTree = tree.Clone();
+                }
+            }
+
+            _liveBlueprintName = document.Name;
+            _blueprintExecutor ??= new BlueprintRuntimeExecutor(this, _logger);
+            _blueprintExecutor.Load(document);
+            _logger.Info("Blueprint", $"Live hot-reload OK: '{document.Name}'");
+            return true;
+        }
+
+        /// <summary>Stops the live blueprint graph executor (behavior trees keep running on agents).</summary>
+        public void StopLiveBlueprintExecutor() => _blueprintExecutor?.Stop();
 
         /// <summary>Sets the selected entity for viewport gizmos.</summary>
         public void SetViewportSelection(Guid entityId) => _viewportEditor.SelectedEntityId = entityId;
@@ -1384,18 +1441,156 @@ namespace Synapse.Runtime
             };
         }
 
-        /// <summary>Releases evolution, LLM, quality, and render resources.</summary>
+        /// <summary>Releases evolution, LLM, quality, render, and blueprint resources safely.</summary>
         public async ValueTask DisposeAsync()
         {
-            CancelEvolution();
-            _evolutionCts?.Dispose();
-            if (_evolution != null)
-                await _evolution.DisposeAsync();
-            _multiphysics?.Dispose();
-            _llmRouter?.Dispose();
-            _quality?.Dispose();
-            _renderEngine?.Dispose();
+            if (_disposed)
+                return;
+            _disposed = true;
+
+            try
+            {
+                CancelEvolution();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"CancelEvolution: {ex.Message}");
+            }
+
+            try
+            {
+                _evolutionCts?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"EvolutionCts dispose: {ex.Message}");
+            }
+
+            try
+            {
+                if (_evolution != null)
+                    await _evolution.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Evolution dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _blueprintExecutor?.Stop();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Blueprint stop: {ex.Message}");
+            }
+
+            try
+            {
+                _multiphysics?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Multiphysics dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _llmRouter?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"LLM dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _quality?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Quality dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _renderEngine?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Render dispose: {ex.Message}");
+            }
+
             _logger.Info("EngineHost", "Disposed");
+        }
+
+        /// <summary>
+        /// Production readiness snapshot: platform, SIMD, modules, and known experimental surfaces.
+        /// </summary>
+        public ProductionHealthReport GetProductionHealth()
+        {
+            var caps = PlatformCaps;
+            var cpu = caps.Cpu;
+            bool usdOk = UsdProductionSmoke.TryVerify(out var usdDetail);
+            return new ProductionHealthReport
+            {
+                ProductVersion = Synapse.Infrastructure.SynapseProduct.Version,
+                ModulesInitialized = _modulesInitialized,
+                RenderInitialized = _renderInitialized,
+                SimulationPlaying = _simulationPlaying,
+                GlfwAvailable = caps.GlfwAvailable,
+                VulkanLoaderAvailable = caps.VulkanLoaderAvailable,
+                SimdBaseline = cpu.BaselineLabel,
+                PlatformSummary = caps.Summary,
+                EntityCount = EntityCount,
+                ActiveLawId = _activeLawId,
+                BlueprintLiveEdit = BlueprintLiveEdit,
+                MeetsMinimumCpu = cpu.MeetsMinimumCpu,
+                UsdRuntimeReady = usdOk,
+                UsdRuntimeDetail = usdDetail,
+                ExperimentalNotes =
+                {
+                    "OpenXR uses native Vulkan2 swapchains when loader+HMD+Vulkan bind succeed; otherwise production simulated images (IsSimulated).",
+                    "WAN NAT supports STUN reflexive candidates and TURN Allocate/CreatePermission/ChannelData for symmetric NAT (--stun-server / --turn-server).",
+                    usdOk
+                        ? $"OpenUSD MeshIO production-ready: {usdDetail} (faceVertexCounts, normals, multi-mesh, purpose/visibility, UDIM/MDL, Skel/blend, streamer, remote marketplace)."
+                        : $"OpenUSD MeshIO smoke FAILED: {usdDetail}"
+                }
+            };
+        }
+    }
+
+    /// <summary>Machine-readable production health snapshot for Studio / --health.</summary>
+    public sealed class ProductionHealthReport
+    {
+        public string ProductVersion { get; init; } = "";
+        public bool ModulesInitialized { get; init; }
+        public bool RenderInitialized { get; init; }
+        public bool SimulationPlaying { get; init; }
+        public bool GlfwAvailable { get; init; }
+        public bool VulkanLoaderAvailable { get; init; }
+        public string SimdBaseline { get; init; } = "";
+        public string PlatformSummary { get; init; } = "";
+        public int EntityCount { get; init; }
+        public string? ActiveLawId { get; init; }
+        public bool BlueprintLiveEdit { get; init; }
+        public bool MeetsMinimumCpu { get; init; }
+        public List<string> ExperimentalNotes { get; init; } = new();
+        /// <summary>True when embedded OpenUSD MeshIO production smoke passes.</summary>
+        public bool UsdRuntimeReady { get; init; }
+        public string UsdRuntimeDetail { get; init; } = "";
+
+        /// <summary>True when core runtime can run (modules + CPU baseline). Vulkan optional for headless.</summary>
+        public bool IsCoreReady => ModulesInitialized && MeetsMinimumCpu;
+
+        /// <summary>True when interactive 3D viewport path is expected to work.</summary>
+        public bool IsInteractiveReady => IsCoreReady && GlfwAvailable && VulkanLoaderAvailable;
+
+        public override string ToString()
+        {
+            var mode = IsInteractiveReady ? "interactive-ready" : IsCoreReady ? "core-ready (headless/edit)" : "not-ready";
+            var usd = UsdRuntimeReady ? "usd=ok" : "usd=fail";
+            return $"Synapse {ProductVersion} [{mode}] {usd} SIMD={SimdBaseline} | {PlatformSummary} | entities={EntityCount} law={ActiveLawId ?? "-"}";
         }
     }
 }
