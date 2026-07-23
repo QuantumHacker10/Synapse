@@ -181,6 +181,17 @@ namespace GDNN.Rendering.FrameGraph
 
         public bool CinematicNanite { get; set; }
 
+        /// <summary>Active Nanite policy override from quality preset (null = Industrial / Cinematic flag).</summary>
+        public NaniteNeural30.Policy? NanitePolicyOverride { get; set; }
+
+        /// <summary>Applies AAA Nanite density from a quality preset name.</summary>
+        public void ApplyAaaQuality(string presetName)
+        {
+            NanitePolicyOverride = NaniteNeural30.PolicyFromPreset(presetName);
+            CinematicNanite = CinematicNanite
+                || string.Equals(presetName, "Cinematic", StringComparison.OrdinalIgnoreCase);
+        }
+
         /// <summary>
         /// Full-res cinematic material resolve from the last visibility buffer into viewport MRTs.
         /// </summary>
@@ -203,8 +214,9 @@ namespace GDNN.Rendering.FrameGraph
                 height,
                 albedo,
                 normals,
-                roughness);
-            _ = policy;
+                roughness,
+                _lastRasterMesh,
+                policy);
         }
 
         public RenderingAlgorithmHub(VulkanRhiDevice rhi, int width, int height)
@@ -214,9 +226,9 @@ namespace GDNN.Rendering.FrameGraph
 
             VirtualShadows = new VirtualShadowMap(Math.Max(64, width / 8), Math.Max(64, height / 8), new VSMConfig
             {
-                ClipmapLevels = 3,
+                ClipmapLevels = 4,
                 TileSize = 64,
-                VirtualResolution = 512,
+                VirtualResolution = 1024,
                 PhysicalResolution = 512,
                 FilterMode = VSMFilterMode.PCSS,
                 CacheMode = VSMCacheMode.Software
@@ -547,7 +559,8 @@ namespace GDNN.Rendering.FrameGraph
                     projected);
                 LastNaniteLod = lod01;
 
-                var policy = CinematicNanite ? NaniteCinematicResolve.Cinematic : NaniteNeural30.Industrial;
+                var policy = NanitePolicyOverride
+                    ?? (CinematicNanite ? NaniteCinematicResolve.Cinematic : NaniteNeural30.Industrial);
                 if (NaniteNeural30.ShouldRebuildMeshlets(_gdnnTick, _sdfHintDirty, policy) &&
                     report.VisibleClusters is { Count: > 0 })
                 {

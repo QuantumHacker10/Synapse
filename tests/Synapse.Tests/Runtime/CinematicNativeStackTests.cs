@@ -123,11 +123,54 @@ public class CinematicNativeStackTests
             gb.Depth[i] = 2f;
             gb.Normals[i] = Vector3.UnitY;
             gb.Albedo[i] = new Vector3(0.6f);
+            gb.Specular[i] = new Vector3(0.2f);
         }
         var cam = new CameraState { Position = new Vector3(0, 1, 3), Forward = -Vector3.UnitZ };
         var result = gi.Refine(irr, gb, cam, new System.Collections.Generic.List<LightConfig>(),
             LumenCinematicGi.Mode.GpuSurfaceCache);
         result[4, 4].Length().Should().BeGreaterThan(0.01f);
+    }
+
+    [Fact]
+    public void LumenCinematicGi_FullPathTrace_ScalesSamplesWithSpp()
+    {
+        var gi = new LumenCinematicGi(24);
+        var irr = new Vector3[12, 12];
+        for (int y = 0; y < 12; y++)
+            for (int x = 0; x < 12; x++)
+                irr[x, y] = new Vector3(0.12f);
+        var gb = new GBuffer { Width = 12, Height = 12 };
+        int n = 144;
+        gb.Depth = new float[n];
+        gb.Normals = new Vector3[n];
+        gb.Albedo = new Vector3[n];
+        gb.Velocity = new Vector2[n];
+        gb.MaterialProps = new Vector4[n];
+        gb.Specular = new Vector3[n];
+        gb.Emissive = new Vector3[n];
+        for (int i = 0; i < n; i++)
+        {
+            gb.Depth[i] = 2f;
+            gb.Normals[i] = Vector3.UnitY;
+            gb.Albedo[i] = new Vector3(0.5f);
+        }
+        var cam = new CameraState { Position = new Vector3(0, 1, 3), Forward = -Vector3.UnitZ, Up = Vector3.UnitY, Right = Vector3.UnitX };
+        var lights = new System.Collections.Generic.List<LightConfig>
+        {
+            new() { Type = LightType.Directional, Direction = -Vector3.UnitY, Color = Vector3.One, Intensity = 2f }
+        };
+        gi.Refine(irr, gb, cam, lights, LumenCinematicGi.Mode.FullPathTrace, pathTraceSpp: 3);
+        gi.UsedRealPathTracer.Should().BeTrue();
+        gi.LastPathTraceSamples.Should().BeGreaterThan(3);
+    }
+
+    [Fact]
+    public void NaniteCinematic_Policy_ExceedsIndustrialVisibility()
+    {
+        NaniteCinematicResolve.Cinematic.MaxVisibilityWidth
+            .Should().BeGreaterThan(NaniteNeural30.Industrial.MaxVisibilityWidth);
+        NaniteCinematicResolve.Cinematic.MaxPolyResolution
+            .Should().BeGreaterThan(NaniteNeural30.Industrial.MaxPolyResolution);
     }
 
     [Fact]
