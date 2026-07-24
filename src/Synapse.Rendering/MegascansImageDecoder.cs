@@ -87,6 +87,7 @@ namespace GDNN.Rendering
             // Heuristic: uncompressed truecolor / grayscale without relying on footer.
             if (d.Length < 18)
                 return false;
+            if (d.Length < 18) return false;
             byte type = d[2];
             return type is 2 or 3 or 10;
         }
@@ -156,6 +157,7 @@ namespace GDNN.Rendering
                     case 0x49484452: // IHDR
                         if (length < 13)
                             return false;
+                        if (length < 13) return false;
                         width = BinaryPrimitives.ReadInt32BigEndian(chunk);
                         height = BinaryPrimitives.ReadInt32BigEndian(chunk.Slice(4));
                         bitDepth = chunk[8];
@@ -167,6 +169,10 @@ namespace GDNN.Rendering
                             return false; // Adam7 not supported
                         if (width <= 0 || height <= 0)
                             return false;
+                        if (chunk[10] != 0 || chunk[11] != 0) return false; // compression/filter
+                        interlace = chunk[12];
+                        if (interlace != 0) return false; // Adam7 not supported
+                        if (width <= 0 || height <= 0) return false;
                         break;
                     case 0x504C5445: // PLTE
                         palette = chunk.ToArray();
@@ -202,12 +208,16 @@ namespace GDNN.Rendering
                 return false;
             if (colorType == 3 && bitDepth != 8)
                 return false;
+            if (channels == 0) return false;
+            if (bitDepth is not (8 or 16)) return false;
+            if (colorType == 3 && bitDepth != 8) return false;
 
             int bytesPerPixel = channels * (bitDepth / 8);
             int stride = width * bytesPerPixel;
             int expected = (stride + 1) * height;
             if (raw.Length < expected)
                 return false;
+            if (raw.Length < expected) return false;
 
             var unfiltered = new byte[stride * height];
             var prev = new byte[stride];
@@ -275,6 +285,44 @@ namespace GDNN.Rendering
                             rgba[o + 3] = SamplePngChannel(unfiltered, i, 3, channels, bitDepth);
                             break;
                         }
+                    {
+                        byte g = SamplePngChannel(unfiltered, i, 0, channels, bitDepth);
+                        rgba[o] = g; rgba[o + 1] = g; rgba[o + 2] = g; rgba[o + 3] = 255;
+                        break;
+                    }
+                    case 2: // RGB
+                    {
+                        rgba[o] = SamplePngChannel(unfiltered, i, 0, channels, bitDepth);
+                        rgba[o + 1] = SamplePngChannel(unfiltered, i, 1, channels, bitDepth);
+                        rgba[o + 2] = SamplePngChannel(unfiltered, i, 2, channels, bitDepth);
+                        rgba[o + 3] = 255;
+                        break;
+                    }
+                    case 3: // Indexed
+                    {
+                        byte idx = unfiltered[i];
+                        if (palette == null || idx * 3 + 2 >= palette.Length) return false;
+                        rgba[o] = palette[idx * 3];
+                        rgba[o + 1] = palette[idx * 3 + 1];
+                        rgba[o + 2] = palette[idx * 3 + 2];
+                        rgba[o + 3] = trns != null && idx < trns.Length ? trns[idx] : (byte)255;
+                        break;
+                    }
+                    case 4: // Gray+A
+                    {
+                        byte g = SamplePngChannel(unfiltered, i, 0, channels, bitDepth);
+                        byte a = SamplePngChannel(unfiltered, i, 1, channels, bitDepth);
+                        rgba[o] = g; rgba[o + 1] = g; rgba[o + 2] = g; rgba[o + 3] = a;
+                        break;
+                    }
+                    case 6: // RGBA
+                    {
+                        rgba[o] = SamplePngChannel(unfiltered, i, 0, channels, bitDepth);
+                        rgba[o + 1] = SamplePngChannel(unfiltered, i, 1, channels, bitDepth);
+                        rgba[o + 2] = SamplePngChannel(unfiltered, i, 2, channels, bitDepth);
+                        rgba[o + 3] = SamplePngChannel(unfiltered, i, 3, channels, bitDepth);
+                        break;
+                    }
                 }
             }
 
@@ -297,6 +345,7 @@ namespace GDNN.Rendering
             {
                 case 0:
                     break;
+                case 0: break;
                 case 1: // Sub
                     for (int i = bpp; i < row.Length; i++)
                         row[i] = (byte)(row[i] + row[i - bpp]);
@@ -336,6 +385,8 @@ namespace GDNN.Rendering
                 return a;
             if (pb <= pc)
                 return b;
+            if (pa <= pb && pa <= pc) return a;
+            if (pb <= pc) return b;
             return c;
         }
 
@@ -361,6 +412,10 @@ namespace GDNN.Rendering
             int dibSize = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(14, 4));
             if (dibSize < 40)
                 return false;
+            if (data.Length < 54) return false;
+            int pixelOffset = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(10, 4));
+            int dibSize = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(14, 4));
+            if (dibSize < 40) return false;
             int width = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(18, 4));
             int height = BinaryPrimitives.ReadInt32LittleEndian(data.Slice(22, 4));
             bool topDown = height < 0;
@@ -372,6 +427,7 @@ namespace GDNN.Rendering
                 return false;
             if (bpp is not (24 or 32))
                 return false;
+            if (bpp is not (24 or 32)) return false;
 
             int rowBytes = ((width * bpp + 31) / 32) * 4;
             if (pixelOffset < 0 || pixelOffset + rowBytes * (long)height > data.Length)
@@ -413,6 +469,12 @@ namespace GDNN.Rendering
                 return false;
             if (imageType is not (2 or 3 or 10))
                 return false;
+            if (data.Length < 18) return false;
+            byte idLength = data[0];
+            byte colorMapType = data[1];
+            byte imageType = data[2];
+            if (colorMapType != 0) return false;
+            if (imageType is not (2 or 3 or 10)) return false;
 
             int width = BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(12, 2));
             int height = BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(14, 2));
@@ -422,6 +484,8 @@ namespace GDNN.Rendering
                 return false;
             if (bpp is not (8 or 24 or 32))
                 return false;
+            if (width <= 0 || height <= 0) return false;
+            if (bpp is not (8 or 24 or 32)) return false;
 
             int dataOffset = 18 + idLength;
             bool topOrigin = (descriptor & 0x20) != 0;
@@ -432,6 +496,7 @@ namespace GDNN.Rendering
             {
                 if (dataOffset + needed > data.Length)
                     return false;
+                if (dataOffset + needed > data.Length) return false;
                 data.Slice(dataOffset, needed).CopyTo(pixels);
             }
             else // RLE truecolor
@@ -456,6 +521,7 @@ namespace GDNN.Rendering
                         rgba[di + 1] = g;
                         rgba[di + 2] = g;
                         rgba[di + 3] = 255;
+                        rgba[di] = g; rgba[di + 1] = g; rgba[di + 2] = g; rgba[di + 3] = 255;
                     }
                     else
                     {
@@ -478,6 +544,7 @@ namespace GDNN.Rendering
             {
                 if (si >= src.Length)
                     return false;
+                if (si >= src.Length) return false;
                 byte packet = src[si++];
                 int count = (packet & 0x7F) + 1;
                 if ((packet & 0x80) != 0)
@@ -488,6 +555,10 @@ namespace GDNN.Rendering
                     {
                         if (di + pixelSize > dst.Length)
                             return false;
+                    if (si + pixelSize > src.Length) return false;
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (di + pixelSize > dst.Length) return false;
                         src.Slice(si, pixelSize).CopyTo(dst.AsSpan(di, pixelSize));
                         di += pixelSize;
                     }
@@ -498,6 +569,7 @@ namespace GDNN.Rendering
                     int bytes = count * pixelSize;
                     if (si + bytes > src.Length || di + bytes > dst.Length)
                         return false;
+                    if (si + bytes > src.Length || di + bytes > dst.Length) return false;
                     src.Slice(si, bytes).CopyTo(dst.AsSpan(di, bytes));
                     si += bytes;
                     di += bytes;
@@ -564,6 +636,7 @@ namespace GDNN.Rendering
                 _pos = 0;
                 if (!NextMarker(out byte m) || m != 0xD8)
                     return false;
+                if (!NextMarker(out byte m) || m != 0xD8) return false;
 
                 bool gotSof = false;
                 while (_pos < _data.Length)
@@ -578,12 +651,19 @@ namespace GDNN.Rendering
                             return false;
                         if (!DecodeScan())
                             return false;
+                    if (!NextMarker(out m)) return false;
+                    if (m == 0xD9) break; // EOI
+                    if (m == 0xDA) // SOS
+                    {
+                        if (!gotSof || !ReadSos()) return false;
+                        if (!DecodeScan()) return false;
                         break;
                     }
 
                     int len = ReadMarkerLength();
                     if (len < 2 || _pos + len - 2 > _data.Length)
                         return false;
+                    if (len < 2 || _pos + len - 2 > _data.Length) return false;
                     int start = _pos;
                     int end = _pos + len - 2;
 
@@ -601,6 +681,14 @@ namespace GDNN.Rendering
                         case 0xDB: // DQT
                             if (!ReadDqt(start, end))
                                 return false;
+                            if (!ReadSof(start, end)) return false;
+                            gotSof = true;
+                            break;
+                        case 0xC4: // DHT
+                            if (!ReadDht(start, end)) return false;
+                            break;
+                        case 0xDB: // DQT
+                            if (!ReadDqt(start, end)) return false;
                             break;
                         case 0xDD: // DRI — ignore
                             break;
@@ -613,6 +701,7 @@ namespace GDNN.Rendering
 
                 if (!gotSof || _components.Length == 0)
                     return false;
+                if (!gotSof || _components.Length == 0) return false;
                 rgba = YCbCrToRgba();
                 width = _width;
                 height = _height;
@@ -633,6 +722,11 @@ namespace GDNN.Rendering
                     marker = _data[_pos++];
                     if (marker != 0)
                         return true;
+                    if (_data[_pos++] != 0xFF) continue;
+                    while (_pos < _data.Length && _data[_pos] == 0xFF) _pos++;
+                    if (_pos >= _data.Length) return false;
+                    marker = _data[_pos++];
+                    if (marker != 0) return true;
                 }
                 return false;
             }
@@ -641,6 +735,7 @@ namespace GDNN.Rendering
             {
                 if (_pos + 2 > _data.Length)
                     return 0;
+                if (_pos + 2 > _data.Length) return 0;
                 int len = (_data[_pos] << 8) | _data[_pos + 1];
                 _pos += 2;
                 return len;
@@ -661,12 +756,21 @@ namespace GDNN.Rendering
                 int n = _data[p++];
                 if (n is < 1 or > 4 || _width <= 0 || _height <= 0)
                     return false;
+                if (end - start < 6) return false;
+                int p = start;
+                byte precision = _data[p++];
+                if (precision != 8) return false;
+                _height = (_data[p] << 8) | _data[p + 1]; p += 2;
+                _width = (_data[p] << 8) | _data[p + 1]; p += 2;
+                int n = _data[p++];
+                if (n is < 1 or > 4 || _width <= 0 || _height <= 0) return false;
                 _components = new Component[n];
                 _maxH = _maxV = 0;
                 for (int i = 0; i < n; i++)
                 {
                     if (p + 3 > end)
                         return false;
+                    if (p + 3 > end) return false;
                     var c = new Component
                     {
                         Id = _data[p++],
@@ -678,6 +782,7 @@ namespace GDNN.Rendering
                     p += 2;
                     if (c.H == 0 || c.V == 0)
                         return false;
+                    if (c.H == 0 || c.V == 0) return false;
                     _maxH = Math.Max(_maxH, c.H);
                     _maxV = Math.Max(_maxV, c.V);
                     _components[i] = c;
@@ -695,6 +800,7 @@ namespace GDNN.Rendering
                     int prec = info >> 4;
                     if (id > 1)
                         return false;
+                    if (id > 1) return false;
                     for (int i = 0; i < 64; i++)
                     {
                         int v;
@@ -702,6 +808,7 @@ namespace GDNN.Rendering
                         {
                             if (p + 1 >= end)
                                 return false;
+                            if (p + 1 >= end) return false;
                             v = (_data[p] << 8) | _data[p + 1];
                             p += 2;
                         }
@@ -709,6 +816,7 @@ namespace GDNN.Rendering
                         {
                             if (p >= end)
                                 return false;
+                            if (p >= end) return false;
                             v = _data[p++];
                         }
                         _quant[id][_zigzag[i]] = v;
@@ -731,6 +839,12 @@ namespace GDNN.Rendering
                         return false;
                     if (p + 16 > end)
                         return false;
+                    if (p >= end) return false;
+                    int info = _data[p++];
+                    int tc = info >> 4;
+                    int th = info & 0x0F;
+                    if (th > 3) return false;
+                    if (p + 16 > end) return false;
                     var counts = new byte[17];
                     int total = 0;
                     for (int i = 1; i <= 16; i++)
@@ -740,6 +854,7 @@ namespace GDNN.Rendering
                     }
                     if (p + total > end)
                         return false;
+                    if (p + total > end) return false;
                     var values = new byte[total];
                     for (int i = 0; i < total; i++)
                         values[i] = _data[p++];
@@ -749,6 +864,8 @@ namespace GDNN.Rendering
                         _dcTables[th] = table;
                     else
                         _acTables[th] = table;
+                    if (tc == 0) _dcTables[th] = table;
+                    else _acTables[th] = table;
                 }
                 return true;
             }
@@ -803,6 +920,17 @@ namespace GDNN.Rendering
                     int idx = Array.FindIndex(_components, c => c.Id == id);
                     if (idx < 0)
                         return false;
+                if (len < 6) return false;
+                int end = _pos + len - 2;
+                int n = _data[_pos++];
+                if (n != _components.Length) return false;
+                for (int i = 0; i < n; i++)
+                {
+                    if (_pos + 2 > end) return false;
+                    int id = _data[_pos++];
+                    int tdta = _data[_pos++];
+                    int idx = Array.FindIndex(_components, c => c.Id == id);
+                    if (idx < 0) return false;
                     var c = _components[idx];
                     c.DcId = tdta >> 4;
                     c.AcId = tdta & 0x0F;
@@ -811,6 +939,7 @@ namespace GDNN.Rendering
                 // Ss, Se, AhAl
                 if (_pos + 3 > end)
                     return false;
+                if (_pos + 3 > end) return false;
                 _pos = end;
 
                 int mcuW = (_width + _maxH * 8 - 1) / (_maxH * 8);
@@ -868,6 +997,7 @@ namespace GDNN.Rendering
                 int t = DecodeHuffman(dcTable);
                 if (t < 0)
                     return false;
+                if (t < 0) return false;
                 int diff = t == 0 ? 0 : ReceiveExtend(t);
                 c.Pred[0] = (short)(c.Pred[0] + diff);
                 block[0] = c.Pred[0];
@@ -878,6 +1008,7 @@ namespace GDNN.Rendering
                     int rs = DecodeHuffman(acTable);
                     if (rs < 0)
                         return false;
+                    if (rs < 0) return false;
                     int s = rs & 0x0F;
                     int r = rs >> 4;
                     if (s == 0)
@@ -889,6 +1020,11 @@ namespace GDNN.Rendering
                     k += r;
                     if (k >= 64)
                         break;
+                        if (r == 15) { k += 16; continue; }
+                        break;
+                    }
+                    k += r;
+                    if (k >= 64) break;
                     block[k] = ReceiveExtend(s);
                     k++;
                 }
@@ -918,6 +1054,7 @@ namespace GDNN.Rendering
                         int j = table.ValPtr[i] + code - table.MinCode[i];
                         if (j < 0 || j >= table.Values.Length)
                             return -1;
+                        if (j < 0 || j >= table.Values.Length) return -1;
                         return table.Values[j];
                     }
                 }
@@ -962,6 +1099,11 @@ namespace GDNN.Rendering
                 {
                     if (_pos >= _data.Length)
                         return 0;
+                if (_pos >= _data.Length) return 0;
+                int b = _data[_pos++];
+                if (b == 0xFF)
+                {
+                    if (_pos >= _data.Length) return 0;
                     int n = _data[_pos++];
                     if (n != 0)
                     {
@@ -1054,6 +1196,8 @@ namespace GDNN.Rendering
                     ly = 0;
                 if (ly > 7)
                     ly = 7;
+                if (lx < 0) lx = 0; if (lx > 7) lx = 7;
+                if (ly < 0) ly = 0; if (ly > 7) ly = 7;
                 return c.Coeff![(by * c.BlocksW + bx) * 64 + ly * 8 + lx];
             }
 
@@ -1063,6 +1207,8 @@ namespace GDNN.Rendering
                     return 0;
                 if (v > 255)
                     return 255;
+                if (v < 0) return 0;
+                if (v > 255) return 255;
                 return (byte)(v + 0.5f);
             }
         }

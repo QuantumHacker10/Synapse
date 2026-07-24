@@ -49,6 +49,168 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - **LLM** : Gemini `x-goog-api-key`, OpenAI retry/dispose/cap, `MaxLatencyMs`, sessions path-safe
 - **Studio** : erreurs projet / blueprint / Megascans / LLM / viewport
 - **SSRF** : DNS optionnel (activé sur downloads) ; PostProcess borné
+## [2.10.0] — 2026-07-21
+
+**OpenUSD MeshIO production-complete** — topology DCC, normals, multi-mesh, purpose, health smoke.
+
+### Ajouté
+
+- **`faceVertexCounts`** triangulation (+ sentinels / flat tris)
+- **Authored normals**, multi-`def Mesh`, `purpose` / `visibility`, `extent`, `doubleSided`
+- **`UsdMeshTopology`**, **`UsdProductionSmoke`**, health `usd=ok` / `UsdRuntimeReady`
+- Material `opacityThreshold`, `emissiveIntensity`, `sourceColorSpace`, UDIM multi-slot
+- Composition **payload mute** (`UsdIncludePayloads`), prefer `bindTransforms`, stage FPS
+- BlendShape **normalOffsets** Apply; sample `production_dcc.usda`
+
+### Modifié
+
+- Version **2.10.0**, `docs/PRODUCTION.md` honesty (MeshIO first-party, pas Hydra)
+
+## [2.9.0] — 2026-07-21
+
+**Runtime USD étendu** — UDIM/MDL, blend shapes, streaming GPU textures, marketplace plugins distant.
+
+### Ajouté
+
+- **UDIM** — `UsdUdim.ExpandTiles` / `MeshMaterial.UdimTiles` (`<UDIM>` / `%(UDIM)`)
+- **MDL** — `MdlAssetPath` / `MdlMaterialName` (`sourceAsset`, `mdl:sourceMaterial`)
+- **UsdSkel BlendShape** — `MeshBlendShape` + offsets / Apply
+- **`GpuTextureStreamer`** — page-in disque/HTTPS, LRU, prefetch UDIM
+- **`RemotePluginMarketplace`** — catalog HTTPS + download hash-vérifié + jail
+- CLI `--plugin-marketplace-url` / `SYNAPSE_PLUGIN_MARKETPLACE_URL`
+- Sample `udim_mdl_blend.usda`
+
+### Modifié
+
+- Version **2.9.0**, docs honesty : runtime Synapse (pas lib OpenUSD C++ native)
+
+## [2.8.0] — 2026-07-21
+
+**UsdSkel animation clips** — `SkelAnimation` timeSamples + évaluation TRS.
+
+### Ajouté
+
+- **`MeshAnimationClip` / `MeshJointCurve`** sur `MeshAsset`
+- **`UsdSkelAnimationParser`** — `def SkelAnimation`, translations/rotations/scales (static + `.timeSamples`), `skel:animationSource`
+- Échantillonnage linéaire / slerp (`Evaluate` / `EvaluateLocalMatrices`)
+- Sample `samples/meshes/skel_anim_wave.usda`
+
+### Modifié
+
+- Version **2.8.0**, docs production / roadmap
+
+## [2.7.0] — 2026-07-21
+
+**OpenUSD textures avancées** — cartes PBR UsdUVTexture + UVs `primvars:st`.
+
+### Ajouté
+
+- **UsdUVTexture** connectées à UsdPreviewSurface (`diffuseColor`, `normal`, metallic/roughness/occlusion, emissive, displacement)
+- Slots `MeshMaterial` : clearcoat / specular / opacity + chemins résolus relatifs au USDA
+- UVs `texCoord2f[]` / `float2[] primvars:st`
+- Sample `samples/meshes/textured_pbr.usda` (+ placeholders `textures/`)
+
+### Modifié
+
+- Version **2.7.0**, docs production / roadmap
+
+## [2.6.0] — 2026-07-21
+
+**STUN/TURN + OpenUSD DCC complet** — NAT symétrique, materials / skeletons / variants.
+
+### Ajouté
+
+- **STUN** (`StunClient`, RFC 5389 Binding + XOR-MAPPED-ADDRESS)
+- **TURN** (`TurnClient`, Allocate / CreatePermission / ChannelBind / ChannelData)
+- **`NatIceAssist`** + CLI `--stun-server` / `--turn-server` / `--turn-user` / `--turn-password` / `--wan-prefer-turn`
+- **OpenUSD materials** — UsdPreviewSurface + `material:binding`
+- **OpenUSD skeletons** — joints, bindTransforms, skel jointIndices/Weights → `MeshSkeleton` / bone attrs
+- **OpenUSD variants** — `variantSet` + `MeshLoadConfig.UsdVariantSelections`
+- Samples `tetra_preview_skel.usda`, `variant_modeling.usda`
+
+### Modifié
+
+- Version **2.6.0**, `docs/PRODUCTION.md` matrice 2.6
+- WAN REGISTER/PEER portent `mode` (`tcp|stun|turn`) et IP STUN optionnelle
+
+## [2.5.0] — 2026-07-21
+
+**Production-ready VR / WAN / OpenUSD DCC** — OpenXR natif+simulé, NAT hors-loopback, xform stacks complets.
+
+### Ajouté
+
+- **OpenXR Vulkan2 natif** — `OpenXrNative` + session/swapchain réels via `XR_KHR_vulkan_enable2` ; fallback simulé labellisé (`IsSimulated`)
+- **WAN NAT** — rendezvous UDP sur `IPAddress.Any`, `PEER|session|ip|port`, CLI `--wan-rendezvous` / `--wan-rendezvous-port` / `--wan-join`
+- **OpenUSD DCC** — `UsdXform` (translate / rotateXYZ / scale / transform + xformOpOrder), inherits, cibles `@file@</Prim>`, matrices parent×local
+- Sample `samples/meshes/composed_xform.usda`
+
+### Modifié
+
+- Version **2.5.0**, `docs/PRODUCTION.md` (matrice 2.5)
+- Health notes alignées sur surfaces désormais production
+
+## [2.4.0] — 2026-07-21
+
+**Production-ready desktop** — dispose sûr, health check, docs alignées, plugins Studio, marketplace local, honesty VR/WAN.
+
+### Ajouté
+
+- **`docs/PRODUCTION.md`** — matrice production vs expérimental + checklist release
+- **`--health`** — `ProductionHealthReport` (core-ready / interactive-ready)
+- **Plugin marketplace local** — `marketplace.json` + vérification SHA-256
+- **USD `xformOp:translate`** appliqué à l’import USDA
+- Studio Bootstrap charge `--plugin-dir` (parité moteur)
+
+### Sécurité / robustesse
+
+- `EngineHost.DisposeAsync` idempotent + try/catch par ressource
+- `PeerConnection` dispose `TcpClient` (plus de fuite socket)
+- `PluginHost` protege `ALC.Unload`
+- Screenshot capture dispose host/logger dans `finally`
+- `--wan-code` câblé (hub authentifié loopback QA)
+- SECURITY.md / CONTRIBUTING.md / badges docs synchronisés sur 2.4
+
+### Modifié
+
+- Version **2.4.0**, Codecov **70 %**
+- OpenXR documenté comme swapchain simulé (expérimental)
+
+## [2.3.1] — 2026-07-21
+
+Durcissement **production-ready early** : QA multi-RID, composition USD, couverture 60 %, sécurité plugins/P2P.
+
+### Ajouté
+
+- **CI publish-smoke** — matrice 6 RID (`build.yml`) + `scripts/smoke-publish-rids.sh`
+- **USD composition arcs** — `UsdCompositionResolver` (references / payloads / subLayers), samples `composed_root.usda` / `composed_usdc.usda`
+- **Sécurité plugins** — path jail, blocage UNC/URL, `plugins.allow` SHA-256, deps limitées au dossier plugin
+- **Sécurité P2P** — salt par session, AAD AES-GCM, handshake HMAC, `publicBind` exige auth, decrypt-or-drop WAN, MaxPeers, `ReadExactly` framing
+- **Tests** — LivingLawCompiler API, LawRegistry lifecycle, RigidBody lifecycle, EngineHost scène, production hardening
+
+### Modifié
+
+- Codecov projet **60 %** (patch 40 %)
+- Roadmap v2.3 items prod cochés
+
+## [2.3.0] — 2026-07-21
+
+Release **Synapse OMNIA 2.3** : multi-plateforme milieu de gamme, USDC, blueprints live, couverture ~50 %.
+
+### Ajouté
+
+- **Multi-plateforme natif** — RID `win-x64|win-arm64|linux-x64|linux-arm64|osx-arm64|osx-x64` ; Vulkan loader via `NativeLibraryResolver` (`vulkan-1` → `.dll`/`.so`/`.dylib`)
+- **Baseline mid-range** — Vulkan API **1.2**, extensions optionnelles filtrées, scoring GPU (discret > iGPU), features conservatrices
+- **SIMD** — `CpuCapabilityProbe` (AVX2/NEON par défaut ; AVX-512 opt-in `SYNAPSE_ALLOW_AVX512`)
+- **USDC** — `UsdBinaryLoader` (mesh-pack Synapse + extraction best-effort), sample `samples/meshes/tetra.usdc`
+- **Blueprints live** — `EngineHost.HotReloadBlueprint`, exécuteur branché sur le tick sim, édition Studio (Ouvrir/Enregistrer/live checkbox)
+- **docs/REQUIREMENTS.md** — configuration minimale matérielle / logicielle
+- **Tests v2.3** — plateforme, USDC, blueprints, plugins, lois ; Codecov cible **50 %**
+
+### Modifié
+
+- Version produit **2.3.0**
+- `scripts/publish-all.sh` et `release.yml` : 6 RID
+- Roadmap : items USDC / blueprints live / couverture 50 % cochés
 
 ## [2.2.0] — 2026-07-20
 

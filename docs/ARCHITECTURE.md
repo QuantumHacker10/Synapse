@@ -106,6 +106,7 @@ Tickés chaque frame (ou one-shot résident) depuis `AlgorithmSystemsPass` → `
 | Evaluation | `NeuralLodSelector`, `SceneEvaluator` (+ assets → `AABBTree`/`RayMarcher`), `SurfaceEvaluator`, `HierarchicalSdfCache`, `GradientCalculator`, `StochasticSphereTracer`, `WarpSpace` | Trace ray scène ; Warp skin sample |
 | SIMD | `BatchSdfEvaluator`, `WaveOptimizedBatchEvaluator`, `BatchOps`, `MathFunctions`, `IntrinsicsHelper`, `MatrixOps`, `VectorOps` | Batch distances / normalize |
 | Streaming | `AssetStreamer` (+ `AssetCache`), `AsyncPipeline`, `CompressionUtils`, `MeshletStreamer` | Request `gdnn_live` placeholder LZ4 ; **clusters résidents rasterisés → present path** (`TryRasterizeStreamedClusters`) |
+| Streaming | `AssetStreamer` (+ `AssetCache`), `AsyncPipeline`, `CompressionUtils`, `MeshletStreamer` | Request `gdnn_live` placeholder LZ4 |
 | Threading | `JobSystem`, `ParallelEvaluator`, `SynchronizedBuffer`, `WorkStealingPool` | Parallel SDF reduce + steal jobs |
 | Memory | `StackAllocator`, `ZeroCopyBuffer`, `NativeBuffer`, `MemoryTracker`, `SpanExtensions`, `StreamingBuffer` | Scratch SDF / ring buffers |
 | Spatial | `Octree`, `LooseOctree`, `SpatialHash`, `ConcurrentSpatialHash`, `AABBTree` | Insert cam + QueryAABB |
@@ -157,10 +158,23 @@ des ressources Vulkan ; `RenderEngine` appelle `ExecuteFrame` qui orchestre le g
 **Ce qui bloque encore la parité vraie** : pas de mesh-shader primary-device Nanite, pas de visibility-buffer material resolve GPU full-res, pas de Lumen surface cache / hardware ray tracing, Hybrid GI encore CPU-heavy (pas un compute GI resident chaque frame sur le device swapchain), second device optionnel pour meshlets/SDF.
 
 ## Pipeline par frame (simulation + rendu)
+### Cible d’impact Nanite Neural 3.0 / Lumen Neural 3.0
+
+| Tech | Present path Synapse (industriel + cinématique) | Capacité |
+|---|---|---|
+| **G-DNN — Nanite Neural 3.0** | Continuous LOD + **MeshletMaterialResolvePass** full-res ; `NaniteCinematicResolve` / `MeshShaderCompatGenerator` ; visibility jusqu’à **2048²** (Cinematic) | Géométrie neuronale dense + material resolve viewport |
+| **L-DNN — Lumen Neural 3.0** | Surface cache + multi-bounce + **`LumenCinematicGi`** (GPU cache 96³ + full path-trace blend) | GI dynamique + mode Cinematic path-trace |
+| **Upscaling** | **`UpscalePass`** après tonemap : FSR spatial / DLSS-compatible / MetalFX-compatible | Render scale &lt; 1 → display |
+| **Continuum GPU-friendly** | **`GpuContinuumScheduler`** SPH+LBM+élasticité (Demo/Industrial/Cinematic) | Fluides / LBM / FEM-grille scène |
+
+Activation native : `EngineHost.EnableCinematicStack()` ou `QualityPreset=Cinematic`.
+
+## Pipeline industriel par frame — LLM → Physics → Rendering → Simulation
 
 ```mermaid
 sequenceDiagram
-    participant S as Studio / Boucle
+    participant UI as Studio LLM Console
+    participant Pipe as OmniaIndustrialPipeline
     participant E as EngineHost
     participant P as Multiphysics
     participant Sim as Sentience
@@ -179,6 +193,18 @@ sequenceDiagram
     E->>R: ExecuteFrame
     R->>FG: L-DNN → Cull → Shadow → GBuffer → Light → Post
     FG-->>S: Frame présentée
+    UI->>Pipe: ApplyLlmWorldDelta(JSON)
+    Pipe->>E: Law → Lighting/SDF → Material → BT/Impulse
+    Note over Pipe: Ordre déterministe LLM→Physics→Rendering→Simulation
+
+    E->>P: TickPhysics (lois + rigid + continuum opt.)
+    P-->>E: Champ T/ρ + transforms
+    E->>Sim: TickSimulationAsync (BT + perception)
+    Sim-->>P: PhysicsActuator (heat / impulse)
+    E->>Pipe: TickCoupling (field→L-DNN)
+    E->>R: TickRender
+    R->>FG: L-DNN Lumen Neural → Cull G-DNN Nanite Neural → Shadow → GBuffer → Light → Post
+    FG-->>UI: Frame présentée
 ```
 
 ## Modules et dépendances

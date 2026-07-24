@@ -8,7 +8,9 @@ using System.Threading.Tasks;
 using GDNN.Core.NEAT;
 using GDNN.Llm;
 using GDNN.Platform;
+using GDNN.Rendering;
 using GDNN.Rendering.Engine;
+using GDNN.Rendering.MeshIO;
 using GDNN.Rendering.Quality;
 using GDNN.Scene;
 using GDNN.Sentience;
@@ -56,6 +58,15 @@ namespace Synapse.Runtime
         private readonly ViewportEditorState _viewportEditor = new();
         private readonly List<Task> _backgroundWork = new();
         private readonly object _backgroundGate = new();
+        private BlueprintRuntimeExecutor? _blueprintExecutor;
+        private string? _liveBlueprintName;
+        private Guid? _liveBlueprintAgentId;
+        private bool _disposed;
+
+        /// <summary>When true, blueprint graph edits hot-reload the live agent tree without respawning.</summary>
+        public bool BlueprintLiveEdit { get; set; } = true;
+        private OmniaIndustrialPipeline? _industrialPipeline;
+        private MaterialHint? _lastMaterialHint;
 
         /// <summary>Viewport gizmo/grid/selection state for Studio.</summary>
         public ViewportEditorState ViewportEditor => _viewportEditor;
@@ -68,6 +79,8 @@ namespace Synapse.Runtime
 
         /// <summary>True when the active law runs a degraded numeric stub instead of the requested expression.</summary>
         public bool IsLawDegraded { get; private set; }
+        /// <summary>Industrial LLM→Physics→Rendering→Simulation cascade.</summary>
+        public OmniaIndustrialPipeline? IndustrialPipeline => _industrialPipeline;
 
         /// <summary>Creates a host bound to application config and logging.</summary>
         public EngineHost(SynapseConfig config, ISynapseLogger logger)
@@ -168,14 +181,25 @@ namespace Synapse.Runtime
                     EnabledModules = ContinuumModules.LivingLaws | ContinuumModules.RigidBodies,
                     FixedTimeStep = 1f / 60f,
                     MaxSubSteps = 4,
-                    Gravity = new Vector3(0f, -9.81f, 0f)
+                    Gravity = new Vector3(0f, -9.81f, 0f),
+                    SyncFieldFromRigidBodies = true
                 });
+            // Industrial continuum ready: solvers warm; LLM law EnableModules can turn them on.
+            _multiphysics.EnableSph();
+            _multiphysics.EnableElasticity();
+            _multiphysics.Config.EnabledModules = ContinuumModules.LivingLaws | ContinuumModules.RigidBodies;
             _meshProvider = new SynapseMeshProvider(_logger);
             _sentience = new SentienceManager();
             _llmRouter = new HybridLlmRouter();
             _llmProviderSummary = LlmProviderBootstrap.Register(_llmRouter, _config, _logger).Summary;
             WireBehaviorLlmRouter();
             _quality = new RuntimeQualityManager(ParseQuality(_config.QualityPreset), AdaptationMode.Dynamic);
+            _industrialPipeline = new OmniaIndustrialPipeline(this, _logger);
+            _industrialPipeline.BindPhysics(_multiphysics);
+
+            // Auto-arm cinematic native stack when quality preset requests it.
+            if (ParseQuality(_config.QualityPreset) == QualityPreset.Cinematic)
+                EnableCinematicStack(ContinuumScale.Cinematic);
 
             _activeLawId = _scene.ActiveLawId ?? "heat_equation";
             EnsureLawCompiled(_activeLawId, _scene.ActiveLawExpression);
@@ -191,7 +215,7 @@ namespace Synapse.Runtime
 
             PlatformCaps = NativePlatform.Probe();
             _modulesInitialized = true;
-            _logger.Info("EngineHost", "Modules initialized (Physics, Simulation, LLM, Quality, Twins, MeshProvider)");
+            _logger.Info("EngineHost", "Modules initialized (Physics+SPH+Elasticity, Simulation, LLM, IndustrialPipeline, Quality, Twins, MeshProvider)");
             _logger.Info("Platform", PlatformCaps.Summary);
         }
 
@@ -220,6 +244,8 @@ namespace Synapse.Runtime
             _renderEngine.Initialize(width, height, enableValidation);
             _renderInitialized = true;
             SyncSceneToRenderer();
+            if (string.Equals(_config.QualityPreset, "Cinematic", StringComparison.OrdinalIgnoreCase))
+                EnableCinematicStack(ContinuumScale.Cinematic);
             _logger.Info("EngineHost", $"RenderEngine initialized {width}x{height}");
         }
 
@@ -327,6 +353,8 @@ namespace Synapse.Runtime
                 return;
             try
             {
+                if (_blueprintExecutor is { IsRunning: true })
+                    await _blueprintExecutor.TickAsync(dt, cancellationToken).ConfigureAwait(false);
                 await _sentience.UpdateAsync(dt).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -352,6 +380,21 @@ namespace Synapse.Runtime
                 return;
             _quality.ReportFrame(frameMs, 0, 0, frameMs);
             _quality.Update(dt);
+            PushAaaQualityToRenderer();
+        }
+
+        /// <summary>Pushes RuntimeQualityManager effective level into SceneRenderer / L-DNN / Nanite.</summary>
+        private void PushAaaQualityToRenderer()
+        {
+            if (_quality == null || _renderEngine?.SceneRenderer == null)
+                return;
+            var level = _quality.GetEffectiveQuality();
+            _renderEngine.SceneRenderer.ApplyAaaQuality(
+                level.Preset.ToString(),
+                shadowResolution: level.ShadowResolution,
+                giMaxBounces: level.GIMaxBounces,
+                giCascadeResolution: level.GICascadeResolution,
+                ssaoQuality: level.SSAOQuality);
         }
 
         /// <summary>Activates a built-in law from the library by id.</summary>
@@ -616,6 +659,8 @@ namespace Synapse.Runtime
                         sdfEntity.Scale = new Vec3(radius, radius, radius);
                 }
 
+                // Drive G-DNN Nanite Neural SDF hint into the algorithm hub when render is live.
+                _renderEngine?.SceneRenderer?.ApplySdfHint(sdf);
                 applied.Add($"sdf:{primitive}");
             }
 
@@ -626,6 +671,131 @@ namespace Synapse.Runtime
             _logger.Info("LLM", summary);
             SyncSceneToRenderer();
             return summary;
+        }
+
+        /// <summary>
+        /// Industrial cascade: LLM → Physics → Rendering → Simulation in one call.
+        /// </summary>
+        public string ApplyLlmWorldDelta(string llmText)
+        {
+            InitializeModules();
+            _industrialPipeline ??= new OmniaIndustrialPipeline(this, _logger);
+            _industrialPipeline.BindPhysics(_multiphysics);
+            var result = _industrialPipeline.ApplyWorldDelta(llmText);
+            RaiseInspector("OmniaPipeline", result.Success ? "WorldDelta" : "Empty", result.Summary);
+            return result.Summary;
+        }
+
+        /// <summary>Applies a living-law hint (library id and/or expression) from the LLM.</summary>
+        public string ApplyLlmLawHint(LivingLawHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            InitializeModules();
+
+            if (hint.EnableModules is { Length: > 0 } && _multiphysics != null)
+            {
+                foreach (var mod in hint.EnableModules)
+                {
+                    if (mod.Contains("sph", StringComparison.OrdinalIgnoreCase))
+                        _multiphysics.EnableSph();
+                    if (mod.Contains("elastic", StringComparison.OrdinalIgnoreCase))
+                        _multiphysics.EnableElasticity();
+                    if (mod.Contains("lbm", StringComparison.OrdinalIgnoreCase) ||
+                        mod.Contains("continuum", StringComparison.OrdinalIgnoreCase))
+                        _multiphysics.EnableGpuContinuum(ContinuumScale.Industrial);
+                    if (mod.Contains("cinematic", StringComparison.OrdinalIgnoreCase))
+                        EnableCinematicStack(ContinuumScale.Cinematic);
+                }
+            }
+
+            string lawId = string.IsNullOrWhiteSpace(hint.LawId)
+                ? (hint.Name ?? "llm_law").Replace(' ', '_').ToLowerInvariant()
+                : hint.LawId.Trim();
+
+            string? expression = hint.Expression;
+            if (string.IsNullOrWhiteSpace(expression))
+            {
+                var entry = _lawCompiler!.Library.GetLaw(lawId);
+                if (entry == null)
+                    return $"Unknown law '{lawId}' and no expression provided.";
+                expression = entry.Expression;
+            }
+
+            var compile = CompileLaw(lawId, expression);
+            if (!compile.Success)
+                return $"Law compile failed: {compile.Message}";
+
+            return $"Applied: law:{lawId} ({compile.InstructionCount} ops)";
+        }
+
+        /// <summary>Stores and applies a material hint to the live renderer.</summary>
+        public string ApplyLlmMaterialHint(MaterialHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            InitializeModules();
+            _lastMaterialHint = hint;
+            _renderEngine?.SceneRenderer?.ApplyMaterialHint(hint);
+            string name = string.IsNullOrWhiteSpace(hint.Name) ? "material" : hint.Name!;
+            return $"material:{name}(m={hint.Metallic ?? 0:F2},r={hint.Roughness ?? 0.5f:F2})";
+        }
+
+        /// <summary>Spawns / impulses from an LLM simulation hint (Simulation → Physics).</summary>
+        public string ApplyLlmImpulseHint(SimulationImpulseHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            InitializeModules();
+            var applied = new List<string>();
+
+            Vector3 pos = hint.Position is { } p
+                ? new Vector3(p.X, p.Y, p.Z)
+                : Vector3.Zero;
+
+            if (!string.IsNullOrWhiteSpace(hint.Profile) || !string.IsNullOrWhiteSpace(hint.BehaviorTreeName))
+            {
+                string profile = hint.Profile ?? hint.BehaviorTreeName ?? "patrol";
+                SpawnAgent(profile, pos);
+                applied.Add($"agent:{profile}");
+            }
+
+            if (hint.Impulse is { } imp && _multiphysics != null)
+            {
+                var impulse = new Vector3(imp.X, imp.Y, imp.Z);
+                if (_multiphysics.ApplyWorldImpulse(pos, impulse))
+                    applied.Add($"impulse=({impulse.X:F1},{impulse.Y:F1},{impulse.Z:F1})");
+            }
+
+            if (hint.HeatDeposit is { } heat && MathF.Abs(heat) > 1e-4f)
+            {
+                _multiphysics?.DepositHeat(pos, heat);
+                applied.Add($"heat={heat:F2}");
+            }
+
+            return applied.Count == 0 ? "impulse:noop" : string.Join(", ", applied);
+        }
+
+        /// <summary>
+        /// Physics → Rendering: feeds living-law field stats into L-DNN fog / irradiance.
+        /// </summary>
+        public void ApplyPhysicsFieldToRenderer(PhysicsFieldGiCoupler coupler)
+        {
+            if (coupler == null || _renderEngine?.SceneRenderer == null || !_renderInitialized)
+                return;
+            _renderEngine.SceneRenderer.ApplyPhysicsFieldCoupling(coupler);
+        }
+
+        /// <summary>Per-frame industrial coupling tick (Physics↔Rendering↔Simulation).</summary>
+        public void TickIndustrialCoupling(float dt)
+        {
+            if (_industrialPipeline == null)
+                return;
+            try
+            {
+                _industrialPipeline.TickCoupling(dt);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("OmniaPipeline", $"Coupling tick failed: {ex.Message}");
+            }
         }
 
         /// <summary>Parses behavior-tree hints from LLM output, compiles, and registers the tree.</summary>
@@ -673,9 +843,56 @@ namespace Synapse.Runtime
                 Position = Vec3.From(position),
                 BehaviorProfile = document.Name
             });
+            _liveBlueprintName = document.Name;
+            _liveBlueprintAgentId = entity.EntityId;
+            _blueprintExecutor ??= new BlueprintRuntimeExecutor(this, _logger);
+            _blueprintExecutor.Load(document);
             SyncSceneToRenderer();
             return entity;
         }
+
+        /// <summary>
+        /// Hot-reloads a blueprint into the running simulation: recompiles the behavior tree in place
+        /// and refreshes the live <see cref="BlueprintRuntimeExecutor"/> graph without spawning a new agent.
+        /// </summary>
+        public bool HotReloadBlueprint(BlueprintDocument document)
+        {
+            ArgumentNullException.ThrowIfNull(document);
+            InitializeModules();
+            var (ok, msg) = document.Validate();
+            if (!ok)
+            {
+                _logger.Warn("Blueprint", $"Live edit rejected: {msg}");
+                return false;
+            }
+
+            var blueprint = document.CompileToBehaviorTreeBlueprint();
+            var tree = _sentience!.Compiler.CompileFromBlueprint(document.Name, blueprint);
+            _sentience.RegisterBehaviorTree(document.Name, tree);
+
+            // Update existing agents that were spawned from this blueprint (cloned trees).
+            foreach (var entity in _sentience.GetAllEntities())
+            {
+                var treeName = entity.BehaviorTree?.Name;
+                if (treeName == null)
+                    continue;
+                if (treeName == document.Name ||
+                    treeName.StartsWith(document.Name + "_", StringComparison.Ordinal) ||
+                    (_liveBlueprintAgentId is Guid id && entity.EntityId == id))
+                {
+                    entity.BehaviorTree = tree.Clone();
+                }
+            }
+
+            _liveBlueprintName = document.Name;
+            _blueprintExecutor ??= new BlueprintRuntimeExecutor(this, _logger);
+            _blueprintExecutor.Load(document);
+            _logger.Info("Blueprint", $"Live hot-reload OK: '{document.Name}'");
+            return true;
+        }
+
+        /// <summary>Stops the live blueprint graph executor (behavior trees keep running on agents).</summary>
+        public void StopLiveBlueprintExecutor() => _blueprintExecutor?.Stop();
 
         /// <summary>Sets the selected entity for viewport gizmos.</summary>
         public void SetViewportSelection(Guid entityId) => _viewportEditor.SelectedEntityId = entityId;
@@ -1257,6 +1474,38 @@ namespace Synapse.Runtime
             return field;
         }
 
+        /// <summary>
+        /// Arms the native cinematic stack: Nanite full-res resolve, Lumen path-trace GI,
+        /// FSR/DLSS/MetalFX upscaling, and scene-scale SPH/LBM/FEM continuum.
+        /// </summary>
+        public void EnableCinematicStack(ContinuumScale continuumScale = ContinuumScale.Cinematic)
+        {
+            InitializeModules();
+            _multiphysics?.EnableGpuContinuum(continuumScale);
+            _quality?.SetQualityPreset(QualityPreset.Cinematic);
+            _config.QualityPreset = "Cinematic";
+
+            if (_renderEngine?.SceneRenderer != null)
+            {
+                var sr = _renderEngine.SceneRenderer;
+                sr.CinematicGiEnabled = true;
+                sr.SetRenderScale(0.85f); // AAA internal 85% → FSR upscale to display
+                sr.SetUpscalerBackend(GDNN.Rendering.Upscaling.UpscalerBackend.Auto);
+                if (sr.Algorithms != null)
+                    sr.Algorithms.CinematicNanite = true;
+                sr.ApplyAaaQuality(
+                    "Cinematic",
+                    shadowResolution: 4096,
+                    giMaxBounces: 8,
+                    giCascadeResolution: 512,
+                    ssaoQuality: 4);
+            }
+
+            _logger.Info("Cinematic",
+                $"Native AAA stack armed (continuum={continuumScale}, Nanite full-res, Lumen path-trace, shadows=4096, upscaler=Auto)");
+            RaiseInspector("Cinematic", "Armed AAA", continuumScale.ToString());
+        }
+
         private static QualityPreset ParseQuality(string name) =>
             Enum.TryParse<QualityPreset>(name, true, out var p) ? p : QualityPreset.High;
 
@@ -1301,7 +1550,156 @@ namespace Synapse.Runtime
             _llmRouter?.Dispose();
             _quality?.Dispose();
             _renderEngine?.Dispose();
+        /// <summary>Releases evolution, LLM, quality, render, and blueprint resources safely.</summary>
+        public async ValueTask DisposeAsync()
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+
+            try
+            {
+                CancelEvolution();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"CancelEvolution: {ex.Message}");
+            }
+
+            try
+            {
+                _evolutionCts?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"EvolutionCts dispose: {ex.Message}");
+            }
+
+            try
+            {
+                if (_evolution != null)
+                    await _evolution.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Evolution dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _blueprintExecutor?.Stop();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Blueprint stop: {ex.Message}");
+            }
+
+            try
+            {
+                _multiphysics?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Multiphysics dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _llmRouter?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"LLM dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _quality?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Quality dispose: {ex.Message}");
+            }
+
+            try
+            {
+                _renderEngine?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("EngineHost", $"Render dispose: {ex.Message}");
+            }
+
             _logger.Info("EngineHost", "Disposed");
+        }
+
+        /// <summary>
+        /// Production readiness snapshot: platform, SIMD, modules, and known experimental surfaces.
+        /// </summary>
+        public ProductionHealthReport GetProductionHealth()
+        {
+            var caps = PlatformCaps;
+            var cpu = caps.Cpu;
+            bool usdOk = UsdProductionSmoke.TryVerify(out var usdDetail);
+            return new ProductionHealthReport
+            {
+                ProductVersion = Synapse.Infrastructure.SynapseProduct.Version,
+                ModulesInitialized = _modulesInitialized,
+                RenderInitialized = _renderInitialized,
+                SimulationPlaying = _simulationPlaying,
+                GlfwAvailable = caps.GlfwAvailable,
+                VulkanLoaderAvailable = caps.VulkanLoaderAvailable,
+                SimdBaseline = cpu.BaselineLabel,
+                PlatformSummary = caps.Summary,
+                EntityCount = EntityCount,
+                ActiveLawId = _activeLawId,
+                BlueprintLiveEdit = BlueprintLiveEdit,
+                MeetsMinimumCpu = cpu.MeetsMinimumCpu,
+                UsdRuntimeReady = usdOk,
+                UsdRuntimeDetail = usdDetail,
+                ExperimentalNotes =
+                {
+                    "OpenXR uses native Vulkan2 swapchains when loader+HMD+Vulkan bind succeed; otherwise production simulated images (IsSimulated).",
+                    "WAN NAT supports STUN reflexive candidates and TURN Allocate/CreatePermission/ChannelData for symmetric NAT (--stun-server / --turn-server).",
+                    usdOk
+                        ? $"OpenUSD MeshIO production-ready: {usdDetail} (faceVertexCounts, normals, multi-mesh, purpose/visibility, UDIM/MDL, Skel/blend, streamer, remote marketplace)."
+                        : $"OpenUSD MeshIO smoke FAILED: {usdDetail}"
+                }
+            };
+        }
+    }
+
+    /// <summary>Machine-readable production health snapshot for Studio / --health.</summary>
+    public sealed class ProductionHealthReport
+    {
+        public string ProductVersion { get; init; } = "";
+        public bool ModulesInitialized { get; init; }
+        public bool RenderInitialized { get; init; }
+        public bool SimulationPlaying { get; init; }
+        public bool GlfwAvailable { get; init; }
+        public bool VulkanLoaderAvailable { get; init; }
+        public string SimdBaseline { get; init; } = "";
+        public string PlatformSummary { get; init; } = "";
+        public int EntityCount { get; init; }
+        public string? ActiveLawId { get; init; }
+        public bool BlueprintLiveEdit { get; init; }
+        public bool MeetsMinimumCpu { get; init; }
+        public List<string> ExperimentalNotes { get; init; } = new();
+        /// <summary>True when embedded OpenUSD MeshIO production smoke passes.</summary>
+        public bool UsdRuntimeReady { get; init; }
+        public string UsdRuntimeDetail { get; init; } = "";
+
+        /// <summary>True when core runtime can run (modules + CPU baseline). Vulkan optional for headless.</summary>
+        public bool IsCoreReady => ModulesInitialized && MeetsMinimumCpu;
+
+        /// <summary>True when interactive 3D viewport path is expected to work.</summary>
+        public bool IsInteractiveReady => IsCoreReady && GlfwAvailable && VulkanLoaderAvailable;
+
+        public override string ToString()
+        {
+            var mode = IsInteractiveReady ? "interactive-ready" : IsCoreReady ? "core-ready (headless/edit)" : "not-ready";
+            var usd = UsdRuntimeReady ? "usd=ok" : "usd=fail";
+            return $"Synapse {ProductVersion} [{mode}] {usd} SIMD={SimdBaseline} | {PlatformSummary} | entities={EntityCount} law={ActiveLawId ?? "-"}";
         }
     }
 }

@@ -19,7 +19,8 @@ public enum ContinuumModules
     RigidBodies = 2,
     Sph = 4,
     Elasticity = 8,
-    All = LivingLaws | RigidBodies | Sph | Elasticity
+    Lbm = 16,
+    All = LivingLaws | RigidBodies | Sph | Elasticity | Lbm
 }
 
 /// <summary>Configuration for the multiphysics frame pipeline.</summary>
@@ -57,6 +58,7 @@ public sealed class MultiphysicsOrchestrator : IDisposable
     private string? _activeLawId;
     private SphSolver? _sph;
     private ElasticitySolver? _elasticity;
+    private GpuContinuumScheduler? _gpuContinuum;
     private float _accumulator;
     private bool _disposed;
 
@@ -76,6 +78,7 @@ public sealed class MultiphysicsOrchestrator : IDisposable
     public string? ActiveLawId => _activeLawId;
     public MultiphysicsStepStats LastStats { get; } = new();
     public MultiphysicsConfig Config => _config;
+    public GpuContinuumScheduler? GpuContinuum => _gpuContinuum;
 
     public void SetField(PhysicsField field) =>
         _field = field ?? throw new ArgumentNullException(nameof(field));
@@ -103,6 +106,20 @@ public sealed class MultiphysicsOrchestrator : IDisposable
         _elasticity = new ElasticitySolver(cfg);
         _config.EnabledModules |= ContinuumModules.Elasticity;
         return _elasticity;
+    }
+
+    /// <summary>
+    /// Enables scene-scale GPU-friendly continuum (SPH + LBM + elasticity) at the given scale.
+    /// </summary>
+    public GpuContinuumScheduler EnableGpuContinuum(ContinuumScale scale = ContinuumScale.Industrial)
+    {
+        _gpuContinuum?.Dispose();
+        _gpuContinuum = new GpuContinuumScheduler();
+        _gpuContinuum.Configure(scale, _config.FixedTimeStep);
+        _sph = _gpuContinuum.Sph;
+        _elasticity = _gpuContinuum.Elasticity;
+        _config.EnabledModules |= ContinuumModules.Sph | ContinuumModules.Elasticity | ContinuumModules.Lbm;
+        return _gpuContinuum;
     }
 
     /// <summary>
@@ -301,7 +318,7 @@ public sealed class MultiphysicsOrchestrator : IDisposable
                 rbMs += (float)sw.Elapsed.TotalMilliseconds;
             }
 
-            if ((_config.EnabledModules & ContinuumModules.Sph) != 0 && _sph != null)
+            if ((_config.EnabledModules & ContinuumModules.Sph) != 0 && _sph != null && _gpuContinuum == null)
             {
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 _sph.Step(h);
@@ -309,10 +326,19 @@ public sealed class MultiphysicsOrchestrator : IDisposable
                 contMs += (float)sw.Elapsed.TotalMilliseconds;
             }
 
-            if ((_config.EnabledModules & ContinuumModules.Elasticity) != 0 && _elasticity != null)
+            if ((_config.EnabledModules & ContinuumModules.Elasticity) != 0 && _elasticity != null && _gpuContinuum == null)
             {
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 _elasticity.Step();
+                sw.Stop();
+                contMs += (float)sw.Elapsed.TotalMilliseconds;
+            }
+
+            if (_gpuContinuum != null &&
+                (_config.EnabledModules & (ContinuumModules.Sph | ContinuumModules.Elasticity | ContinuumModules.Lbm)) != 0)
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                _gpuContinuum.Step(h);
                 sw.Stop();
                 contMs += (float)sw.Elapsed.TotalMilliseconds;
             }
@@ -333,6 +359,82 @@ public sealed class MultiphysicsOrchestrator : IDisposable
         LastStats.RigidStats = _rigidWorld.LastStats;
         LastStats.AverageTemperature = SampleAverageTemperature(_field);
         return steps > 0 || dt <= 0f;
+    }
+
+    /// <summary>
+    /// Deposits heat into the living-law temperature field (Simulation → Physics actuator).
+    /// </summary>
+    public void DepositHeat(Vector3 worldPos, float joules)
+    {
+        if (_disposed || joules == 0f)
+            return;
+        int g = _field.GridSize;
+        int cx = Math.Clamp((int)(worldPos.X + g * 0.5f), 0, g - 1);
+        int cy = Math.Clamp((int)(worldPos.Y + g * 0.5f), 0, g - 1);
+        int cz = Math.Clamp((int)(worldPos.Z + g * 0.5f), 0, g - 1);
+        _field.Temperature[cx, cy, cz] += Math.Clamp(joules, -50f, 50f);
+    }
+
+    /// <summary>
+    /// Applies an impulse to the nearest dynamic rigid body (or the first dynamic if none near).
+    /// </summary>
+    public bool ApplyWorldImpulse(Vector3 worldPos, Vector3 impulse)
+    {
+        if (_disposed)
+            return false;
+        RigidBody? best = null;
+        float bestDist = float.MaxValue;
+        for (int i = 0; i < _rigidWorld.Bodies.Count; i++)
+        {
+            var b = _rigidWorld.Bodies[i];
+            if (b.Type != BodyType.Dynamic)
+                continue;
+            float d = Vector3.DistanceSquared(b.Position, worldPos);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best = b;
+            }
+        }
+
+        if (best == null)
+            return false;
+        best.ApplyImpulse(impulse, worldPos);
+        return true;
+    }
+
+    /// <summary>Samples density average for Physics → Rendering coupling.</summary>
+    public float SampleAverageDensity()
+    {
+        float sum = 0f;
+        int n = 0;
+        int step = Math.Max(1, _field.GridSize / 4);
+        for (int z = 0; z < _field.GridSize; z += step)
+            for (int y = 0; y < _field.GridSize; y += step)
+                for (int x = 0; x < _field.GridSize; x += step)
+                {
+                    sum += _field.Density[x, y, z];
+                    n++;
+                }
+        return n == 0 ? 1f : sum / n;
+    }
+
+    /// <summary>Temperature field variance for thermo-volumetric GI coupling.</summary>
+    public float SampleTemperatureVariance()
+    {
+        float mean = SampleAverageTemperature(_field);
+        float sum2 = 0f;
+        int n = 0;
+        int step = Math.Max(1, _field.GridSize / 4);
+        for (int z = 0; z < _field.GridSize; z += step)
+            for (int y = 0; y < _field.GridSize; y += step)
+                for (int x = 0; x < _field.GridSize; x += step)
+                {
+                    float d = _field.Temperature[x, y, z] - mean;
+                    sum2 += d * d;
+                    n++;
+                }
+        return n == 0 ? 0f : sum2 / n;
     }
 
     /// <summary>Converts a fraction of rigid-body KE into field temperature (weak coupling).</summary>
@@ -367,8 +469,10 @@ public sealed class MultiphysicsOrchestrator : IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        _gpuContinuum?.Dispose();
         _elasticity?.Dispose();
         _sph = null;
+        _gpuContinuum = null;
     }
 }
 

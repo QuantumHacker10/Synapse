@@ -734,6 +734,7 @@ namespace GDNN.Rendering.ArtPipeline
             {
                 if (string.IsNullOrEmpty(path))
                     continue;
+                if (string.IsNullOrEmpty(path)) continue;
                 var ext = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
                 if (ext is "png" or "jpg" or "jpeg" or "tga" or "bmp" or "exr" or "tif" or "tiff")
                     return ext == "jpeg" ? "jpg" : ext;

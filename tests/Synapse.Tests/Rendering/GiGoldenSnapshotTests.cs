@@ -22,6 +22,14 @@ public sealed class GiGoldenSnapshotTests
 
         hash1.Should().Be(hash2, "procedural L-DNN GI must be deterministic on a given machine");
         hash1.Should().HaveLength(64);
+    /// <summary>Deterministic procedural GI fingerprint (update via SYNAPSE_UPDATE_GI_GOLDEN=1).</summary>
+    private const string ExpectedHash = "PLACEHOLDER";
+
+    [Fact]
+    public void ProceduralPreview_MatchesGoldenHash()
+    {
+        var gi = RenderProceduralGi();
+        string hash = GiGoldenSnapshot.ComputeHash(gi);
 
         if (string.Equals(Environment.GetEnvironmentVariable("SYNAPSE_UPDATE_GI_GOLDEN"), "1", StringComparison.Ordinal))
         {
@@ -38,6 +46,11 @@ public sealed class GiGoldenSnapshotTests
             if (string.Equals(Environment.GetEnvironmentVariable("SYNAPSE_REQUIRE_GI_GOLDEN"), "1", StringComparison.Ordinal))
                 hash1.Should().Be(expected, "procedural L-DNN GI output changed — run with SYNAPSE_UPDATE_GI_GOLDEN=1 to refresh");
         }
+            File.WriteAllText(sourceGolden, hash);
+        }
+
+        string expected = LoadExpectedHash();
+        hash.Should().Be(expected, "procedural L-DNN GI output changed — run with SYNAPSE_UPDATE_GI_GOLDEN=1 to refresh");
     }
 
     private static Vector3[,] RenderProceduralGi()
@@ -60,6 +73,7 @@ public sealed class GiGoldenSnapshotTests
     }
 
     private static string? TryLoadExpectedHash()
+    private static string LoadExpectedHash()
     {
         var outputGolden = Path.Combine(AppContext.BaseDirectory, "Golden", "gi-procedural-32x32.sha256");
         if (File.Exists(outputGolden))
@@ -70,5 +84,6 @@ public sealed class GiGoldenSnapshotTests
             return File.ReadAllText(sourceGolden).Trim();
 
         return null;
+        return ExpectedHash;
     }
 }

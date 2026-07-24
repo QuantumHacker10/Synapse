@@ -13,6 +13,7 @@ namespace Synapse.Runtime
         public float TotalTime { get; set; }
         public float PhysicsMs { get; set; }
         public float SimulationMs { get; set; }
+        public float CouplingMs { get; set; }
         public float RenderMs { get; set; }
         public float QualityMs { get; set; }
         public float VrMs { get; set; }
@@ -32,6 +33,12 @@ namespace Synapse.Runtime
     }
 
     public sealed class FrameOrchestrator : IDisposable
+    /// <summary>
+    /// Per-frame industrial cascade:
+    /// <b>Physics → Simulation → Coupling (Physics↔Render↔Sim) → Rendering → Quality</b>.
+    /// LLM world-deltas are applied asynchronously via <see cref="EngineHost.ApplyLlmWorldDelta"/>.
+    /// </summary>
+    public sealed class FrameOrchestrator
     {
         private readonly EngineHost _host;
         private readonly ISynapseLogger _logger;
@@ -107,6 +114,32 @@ namespace Synapse.Runtime
                     _host.TickRender();
                     renderMs = (float)sw.Elapsed.TotalMilliseconds;
                 }
+            float physicsMs = 0, simMs = 0, couplingMs = 0, renderMs = 0, qualityMs = 0;
+
+            if (!_paused)
+            {
+                // 1) Physics (living laws + rigid + optional continuum)
+                var sw = Stopwatch.StartNew();
+                _host.TickPhysics(dt);
+                physicsMs = (float)sw.Elapsed.TotalMilliseconds;
+
+                // 2) Simulation (sentience / behavior trees — may queue physics actuators)
+                sw.Restart();
+                await _host.TickSimulationAsync(dt, cancellationToken).ConfigureAwait(false);
+                simMs = (float)sw.Elapsed.TotalMilliseconds;
+
+                // 3) Coupling: Physics → Rendering + Simulation → Physics drain
+                sw.Restart();
+                _host.TickIndustrialCoupling(dt);
+                couplingMs = (float)sw.Elapsed.TotalMilliseconds;
+            }
+
+            {
+                // 4) Rendering (G-DNN Nanite Neural 3.0 + L-DNN Lumen Neural 3.0)
+                var sw = Stopwatch.StartNew();
+                _host.TickRender();
+                renderMs = (float)sw.Elapsed.TotalMilliseconds;
+            }
 
                 {
                     var sw = Stopwatch.StartNew();
@@ -166,6 +199,26 @@ namespace Synapse.Runtime
                 return;
             _disposed = true;
             _tickGate.Dispose();
+            LastStats = new FrameStats
+            {
+                DeltaTime = dt,
+                Fps = _fps,
+                TotalTime = _totalTime,
+                PhysicsMs = physicsMs,
+                SimulationMs = simMs,
+                CouplingMs = couplingMs,
+                RenderMs = renderMs,
+                QualityMs = qualityMs,
+                IsPaused = _paused,
+                QualityPreset = _host.QualityPresetName,
+                EntityCount = _host.EntityCount,
+                ActiveLawId = _host.ActiveLawId ?? "",
+                FieldTemperatureAvg = _host.AverageFieldTemperature,
+                EvolutionGeneration = _host.EvolutionGeneration,
+                BestFitness = _host.BestFitness
+            };
+
+            return LastStats;
         }
     }
 }

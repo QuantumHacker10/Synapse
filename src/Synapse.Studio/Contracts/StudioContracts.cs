@@ -13,6 +13,65 @@ namespace Synapse.Studio.Contracts
         Unknown, Mesh, Light, Camera, ParticleSystem, Genome, Empty, Agent, Volume
     }
 
+    public enum ComponentType
+    {
+        Transform, MeshRenderer, Genome, Material, Light, Camera, Collider,
+        Rigidbody, BehaviorTree, ParticleSystem, Animation, LOD
+    }
+
+    public enum CompilationStatus
+    {
+        NotStarted, Queued, Compiling, Success, Failed, Cancelled, Warning
+    }
+
+    public enum LLMProvider
+    {
+        OpenAI, Anthropic, Local, Azure, Ollama, Gemini
+    }
+
+    public sealed class ViewportCamera
+    {
+        public Vector3 Position { get; set; } = new(0, 2, 5);
+        public Vector3 Front { get; set; } = new(0, 0, -1);
+        public Vector3 Up { get; set; } = Vector3.UnitY;
+        public float Fov { get; set; } = 60f;
+        public float Yaw { get; set; } = -90f;
+        public float Pitch { get; set; }
+    }
+
+    public sealed class ViewportStats
+    {
+        public float Fps { get; set; }
+        public float FrameTimeMs { get; set; }
+        public float TotalTime { get; set; }
+        public string QualityPreset { get; set; } = "High";
+        public int EntityCount { get; set; }
+        public float PhysicsTimeMs { get; set; }
+        public float SimulationTimeMs { get; set; }
+        public string ActiveLawId { get; set; } = "";
+        public float FieldTemperatureAvg { get; set; }
+    }
+
+    public sealed class RaycastResult
+    {
+        public bool Hit { get; set; }
+        public Guid EntityId { get; set; }
+        public Vector3 Point { get; set; }
+        public float Distance { get; set; }
+    }
+
+    public sealed class LawCatalogEntry
+    {
+        public string Id { get; init; } = "";
+        public string Name { get; init; } = "";
+        public string Category { get; init; } = "";
+        public string Description { get; init; } = "";
+        public string Expression { get; init; } = "";
+
+        public string DisplayLine => $"{Id} — {Name}";
+        public string CategoryLabel => string.IsNullOrWhiteSpace(Category) ? "—" : Category;
+    }
+
     public sealed class SceneEntity : INotifyPropertyChanged
     {
         private string _name = "Entity";

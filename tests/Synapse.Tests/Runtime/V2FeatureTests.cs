@@ -125,7 +125,9 @@ public sealed class V2FeatureTests
         using var logger = new SynapseLogger(null, LogLevel.Error, consoleEnabled: false);
         var vr = VrSessionFactory.Create(logger);
         vr.RuntimeName.Should().NotBeNullOrEmpty();
-        (await vr.TryInitializeAsync()).Should().BeFalse();
+        (await vr.TryInitializeAsync()).Should().BeTrue();
+        vr.IsSimulated.Should().BeTrue();
+        vr.Swapchain.Should().NotBeNull();
 
         var preview = WebEditorBuilder.FromScene("Demo", "scene.glb", "heat_equation", 4);
         WebEditorBuilder.ToHtml(preview).Should().Contain("Synapse Web Editor");

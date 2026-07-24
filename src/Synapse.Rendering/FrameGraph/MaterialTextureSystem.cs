@@ -215,6 +215,7 @@ namespace GDNN.Rendering.FrameGraph
                             r = nx;
                             g = ny;
                             b = 1f;
+                            r = nx; g = ny; b = 1f;
                             break;
                         case TextureKind.Orm:
                             r = 0.75f + noise * 0.25f;           // AO
@@ -226,6 +227,7 @@ namespace GDNN.Rendering.FrameGraph
                             r = rgb.X;
                             g = rgb.Y;
                             b = rgb.Z;
+                            r = rgb.X; g = rgb.Y; b = rgb.Z;
                             break;
                     }
 
@@ -374,6 +376,7 @@ namespace GDNN.Rendering.FrameGraph
         {
             if (_disposed)
                 return;
+            if (_disposed) return;
             _disposed = true;
             foreach (var t in _cache.Values)
             {
@@ -386,6 +389,9 @@ namespace GDNN.Rendering.FrameGraph
                 t.Dispose();
             foreach (var t in _procOrm.Values)
                 t.Dispose();
+            foreach (var t in _procAlbedo.Values) t.Dispose();
+            foreach (var t in _procNormal.Values) t.Dispose();
+            foreach (var t in _procOrm.Values) t.Dispose();
             _vtAtlas?.Dispose();
             _white?.Dispose();
             _flatNormal?.Dispose();

@@ -34,7 +34,7 @@ Le fichier de sortie contient :
 
 ## CI
 
-Le workflow GitHub Actions exécute `dotnet test` avec couverture Codecov (**seuil 40 %**). Les benchmarks headless peuvent être ajoutés au pipeline via `--benchmark` sur les runners Linux.
+Le workflow GitHub Actions exécute `dotnet test` avec couverture Codecov (**seuil 70 %**). Les benchmarks headless peuvent être ajoutés au pipeline via `--benchmark` sur les runners Linux.
 
 ## Reproductibilité
 
