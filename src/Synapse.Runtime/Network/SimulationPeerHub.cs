@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Synapse.Core.Maturity;
+using System.Security.Cryptography;
 using Synapse.Infrastructure.Logging;
 
 namespace Synapse.Network;
@@ -45,11 +46,16 @@ public sealed class LocalSimulationPeerSession : ISimulationPeerSession
 /// Suitable for localhost experiments; not a production mesh. See <c>docs/MATURITY.md</c>.
 /// </summary>
 [SynapseExperimental("Network.P2P", "TCP multi-peer hub for localhost/lab; not production WAN mesh.")]
+/// <summary>Multi-peer P2P hub for collaborative simulation sessions (v2.1+).</summary>
 public sealed class MultiPeerSimulationHub : IAsyncDisposable
 {
+    public const int DefaultMaxPeers = 8;
+    public const int MaxPatchBytes = PeerEncryption.MaxPacketBytes;
+
     private readonly ISynapseLogger _logger;
     private readonly ConcurrentDictionary<string, PeerConnection> _peers = new();
     private readonly ConcurrentBag<Task> _receiveTasks = new();
+    private readonly PeerEncryption? _auth;
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
     private Task? _acceptTask;
@@ -57,21 +63,30 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
     public string SessionId { get; } = Guid.NewGuid().ToString("N");
     public bool IsHost { get; private set; }
     public int PeerCount => _peers.Count + 1;
+    public int MaxPeers { get; set; } = DefaultMaxPeers;
 
     public int ListenPort => _listener is null ? 0 : ((IPEndPoint)_listener.LocalEndpoint).Port;
 
     public event Action<string, ReadOnlyMemory<byte>>? ScenePatchReceived;
 
-    public MultiPeerSimulationHub(ISynapseLogger logger) => _logger = logger;
+    public MultiPeerSimulationHub(ISynapseLogger logger, PeerEncryption? auth = null)
+    {
+        _logger = logger;
+        _auth = auth;
+    }
 
     public async Task StartHostAsync(int port = 0, bool publicBind = false, CancellationToken ct = default)
     {
+        if (publicBind && _auth == null)
+            throw new InvalidOperationException(
+                "publicBind requires session authentication (PeerEncryption). Pass auth or keep loopback bind.");
+
         _listener = new TcpListener(publicBind ? IPAddress.Any : IPAddress.Loopback, port);
         _listener.Start();
         IsHost = true;
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _acceptTask = AcceptLoopAsync(_cts.Token);
-        _logger.Info("Network", $"P2P host listening on {((IPEndPoint)_listener.LocalEndpoint).Port}");
+        _logger.Info("Network", $"P2P host listening on {((IPEndPoint)_listener.LocalEndpoint).Port} (public={publicBind})");
         await Task.CompletedTask;
     }
 
@@ -96,10 +111,23 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
         {
             client?.Dispose();
         }
+        await client.ConnectAsync(host, port, ct).ConfigureAwait(false);
+        var peerId = Guid.NewGuid().ToString("N");
+        var conn = new PeerConnection(peerId, client);
+        if (_auth != null && !await PerformClientHandshakeAsync(conn, ct).ConfigureAwait(false))
+        {
+            conn.Dispose();
+            throw new InvalidOperationException("P2P auth handshake failed.");
+        }
+        _peers[peerId] = conn;
+        _ = ReceiveLoopAsync(conn, ct);
+        _logger.Info("Network", $"Connected to peer at {host}:{port}");
     }
 
     public async Task BroadcastScenePatchAsync(ReadOnlyMemory<byte> patch, CancellationToken ct = default)
     {
+        if (patch.Length > MaxPatchBytes)
+            throw new ArgumentException($"Patch exceeds {MaxPatchBytes} bytes.", nameof(patch));
         ScenePatchReceived?.Invoke("self", patch);
         foreach (var peer in _peers.Values)
             await peer.SendAsync(patch, ct).ConfigureAwait(false);
@@ -112,8 +140,22 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
             try
             {
                 var client = await _listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
+                if (_peers.Count >= MaxPeers)
+                {
+                    _logger.Warn("Network", $"Rejecting peer — MaxPeers={MaxPeers} reached");
+                    client.Dispose();
+                    continue;
+                }
+
                 var peerId = Guid.NewGuid().ToString("N");
                 var conn = new PeerConnection(peerId, client);
+                if (_auth != null && !await PerformHostHandshakeAsync(conn, ct).ConfigureAwait(false))
+                {
+                    _logger.Warn("Network", $"Auth failed for peer {peerId}");
+                    conn.Dispose();
+                    continue;
+                }
+
                 _peers[peerId] = conn;
                 _receiveTasks.Add(ReceiveLoopAsync(conn, ct));
                 _logger.Info("Network", $"Peer joined: {peerId} (total {_peers.Count + 1})");
@@ -127,6 +169,25 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
                 break;
             }
         }
+    }
+
+    private async Task<bool> PerformHostHandshakeAsync(PeerConnection peer, CancellationToken ct)
+    {
+        var nonce = new byte[16];
+        RandomNumberGenerator.Fill(nonce);
+        await peer.SendAsync(nonce, ct).ConfigureAwait(false);
+        var token = await peer.ReceiveAsync(ct).ConfigureAwait(false);
+        return token.Length > 0 && _auth!.VerifyAuthToken(nonce, "client", token);
+    }
+
+    private async Task<bool> PerformClientHandshakeAsync(PeerConnection peer, CancellationToken ct)
+    {
+        var nonce = await peer.ReceiveAsync(ct).ConfigureAwait(false);
+        if (nonce.Length != 16)
+            return false;
+        var token = _auth!.ComputeAuthToken(nonce, "client");
+        await peer.SendAsync(token, ct).ConfigureAwait(false);
+        return true;
     }
 
     private async Task ReceiveLoopAsync(PeerConnection peer, CancellationToken ct)
@@ -227,6 +288,14 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
             if (length <= 0 || length > 4 * 1024 * 1024)
                 throw new InvalidDataException($"Invalid P2P frame length: {length}");
 
+            catch (IOException)
+            {
+                return Array.Empty<byte>();
+            }
+
+            int length = BitConverter.ToInt32(header, 0);
+            if (length <= 0 || length > MaxPatchBytes)
+                return Array.Empty<byte>();
             var buffer = new byte[length];
             await _stream.ReadExactlyAsync(buffer, ct).ConfigureAwait(false);
             return buffer;
@@ -240,6 +309,32 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
             _sendLock.Dispose();
             _stream.Dispose();
             _client.Dispose();
+            try
+            {
+                _stream.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                _client.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
+
+            try
+            {
+                _sendLock.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
         }
     }
 }
@@ -250,4 +345,7 @@ public static class SimulationPeerHub
 
     public static MultiPeerSimulationHub CreateMultiPeerHub(ISynapseLogger logger) =>
         new(logger);
+
+    public static MultiPeerSimulationHub CreateAuthenticatedHub(ISynapseLogger logger, PeerEncryption auth) =>
+        new(logger, auth);
 }

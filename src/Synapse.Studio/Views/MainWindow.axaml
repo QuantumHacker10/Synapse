@@ -142,10 +142,16 @@
                   <views:BlueprintGraphCanvas x:Name="BlueprintCanvas" Height="180" DocumentChanged="OnBlueprintDocumentChanged" />
                   <ListBox ItemsSource="{Binding BlueprintNodes}" Height="70" Background="#0E1218" />
                   <TextBlock Text="{Binding BlueprintStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                  <CheckBox Content="Édition live (hot-reload)" IsChecked="{Binding BlueprintLiveEdit}" Foreground="#E8EEF7" />
                   <StackPanel Orientation="Horizontal" Spacing="6">
                     <Button Content="Nœud" Command="{Binding AddBlueprintNodeCommand}" />
                     <Button Content="LLM" Command="{Binding AddBlueprintLlmNodeCommand}" />
                     <Button Content="Compiler" Command="{Binding CompileBlueprintCommand}" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Nouveau" Command="{Binding NewBlueprintCommand}" />
+                    <Button Content="Ouvrir" Command="{Binding OpenBlueprintCommand}" />
+                    <Button Content="Enregistrer" Command="{Binding SaveBlueprintCommand}" />
                   </StackPanel>
 
                   <Separator Margin="0,8" />

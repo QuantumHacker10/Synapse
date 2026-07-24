@@ -8,7 +8,7 @@ namespace GDNN.Platform
     /// </summary>
     public static class Win32VulkanSurface
     {
-        private const string VulkanDll = "vulkan-1.dll";
+        private const string VulkanDll = "vulkan-1";
 
         [StructLayout(LayoutKind.Sequential)]
         private struct VkWin32SurfaceCreateInfoKHR

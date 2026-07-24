@@ -126,6 +126,7 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private string evolutionStatus = "Inactif";
         [ObservableProperty] private string viewportHint = "";
         [ObservableProperty] private string blueprintStatus = "Prêt";
+        [ObservableProperty] private bool blueprintLiveEdit = true;
         [ObservableProperty] private string sculptStatus = "";
         [ObservableProperty] private double sculptRadius = 0.5;
         [ObservableProperty] private double sculptStrength = 0.15;
@@ -154,6 +155,41 @@ namespace Synapse.Studio.ViewModels
         private const int MaxInspectorFeedEntries = 500;
 
         public BlueprintDocument Blueprint => _blueprint;
+
+        /// <summary>Raised when the active blueprint document instance is replaced (New/Open).</summary>
+        public event EventHandler? BlueprintDocumentReplaced;
+
+        partial void OnBlueprintLiveEditChanged(bool value) => _host.BlueprintLiveEdit = value;
+
+        public void NotifyBlueprintChanged()
+        {
+            RefreshBlueprint();
+            TryLiveReloadBlueprint();
+        }
+
+        private void TryLiveReloadBlueprint()
+        {
+            if (!BlueprintLiveEdit)
+                return;
+            var (ok, msg) = _blueprint.Validate();
+            if (!ok)
+            {
+                BlueprintStatus = $"Live : {msg}";
+                return;
+            }
+
+            try
+            {
+                if (_host.HotReloadBlueprint(_blueprint))
+                    BlueprintStatus = $"Live OK — '{_blueprint.Name}' hot-reload";
+                else
+                    BlueprintStatus = "Live : hot-reload refusé";
+            }
+            catch (Exception ex)
+            {
+                BlueprintStatus = $"Live : {ex.Message}";
+            }
+        }
 
         partial void OnSelectedEntityChanged(SceneEntity? value)
         {
@@ -203,8 +239,6 @@ namespace Synapse.Studio.ViewModels
         {
             _host.ViewportEditor.ToolMode = value;
         }
-
-        public void NotifyBlueprintChanged() => RefreshBlueprint();
 
         public void SelectEntityById(Guid id)
         {
@@ -711,7 +745,7 @@ namespace Synapse.Studio.ViewModels
                 Inputs = { new BlueprintPin { Name = "Exec", IsInput = true } },
                 Outputs = { new BlueprintPin { Name = "Then", IsInput = false } }
             });
-            RefreshBlueprint();
+            NotifyBlueprintChanged();
         }
 
         private static bool LooksLikeSceneControlPrompt(string prompt)
@@ -995,7 +1029,8 @@ namespace Synapse.Studio.ViewModels
             foreach (var n in _blueprint.Nodes)
                 BlueprintNodes.Add($"{n.Kind}: {n.Title}");
             var (ok, msg) = _blueprint.Validate();
-            BlueprintStatus = msg;
+            if (!BlueprintLiveEdit || !ok)
+                BlueprintStatus = msg;
         }
 
         [RelayCommand]
@@ -1003,6 +1038,8 @@ namespace Synapse.Studio.ViewModels
         {
             _blueprint = BlueprintDocument.CreateDefault();
             RefreshBlueprint();
+            BlueprintDocumentReplaced?.Invoke(this, EventArgs.Empty);
+            BlueprintStatus = "Nouveau blueprint";
         }
 
         [RelayCommand]
@@ -1018,7 +1055,7 @@ namespace Synapse.Studio.ViewModels
                 Inputs = { new BlueprintPin { Name = "Exec", IsInput = true } },
                 Outputs = { new BlueprintPin { Name = "Then", IsInput = false } }
             });
-            RefreshBlueprint();
+            NotifyBlueprintChanged();
         }
 
         [RelayCommand]
@@ -1028,7 +1065,7 @@ namespace Synapse.Studio.ViewModels
             {
                 _host.CompileAndSpawnBlueprint(_blueprint, Vector3.Zero);
                 RefreshEntities();
-                BlueprintStatus = $"Compilé → arbre '{_blueprint.Name}' enregistré + agent";
+                BlueprintStatus = $"Compilé → arbre '{_blueprint.Name}' enregistré + agent (live)";
             }
             catch (Exception ex)
             {
@@ -1071,6 +1108,31 @@ namespace Synapse.Studio.ViewModels
                 _logger.Error("Studio", "Save blueprint failed", ex);
                 BlueprintStatus = $"Erreur enregistrement — {ex.Message}";
             }
+        }
+
+        [RelayCommand]
+        private async Task OpenBlueprintAsync()
+        {
+            var window = GetMainWindow();
+            if (window?.StorageProvider == null)
+                return;
+            var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Ouvrir un blueprint",
+                AllowMultiple = false,
+                FileTypeFilter = new[]
+                {
+                    new FilePickerFileType("Blueprint") { Patterns = new[] { "*.blueprint.json", "*.json" } }
+                }
+            });
+            var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
+            if (path == null)
+                return;
+            _blueprint = await BlueprintDocument.LoadAsync(path);
+            RefreshBlueprint();
+            BlueprintDocumentReplaced?.Invoke(this, EventArgs.Empty);
+            TryLiveReloadBlueprint();
+            BlueprintStatus = $"Ouvert : {path}";
         }
 
         [RelayCommand]

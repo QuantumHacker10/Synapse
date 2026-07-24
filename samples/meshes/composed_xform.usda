@@ -1,0 +1,17 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+)
+
+def Xform "Root"
+{
+    double3 xformOp:translate = (5, 0, 0)
+    float3 xformOp:rotateXYZ = (0, 90, 0)
+    float3 xformOp:scale = (2, 2, 2)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+
+    def Mesh "Child"
+    {
+        prepend references = @./tetra.usda@</Cube>
+    }
+}

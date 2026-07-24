@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
-    <Version>2.2.0</Version>
-    <AssemblyVersion>2.2.0.0</AssemblyVersion>
-    <FileVersion>2.2.0.0</FileVersion>
-    <InformationalVersion>2.2.0</InformationalVersion>
+    <Version>2.10.0</Version>
+    <AssemblyVersion>2.10.0.0</AssemblyVersion>
+    <FileVersion>2.10.0.0</FileVersion>
+    <InformationalVersion>2.10.0</InformationalVersion>
     <Company>Synapse</Company>
     <Product>SYNAPSE OMNIA</Product>
     <Authors>Synapse</Authors>

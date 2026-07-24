@@ -31,7 +31,7 @@ namespace GDNN.RHI.Vulkan
         private PipelineDescription _description;
         private bool _disposed;
 
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern void vkDestroyPipeline(IntPtr device, IntPtr pipeline, IntPtr pAllocator);
 
         public IntPtr Handle => _pipeline;
@@ -69,7 +69,7 @@ namespace GDNN.RHI.Vulkan
         private ComputePipelineDescription _description;
         private bool _disposed;
 
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern void vkDestroyPipeline(IntPtr device, IntPtr pipeline, IntPtr pAllocator);
 
         public IntPtr Handle => _pipeline;
@@ -106,7 +106,7 @@ namespace GDNN.RHI.Vulkan
         private RenderPassDescription _description;
         private bool _disposed;
 
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern void vkDestroyRenderPass(IntPtr device, IntPtr renderPass, IntPtr pAllocator);
 
         public IntPtr Handle => _renderPass;
@@ -142,7 +142,7 @@ namespace GDNN.RHI.Vulkan
         private FramebufferDescription _description;
         private bool _disposed;
 
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern void vkDestroyFramebuffer(IntPtr device, IntPtr framebuffer, IntPtr pAllocator);
 
         public IntPtr Handle => _framebuffer;
@@ -180,7 +180,7 @@ namespace GDNN.RHI.Vulkan
         private SamplerDescription _description;
         private bool _disposed;
 
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern void vkDestroySampler(IntPtr device, IntPtr sampler, IntPtr pAllocator);
 
         public IntPtr Handle => _sampler;
@@ -215,7 +215,7 @@ namespace GDNN.RHI.Vulkan
         private LayoutDescription _description;
         private bool _disposed;
 
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern void vkDestroyDescriptorSetLayout(IntPtr device, IntPtr descriptorSetLayout, IntPtr pAllocator);
 
         public IntPtr Handle => _layout;
@@ -251,7 +251,7 @@ namespace GDNN.RHI.Vulkan
         private PoolDescription _description;
         private bool _disposed;
 
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern void vkDestroyDescriptorPool(IntPtr device, IntPtr descriptorPool, IntPtr pAllocator);
 
         public IntPtr Handle => _pool;
@@ -314,7 +314,7 @@ namespace GDNN.RHI.Vulkan
         private List<ShaderDescriptorBinding> _descriptorBindings;
         private ShaderStageFlag _stage;
 
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern void vkDestroyShaderModule(IntPtr device, IntPtr shaderModule, IntPtr pAllocator);
 
         public IntPtr Handle => _module;

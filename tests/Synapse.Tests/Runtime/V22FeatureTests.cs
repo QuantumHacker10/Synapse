@@ -172,6 +172,21 @@ public sealed class V22FeatureTests
         finally
         {
             Environment.SetEnvironmentVariable("SYNAPSE_VR_SIMULATE", previous);
+    public void OpenXrSession_ExposesSwapchain()
+    {
+        Environment.SetEnvironmentVariable("SYNAPSE_VR_FORCE_SIMULATED", "1");
+        try
+        {
+            using var logger = new SynapseLogger(null, LogLevel.Error, consoleEnabled: false);
+            var session = VrSessionFactory.Create(logger);
+            session.TryInitializeAsync().GetAwaiter().GetResult();
+            session.IsAvailable.Should().BeTrue();
+            session.Swapchain.Should().NotBeNull();
+            session.IsSimulated.Should().BeTrue();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("SYNAPSE_VR_FORCE_SIMULATED", null);
         }
     }
 }

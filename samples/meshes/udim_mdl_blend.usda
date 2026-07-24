@@ -1,0 +1,48 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+)
+
+def Xform "Root"
+{
+    def Mesh "Geo"
+    {
+        point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+        int[] faceVertexIndices = [0, 1, 2, -1]
+        texCoord2f[] primvars:st = [(0.2, 0.2), (1.5, 0.2), (0.2, 1.2)]
+        rel skel:blendShapes = [</Shapes/Smile>, </Shapes/Frown>]
+        rel material:binding = </Looks/UdimMdlMat>
+    }
+
+    def BlendShape "Smile"
+    {
+        point3f[] offsets = [(0, 0.1, 0), (0, 0.1, 0), (0, 0.2, 0)]
+        normal3f[] normalOffsets = [(0, 1, 0), (0, 1, 0), (0, 1, 0)]
+    }
+
+    def BlendShape "Frown"
+    {
+        point3f[] offsets = [(0, -0.05, 0), (0, -0.05, 0), (0, -0.1, 0)]
+    }
+
+    def Scope "Looks"
+    {
+        def Material "UdimMdlMat"
+        {
+            asset info:sourceAsset = @./materials/demo.mdl@
+            token info:mdl:sourceMaterial = "Demo::Surface"
+
+            def Shader "Preview"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor.connect = </Looks/UdimMdlMat/DiffuseTex.outputs:rgb>
+            }
+
+            def Shader "DiffuseTex"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @./textures/albedo.<UDIM>.png@
+            }
+        }
+    }
+}
