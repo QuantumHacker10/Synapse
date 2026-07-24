@@ -40,6 +40,7 @@ public sealed class PluginManifest
 /// <summary>
 /// Loads and manages Synapse plugins in isolated <see cref="AssemblyLoadContext"/> instances.
 /// ALC isolation enables unload; it does not sandbox filesystem, network, or process access.
+/// EarlyAccess surface (see <c>FeatureMaturityCatalog</c> "Plugins.CSharp").
 /// </summary>
 [SynapseExperimental("Plugins.CSharp", "ALC isolation is not a security sandbox; use PluginTrustMode.RequireManifest for production.")]
 /// <summary>Loads and manages Synapse plugins in isolated <see cref="AssemblyLoadContext"/> instances with path jail + optional hash allowlist.</summary>

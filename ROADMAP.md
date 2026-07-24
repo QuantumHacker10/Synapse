@@ -2,7 +2,7 @@
 
 Vision publique du projet. L'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
-**Maturité :** v2.2 = accès anticipé / R&D avancée — voir [docs/MATURITY.md](docs/MATURITY.md).
+**Maturité :** v2.3 = accès anticipé / R&D avancée — voir [docs/MATURITY.md](docs/MATURITY.md).
 Les items « Experimental » ne sont **pas** des capacités production.
 ## v2.10 — Actuel (2026-07) — OpenUSD MeshIO production-complete
 
@@ -111,13 +111,24 @@ Les items « Experimental » ne sont **pas** des capacités production.
 ## v2.1 — Livré (2026-07)
 ## v2.1 — (2026-07)
 
+### EarlyAccess (collaboration / web branchés)
+- [x] P2P WAN NAT + AES-GCM branché EngineHost/Studio (STUN + hole-punch + patches scène)
+- [x] OpenXR / swapchain Vulkan branché EngineHost/FrameOrchestrator/Studio (Silk.NET natif)
+- [x] Éditeur web WASM / WebGPU (`Synapse.Web.Studio`, `ExportWebStudioAsync`)
+
 ### Experimental (scaffolds — ne pas vendre comme production)
 - [x] P2P multi-pairs TCP labo (`MultiPeerSimulationHub`)
-- [x] P2P WAN scaffold (rendez-vous **loopback** + AES-GCM)
-- [x] OpenXR scaffold (détection loader + swapchain **synthétique**)
-- [x] Éditeur web glTF / WebGPU preview (`site/editor/`)
 
 ## v2.3 — Durcissement (prochaine priorité)
+
+### Studio — ponts atelier (livré)
+- [x] Marketplace de lois dans Studio (import/export `.synapse-law`, catalogue)
+- [x] API plugins C# branchée dans Studio (chargement dossier, liste, statut)
+- [x] Jumeaux numériques dans Studio (jumeler, synchroniser, export snapshot)
+- [x] Export scène glTF depuis le menu Fichier
+- [x] Inspecteur d'arbre de comportement (agents sentients)
+- [x] Export du meilleur génome NEAT-G (JSON)
+- [x] Outil viewport **Échelle** (gizmo scale)
 
 ### Qualité
 - [ ] Promouvoir au moins une surface cœur en tier **Supported** (Windows+GPU validé)
@@ -136,7 +147,7 @@ Les items « Experimental » ne sont **pas** des capacités production.
 ## v2.4 — Communauté & qualité
 
 ### Honnêteté produit
-- [ ] Retirer ou remplacer les scaffolds Experimental avant toute claim « production »
+- [ ] Retirer ou remplacer les scaffolds Experimental restants avant toute claim « production »
 - [ ] Tutoriels vidéo (YouTube)
 - [ ] Serveur Discord communautaire actif
 
@@ -196,10 +207,10 @@ Les items « Experimental » ne sont **pas** des capacités production.
 
 ## v3.0 — Long terme (vraies intégrations)
 
-- [ ] Réseau P2P collaboratif multi-pairs **hors labo** (remplace le scaffold WAN)
-- [ ] Support VR OpenXR **natif** (swapchain Vulkan réel, pas synthétique)
-- [ ] Éditeur web complet (WASM + WebGPU) au-delà du preview
-- [ ] Marketplace d'assets et de lois avec signatures
+- [ ] Réseau P2P collaboratif multi-pairs **hors labo**, validé sur NAT résidentiel (promotion WAN → Supported)
+- [ ] VR OpenXR validé sur Windows + HMD réel (promotion → Supported)
+- [ ] Éditeur web WASM + WebGPU complet au-delà de l'accès anticipé
+- [ ] Marketplace d'assets et de lois hébergé avec signatures
 
 ## Comment contribuer à la roadmap
 

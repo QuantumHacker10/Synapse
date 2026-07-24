@@ -615,6 +615,11 @@ namespace GDNN.Rendering.Bridge
                     for (int x = 0; x < _width; x++)
                         irradiance[x, y] = giField![x, y];
             }
+            else if (!_lastFillWasConstants && _residentGi.HasResidentGBuffer)
+            {
+                irradiance = _residentGi.ComputeResidentIrradiance(_ldnn, _cameraState, _lights);
+            }
+            else
 
             // Resident compute path: always refresh when a non-constant G-buffer is resident
             // so LastGiPath stays GpuResidentCompute for industrial diagnostics.
@@ -815,6 +820,11 @@ namespace GDNN.Rendering.Bridge
             if (!_initialized || vol == null || _width <= 0 || _height <= 0)
                 return field;
 
+            int step = Math.Max(2, Math.Max(_width, _height) / 64);
+            for (int y = 0; y < _height; y += step)
+            {
+                for (int x = 0; x < _width; x += step)
+                {
             int divisor = Math.Max(32, _fogGridDivisor);
             int step = Math.Max(1, Math.Max(_width, _height) / divisor);
             // Sparse samples on a grid, then bilinear upsample to full res (AAA fog smoothness).
@@ -834,6 +844,12 @@ namespace GDNN.Rendering.Bridge
                         _cameraState.Forward
                         + _cameraState.Right * ((u - 0.5f) * 2f * _cameraState.AspectRatio * MathF.Tan(_cameraState.FieldOfView * 0.5f * MathF.PI / 180f))
                         + _cameraState.Up * ((0.5f - v) * 2f * MathF.Tan(_cameraState.FieldOfView * 0.5f * MathF.PI / 180f)));
+                    var scatter = vol.IntegrateVolumeScattering(_cameraState, screen, viewDir, _lights);
+                    int x1 = Math.Min(_width, x + step);
+                    int y1 = Math.Min(_height, y + step);
+                    for (int yy = y; yy < y1; yy++)
+                        for (int xx = x; xx < x1; xx++)
+                            field[xx, yy] = scatter;
                     sparse[gx, gy] = vol.IntegrateVolumeScattering(_cameraState, screen, viewDir, _lights);
                 }
             }
@@ -968,6 +984,8 @@ namespace GDNN.Rendering.Bridge
                 NeuralLearningRate = 0.001f,
                 NeuralBatchSize = 32,
                 NeuralNetworkProfile = NeuralNetworkProfile.Full,
+                // Teacher path-trace every frame kills realtime — keep off the present path.
+                EnableOnlineTeacherTraining = false,
                 // Sparse teacher (stride 16) keeps Lumen Neural online learning industrial-viable.
                 EnableOnlineTeacherTraining = true,
                 TeacherPixelStride = 16,

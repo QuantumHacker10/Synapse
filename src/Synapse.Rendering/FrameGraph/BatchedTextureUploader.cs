@@ -33,6 +33,12 @@ namespace GDNN.Rendering.FrameGraph
             int pixelCount = width * height;
             int stride = pixelCount * 8;
             int total = 0;
+            if (gi != null && giField != null)
+                total += stride;
+            if (ao != null && aoField != null)
+                total += stride;
+            if (fog != null && fogField != null)
+                total += stride;
             if (gi != null && giField != null) total += stride;
             if (ao != null && aoField != null) total += stride;
             if (fog != null && fogField != null) total += stride;
@@ -78,6 +84,12 @@ namespace GDNN.Rendering.FrameGraph
             }
 
             int giOff = -1, aoOff = -1, fogOff = -1;
+            if (gi != null && giField != null)
+            { giOff = offset; PackRgb(giField); }
+            if (ao != null && aoField != null)
+            { aoOff = offset; PackAo(aoField); }
+            if (fog != null && fogField != null)
+            { fogOff = offset; PackRgb(fogField); }
             if (gi != null && giField != null) { giOff = offset; PackRgb(giField); }
             if (ao != null && aoField != null) { aoOff = offset; PackAo(aoField); }
             if (fog != null && fogField != null) { fogOff = offset; PackRgb(fogField); }
@@ -154,6 +166,12 @@ namespace GDNN.Rendering.FrameGraph
                     });
             }
 
+            if (giOff >= 0)
+                CopyTo(gi!, giOff);
+            if (aoOff >= 0)
+                CopyTo(ao!, aoOff);
+            if (fogOff >= 0)
+                CopyTo(fog!, fogOff);
             if (giOff >= 0) CopyTo(gi!, giOff);
             if (aoOff >= 0) CopyTo(ao!, aoOff);
             if (fogOff >= 0) CopyTo(fog!, fogOff);
@@ -179,6 +197,8 @@ namespace GDNN.Rendering.FrameGraph
 
         public void Dispose()
         {
+            if (_disposed)
+                return;
             if (_disposed) return;
             _disposed = true;
             _staging?.Dispose();

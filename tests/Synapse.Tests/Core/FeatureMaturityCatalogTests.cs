@@ -38,13 +38,13 @@ public sealed class FeatureMaturityCatalogTests
         typeof(WanSimulationPeerHub).GetCustomAttribute<SynapseExperimentalAttribute>().Should().BeNull();
         typeof(WebEditorBuilder).GetCustomAttribute<SynapseExperimentalAttribute>().Should().BeNull();
         typeof(WasmStudioPublisher).GetCustomAttribute<SynapseExperimentalAttribute>().Should().BeNull();
+        typeof(PluginHost).GetCustomAttribute<SynapseExperimentalAttribute>().Should().BeNull();
     }
 
     [Fact]
     public void RemainingExperimentalTypes_CarrySynapseExperimentalAttribute()
     {
         AssertExperimental(typeof(MultiPeerSimulationHub), "Network.P2P");
-        AssertExperimental(typeof(PluginHost), "Plugins.CSharp");
     }
 
     [Fact]

@@ -21,8 +21,8 @@ Ce document est la source de vérité des claims. Le catalogue code miroir est
 | `Studio.Editor` | Synapse Studio | **EarlyAccess** | Édition, inspecteur, console LLM ; viewport Vulkan sur Windows |
 | `Runtime.Local` | EngineHost + lois + multiphysique | **EarlyAccess** | Cœur local utilisable ; couverture et durcissement incomplets |
 | `Runtime.Benchmarks` | Benchmarks headless | **EarlyAccess** | Régression / perf, pas certification industrielle |
-| `IO.GlTF` | Export glTF / import mesh | **EarlyAccess** | FBX ASCII + USDA limités |
-| `Plugins.CSharp` | Plugins C# | **EarlyAccess** | ALC isolé ≠ sandbox; `SYNAPSE_PLUGIN_TRUST=require-manifest` |
+| `IO.GlTF` | Export glTF / import mesh | **EarlyAccess** | Export scène via menu Studio ; FBX ASCII + USDA limités |
+| `Plugins.CSharp` | Plugins C# | **EarlyAccess** | Chargement dossier depuis Studio ; ALC isolé ≠ sandbox; `SYNAPSE_PLUGIN_TRUST=require-manifest` |
 | `Network.P2P` | P2P multi-pairs | **Experimental** | Labo TCP + framing exact ; pas collaboratif production |
 | `Network.WAN` | WAN NAT + AES-GCM | **EarlyAccess** | Branché EngineHost + Studio (STUN, hole-punch, patches scène) |
 | `VR.OpenXR` | OpenXR swapchain | **EarlyAccess** | Branché EngineHost + FrameOrchestrator + menu Studio |
@@ -41,6 +41,9 @@ Ce document est la source de vérité des claims. Le catalogue code miroir est
 - Studio + runtime local pour explorer scènes, lois vivantes, agents et benchmarks.
 - Surfaces VR / WAN / web branchées dans EngineHost, FrameOrchestrator et Studio (EarlyAccess).
   Plus marquées `[SynapseExperimental]` (réservé aux scaffolds restants comme P2P lab).
+- Ponts atelier branchés dans Studio (EarlyAccess) : marketplace de lois `.synapse-law`,
+  chargement de plugins C#, jumeaux numériques (jumeler / synchroniser / export snapshot),
+  export scène glTF, inspecteur d'arbre de comportement, export génome NEAT-G, outil viewport Échelle.
 - Pas de promesse de path tracing certifié, FEM production, ou simulation collaborative WAN.
 
 ## Prochaines priorités de durcissement

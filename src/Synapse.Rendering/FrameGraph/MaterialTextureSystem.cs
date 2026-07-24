@@ -212,6 +212,9 @@ namespace GDNN.Rendering.FrameGraph
                         case TextureKind.Normal:
                             float nx = (stripes - 0.5f) * 0.6f + 0.5f;
                             float ny = (noise - 0.5f) * 0.6f + 0.5f;
+                            r = nx;
+                            g = ny;
+                            b = 1f;
                             r = nx; g = ny; b = 1f;
                             break;
                         case TextureKind.Orm:
@@ -221,6 +224,9 @@ namespace GDNN.Rendering.FrameGraph
                             break;
                         default:
                             var rgb = HsvToRgb(hue + checker * 0.08f, sat, 0.45f + stripes * 0.35f + noise * 0.1f);
+                            r = rgb.X;
+                            g = rgb.Y;
+                            b = rgb.Z;
                             r = rgb.X; g = rgb.Y; b = rgb.Z;
                             break;
                     }
@@ -368,6 +374,8 @@ namespace GDNN.Rendering.FrameGraph
 
         public void Dispose()
         {
+            if (_disposed)
+                return;
             if (_disposed) return;
             _disposed = true;
             foreach (var t in _cache.Values)
@@ -375,6 +383,12 @@ namespace GDNN.Rendering.FrameGraph
                 if (t != _white && t != _flatNormal && t != _ormDefault)
                     t.Dispose();
             }
+            foreach (var t in _procAlbedo.Values)
+                t.Dispose();
+            foreach (var t in _procNormal.Values)
+                t.Dispose();
+            foreach (var t in _procOrm.Values)
+                t.Dispose();
             foreach (var t in _procAlbedo.Values) t.Dispose();
             foreach (var t in _procNormal.Values) t.Dispose();
             foreach (var t in _procOrm.Values) t.Dispose();
