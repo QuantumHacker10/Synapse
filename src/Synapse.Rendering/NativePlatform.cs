@@ -29,6 +29,11 @@ namespace GDNN.Platform
         public bool GlfwAvailable { get; init; }
         public bool VulkanLoaderAvailable { get; init; }
         public bool MoltenVkLikely { get; init; }
+        public bool MoltenVkRecommended { get; init; }
+        public MoltenVkVersion? MoltenVkVersion { get; init; }
+        public LinuxDisplayServer LinuxDisplayServer { get; init; }
+        public bool WaylandSupported { get; init; }
+        public bool X11Supported { get; init; }
         public bool HwndEmbedSupported { get; init; }
         public NativeSurfaceBackend PreferredBackend { get; init; }
         public CpuCapabilities Cpu { get; init; } = null!;
@@ -65,7 +70,7 @@ namespace GDNN.Platform
             GlfwWindow.CreateVulkanSurface(vulkanInstance, window);
 
         public string[] GetRequiredInstanceExtensions() =>
-            GlfwWindow.GetRequiredInstanceExtensions();
+            VulkanSurfaceExtensions.GetRequiredSurfaceExtensions();
 
         public void DestroyWindow(IntPtr window)
         {
@@ -133,6 +138,15 @@ namespace GDNN.Platform
             bool linux = OperatingSystem.IsLinux();
             var cpu = CpuCapabilityProbe.Probe();
 
+            // Detect Linux display server
+            var linuxServer = VulkanSurfaceExtensions.DetectLinuxDisplayServer();
+            bool waylandSupported = linuxServer == LinuxDisplayServer.Wayland;
+            bool x11Supported = linuxServer == LinuxDisplayServer.X11 || linuxServer == LinuxDisplayServer.Unknown;
+
+            // Probe MoltenVK version on macOS
+            var moltenVkVersion = mac ? VulkanSurfaceExtensions.ProbeMoltenVkVersion() : null;
+            bool moltenVkRecommended = VulkanSurfaceExtensions.IsMoltenVkRecommended();
+
             var caps = new PlatformCapabilities
             {
                 Os = win ? OSPlatform.Windows : mac ? OSPlatform.OSX : OSPlatform.Linux,
@@ -144,10 +158,15 @@ namespace GDNN.Platform
                 GlfwAvailable = glfw,
                 VulkanLoaderAvailable = vulkan,
                 MoltenVkLikely = mac,
+                MoltenVkRecommended = moltenVkRecommended,
+                MoltenVkVersion = moltenVkVersion,
+                LinuxDisplayServer = linuxServer,
+                WaylandSupported = waylandSupported,
+                X11Supported = x11Supported,
                 HwndEmbedSupported = win,
                 PreferredBackend = glfw ? NativeSurfaceBackend.Glfw : NativeSurfaceBackend.None,
                 Cpu = cpu,
-                Summary = BuildSummary(win, linux, mac, glfw, vulkan, cpu)
+                Summary = BuildSummary(win, linux, mac, glfw, vulkan, cpu, moltenVkVersion, linuxServer)
             };
             _cached = caps;
             return caps;
@@ -172,6 +191,8 @@ namespace GDNN.Platform
         {
             _cached = null;
             CpuCapabilityProbe.InvalidateCache();
+            VulkanSurfaceExtensions.InvalidateDisplayServerCache();
+            VulkanSurfaceExtensions.InvalidateMoltenVkVersionCache();
         }
 
         private static bool TryProbeGlfw()
@@ -186,7 +207,6 @@ namespace GDNN.Platform
                             return true;
                     }
                 }
-                // GlfwWindow.Init may still succeed via DllImport resolver with fuller candidate list.
                 return GlfwWindow.IsAvailable();
             }
             catch
@@ -208,10 +228,12 @@ namespace GDNN.Platform
             }
         }
 
-        private static string BuildSummary(bool win, bool linux, bool mac, bool glfw, bool vulkan, CpuCapabilities cpu)
+        private static string BuildSummary(bool win, bool linux, bool mac, bool glfw, bool vulkan, CpuCapabilities cpu, MoltenVkVersion? moltenVkVersion, LinuxDisplayServer linuxServer)
         {
             string os = win ? "Windows" : mac ? "macOS (MoltenVK)" : linux ? "Linux" : "Unknown";
-            return $"{os}/{RuntimeInformation.RuntimeIdentifier}: GLFW={(glfw ? "ok" : "missing")}, Vulkan={(vulkan ? "ok" : "missing")}, SIMD={cpu.BaselineLabel}, primary=GLFW";
+            string displayServer = linux ? linuxServer.ToString() : "N/A";
+            string moltenVkInfo = mac && moltenVkVersion != null ? $" MoltenVK={moltenVkVersion}" : "";
+            return $"{os}/{RuntimeInformation.RuntimeIdentifier}: GLFW={(glfw ? "ok" : "missing")}, Vulkan={(vulkan ? "ok" : "missing")}, SIMD={cpu.BaselineLabel}, DisplayServer={displayServer}{moltenVkInfo}, primary=GLFW";
         }
     }
 }
