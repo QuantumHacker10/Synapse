@@ -54,6 +54,14 @@ namespace Synapse.Studio.ViewModels
             _host.ViewportEditor.ToolMode = ViewportToolMode.Translate;
             _host.ViewportEntitySelected += OnViewportEntitySelected;
             _host.InspectorFeedEntryAdded += OnInspectorFeedEntry;
+            _host.CollaborationPatchApplied += OnCollaborationPatchApplied;
+
+            WanSessionCode = config.WanSessionCode ?? "synapse-room";
+            WanPort = config.WanPort;
+            WanRendezvousPort = config.WanRendezvousPort;
+            VrStatusText = _host.VrStatusText;
+            WanStatusText = _host.WanStatusText;
+            WebStatusText = _host.WebStatusText;
 
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
             _uiTimer.Tick += (_, _) => RefreshStatus();
@@ -136,6 +144,13 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private string physicsToolsStatus = "Physique Omnia : mesh · joints · véhicule";
         [ObservableProperty] private bool isInspectorModeEnabled;
         [ObservableProperty] private string inspectorFeedStatus = "Mode inspecteur inactif";
+        [ObservableProperty] private string wanSessionCode = "synapse-room";
+        [ObservableProperty] private int wanPort = 7777;
+        [ObservableProperty] private int wanRendezvousPort;
+        [ObservableProperty] private string vrStatusText = "VR : off";
+        [ObservableProperty] private string wanStatusText = "WAN : off";
+        [ObservableProperty] private string webStatusText = "Web : prêt";
+        [ObservableProperty] private string collaborationStatus = "Collaboration inactive";
         private Guid? _jointPartnerId;
         private const int MaxInspectorFeedEntries = 500;
 
@@ -422,6 +437,24 @@ namespace Synapse.Studio.ViewModels
             else if (!EvolutionStatus.StartsWith("Terminé", StringComparison.Ordinal))
                 EvolutionStatus = "Inactif";
 
+            var giGpu = _host.RenderEngine?.SceneRenderer?.GiUsesGpuReadback ?? false;
+            GiStatus = giGpu ? "GI : lecture G-buffer GPU active" : "GI : constantes de repli";
+
+            VrStatusText = _host.VrStatusText;
+            WanStatusText = _host.WanStatusText;
+            WebStatusText = _host.WebStatusText;
+            CollaborationStatus = _host.IsWanConnected
+                ? $"WAN patches ↑{_host.WanPatchesSent} ↓{_host.WanPatchesReceived} | VR {(_host.IsVrActive ? "on" : "off")}"
+                : (_host.IsVrActive ? $"VR actif ({s.VrMs:F1} ms)" : "Collaboration inactive");
+        }
+
+        private void OnCollaborationPatchApplied(string peerId)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                RefreshEntities();
+                CollaborationStatus = $"Patch reçu de {peerId[..Math.Min(8, peerId.Length)]}…";
+            });
             var fillMode = _host.RenderEngine?.SceneRenderer?.LastGiFillMode ?? GiGBufferFillMode.None;
             GiStatus = fillMode switch
             {
@@ -618,7 +651,11 @@ namespace Synapse.Studio.ViewModels
                 : prompt;
 
             var response = await _host.ChatAsync(routedPrompt);
-            string content = response?.Content ?? "(aucune réponse)";
+            string content = response == null
+                ? "(aucune réponse)"
+                : response.IsError
+                    ? $"(erreur LLM) {response.ErrorMessage ?? "provider indisponible"}"
+                    : response.Content;
             ChatMessages.Add(new ChatMessageRecord
             {
                 Role = "Assistant",
@@ -746,12 +783,20 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task StartEvolutionAsync()
         {
-            if (!IsInspectorModeEnabled)
-                IsInspectorModeEnabled = true;
-            EvolutionStatus = "Démarrage…";
-            await Task.Run(async () => await _host.StartEvolutionAsync(20, 5));
-            EvolutionStatus = $"Terminé — gen {_host.EvolutionGeneration} fitness={_host.BestFitness:F3} (volume mis à jour)";
-            RefreshEntities();
+            try
+            {
+                if (!IsInspectorModeEnabled)
+                    IsInspectorModeEnabled = true;
+                EvolutionStatus = "Démarrage…";
+                await Task.Run(async () => await _host.StartEvolutionAsync(20, 5));
+                EvolutionStatus = $"Terminé — gen {_host.EvolutionGeneration} fitness={_host.BestFitness:F3} (volume mis à jour)";
+                RefreshEntities();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Evolution failed", ex);
+                EvolutionStatus = $"Erreur — {ex.Message}";
+            }
         }
 
         [RelayCommand]
@@ -760,74 +805,212 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task NewProjectAsync()
         {
-            await _host.LoadSceneAsync(null);
-            RefreshEntities();
-            RefreshLaws();
-            _projectPath = null;
+            try
+            {
+                await _host.LoadSceneAsync(null);
+                RefreshEntities();
+                RefreshLaws();
+                _projectPath = null;
+                LawStatus = "Nouveau projet";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "New project failed", ex);
+                LawStatus = $"Erreur nouveau projet — {ex.Message}";
+            }
         }
 
         [RelayCommand]
         private async Task OpenProjectAsync()
         {
-            var window = GetMainWindow();
-            if (window?.StorageProvider == null)
-                return;
-            var files = await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+            try
             {
-                Title = "Ouvrir un projet Synapse",
-                AllowMultiple = false,
-                FileTypeFilter = new[]
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var files = await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
                 {
-                    new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
+                    Title = "Ouvrir un projet Synapse",
+                    AllowMultiple = false,
+                    FileTypeFilter = new[]
                     {
-                        Patterns = new[] { "*.synapse", "*.json" }
+                        new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
+                        {
+                            Patterns = new[] { "*.synapse", "*.json" }
+                        }
                     }
-                }
-            });
-            var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
-            if (path == null)
-                return;
-            await _host.LoadSceneAsync(path);
-            GDNN.Streaming.AssetStreamer.AssetRootDirectory = Path.Combine(Path.GetDirectoryName(path)!, "assets");
-            _projectPath = path;
-            RefreshEntities();
-            RefreshLaws();
+                });
+                var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
+                if (path == null)
+                    return;
+                await _host.LoadSceneAsync(path);
+                GDNN.Streaming.AssetStreamer.AssetRootDirectory = Path.Combine(Path.GetDirectoryName(path)!, "assets");
+                _projectPath = path;
+                RefreshEntities();
+                RefreshLaws();
+                LawStatus = $"Ouvert — {Path.GetFileName(path)}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Open project failed", ex);
+                LawStatus = $"Erreur ouverture — {ex.Message}";
+            }
         }
 
         [RelayCommand]
         private async Task SaveProjectAsync()
         {
-            var path = _projectPath;
-            if (string.IsNullOrWhiteSpace(path))
+            try
+            {
+                var path = _projectPath;
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    var window = GetMainWindow();
+                    if (window?.StorageProvider == null)
+                        return;
+                    var file = await window.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+                    {
+                        Title = "Enregistrer le projet Synapse",
+                        DefaultExtension = "synapse",
+                        SuggestedFileName = "project.synapse",
+                        FileTypeChoices = new[]
+                        {
+                            new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
+                            {
+                                Patterns = new[] { "*.synapse" }
+                            }
+                        }
+                    });
+                    path = file?.TryGetLocalPath();
+                }
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                Directory.CreateDirectory(_config.ProjectsDirectory);
+                var assetsDir = Path.Combine(Path.GetDirectoryName(path)!, "assets");
+                Directory.CreateDirectory(assetsDir);
+                GDNN.Streaming.AssetStreamer.AssetRootDirectory = assetsDir;
+                await _host.SaveSceneAsync(path);
+                _projectPath = path;
+                _logger.Info("Studio", $"Saved {path}");
+                LawStatus = $"Enregistré — {Path.GetFileName(path)}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Save project failed", ex);
+                LawStatus = $"Erreur enregistrement — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task EnableVrAsync()
+        {
+            try
+            {
+                CollaborationStatus = "Démarrage OpenXR…";
+                bool ok = await _host.EnableVrAsync();
+                VrStatusText = _host.VrStatusText;
+                CollaborationStatus = ok ? "VR activé" : "VR indisponible";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "VR enable failed", ex);
+                CollaborationStatus = $"Erreur VR — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task DisableVrAsync()
+        {
+            await _host.DisableVrAsync();
+            VrStatusText = _host.VrStatusText;
+            CollaborationStatus = "VR arrêté";
+        }
+
+        [RelayCommand]
+        private async Task StartWanHostAsync()
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(WanSessionCode))
+                {
+                    CollaborationStatus = "Code de session requis";
+                    return;
+                }
+
+                CollaborationStatus = "Hébergement WAN…";
+                await _host.StartWanHostAsync(WanSessionCode.Trim(), WanPort);
+                WanStatusText = _host.WanStatusText;
+                WanRendezvousPort = _host.WanHub?.RendezvousPort ?? 0;
+                CollaborationStatus = $"Hôte prêt — rdv UDP {WanRendezvousPort}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "WAN host failed", ex);
+                CollaborationStatus = $"Erreur WAN host — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task JoinWanAsync()
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(WanSessionCode))
+                {
+                    CollaborationStatus = "Code de session requis";
+                    return;
+                }
+
+                CollaborationStatus = "Connexion WAN…";
+                await _host.JoinWanAsync(WanSessionCode.Trim(), WanRendezvousPort);
+                WanStatusText = _host.WanStatusText;
+                CollaborationStatus = "Connecté au pair WAN";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "WAN join failed", ex);
+                CollaborationStatus = $"Erreur WAN join — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task StopWanAsync()
+        {
+            await _host.StopWanAsync();
+            WanStatusText = _host.WanStatusText;
+            CollaborationStatus = "WAN arrêté";
+        }
+
+        [RelayCommand]
+        private async Task ExportWebStudioAsync()
+        {
+            try
             {
                 var window = GetMainWindow();
                 if (window?.StorageProvider == null)
                     return;
-                var file = await window.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+                var folder = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
                 {
-                    Title = "Enregistrer le projet Synapse",
-                    DefaultExtension = "synapse",
-                    SuggestedFileName = "project.synapse",
-                    FileTypeChoices = new[]
-                    {
-                        new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
-                        {
-                            Patterns = new[] { "*.synapse" }
-                        }
-                    }
+                    Title = "Exporter Synapse Web Studio (WASM)",
+                    AllowMultiple = false
                 });
-                path = file?.TryGetLocalPath();
-            }
-            if (string.IsNullOrWhiteSpace(path))
-                return;
+                var path = folder.Count > 0 ? folder[0].TryGetLocalPath() : null;
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
 
-            Directory.CreateDirectory(_config.ProjectsDirectory);
-            var assetsDir = Path.Combine(Path.GetDirectoryName(path)!, "assets");
-            Directory.CreateDirectory(assetsDir);
-            GDNN.Streaming.AssetStreamer.AssetRootDirectory = assetsDir;
-            await _host.SaveSceneAsync(path);
-            _projectPath = path;
-            _logger.Info("Studio", $"Saved {path}");
+                CollaborationStatus = "Publication Web Studio…";
+                var result = await _host.ExportWebStudioAsync(path);
+                WebStatusText = _host.WebStatusText;
+                CollaborationStatus = result.UsedDotnetPublish
+                    ? $"WASM publié — {result.OutputDirectory}"
+                    : $"Site WebGPU — {result.OutputDirectory}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Web export failed", ex);
+                CollaborationStatus = $"Erreur export web — {ex.Message}";
+            }
         }
 
         [RelayCommand]
@@ -893,24 +1076,38 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task SaveBlueprintAsync()
         {
-            var window = GetMainWindow();
-            if (window?.StorageProvider == null)
-                return;
-            var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            try
             {
-                Title = "Enregistrer le blueprint",
-                DefaultExtension = "blueprint.json",
-                SuggestedFileName = "agent.blueprint.json",
-                FileTypeChoices = new[]
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
                 {
-                    new FilePickerFileType("Blueprint") { Patterns = new[] { "*.blueprint.json", "*.json" } }
+                    Title = "Enregistrer le blueprint",
+                    DefaultExtension = "blueprint.json",
+                    SuggestedFileName = "agent.blueprint.json",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("Blueprint") { Patterns = new[] { "*.blueprint.json", "*.json" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (path == null)
+                    return;
+                var (ok, msg) = _blueprint.Validate();
+                if (!ok)
+                {
+                    BlueprintStatus = $"Validation échouée — {msg}";
+                    return;
                 }
-            });
-            var path = file?.TryGetLocalPath();
-            if (path == null)
-                return;
-            await _blueprint.SaveAsync(path);
-            BlueprintStatus = $"Enregistré : {path}";
+                await _blueprint.SaveAsync(path);
+                BlueprintStatus = $"Enregistré : {path}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Save blueprint failed", ex);
+                BlueprintStatus = $"Erreur enregistrement — {ex.Message}";
+            }
         }
 
         [RelayCommand]
@@ -960,34 +1157,42 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task ImportMegascansAsync()
         {
-            var window = GetMainWindow();
-            if (window?.StorageProvider == null)
-                return;
-
-            string? path = MegascansPath;
-            if (string.IsNullOrWhiteSpace(path))
+            try
             {
-                var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+
+                string? path = MegascansPath;
+                if (string.IsNullOrWhiteSpace(path))
                 {
-                    Title = "Dossier d'asset Megascans",
-                    AllowMultiple = false
-                });
-                path = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
-            }
+                    var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                    {
+                        Title = "Dossier d'asset Megascans",
+                        AllowMultiple = false
+                    });
+                    path = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+                }
 
-            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                {
+                    MegascansStatus = "Aucun dossier sélectionné";
+                    return;
+                }
+
+                MegascansPath = path;
+                MegascansStatus = "Import en cours…";
+                var entry = await _megascans.ImportAssetAsync(path);
+                MegascansStatus = entry.ImportSucceeded
+                    ? $"OK — {entry.Asset?.Name} ({entry.ImportDuration.TotalMilliseconds:F0} ms)"
+                    : $"Échec — {string.Join("; ", entry.Warnings)}";
+                _logger.Info("Megascans", MegascansStatus);
+            }
+            catch (Exception ex)
             {
-                MegascansStatus = "Aucun dossier sélectionné";
-                return;
+                _logger.Error("Studio", "Megascans import failed", ex);
+                MegascansStatus = $"Erreur import — {ex.Message}";
             }
-
-            MegascansPath = path;
-            MegascansStatus = "Import en cours…";
-            var entry = await _megascans.ImportAssetAsync(path);
-            MegascansStatus = entry.ImportSucceeded
-                ? $"OK — {entry.Asset?.Name} ({entry.ImportDuration.TotalMilliseconds:F0} ms)"
-                : $"Échec — {string.Join("; ", entry.Warnings)}";
-            _logger.Info("Megascans", MegascansStatus);
         }
 
         public void Dispose()
@@ -998,6 +1203,7 @@ namespace Synapse.Studio.ViewModels
             _uiTimer.Stop();
             _host.ViewportEntitySelected -= OnViewportEntitySelected;
             _host.InspectorFeedEntryAdded -= OnInspectorFeedEntry;
+            _host.CollaborationPatchApplied -= OnCollaborationPatchApplied;
             _megascans.Dispose();
             GC.SuppressFinalize(this);
         }

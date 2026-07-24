@@ -673,28 +673,59 @@ namespace GDNN.Llm
             object requestBody,
             CancellationToken cancellationToken)
         {
+            const int maxResponseBytes = 8 * 1024 * 1024;
             var url = BuildUrl(path);
-            var request = new HttpRequestMessage(HttpMethod.Post, url)
-            {
-                Content = new StringContent(
-                    JsonSerializer.Serialize(requestBody),
-                    Encoding.UTF8,
-                    "application/json")
-            };
-            request.Headers.Add("Authorization", $"Bearer {_apiKey}");
+            var json = JsonSerializer.Serialize(requestBody);
 
-            var response = await _httpClient.SendAsync(request, cancellationToken);
+            async Task<HttpResponseMessage> SendOnceAsync()
+            {
+                var request = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                };
+                request.Headers.Add("Authorization", $"Bearer {_apiKey}");
+                return await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            }
+
+            using var response = await SendOnceAsync().ConfigureAwait(false);
             HandleRateLimitHeaders(response);
 
             if (response.StatusCode == (HttpStatusCode)429)
             {
                 var retryAfter = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(5);
-                await Task.Delay(retryAfter, cancellationToken);
-                response = await _httpClient.SendAsync(request, cancellationToken);
+                await Task.Delay(retryAfter, cancellationToken).ConfigureAwait(false);
+                response.Dispose();
+                using var retry = await SendOnceAsync().ConfigureAwait(false);
+                HandleRateLimitHeaders(retry);
+                retry.EnsureSuccessStatusCode();
+                return await ReadCappedAsync(retry, maxResponseBytes, cancellationToken).ConfigureAwait(false);
             }
 
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync(cancellationToken);
+            return await ReadCappedAsync(response, maxResponseBytes, cancellationToken).ConfigureAwait(false);
+        }
+
+        private static async Task<string> ReadCappedAsync(
+            HttpResponseMessage response,
+            int maxBytes,
+            CancellationToken cancellationToken)
+        {
+            if (response.Content.Headers.ContentLength is long declared && declared > maxBytes)
+                throw new InvalidDataException($"LLM response exceeds {maxBytes} byte limit.");
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            using var ms = new MemoryStream();
+            var buffer = new byte[81920];
+            long total = 0;
+            int read;
+            while ((read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                total += read;
+                if (total > maxBytes)
+                    throw new InvalidDataException($"LLM response exceeds {maxBytes} byte limit.");
+                ms.Write(buffer, 0, read);
+            }
+            return Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
         private void HandleRateLimitHeaders(HttpResponseMessage response)

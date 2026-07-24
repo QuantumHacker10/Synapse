@@ -2,6 +2,16 @@
 
 ## Supported Versions
 
+| Version | Supported          |
+| ------- | ------------------ |
+| 2.2.x   | :white_check_mark: |
+| 2.1.x   | :white_check_mark: |
+| 2.0.x   | :white_check_mark: |
+| 1.3.x   | :white_check_mark: |
+| ≤ 1.2   | :x:                |
+
+> **Note maturité :** « Supported » ici = *versions pour lesquelles nous acceptons des
+> rapports de sécurité*, pas « production-ready ». Voir [docs/MATURITY.md](docs/MATURITY.md).
 | Version | Supported |
 | ------- | --------- |
 | 2.4.x   | :white_check_mark: |

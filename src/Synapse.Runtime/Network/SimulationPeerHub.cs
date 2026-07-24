@@ -1,13 +1,18 @@
+using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
+using Synapse.Core.Maturity;
 using System.Security.Cryptography;
 using Synapse.Infrastructure.Logging;
 
 namespace Synapse.Network;
 
-/// <summary>P2P session for collaborative simulations.</summary>
+/// <summary>EXPERIMENTAL — P2P session contract for collaborative simulations (lab only).</summary>
+[SynapseExperimental("Network.P2P", "Local/lab P2P surface; not a production collaborative network.")]
 public interface ISimulationPeerSession : IAsyncDisposable
 {
     string SessionId { get; }
@@ -36,6 +41,11 @@ public sealed class LocalSimulationPeerSession : ISimulationPeerSession
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
+/// <summary>
+/// EXPERIMENTAL — multi-peer TCP hub for lab collaborative sessions (v2.1+).
+/// Suitable for localhost experiments; not a production mesh. See <c>docs/MATURITY.md</c>.
+/// </summary>
+[SynapseExperimental("Network.P2P", "TCP multi-peer hub for localhost/lab; not production WAN mesh.")]
 /// <summary>Multi-peer P2P hub for collaborative simulation sessions (v2.1+).</summary>
 public sealed class MultiPeerSimulationHub : IAsyncDisposable
 {
@@ -44,6 +54,7 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
 
     private readonly ISynapseLogger _logger;
     private readonly ConcurrentDictionary<string, PeerConnection> _peers = new();
+    private readonly ConcurrentBag<Task> _receiveTasks = new();
     private readonly PeerEncryption? _auth;
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
@@ -81,7 +92,25 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
 
     public async Task ConnectAsync(string host, int port, CancellationToken ct = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(host);
+        if (port is <= 0 or > 65535)
+            throw new ArgumentOutOfRangeException(nameof(port));
+
         var client = new TcpClient();
+        try
+        {
+            await client.ConnectAsync(host, port, ct).ConfigureAwait(false);
+            var peerId = Guid.NewGuid().ToString("N");
+            var conn = new PeerConnection(peerId, client);
+            client = null; // ownership transferred
+            _peers[peerId] = conn;
+            _receiveTasks.Add(ReceiveLoopAsync(conn, _cts?.Token ?? ct));
+            _logger.Info("Network", $"Connected to peer at {host}:{port}");
+        }
+        finally
+        {
+            client?.Dispose();
+        }
         await client.ConnectAsync(host, port, ct).ConfigureAwait(false);
         var peerId = Guid.NewGuid().ToString("N");
         var conn = new PeerConnection(peerId, client);
@@ -128,10 +157,14 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
                 }
 
                 _peers[peerId] = conn;
-                _ = ReceiveLoopAsync(conn, ct);
+                _receiveTasks.Add(ReceiveLoopAsync(conn, ct));
                 _logger.Info("Network", $"Peer joined: {peerId} (total {_peers.Count + 1})");
             }
             catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (ObjectDisposedException)
             {
                 break;
             }
@@ -169,7 +202,7 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
                 ScenePatchReceived?.Invoke(peer.PeerId, payload);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.Warn("Network", $"Peer {peer.PeerId} disconnected: {ex.Message}");
         }
@@ -188,11 +221,24 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
             try
             { await _acceptTask.ConfigureAwait(false); }
             catch (OperationCanceledException) { }
+            catch (ObjectDisposedException) { }
         }
+
+        foreach (var task in _receiveTasks)
+        {
+            try
+            { await task.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false); }
+            catch (Exception)
+            {
+                // Best-effort drain.
+            }
+        }
+
         foreach (var peer in _peers.Values)
             peer.Dispose();
         _peers.Clear();
         _listener?.Stop();
+        _cts?.Dispose();
     }
 
     private sealed class PeerConnection : IDisposable
@@ -200,6 +246,7 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
         private readonly SemaphoreSlim _sendLock = new(1, 1);
+        private bool _disposed;
 
         public PeerConnection(string peerId, TcpClient client)
         {
@@ -236,6 +283,11 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
             {
                 return Array.Empty<byte>();
             }
+
+            int length = BitConverter.ToInt32(header, 0);
+            if (length <= 0 || length > 4 * 1024 * 1024)
+                throw new InvalidDataException($"Invalid P2P frame length: {length}");
+
             catch (IOException)
             {
                 return Array.Empty<byte>();
@@ -251,6 +303,12 @@ public sealed class MultiPeerSimulationHub : IAsyncDisposable
 
         public void Dispose()
         {
+            if (_disposed)
+                return;
+            _disposed = true;
+            _sendLock.Dispose();
+            _stream.Dispose();
+            _client.Dispose();
             try
             {
                 _stream.Dispose();
