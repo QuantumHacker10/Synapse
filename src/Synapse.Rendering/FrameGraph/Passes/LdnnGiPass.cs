@@ -4,11 +4,12 @@ namespace GDNN.Rendering.FrameGraph.Passes
 {
     /// <summary>
     /// L-DNN GI producer: Hybrid SSGI + Radiance Cascades + AO + fog → GPU textures.
-    /// Phase 1–2: CPU algorithms with batched upload; Phase 2+: compute kernels.
+    /// CPU phase uploads irradiance/AO/fog; GPU phase may dispatch resident compute (SSAO).
     /// </summary>
     public sealed class LdnnGiPass : IRenderPass
     {
         public string Name => "LdnnGi";
+        public RenderPassPhase Phase => RenderPassPhase.CpuProducer;
 
         public void Setup(FrameGraphBuilder builder)
         {
@@ -20,8 +21,7 @@ namespace GDNN.Rendering.FrameGraph.Passes
         public void Execute(FrameGraphContext context)
         {
             ArgumentNullException.ThrowIfNull(context);
-            if (context.RunLdnnCpuProducers)
-                context.Backend.OnFrameGraphLdnn(context);
+            context.Backend.OnFrameGraphLdnn(context);
         }
     }
 }

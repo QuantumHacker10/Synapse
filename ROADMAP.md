@@ -2,6 +2,8 @@
 
 Vision publique du projet. L'avancement réel est suivi via [GitHub Issues](https://github.com/QuantumHacker10/Synapse/issues) et [Discussions](https://github.com/QuantumHacker10/Synapse/discussions).
 
+**Maturité :** v2.3 = accès anticipé / R&D avancée — voir [docs/MATURITY.md](docs/MATURITY.md).
+Les items « Experimental » ne sont **pas** des capacités production.
 ## v2.10 — Actuel (2026-07) — OpenUSD MeshIO production-complete
 
 - [x] `faceVertexCounts` + authored normals + multi-mesh
@@ -88,13 +90,19 @@ Vision publique du projet. L'avancement réel est suivi via [GitHub Issues](http
 
 ## v2.0 — Fondations (2026-07)
 
-- [x] API plugin C# (chargement DLL sandboxé)
-- [x] Mode headless benchmarks automatisés
-- [x] Reproductibilité simulation (`SYNAPSE_SEED`)
-- [x] Import FBX ASCII + USD USDA
+## v2.2 — Actuel (2026-07)
+
+### Early access (cœur local)
+- [x] Synapse Studio + runtime unifié (cible Windows x64 + Vulkan)
+- [x] API plugin C# (chargement DLL sandboxé, surface encore mince)
+- [x] Mode headless benchmarks + reproductibilité (`SYNAPSE_SEED`)
+- [x] Import FBX ASCII + USD USDA (limité)
 - [x] Export scène glTF (entités + métadonnées Synapse)
 - [x] Blueprint runtime (exécution graphe en simulation)
 - [x] Marketplace lois (`.synapse-law`)
+- [x] Captures PNG Studio (`--screenshot`, Avalonia Headless + Skia)
+- [x] Matrice de maturité honnête (`docs/MATURITY.md`, `FeatureMaturityCatalog`)
+- [x] Scène lab `samples/lab-heat-agents.synapse` exercée en tests
 - [x] Découpage `LivingLawCompiler.cs` (68 fichiers)
 - [x] Couverture de code > 40 % (seuil CI Codecov)
 - [x] Fondations P2P, VR (OpenXR), preview web
@@ -103,12 +111,30 @@ Vision publique du projet. L'avancement réel est suivi via [GitHub Issues](http
 ## v2.1 — Livré (2026-07)
 ## v2.1 — (2026-07)
 
-- [x] Captures PNG Studio dans README (`docs/screenshots/*.png`)
-- [x] Découpage `LivingLawLibrary.cs` et `EntityBehaviorSystem.cs`
-- [x] P2P multi-pairs (`MultiPeerSimulationHub`)
-- [x] OpenXR session production (`OpenXrVulkanSession`)
-- [x] Éditeur web WebGPU (`site/editor/`, `WebEditorBuilder`)
+### EarlyAccess (collaboration / web branchés)
+- [x] P2P WAN NAT + AES-GCM branché EngineHost/Studio (STUN + hole-punch + patches scène)
+- [x] OpenXR / swapchain Vulkan branché EngineHost/FrameOrchestrator/Studio (Silk.NET natif)
+- [x] Éditeur web WASM / WebGPU (`Synapse.Web.Studio`, `ExportWebStudioAsync`)
 
+### Experimental (scaffolds — ne pas vendre comme production)
+- [x] P2P multi-pairs TCP labo (`MultiPeerSimulationHub`)
+
+## v2.3 — Durcissement (prochaine priorité)
+
+### Studio — ponts atelier (livré)
+- [x] Marketplace de lois dans Studio (import/export `.synapse-law`, catalogue)
+- [x] API plugins C# branchée dans Studio (chargement dossier, liste, statut)
+- [x] Jumeaux numériques dans Studio (jumeler, synchroniser, export snapshot)
+- [x] Export scène glTF depuis le menu Fichier
+- [x] Inspecteur d'arbre de comportement (agents sentients)
+- [x] Export du meilleur génome NEAT-G (JSON)
+- [x] Outil viewport **Échelle** (gizmo scale)
+
+### Qualité
+- [ ] Promouvoir au moins une surface cœur en tier **Supported** (Windows+GPU validé)
+- [ ] Couverture de code > 50 %
+- [ ] Réduction nette des warnings analyseurs sur Runtime / Physics / Core
+- [ ] Plus de scènes `samples/` couvertes en CI (joints, lois, agents)
 ## v2.2 — Livré (2026-07)
 ## v2.2 — (2026-07)
 
@@ -120,10 +146,12 @@ Vision publique du projet. L'avancement réel est suivi via [GitHub Issues](http
 ## v2.7+ — Prochaine release
 ## v2.4 — Communauté & qualité
 
-### Communauté
+### Honnêteté produit
+- [ ] Retirer ou remplacer les scaffolds Experimental restants avant toute claim « production »
 - [ ] Tutoriels vidéo (YouTube)
 - [ ] Serveur Discord communautaire actif
 
+### Moteur
 ### Qualité
 - [ ] Validation GPU manuelle matrice iGPU/discret (Windows/Linux/macOS)
 - [ ] Couverture de code > 80 %
@@ -157,7 +185,32 @@ Vision publique du projet. L'avancement réel est suivi via [GitHub Issues](http
 
 ### Studio
 - [ ] Blueprint éditable temps réel dans Studio
+- [ ] Import USD binaire (USDC)
 - [ ] Plugin marketplace hébergé
+
+## v2.5 — Moyen terme
+
+### Rendu
+- [ ] Path tracing L-DNN teacher offline (batch)
+- [ ] DLSS / FSR upscaling neural
+- [ ] Volumétriques avancées (fumée, incendie SPH couplé)
+
+### Physique
+- [ ] FEM tetrahedral (Corotational + Neo-Hookean)
+- [ ] Fluides incompressibles (LBM GPU)
+- [ ] Couplage thermo-mécanique bidirectionnel
+
+### IA & simulation
+- [ ] NEAT-G multi-objectif (forme + comportement)
+- [ ] Behavior trees éditables dans Studio
+- [ ] Jumeaux numériques persistants (export/import)
+
+## v3.0 — Long terme (vraies intégrations)
+
+- [ ] Réseau P2P collaboratif multi-pairs **hors labo**, validé sur NAT résidentiel (promotion WAN → Supported)
+- [ ] VR OpenXR validé sur Windows + HMD réel (promotion → Supported)
+- [ ] Éditeur web WASM + WebGPU complet au-delà de l'accès anticipé
+- [ ] Marketplace d'assets et de lois hébergé avec signatures
 
 ## Comment contribuer à la roadmap
 

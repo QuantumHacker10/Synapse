@@ -17,6 +17,7 @@ namespace Synapse.Studio
         public static FrameOrchestrator? Orchestrator { get; private set; }
         public static ISynapseLogger Logger { get; private set; } = SynapseLogger.Default;
         public static SynapseConfig Config { get; private set; } = new();
+        public static PluginHost? PluginHost { get; private set; }
         public static PluginHost? Plugins { get; set; }
 
         public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -32,13 +33,19 @@ namespace Synapse.Studio
                 Config = config;
                 Plugins = plugins;
 
+                var pluginHost = new PluginHost(logger);
+                if (!string.IsNullOrWhiteSpace(config.PluginDirectory))
+                    pluginHost.LoadFromDirectory(config.PluginDirectory, host);
+                PluginHost = pluginHost;
+
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = new MainWindowViewModel(host, orchestrator, logger, config)
+                    DataContext = new MainWindowViewModel(host, orchestrator, logger, config, pluginHost)
                 };
 
                 desktop.Exit += async (_, _) =>
                 {
+                    PluginHost?.Dispose();
                     try
                     {
                         Plugins?.Dispose();
@@ -79,6 +86,7 @@ namespace Synapse.Studio
             host.InitializeModules();
             if (!string.IsNullOrWhiteSpace(config.ScenePath))
                 host.LoadSceneAsync(config.ScenePath).GetAwaiter().GetResult();
+            host.ApplyOptionalCollaborationFromConfigAsync().GetAwaiter().GetResult();
 
             var plugins = new PluginHost(logger);
             if (!string.IsNullOrWhiteSpace(config.PluginDirectory))

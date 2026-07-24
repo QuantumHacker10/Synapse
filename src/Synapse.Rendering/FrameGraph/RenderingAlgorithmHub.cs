@@ -226,6 +226,9 @@ namespace GDNN.Rendering.FrameGraph
 
             VirtualShadows = new VirtualShadowMap(Math.Max(64, width / 8), Math.Max(64, height / 8), new VSMConfig
             {
+                ClipmapLevels = 3,
+                TileSize = 64,
+                VirtualResolution = 512,
                 ClipmapLevels = 4,
                 TileSize = 64,
                 VirtualResolution = 1024,
@@ -420,8 +423,9 @@ namespace GDNN.Rendering.FrameGraph
 
             try
             {
+                // Live present path: polygonize the trained/streamed SDF when available.
                 NeuralGeometry = new NeuralGeometryPipeline(
-                    DefaultSdfNetwork,
+                    LivePolygonSdf,
                     DefaultBounds,
                     new NeuralGeometryPipelineOptions
                     {
@@ -443,6 +447,7 @@ namespace GDNN.Rendering.FrameGraph
         {
             float dt = ComputeDelta(time);
             _gdnnTick++;
+            BeginGdnnFrame();
             _lastCullWidth = Math.Max(1, width);
             _lastCullHeight = Math.Max(1, height);
 
@@ -454,16 +459,18 @@ namespace GDNN.Rendering.FrameGraph
             if ((_gdnnTick & 7) == 0)
                 VirtualTextures.BlitResidentPagesToAtlas();
 
-            EnsureNeuralGeometry();
+            // Coverage (trainers / streamer) before NeuralGeometry so live SDF drives polygonization.
             EnsureGpuShaderResidency();
             EnsureGdnnFullCoverage();
+            EnsureNeuralGeometry();
 
+            var camRight = SafeRight(cameraForward);
             var camState = new CameraState
             {
                 Position = cameraPos,
                 Forward = cameraForward,
                 Up = Vector3.UnitY,
-                Right = SafeRight(cameraForward),
+                Right = camRight,
                 FieldOfView = MathF.PI / 3f,
                 ScreenWidth = width,
                 ScreenHeight = height,
@@ -473,14 +480,19 @@ namespace GDNN.Rendering.FrameGraph
 
             SceneEvaluator.BeginFrame(viewProj, cameraPos, cameraForward);
             _ = SceneEvaluator.TraceRay(new TracingRay(cameraPos, cameraForward, 40f), cameraPos);
+            Span<TracingRay> batchRays = stackalloc TracingRay[4];
+            Span<SurfaceHit> batchHits = stackalloc SurfaceHit[4];
+            for (int i = 0; i < batchRays.Length; i++)
+                batchRays[i] = new TracingRay(cameraPos, Vector3.Normalize(cameraForward + camRight * ((i - 1.5f) * 0.05f)), 40f);
+            SceneEvaluator.BatchTraceRays(batchRays, batchHits, cameraPos);
             _ = SceneEvaluator.EndFrame(0.01f);
 
-            // SIMD batch SDF + hierarchical cache + wave evaluator (every frame, tiny batch).
+            // SIMD batch SDF on the LIVE polygon SDF + hierarchical cache + wave evaluator.
             Span<Vector3> pts = stackalloc Vector3[8];
             Span<float> dists = stackalloc float[8];
             for (int i = 0; i < pts.Length; i++)
                 pts[i] = cameraPos + cameraForward * (0.5f + i * 0.35f) + new Vector3(0.1f * i, 0, 0);
-            BatchSdfEvaluator.EvaluateBatch(DefaultSdfNetwork, pts, dists);
+            BatchSdfEvaluator.EvaluateBatch(LivePolygonSdf, pts, dists);
             LastBatchSdfMs = (float)BatchSdfEvaluator.LastBatchTimeMs;
             if (LastSdfDistances.Length != dists.Length)
                 LastSdfDistances = new float[dists.Length];
@@ -492,12 +504,13 @@ namespace GDNN.Rendering.FrameGraph
             _ = SdfCache.TryLookupSimple(pts[0], out _);
             _ = Gradients.ComputeCentralDifference(MicroNetwork, pts[0]);
             TickGdnnInfrastructure(pts, dists, cameraPos, dt);
+            TickStreamedNetworkEval(pts);
 
             // Staggered Vulkan SDF compute on the dedicated second device (when available).
             if ((_gdnnTick % 15) == 3)
                 TickGpuSdf(pts);
 
-            // Sphere tracer + surface evaluator (staggered).
+            // Sphere tracer + surface evaluator + GridEvaluator (staggered).
             if ((_gdnnTick & 3) == 0)
             {
                 var ray = new TracingRay(cameraPos, cameraForward, 50f);
@@ -508,6 +521,7 @@ namespace GDNN.Rendering.FrameGraph
                     LastHyperSdfSample = HyperGeneratedMlp.Evaluate(pts[0]);
                 if (ReferenceSphere != null)
                     _ = ReferenceSphere.SignedDistance(pts[0]);
+                TickGridEvaluator(cameraPos, cameraForward, camRight);
             }
 
             // JobSystem + ParallelEvaluator + work-stealing residency.
@@ -525,11 +539,12 @@ namespace GDNN.Rendering.FrameGraph
             }
             StealPool.Submit(() => { _ = IntrinsicsHelper.IsAvx2Supported; });
 
-            // Spatial structures + animation + memory pools.
+            // Spatial structures + queries + animation + memory pools.
             SpatialHash.Insert(0, cameraPos);
             ConcurrentSpatial.Insert(0, cameraPos);
             SpatialOctree.Insert(0, cameraPos);
             LooseSpatial.Insert(0, cameraPos);
+            TickSpatialQueries(cameraPos, cameraForward);
             TickGdnnAnimation(dt);
 
             var view = CameraView.CreatePerspectiveLookAt(
@@ -546,6 +561,16 @@ namespace GDNN.Rendering.FrameGraph
                 var report = NeuralGeometry.Tick(view, trainBudgetMs: 0.25);
                 LastVisibleMeshlets = report.VisibleClusters?.Count ?? 0;
 
+                // Live path: NeuralGeometry.RenderFrame (LOD chain) → G-buffer inject + fog/GI.
+                // Dense Nanite-like meshlets: high poly extract + screen-scale visibility raster.
+                // Prefer GPU dispatcher; fall back to SoftwareRasterizer. Feeds G-buffer inject + GI/fog.
+                if ((_gdnnTick % 3) == 1 && report.VisibleClusters is { Count: > 0 })
+                {
+                    try
+                    {
+                        PresentFromNeuralGeometry(view, report);
+                        // denser grid → many small clusters filling the frame (Nanite-like look)
+                        int polyRes = Math.Clamp(Math.Max(_lastCullWidth, _lastCullHeight) / 48, 20, 36);
                 // Dense Nanite Neural 3.0 meshlets: continuous LOD + screen-error density.
                 // Prefer GPU dispatcher; fall back to SoftwareRasterizer. Feeds G-buffer inject + GI/fog.
                 float projected = NaniteNeural30.ProjectedRadiusPx(
@@ -575,6 +600,9 @@ namespace GDNN.Rendering.FrameGraph
                         var meshlets = MeshletBuilder.Build(mesh);
                         LastVisibleMeshlets = Math.Max(LastVisibleMeshlets, meshlets.Count);
 
+                        // Visibility buffer at ~½ viewport (capped) so clusters read as tiny tiles on screen.
+                        int rastW = Math.Clamp(_lastCullWidth / 2, 256, 512);
+                        int rastH = Math.Clamp(_lastCullHeight / 2, 256, 512);
                         var (rastW, rastH) = NaniteNeural30.VisibilityBufferSize(
                             _lastCullWidth, _lastCullHeight, lod01, policy);
                         if (CinematicNanite)
@@ -605,16 +633,29 @@ namespace GDNN.Rendering.FrameGraph
 
             if (MeshletStreamer != null)
             {
+                try
+                { PresentFromMeshletStreamer(view); }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Warn("AlgorithmHub", "Meshlet streamer present skipped.", ex);
+                }
                 var keys = MeshletStreamer.QueryVisible(view, level: LastNeuralLod >= 0 ? LastNeuralLod : 0);
                 LastVisibleMeshlets = Math.Max(LastVisibleMeshlets, keys.Count);
                 foreach (var key in keys)
                     _ = MeshletStreamer.GetOrLoad(key);
+
+                // Feed resident streamed clusters into the present raster path on ticks where the
+                // densify polygonizer did NOT already rebuild _lastRasterTarget (%3==1). Without
+                // this, off-core meshlet streaming only warmed the LRU cache and never reached screen.
+                if (keys.Count > 0 && (_gdnnTick % 3) != 1)
+                    TryRasterizeStreamedClusters(view);
             }
 
             Geometry.ClearCommands();
             if (_geometryMeshId >= 0)
                 Geometry.SubmitDraw(_geometryMeshId, Matrix4x4.Identity);
-            _ = Geometry.FlushCommands();
+            var batches = Geometry.FlushCommands();
+            LastGeometryBatches = batches?.Count ?? 0;
 
             ProfilerGlobal.Current = GdnnProfiler;
             GdnnProfiler.BeginSection("GdnnCull");
@@ -630,26 +671,6 @@ namespace GDNN.Rendering.FrameGraph
 
         public float SampleVirtualShadow(Vector3 worldPos, Vector3 lightDir)
             => VirtualShadows.SampleShadow(worldPos, lightDir);
-
-        public void TickPost(Vector3 cameraPos, float time)
-        {
-            float dt = ComputeDelta(time);
-            Particles.Update(dt, cameraPos);
-            LastParticleCount = Particles.ActiveParticles;
-
-            try
-            {
-                var empty = Array.Empty<ComputeBuffer>();
-                Compute.Dispatch("particle_update", 1, 1, 1, empty);
-                Compute.Dispatch("taa_resolve", 1, 1, 1, empty);
-                Compute.Dispatch("shadow_filter", 1, 1, 1, empty);
-                Compute.Dispatch("bloom_downsample", 1, 1, 1, empty);
-            }
-            catch (Exception ex)
-            {
-                SynapseLogger.Default.Warn("AlgorithmHub", "Compute tick skipped.", ex);
-            }
-        }
 
         public void CompositeParticlesIntoFog(Vector3[,] fog, Matrix4x4 viewProj, int width, int height)
         {
@@ -799,6 +820,16 @@ namespace GDNN.Rendering.FrameGraph
             if (!target.TryDecode(sx, sy, out int meshletIdx, out int triIdx))
                 return new Vector3(0.55f, 0.58f, 0.62f);
 
+            // Hash meshlet+triangle → distinct tile color (virtualized cluster look).
+            uint h = unchecked((uint)(meshletIdx * 73856093) ^ (uint)(triIdx * 19349663));
+            float r = ((h) & 255) / 255f;
+            float g = ((h >> 8) & 255) / 255f;
+            float b = ((h >> 16) & 255) / 255f;
+            // Keep in a PBR-friendly mid range with slight cool bias for rock/metal feel.
+            return new Vector3(
+                0.28f + r * 0.55f,
+                0.30f + g * 0.50f,
+                0.32f + b * 0.48f);
             var mat = NaniteNeural30.ResolveClusterMaterial(meshletIdx, triIdx, LastNaniteLod);
             return new Vector3(mat.X, mat.Y, mat.Z);
         }
@@ -843,8 +874,18 @@ namespace GDNN.Rendering.FrameGraph
             for (int i = 0; i < LastSdfDistances.Length; i++)
                 mean += MathF.Abs(LastSdfDistances[i]);
             mean /= LastSdfDistances.Length;
-            // Closer surface → stronger AO (darker).
-            float contact = Math.Clamp(1f - mean * 0.35f, 0.55f, 1f);
+
+            // Fold HyperNetwork / streamed SDF samples into contact AO so those modules paint.
+            float hyper = MathF.Abs(LastHyperSdfSample);
+            float extra = 0f;
+            if (_streamedEvalNetwork != null)
+            {
+                try
+                { extra = MathF.Abs(_streamedEvalNetwork.Evaluate(LastSdfSampleOrigin)); }
+                catch { /* ignore */ }
+            }
+            float blended = mean * 0.7f + hyper * 0.15f + extra * 0.15f;
+            float contact = Math.Clamp(1f - blended * 0.35f, 0.55f, 1f);
 
             // Soft vignette toward screen center along the sample ray.
             for (int y = 0; y < height; y++)
@@ -957,6 +998,90 @@ namespace GDNN.Rendering.FrameGraph
             var stats = SoftwareRasterizer.Rasterize(cpuTarget, mesh, meshlets, view);
             LastSoftwareRasterPixels = stats.TrianglesRasterized;
             return cpuTarget;
+        }
+
+        /// <summary>
+        /// Builds a composite <see cref="NeuralPolygonMesh"/> + <see cref="NeuralMeshlet"/> list from
+        /// up to 48 resident streamed clusters and rasterizes them into <see cref="_lastRasterTarget"/>
+        /// so off-core meshlet streaming feeds the present path (fog / GI / G-buffer inject).
+        /// </summary>
+        private void TryRasterizeStreamedClusters(in CameraView view)
+        {
+            if (MeshletStreamer == null)
+                return;
+
+            try
+            {
+                int level = LastNeuralLod >= 0 ? LastNeuralLod : 0;
+                var keys = MeshletStreamer.QueryVisible(view, level);
+                if (keys.Count == 0)
+                    return;
+
+                var positions = new System.Collections.Generic.List<Vector3>();
+                var normals = new System.Collections.Generic.List<Vector3>();
+                var indices = new System.Collections.Generic.List<int>();
+                var meshlets = new System.Collections.Generic.List<NeuralMeshlet>();
+
+                int taken = 0;
+                foreach (var key in keys)
+                {
+                    if (taken >= 48)
+                        break;
+                    if (!MeshletStreamer.TryGetResident(key, out var cluster))
+                        continue;
+                    if (cluster.VertexCount == 0 || cluster.TriangleCount == 0)
+                        continue;
+
+                    int baseVertex = positions.Count;
+                    for (int i = 0; i < cluster.Positions.Length; i++)
+                    {
+                        positions.Add(cluster.Positions[i]);
+                        normals.Add(i < cluster.Normals.Length ? cluster.Normals[i] : Vector3.UnitY);
+                    }
+
+                    var vertexIndices = new int[cluster.VertexCount];
+                    for (int i = 0; i < vertexIndices.Length; i++)
+                        vertexIndices[i] = baseVertex + i;
+
+                    var local = cluster.LocalIndices;
+                    for (int i = 0; i < local.Length; i++)
+                        indices.Add(baseVertex + local[i]);
+
+                    meshlets.Add(new NeuralMeshlet
+                    {
+                        VertexIndices = vertexIndices,
+                        LocalIndices = local,
+                        Bounds = cluster.Bounds,
+                        ConeAxis = cluster.ConeAxis,
+                        ConeCutoff = cluster.ConeCutoff
+                    });
+                    taken++;
+                }
+
+                if (meshlets.Count == 0 || indices.Count == 0)
+                    return;
+
+                var mesh = new NeuralPolygonMesh
+                {
+                    Positions = positions.ToArray(),
+                    Normals = normals.ToArray(),
+                    Indices = indices.ToArray()
+                };
+
+                int rastW = Math.Clamp(_lastCullWidth / 2, 256, 512);
+                int rastH = Math.Clamp(_lastCullHeight / 2, 256, 512);
+                RasterTarget target = RasterizeMeshlets(mesh, meshlets, view, rastW, rastH);
+                LastRasterCoveredPixels = target.CountCoveredPixels();
+                _lastRasterTarget = target;
+                _lastMeshlets = meshlets;
+                _lastRasterMesh = mesh;
+                LastVisibleMeshlets = Math.Max(LastVisibleMeshlets, meshlets.Count);
+                QueuePresentMesh(mesh, unchecked((long)_gdnnTick * 2654435761L));
+            }
+            catch (Exception ex)
+            {
+                SynapseLogger.Default.Warn("AlgorithmHub", "Streamed cluster raster tick skipped.", ex);
+            }
         }
 
         private void QueuePresentMesh(NeuralPolygonMesh mesh, long version)

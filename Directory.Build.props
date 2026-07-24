@@ -1,5 +1,9 @@
 <Project>
   <PropertyGroup>
+    <Version>2.3.0</Version>
+    <AssemblyVersion>2.3.0.0</AssemblyVersion>
+    <FileVersion>2.3.0.0</FileVersion>
+    <InformationalVersion>2.3.0</InformationalVersion>
     <Version>2.10.0</Version>
     <AssemblyVersion>2.10.0.0</AssemblyVersion>
     <FileVersion>2.10.0.0</FileVersion>
@@ -15,7 +19,7 @@
     <AnalysisMode>Default</AnalysisMode>
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
-    <!-- Style/legacy noise: suppressed globally across the research codebase. -->
+    <!-- Style/legacy noise: suppressed globally (early-access / R&D codebase — see docs/MATURITY.md). -->
     <NoWarn>$(NoWarn);CA1305;CA1707;CA1716;CA1720;CA1725;CA1805;CA1819;CA1822;CA1848;CA1859;CA1861;CA2201;CA2211;IDE0005;IDE0007;IDE0011;IDE0040;IDE0055;IDE0060;IDE0078;IDE0090;IDE0130;IDE0290;IDE1006</NoWarn>
     <!-- Robustness (CA1062 null args, CA2007 ConfigureAwait): enabled on Synapse.Core and Synapse.Runtime only. -->
     <NoWarn Condition="'$(MSBuildProjectName)' != 'Synapse.Core' And '$(MSBuildProjectName)' != 'Synapse.Runtime'">$(NoWarn);CA1062;CA2007</NoWarn>

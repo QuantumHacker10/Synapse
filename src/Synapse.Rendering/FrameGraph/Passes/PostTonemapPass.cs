@@ -6,6 +6,7 @@ namespace GDNN.Rendering.FrameGraph.Passes
     public sealed class PostTonemapPass : IRenderPass
     {
         public string Name => "PostTonemap";
+        public RenderPassPhase Phase => RenderPassPhase.Gpu;
 
         public void Setup(FrameGraphBuilder builder)
         {

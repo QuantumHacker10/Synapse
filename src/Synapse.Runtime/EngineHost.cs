@@ -26,10 +26,10 @@ namespace Synapse.Runtime
     /// and scene I/O. Call <see cref="InitializeModules"/> once, then either
     /// <see cref="InitializeRender"/> (GLFW) or <see cref="InitializeRenderFromHwnd"/>
     /// (embedded Windows viewport). Per-frame work is driven by <see cref="FrameOrchestrator"/>
-    /// via <see cref="TickPhysics"/>, <see cref="TickSimulationAsync"/>, and
-    /// <see cref="TickRender"/>.
+    /// via the native <see cref="NativeFramePipeline"/> (Physics → Simulation → Sync →
+    /// Render FrameGraph → Quality).
     /// </summary>
-    public sealed class EngineHost : IAsyncDisposable
+    public sealed partial class EngineHost : IAsyncDisposable
     {
         private readonly SynapseConfig _config;
         private readonly ISynapseLogger _logger;
@@ -53,7 +53,11 @@ namespace Synapse.Runtime
         private bool _evolutionInProgress;
         private bool _simulationPlaying = true;
         private string _llmProviderSummary = "LLM not initialized";
+        private string? _lastRuntimeError;
+        private long _runtimeErrorCount;
         private readonly ViewportEditorState _viewportEditor = new();
+        private readonly List<Task> _backgroundWork = new();
+        private readonly object _backgroundGate = new();
         private BlueprintRuntimeExecutor? _blueprintExecutor;
         private string? _liveBlueprintName;
         private Guid? _liveBlueprintAgentId;
@@ -67,6 +71,14 @@ namespace Synapse.Runtime
         /// <summary>Viewport gizmo/grid/selection state for Studio.</summary>
         public ViewportEditorState ViewportEditor => _viewportEditor;
 
+        /// <summary>Most recent hot-path failure message (physics/simulation/IO), if any.</summary>
+        public string? LastRuntimeError => _lastRuntimeError;
+
+        /// <summary>Monotonic count of hot-path failures since process start.</summary>
+        public long RuntimeErrorCount => Interlocked.Read(ref _runtimeErrorCount);
+
+        /// <summary>True when the active law runs a degraded numeric stub instead of the requested expression.</summary>
+        public bool IsLawDegraded { get; private set; }
         /// <summary>Industrial LLM→Physics→Rendering→Simulation cascade.</summary>
         public OmniaIndustrialPipeline? IndustrialPipeline => _industrialPipeline;
 
@@ -111,7 +123,7 @@ namespace Synapse.Runtime
         public IDigitalTwinRegistry Twins => _twins;
 
         /// <summary>Whether <see cref="InitializeRender"/> or <see cref="InitializeRenderFromHwnd"/> completed.</summary>
-        public bool IsRenderInitialized => _renderInitialized;
+        public bool IsRenderInitialized => _renderInitialized && _renderEngine != null;
 
         /// <summary>When false, <see cref="TickSimulationAsync"/> is skipped.</summary>
         public bool SimulationPlaying
@@ -128,6 +140,9 @@ namespace Synapse.Runtime
 
         /// <summary>Number of sentient entities in the simulation.</summary>
         public int EntityCount => _sentience?.EntityCount ?? 0;
+
+        /// <summary>Scene document entity count (status bar / FrameGraph sync).</summary>
+        public int SceneEntityCount => _scene.Entities.Count;
 
         /// <summary>Human-readable quality preset from the adaptive quality manager.</summary>
         public string QualityPresetName => _quality?.CurrentLevel.Preset.ToString() ?? _config.QualityPreset;
@@ -172,6 +187,9 @@ namespace Synapse.Runtime
                     Gravity = new Vector3(0f, -9.81f, 0f),
                     SyncFieldFromRigidBodies = true
                 });
+            // Native continuum folders (SPH + elasticity) — wired into the multiphysics step.
+            _multiphysics.EnableSph();
+            _multiphysics.EnableElasticity();
             // Industrial continuum ready: solvers warm; LLM law EnableModules can turn them on.
             _multiphysics.EnableSph();
             _multiphysics.EnableElasticity();
@@ -199,9 +217,12 @@ namespace Synapse.Runtime
             twin.SetProperty("Name", _scene.Name);
             twin.SetProperty("EntityType", GDNN.Sentience.EntityType.Environmental.ToString());
             _twins.Register(twin);
+            RefreshTwinStatus();
 
             PlatformCaps = NativePlatform.Probe();
             _modulesInitialized = true;
+            _logger.Info("EngineHost",
+                "Modules initialized (Physics[LivingLaws+Rigid+SPH+Elasticity], Simulation, LLM, Quality, Twins, MeshProvider)");
             _logger.Info("EngineHost", "Modules initialized (Physics+SPH+Elasticity, Simulation, LLM, IndustrialPipeline, Quality, Twins, MeshProvider)");
             _logger.Info("Platform", PlatformCaps.Summary);
         }
@@ -326,7 +347,7 @@ namespace Synapse.Runtime
             }
             catch (Exception ex)
             {
-                _logger.Warn("Physics", $"Multiphysics step failed: {ex.Message}");
+                RecordRuntimeError("Physics", $"Multiphysics step failed: {ex.Message}");
             }
 
             if (_multiphysics.LastStats.TotalMs > budget.TotalMilliseconds)
@@ -346,8 +367,49 @@ namespace Synapse.Runtime
             }
             catch (Exception ex)
             {
-                _logger.Warn("Simulation", $"Tick failed: {ex.Message}");
+                RecordRuntimeError("Simulation", $"Tick failed: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Writes sentience agent transforms back into the scene document and renderer.
+        /// Native Simulation → Scene → Rendering bridge.
+        /// </summary>
+        public void SyncSimulationTransformsToScene()
+        {
+            if (_sentience == null)
+                return;
+
+            bool dirty = false;
+            foreach (var agent in _sentience.GetAllEntities())
+            {
+                var entity = _scene.Entities.Find(e => e.Id == agent.EntityId);
+                if (entity == null)
+                    continue;
+
+                var p = agent.Position;
+                if (MathF.Abs(p.X - entity.Position.X) > 1e-4f
+                    || MathF.Abs(p.Y - entity.Position.Y) > 1e-4f
+                    || MathF.Abs(p.Z - entity.Position.Z) > 1e-4f)
+                {
+                    entity.Position = Vec3.From(p);
+                    dirty = true;
+                }
+            }
+
+            if (dirty && _renderInitialized)
+                SyncSceneToRenderer();
+        }
+
+        /// <summary>
+        /// Pushes living-law / continuum field temperature into L-DNN volumetric fog.
+        /// Native Physics → Rendering bridge (no-op when render is not ready).
+        /// </summary>
+        public void PushPhysicsFieldToRenderer()
+        {
+            if (!_renderInitialized || _renderEngine == null)
+                return;
+            _renderEngine.ApplyPhysicsFieldInfluence(AverageFieldTemperature);
         }
 
         /// <summary>Submits one Vulkan frame when the render engine is initialized and not paused.</summary>
@@ -360,13 +422,26 @@ namespace Synapse.Runtime
             _renderEngine.RenderFrame();
         }
 
-        /// <summary>Feeds frame timing into the adaptive quality manager.</summary>
-        public void TickQuality(float dt, float frameMs)
+        /// <summary>
+        /// Feeds frame timing into the adaptive quality manager and applies the
+        /// resulting level to the FrameGraph (LOD / shadows / GI / post).
+        /// </summary>
+        public void TickQuality(float dt, float physicsMs, float simulationMs, float renderMs)
         {
             if (_quality == null)
                 return;
-            _quality.ReportFrame(frameMs, 0, 0, frameMs);
+
+            float frameMs = Math.Max(0.01f, physicsMs + simulationMs + renderMs);
+            int draws = _renderEngine?.SceneRenderer?.MeshCount ?? 0;
+            int tris = _renderEngine?.SceneRenderer?.TriangleCount ?? 0;
+            _quality.ReportFrame(frameMs, draws, tris, renderMs);
             _quality.Update(dt);
+
+            if (_renderInitialized && _renderEngine != null)
+            {
+                var level = _quality.GetEffectiveQuality();
+                _renderEngine.ApplyRuntimeQuality(RuntimeQualityMapper.FromLevel(level));
+            }
             PushAaaQualityToRenderer();
         }
 
@@ -383,6 +458,10 @@ namespace Synapse.Runtime
                 giCascadeResolution: level.GICascadeResolution,
                 ssaoQuality: level.SSAOQuality);
         }
+
+        /// <summary>Feeds frame timing into the adaptive quality manager (render-only budget).</summary>
+        public void TickQuality(float dt, float frameMs)
+            => TickQuality(dt, 0f, 0f, frameMs);
 
         /// <summary>Activates a built-in law from the library by id.</summary>
         public CompilationResult ApplyLaw(string lawId)
@@ -453,12 +532,14 @@ namespace Synapse.Runtime
             }
             catch (Exception ex)
             {
-                _logger.Warn("LLM", $"Chat failed (providers may be offline): {ex.Message}");
+                RecordRuntimeError("LLM", $"Chat failed (providers may be offline): {ex.Message}");
                 return new LlmResponse
                 {
-                    Content = $"[Synapse offline reply] No LLM provider available. Configure Ollama at {_config.Llm.OllamaBaseUrl} or set API keys. Echo: {prompt}",
-                    Provider = "Offline",
-                    Model = "none"
+                    Content = string.Empty,
+                    Provider = "Unavailable",
+                    Model = "none",
+                    FinishReason = FinishReason.Error,
+                    ErrorMessage = $"No LLM provider available. Configure Ollama at {_config.Llm.OllamaBaseUrl} or set API keys. ({ex.Message})"
                 };
             }
         }
@@ -908,7 +989,9 @@ namespace Synapse.Runtime
 
             var selected = _scene.Entities.Find(e => e.Id == _viewportEditor.SelectedEntityId);
             if (selected != null && _viewportEditor.ShowGizmos &&
-                (_viewportEditor.ToolMode == ViewportToolMode.Translate || _viewportEditor.ToolMode == ViewportToolMode.Rotate))
+                (_viewportEditor.ToolMode == ViewportToolMode.Translate ||
+                 _viewportEditor.ToolMode == ViewportToolMode.Rotate ||
+                 _viewportEditor.ToolMode == ViewportToolMode.Scale))
             {
                 var axis = ViewportInteraction.PickGizmoAxis(ray, selected.Position.ToVector3(), selected.Scale.ToVector3());
                 if (axis != GizmoAxis.None)
@@ -917,6 +1000,7 @@ namespace Synapse.Runtime
                     _viewportEditor.IsDragging = true;
                     _viewportEditor.DragStartPosition = selected.Position.ToVector3();
                     _viewportEditor.DragStartRotation = selected.Rotation.ToVector3();
+                    _viewportEditor.DragStartScale = selected.Scale.ToVector3();
                     _viewportEditor.DragStartMouseX = x;
                     _viewportEditor.DragStartMouseY = y;
                     return;
@@ -965,6 +1049,8 @@ namespace Synapse.Runtime
 
             if (_viewportEditor.ToolMode == ViewportToolMode.Rotate)
                 ViewportInteraction.ApplyRotateDrag(_viewportEditor, entity, x, y);
+            else if (_viewportEditor.ToolMode == ViewportToolMode.Scale)
+                ViewportInteraction.ApplyScaleDrag(_viewportEditor, entity, x, y);
             else
                 ViewportInteraction.ApplyTranslateDrag(_viewportEditor, entity, x, y, view, proj, fbW, fbH);
 
@@ -1178,11 +1264,18 @@ namespace Synapse.Runtime
             // Mesh-backed colliders + optional vehicles (Synapse Omnia extensions).
             foreach (var e in _scene.Entities)
             {
-                if (!string.IsNullOrWhiteSpace(e.MeshPath) && _meshProvider != null && File.Exists(e.MeshPath))
+                if (!string.IsNullOrWhiteSpace(e.MeshPath) && _meshProvider != null)
                 {
                     try
                     {
-                        var asset = new GDNN.Rendering.MeshIO.MeshLoader().LoadSync(e.MeshPath);
+                        var resolvedMesh = ResolveSceneMeshPath(e.MeshPath);
+                        if (resolvedMesh == null || !File.Exists(resolvedMesh))
+                        {
+                            RecordRuntimeError("MeshProvider", $"Mesh path not found for '{e.Name}': {e.MeshPath}");
+                            continue;
+                        }
+
+                        var asset = new GDNN.Rendering.MeshIO.MeshLoader().LoadSync(resolvedMesh);
                         if (asset != null)
                         {
                             string meshId = e.Id.ToString("N");
@@ -1209,12 +1302,23 @@ namespace Synapse.Runtime
                             }
 
                             if (e.BakeNeuralSdf)
-                                _ = _meshProvider.BakeNeuralSdfAsync(meshId);
+                            {
+                                _ = _meshProvider.BakeNeuralSdfAsync(meshId).ContinueWith(t =>
+                                {
+                                    if (t.IsFaulted)
+                                        return;
+                                    // Push baked .gnn into the live G-DNN FrameGraph path when render is up.
+                                    var hub = _renderEngine?.SceneRenderer?.Algorithms;
+                                    hub?.BindBakedNeuralAsset(meshId);
+                                }, TaskScheduler.Default);
+                                var bake = _meshProvider.BakeNeuralSdfAsync(meshId);
+                                TrackBackground(bake);
+                            }
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn("MeshProvider", $"Mesh bind failed for '{e.Name}': {ex.Message}");
+                        RecordRuntimeError("MeshProvider", $"Mesh bind failed for '{e.Name}': {ex.Message}");
                     }
                 }
 
@@ -1308,15 +1412,82 @@ namespace Synapse.Runtime
             else
                 result = _lawCompiler.CompileFromLibrary(lawId);
 
-            // Built-in library strings are human-readable and often fail the bytecode parser.
-            // Install a stable numeric form so applicators can still run under that law id.
+            // Prefer exact expression; if it fails, install a numeric stub under the same id
+            // but mark the law as degraded so callers/UI can surface the honesty gap.
             if (!result.Success)
-                result = _lawCompiler.Compile("T", lawId);
+            {
+                var fallback = _lawCompiler.Compile("T", lawId);
+                if (fallback.Success)
+                {
+                    IsLawDegraded = true;
+                    RecordRuntimeError("Physics",
+                        $"Law '{lawId}' expression failed ({result.Message}); using degraded numeric stub 'T'.");
+                    result = fallback;
+                    _activeLawId = lawId;
+                    return result;
+                }
 
-            if (result.Success)
-                _activeLawId = lawId;
+                RecordRuntimeError("Physics", $"Law '{lawId}' activation failed: {result.Message}");
+                return result;
+            }
 
+            IsLawDegraded = false;
+            _activeLawId = lawId;
             return result;
+        }
+
+        private void RecordRuntimeError(string category, string message)
+        {
+            _lastRuntimeError = $"{category}: {message}";
+            Interlocked.Increment(ref _runtimeErrorCount);
+            _logger.Warn(category, message);
+        }
+
+        private void TrackBackground(Task task)
+        {
+            lock (_backgroundGate)
+            {
+                _backgroundWork.RemoveAll(t => t.IsCompleted);
+                _backgroundWork.Add(task);
+            }
+
+            _ = task.ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                    RecordRuntimeError("Background", t.Exception?.GetBaseException().Message ?? "faulted");
+            }, TaskScheduler.Default);
+        }
+
+        private string? ResolveSceneMeshPath(string meshPath)
+        {
+            if (string.IsNullOrWhiteSpace(meshPath) || meshPath.Contains("..", StringComparison.Ordinal))
+                return null;
+
+            if (Path.IsPathRooted(meshPath))
+            {
+                var full = Path.GetFullPath(meshPath);
+                var projects = Path.GetFullPath(_config.ProjectsDirectory);
+                try
+                {
+                    return Synapse.Core.Security.PathSecurity.EnsureUnderRoot(projects, full);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    return null;
+                }
+            }
+
+            var assets = Path.Combine(_config.ProjectsDirectory, "assets");
+            if (!Directory.Exists(assets))
+                assets = _config.ProjectsDirectory;
+            try
+            {
+                return Synapse.Core.Security.PathSecurity.CombineUnderRoot(assets, meshPath);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return null;
+            }
         }
 
         private void WireLawInspectorEvents(LivingLawCompiler compiler)
@@ -1441,6 +1612,18 @@ namespace Synapse.Runtime
             };
         }
 
+        /// <summary>Releases evolution, LLM, quality, collaboration, and render resources.</summary>
+        public async ValueTask DisposeAsync()
+        {
+            CancelEvolution();
+            _evolutionCts?.Dispose();
+            if (_evolution != null)
+                await _evolution.DisposeAsync();
+            await DisposeCollaborationAsync().ConfigureAwait(false);
+            _multiphysics?.Dispose();
+            _llmRouter?.Dispose();
+            _quality?.Dispose();
+            _renderEngine?.Dispose();
         /// <summary>Releases evolution, LLM, quality, render, and blueprint resources safely.</summary>
         public async ValueTask DisposeAsync()
         {

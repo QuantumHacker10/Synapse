@@ -137,5 +137,37 @@ namespace Synapse.Runtime
 
             entity.Rotation = Vec3.From(rot);
         }
+
+        public static void ApplyScaleDrag(
+            ViewportEditorState editor,
+            SceneEntityData entity,
+            float mouseX,
+            float mouseY)
+        {
+            ArgumentNullException.ThrowIfNull(editor);
+            ArgumentNullException.ThrowIfNull(entity);
+            float deltaX = mouseX - editor.DragStartMouseX;
+            float deltaY = mouseY - editor.DragStartMouseY;
+            float along = (deltaX - deltaY) * 0.01f;
+            var start = editor.DragStartScale;
+            float Min = 0.05f;
+
+            switch (editor.ActiveGizmoAxis)
+            {
+                case GizmoAxis.X:
+                    entity.Scale = Vec3.From(new Vector3(MathF.Max(Min, start.X + along), start.Y, start.Z));
+                    break;
+                case GizmoAxis.Y:
+                    entity.Scale = Vec3.From(new Vector3(start.X, MathF.Max(Min, start.Y + along), start.Z));
+                    break;
+                case GizmoAxis.Z:
+                    entity.Scale = Vec3.From(new Vector3(start.X, start.Y, MathF.Max(Min, start.Z + along)));
+                    break;
+                default:
+                    float uniform = MathF.Max(Min, start.X + along);
+                    entity.Scale = Vec3.From(new Vector3(uniform, uniform, uniform));
+                    break;
+            }
+        }
     }
 }

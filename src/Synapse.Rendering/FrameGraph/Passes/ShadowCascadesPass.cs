@@ -6,6 +6,7 @@ namespace GDNN.Rendering.FrameGraph.Passes
     public sealed class ShadowCascadesPass : IRenderPass
     {
         public string Name => "ShadowCascades";
+        public RenderPassPhase Phase => RenderPassPhase.Gpu;
 
         public void Setup(FrameGraphBuilder builder)
         {

@@ -6,6 +6,49 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+### Ponts atelier (v2.3)
+
+- **Marketplace de lois dans Studio** — import/export `.synapse-law`, catalogue chargé depuis `samples/laws`, liste des packages (`EngineHost.ImportLawPackageAsync` / `ExportActiveLawPackageAsync` / `LoadMarketplaceCatalog`)
+- **Plugins C# dans Studio** — chargement d'un dossier, liste et statut (`PluginHost` branché sur `App` + menu Outils) ; `PluginHost` promu EarlyAccess (attribut `[SynapseExperimental]` retiré)
+- **Jumeaux numériques dans Studio** — jumeler la sélection, synchroniser, export snapshot (`RegisterTwin` / `SynchronizeTwinsAsync` / `ExportTwinSnapshotAsync`)
+- **Export scène glTF** — depuis le menu Fichier (`ExportSceneGlTFAsync`)
+- **Inspecteur d'arbre de comportement** — visualisation ASCII des agents sentients (`GetAgentBehaviorTreeText`)
+- **Export génome NEAT-G** — meilleur génome en JSON (`ExportBestGenomeAsync`)
+- **Outil viewport Échelle** — gizmo scale (`ViewportToolMode.Scale` + `ApplyScaleDrag`)
+- **Tests** — `AtelierBridgeTests` (roundtrip marketplace, export glTF, jumeaux, arbre de comportement, scale drag)
+- Version produit **2.3.0** (`Directory.Build.props`)
+
+### Modifié (v2.3)
+
+- **WebPreviewBuilder** — suppression des types legacy `WebPreviewBuilder` / `WebPreviewDescriptor` (utiliser `WebEditorBuilder`)
+
+### Ajouté
+
+- **Tests de couverture** — CLI/env config, ScenePatchCodec, STUN/NAT, validation SceneDocument, collaboration EngineHost/orchestrator, VR fail-closed, PeerEncryption, WasmStudioPublisher, plugins/sentience/infra
+- **OpenXR natif** — `NativeOpenXrRuntime` (Silk.NET), session réelle + fallback `SYNAPSE_VR_SIMULATE=1`
+- **NAT réel** — client STUN RFC 5389, rendez-vous UDP, hole-punch, hub WAN AES-GCM
+- **Studio web WASM** — projet `Synapse.Web.Studio` (Blazor), `--export-web` / `WasmStudioPublisher`
+- **Matrice de maturité** — [`docs/MATURITY.md`](docs/MATURITY.md), `FeatureMaturityCatalog`, attribut `[SynapseExperimental]`
+- **Scène lab** — `samples/lab-heat-agents.synapse` (loi heat, agents, joint hinge) + tests de chargement CI
+- **Plugin trust** — `PluginTrustMode.RequireManifest` + `plugin.synapse.json` (SHA-256), env `SYNAPSE_PLUGIN_TRUST`
+- **Tests de durcissement** — mmap, marketplace, VR, WAN, GPU upload, scènes/blueprints hostiles
+- **Budgets blueprint** — spawns / LLM / nœuds par tick ; arrêt sur boucle / edge manquante
+- **Runtime diagnostics** — `LastRuntimeError`, `RuntimeErrorCount`, `IsLawDegraded`
+
+### Modifié
+
+- **VR / WAN / Web** : features de première classe branchées sur `EngineHost`, `FrameOrchestrator` et Studio (menus Collab, status bar, patches scène)
+- **VR / WAN / Web** promus **EarlyAccess** (chemins natifs branchés ; pas encore Supported)
+- Positionnement honnête **accès anticipé / R&D** (README, ROADMAP, site, SECURITY)
+- **GLB** : chunks bornés + plafonds fichier / data URI
+- **ZeroCopyBuffer / MappedBuffer** : mmap réel, pin handle, `checked`, `createIfMissing`
+- **AssetStreamer / GpuUpload** : fail-closed + hash d'intégrité
+- **LawMarketplace / Plugins / P2P / WAN / VR** : trust, framing, registre, simulate gate
+- **SceneDocument / Blueprint** : validation structurelle ; JSON corrompu = exception
+- **FrameOrchestrator** : ticks non réentrants
+- **LLM** : Gemini `x-goog-api-key`, OpenAI retry/dispose/cap, `MaxLatencyMs`, sessions path-safe
+- **Studio** : erreurs projet / blueprint / Megascans / LLM / viewport
+- **SSRF** : DNS optionnel (activé sur downloads) ; PostProcess borné
 ## [2.10.0] — 2026-07-21
 
 **OpenUSD MeshIO production-complete** — topology DCC, normals, multi-mesh, purpose, health smoke.
@@ -171,7 +214,7 @@ Release **Synapse OMNIA 2.3** : multi-plateforme milieu de gamme, USDC, blueprin
 
 ## [2.2.0] — 2026-07-20
 
-Release **Synapse OMNIA 2.2** : captures Studio live, P2P WAN chiffré, OpenXR swapchain et éditeur web glTF interactif.
+Release **Synapse OMNIA 2.2** : captures Studio live, scaffolds P2P WAN / OpenXR / éditeur web (voir maturité).
 
 ### Ajouté
 

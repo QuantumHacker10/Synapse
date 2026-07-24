@@ -147,7 +147,7 @@ namespace GDNN.Llm
             var model = GetModelForContext(context);
             var requestBody = BuildRequestBody(contents, systemPrompt, false, 0.3f);
 
-            var url = $"{_baseUrl}/models/{model}:generateContent?key={_apiKey}";
+            var url = $"{_baseUrl}/models/{model}:generateContent";
             var responseJson = await SendRequestAsync(url, requestBody, cancellationToken);
             var content = ExtractContentFromResponse(responseJson);
 
@@ -180,17 +180,18 @@ namespace GDNN.Llm
                     context.ExtraParameters?.ContainsKey("temperature") == true
                         ? Convert.ToSingle(context.ExtraParameters["temperature"]) : 0.7f);
 
-                var url = $"{_baseUrl}/models/{model}:streamGenerateContent?key={_apiKey}&alt=sse";
+                var url = $"{_baseUrl}/models/{model}:streamGenerateContent?alt=sse";
 
-                var request = new HttpRequestMessage(HttpMethod.Post, url)
+                using var request = new HttpRequestMessage(HttpMethod.Post, url)
                 {
                     Content = new StringContent(
                         JsonSerializer.Serialize(requestBody),
                         Encoding.UTF8,
                         "application/json")
                 };
+                request.Headers.TryAddWithoutValidation("x-goog-api-key", _apiKey);
 
-                var response = await _httpClient.SendAsync(
+                using var response = await _httpClient.SendAsync(
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
                     _currentCts.Token);
@@ -298,7 +299,7 @@ namespace GDNN.Llm
                 }
             };
 
-            var url = $"{_baseUrl}/models/{geminiModel}:embedContent?key={_apiKey}";
+            var url = $"{_baseUrl}/models/{geminiModel}:embedContent";
             var responseJson = await SendRequestAsync(url, requestBody, cancellationToken);
             using var doc = JsonDocument.Parse(responseJson);
 
@@ -349,8 +350,10 @@ namespace GDNN.Llm
                 return false;
             try
             {
-                var url = $"{_baseUrl}/models?key={_apiKey}";
-                var response = await _httpClient.GetAsync(url, cancellationToken);
+                var url = $"{_baseUrl}/models";
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.TryAddWithoutValidation("x-goog-api-key", _apiKey);
+                using var response = await _httpClient.SendAsync(request, cancellationToken);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
@@ -482,15 +485,16 @@ namespace GDNN.Llm
             object requestBody,
             CancellationToken cancellationToken)
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = new StringContent(
                     JsonSerializer.Serialize(requestBody),
                     Encoding.UTF8,
                     "application/json")
             };
+            request.Headers.TryAddWithoutValidation("x-goog-api-key", _apiKey);
 
-            var response = await _httpClient.SendAsync(request, cancellationToken);
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStringAsync(cancellationToken);
         }
