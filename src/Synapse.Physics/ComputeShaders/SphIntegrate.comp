@@ -1,0 +1,64 @@
+#version 450 core
+// =============================================================================
+// SphIntegrate.comp - SPH Time Integration Compute Shader
+// Integrates velocity and position using leapfrog or symplectic Euler
+// =============================================================================
+
+struct SphParticle {
+    vec3 position;
+    vec3 velocity;
+    float density;
+    float pressure;
+    vec3 force;
+    float mass;
+    uint neighborCount;
+    vec3 padding;
+};
+
+// Constants
+layout(constant_id = 0) const float DT = 0.005;
+layout(constant_id = 1) const float DAMPING = 0.998;
+layout(constant_id = 2) const vec3 BOUNDARY_MIN = vec3(-10.0, -10.0, -10.0);
+layout(constant_id = 3) const vec3 BOUNDARY_MAX = vec3(10.0, 10.0, 10.0);
+layout(constant_id = 4) const float BOUNCINESS = 0.5;
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(binding = 0) buffer ParticlesIn { SphParticle particles[]; };
+layout(binding = 1) buffer ParticlesOut { SphParticle outParticles[]; };
+
+// Symplectic Euler integration with boundary handling
+void main() {
+    uint particleIdx = gl_GlobalInvocationID.x;
+    if (particleIdx >= particles.length()) return;
+    
+    SphParticle p = particles[particleIdx];
+    SphParticle outP = p;
+    
+    // Apply damping
+    outP.velocity *= DAMPING;
+    
+    // Time integration: velocity += force / mass * dt
+    if (p.mass > 0.0) {
+        outP.velocity += p.force / p.mass * DT;
+    }
+    
+    // Position integration: position += velocity * dt
+    vec3 prevPosition = outP.position;
+    outP.position += outP.velocity * DT;
+    
+    // Boundary handling with bounce-back
+    for (int i = 0; i < 3; i++) {
+        if (outP.position[i] < BOUNDARY_MIN[i]) {
+            outP.position[i] = BOUNDARY_MIN[i] + (BOUNDARY_MIN[i] - outP.position[i]);
+            outP.velocity[i] = -outP.velocity[i] * BOUNCINESS;
+        } else if (outP.position[i] > BOUNDARY_MAX[i]) {
+            outP.position[i] = BOUNDARY_MAX[i] - (outP.position[i] - BOUNDARY_MAX[i]);
+            outP.velocity[i] = -outP.velocity[i] * BOUNCINESS;
+        }
+    }
+    
+    // Reset force for next frame
+    outP.force = vec3(0.0);
+    
+    outParticles[particleIdx] = outP;
+}
