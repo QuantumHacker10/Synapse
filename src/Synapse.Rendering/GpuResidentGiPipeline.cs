@@ -79,6 +79,9 @@ namespace GDNN.Rendering.Bridge
             if (gbuffer.Emissive != null)
                 Array.Copy(gbuffer.Emissive, _resident.Emissive, n);
             _version++;
+            // CPU-side fills that originated from GPU-like channels count as readback residency.
+            if (LastPath == GiComputePath.None || LastPath == GiComputePath.ConstantFallback)
+                LastPath = GiComputePath.GpuReadback;
         }
 
         /// <summary>

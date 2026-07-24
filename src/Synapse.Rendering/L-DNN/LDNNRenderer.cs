@@ -69,6 +69,8 @@ namespace GDNN.Lighting.LDNN
 
         /// <summary>Is the renderer initialized.</summary>
         public bool IsInitialized => _isInitialized;
+        /// <summary>Radiance cascade hierarchy (for tests / cascade sampling on the present path).</summary>
+        public RadianceCascadesManager RadianceCascades => _cascadesManager;
         /// <summary>Neural irradiance predictor (for tests / online training).</summary>
         public NeuralPredictiveIrradiance NeuralPredictor => _neuralPredictor;
         /// <summary>Neural specular reflection/refraction predictor.</summary>
@@ -334,8 +336,27 @@ namespace GDNN.Lighting.LDNN
         {
             _telemetry.TemporalAccumulationTimeMs = MeasureTime(() =>
             {
-                if (_previousGBuffer != null)
-                    _cascadesManager.HandleDisocclusion(gbuffer, _previousGBuffer, 0.1f);
+                if (_previousGBuffer == null)
+                    return;
+
+                _cascadesManager.HandleDisocclusion(gbuffer, _previousGBuffer, 0.1f);
+
+                // Temporally filter the per-pixel GI field so the present path gets
+                // stabilized (de-noised across frames) irradiance, not just cascade disocclusion.
+                int width = gbuffer.Width;
+                bool hasVelocity = gbuffer.Velocity != null
+                    && gbuffer.Velocity.Length == _previousGIResult.Length;
+                Parallel.For(0, gbuffer.Height, y =>
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        int idx = gbuffer.GetIndex(x, y);
+                        Vector2 velocity = hasVelocity ? gbuffer.Velocity[idx] : Vector2.Zero;
+                        Vector3 filtered = _temporalStabilizer.ApplyTemporalFilter(
+                            x, y, _previousGIResult[idx], velocity, gbuffer, _previousGBuffer);
+                        _previousGIResult[idx] = filtered;
+                    }
+                });
             });
         }
 
@@ -1100,6 +1121,23 @@ namespace GDNN.Lighting.LDNN
                 _cascadesManager.SpatialFilter(2);
             });
 
+            // Seed probe cache from cascades so ComputeIrradianceFromProbes is no longer always-empty.
+            for (int y = 0; y < gbuffer.Height; y += 16)
+            {
+                for (int x = 0; x < gbuffer.Width; x += 16)
+                {
+                    var sample = gbuffer.GetSample(x, y);
+                    if (sample.Depth <= 0)
+                        continue;
+                    var worldPos = ReconstructWorldPosition(x, y, sample.Depth, gbuffer, camera);
+                    float su = (x + 0.5f) / Math.Max(1, gbuffer.Width);
+                    float sv = (y + 0.5f) / Math.Max(1, gbuffer.Height);
+                    var irr = _cascadesManager.SampleScreenCascade(su, sv, sample.Normal);
+                    if (irr.LengthSquared() > 1e-6f)
+                        _probeCache.UpsertProbe(worldPos, irr, sample.Normal);
+                }
+            }
+
             _telemetry.NeuralPredictionTimeMs = MeasureTime(() =>
             {
                 bool useSpecular = _config.EnableNeuralSpecular && _specularPredictor != null;
@@ -1114,7 +1152,11 @@ namespace GDNN.Lighting.LDNN
                         Vector3 ssgi = _screenSpaceGI.Result[idx];
                         Vector3 worldPos = ReconstructWorldPosition(x, y, sample.Depth, gbuffer, camera);
                         sample = sample with { WorldPosition = worldPos };
-                        Vector3 cascadeIrradiance = ComputeIrradianceFromProbes(worldPos, sample.Normal);
+                        float u = (x + 0.5f) / Math.Max(1, gbuffer.Width);
+                        float v = (y + 0.5f) / Math.Max(1, gbuffer.Height);
+                        Vector3 cascadeIrradiance = _cascadesManager.SampleScreenCascade(u, v, sample.Normal);
+                        if (cascadeIrradiance.LengthSquared() < 1e-8f)
+                            cascadeIrradiance = ComputeIrradianceFromProbes(worldPos, sample.Normal);
                         float ssgiConfidence = _screenSpaceGI.Confidence[idx];
                         // Prefer cascades in low-confidence / shadowed regions (Lumen-like fill).
                         float cascadeW = Math.Clamp(1f - ssgiConfidence * 0.85f, 0.25f, 0.9f);

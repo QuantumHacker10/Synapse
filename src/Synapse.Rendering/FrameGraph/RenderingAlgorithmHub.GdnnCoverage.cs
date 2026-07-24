@@ -237,6 +237,7 @@ namespace GDNN.Rendering.FrameGraph
             StreamRing.Flush();
             while (StreamRing.TryRead(out _))
             { /* drain */ }
+            while (StreamRing.TryRead(out _)) { /* drain */ }
 
             for (int i = 0; i < Math.Min(dists.Length, SyncScratch.Capacity); i++)
                 SyncScratch.TryWrite(dists[i], TimeSpan.FromMilliseconds(1));
@@ -244,6 +245,7 @@ namespace GDNN.Rendering.FrameGraph
                 SyncScratch.SwapBuffers();
             while (SyncScratch.TryRead(out _, TimeSpan.FromMilliseconds(1)))
             { /* drain */ }
+            while (SyncScratch.TryRead(out _, TimeSpan.FromMilliseconds(1))) { /* drain */ }
 
             // SIMD VectorOps / MatrixOps / IntrinsicsHelper.
             Span<float> packed = stackalloc float[9];

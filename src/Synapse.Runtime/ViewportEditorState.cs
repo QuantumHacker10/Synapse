@@ -38,6 +38,7 @@ namespace Synapse.Runtime
         public bool IsOrbitingCamera { get; set; }
         public Vector3 DragStartPosition { get; set; }
         public Vector3 DragStartRotation { get; set; }
+        public Vector3 DragStartScale { get; set; } = Vector3.One;
         public float DragStartMouseX { get; set; }
         public float DragStartMouseY { get; set; }
         public float OrbitStartYaw { get; set; }

@@ -217,6 +217,7 @@ namespace Synapse.Runtime
             twin.SetProperty("Name", _scene.Name);
             twin.SetProperty("EntityType", GDNN.Sentience.EntityType.Environmental.ToString());
             _twins.Register(twin);
+            RefreshTwinStatus();
 
             PlatformCaps = NativePlatform.Probe();
             _modulesInitialized = true;
@@ -988,7 +989,9 @@ namespace Synapse.Runtime
 
             var selected = _scene.Entities.Find(e => e.Id == _viewportEditor.SelectedEntityId);
             if (selected != null && _viewportEditor.ShowGizmos &&
-                (_viewportEditor.ToolMode == ViewportToolMode.Translate || _viewportEditor.ToolMode == ViewportToolMode.Rotate))
+                (_viewportEditor.ToolMode == ViewportToolMode.Translate ||
+                 _viewportEditor.ToolMode == ViewportToolMode.Rotate ||
+                 _viewportEditor.ToolMode == ViewportToolMode.Scale))
             {
                 var axis = ViewportInteraction.PickGizmoAxis(ray, selected.Position.ToVector3(), selected.Scale.ToVector3());
                 if (axis != GizmoAxis.None)
@@ -997,6 +1000,7 @@ namespace Synapse.Runtime
                     _viewportEditor.IsDragging = true;
                     _viewportEditor.DragStartPosition = selected.Position.ToVector3();
                     _viewportEditor.DragStartRotation = selected.Rotation.ToVector3();
+                    _viewportEditor.DragStartScale = selected.Scale.ToVector3();
                     _viewportEditor.DragStartMouseX = x;
                     _viewportEditor.DragStartMouseY = y;
                     return;
@@ -1045,6 +1049,8 @@ namespace Synapse.Runtime
 
             if (_viewportEditor.ToolMode == ViewportToolMode.Rotate)
                 ViewportInteraction.ApplyRotateDrag(_viewportEditor, entity, x, y);
+            else if (_viewportEditor.ToolMode == ViewportToolMode.Scale)
+                ViewportInteraction.ApplyScaleDrag(_viewportEditor, entity, x, y);
             else
                 ViewportInteraction.ApplyTranslateDrag(_viewportEditor, entity, x, y, view, proj, fbW, fbH);
 

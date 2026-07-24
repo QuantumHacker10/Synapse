@@ -19,7 +19,9 @@ Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
 > **Accès anticipé v2.2** (R&D avancée, pas production-ready) — Synapse Studio + runtime local,
 > plugins C#, benchmarks headless, import/export scènes, living laws, captures Studio.
-> **Experimental uniquement :** P2P WAN (loopback), OpenXR (swapchain synthétique), éditeur web preview.
+> **EarlyAccess :** P2P WAN (NAT + AES-GCM), OpenXR (swapchain Vulkan natif), éditeur web WASM/WebGPU —
+> branchés dans EngineHost et Studio, pas encore validés Supported.
+> **Experimental :** P2P multi-pairs TCP labo.
 > Cible officielle : **Windows x64 + GPU Vulkan** ; builds Linux/macOS disponibles.
 > Matrice : **[docs/MATURITY.md](docs/MATURITY.md)**.
 

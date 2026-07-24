@@ -6,6 +6,22 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Non publié]
 
+### Ponts atelier (v2.3)
+
+- **Marketplace de lois dans Studio** — import/export `.synapse-law`, catalogue chargé depuis `samples/laws`, liste des packages (`EngineHost.ImportLawPackageAsync` / `ExportActiveLawPackageAsync` / `LoadMarketplaceCatalog`)
+- **Plugins C# dans Studio** — chargement d'un dossier, liste et statut (`PluginHost` branché sur `App` + menu Outils) ; `PluginHost` promu EarlyAccess (attribut `[SynapseExperimental]` retiré)
+- **Jumeaux numériques dans Studio** — jumeler la sélection, synchroniser, export snapshot (`RegisterTwin` / `SynchronizeTwinsAsync` / `ExportTwinSnapshotAsync`)
+- **Export scène glTF** — depuis le menu Fichier (`ExportSceneGlTFAsync`)
+- **Inspecteur d'arbre de comportement** — visualisation ASCII des agents sentients (`GetAgentBehaviorTreeText`)
+- **Export génome NEAT-G** — meilleur génome en JSON (`ExportBestGenomeAsync`)
+- **Outil viewport Échelle** — gizmo scale (`ViewportToolMode.Scale` + `ApplyScaleDrag`)
+- **Tests** — `AtelierBridgeTests` (roundtrip marketplace, export glTF, jumeaux, arbre de comportement, scale drag)
+- Version produit **2.3.0** (`Directory.Build.props`)
+
+### Modifié (v2.3)
+
+- **WebPreviewBuilder** — suppression des types legacy `WebPreviewBuilder` / `WebPreviewDescriptor` (utiliser `WebEditorBuilder`)
+
 ### Ajouté
 
 - **Tests de couverture** — CLI/env config, ScenePatchCodec, STUN/NAT, validation SceneDocument, collaboration EngineHost/orchestrator, VR fail-closed, PeerEncryption, WasmStudioPublisher, plugins/sentience/infra
