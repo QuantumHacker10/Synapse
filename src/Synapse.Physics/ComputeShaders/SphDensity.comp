@@ -1,0 +1,119 @@
+#version 450 core
+// =============================================================================
+// SphCompute.comp - SPH (Smoothed Particle Hydrodynamics) Compute Shader
+// Implements SPH simulation on GPU for 100k+ particles
+// Uses Vulkan Compute with storage buffers
+// =============================================================================
+
+// SPH particle data
+struct SphParticle {
+    vec3 position;
+    vec3 velocity;
+    float density;
+    float pressure;
+    vec3 force;
+    float mass;
+    uint neighborCount;
+    vec3 padding; // For alignment
+};
+
+// Neighbor list entry
+struct Neighbor {
+    uint particleIndex;
+    float distanceSq;
+    vec2 padding;
+};
+
+// Constants
+layout(constant_id = 0) const float PARTICLE_MASS = 0.02;
+layout(constant_id = 1) const float REST_DENSITY = 1000.0;
+layout(constant_id = 2) const float GAS_CONSTANT = 2000.0;
+layout(constant_id = 3) const float VISCOSITY = 0.1;
+layout(constant_id = 4) const float SMOOTHING_RADIUS = 0.1;
+layout(constant_id = 5) const float SMOOTHING_RADIUS_SQ = 0.01;
+layout(constant_id = 6) const float DT = 0.005;
+layout(constant_id = 7) const float EPSILON = 1e-6;
+layout(constant_id = 8) const int MAX_NEIGHBORS = 64;
+layout(constant_id = 9) const vec3 GRAVITY = vec3(0.0, -9.8, 0.0);
+
+// Smoothing kernel functions
+float poly6(float r, float h) {
+    if (r >= h) return 0.0;
+    float h2 = h * h;
+    float h3 = h * h * h;
+    float term = h2 - r * r;
+    return 315.0 / (64.0 * 3.14159265359 * h3) * term * term * term;
+}
+
+vec3 spikyGradient(vec3 r, float h) {
+    float rlen = length(r);
+    if (rlen >= h || rlen < EPSILON) return vec3(0.0);
+    float h2 = h * h;
+    float h3 = h * h * h;
+    float term = h - rlen;
+    return -45.0 / (3.14159265359 * h3 * h) * r * term * term;
+}
+
+float viscosityLaplacian(float r, float h) {
+    if (r >= h) return 0.0;
+    float h3 = h * h * h;
+    float term = h - r;
+    return 45.0 / (3.14159265359 * h3) * term;
+}
+
+// Compute density and pressure
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(binding = 0) buffer ParticlesIn { SphParticle particles[]; };
+layout(binding = 1) buffer ParticlesOut { SphParticle outParticles[]; };
+layout(binding = 2) buffer NeighborList { Neighbor neighbors[]; };
+layout(binding = 3) buffer NeighborOffsets { uint offsets[]; };
+layout(binding = 4) buffer CellList { uint cellList[]; };
+layout(binding = 5) buffer CellCounts { uint cellCounts[]; };
+
+// Density computation kernel
+// gl_GlobalInvocationID.x = particle index
+void main() {
+    uint particleIdx = gl_GlobalInvocationID.x;
+    if (particleIdx >= particles.length()) return;
+    
+    SphParticle p = particles[particleIdx];
+    SphParticle outP = p;
+    
+    // Reset density
+    outP.density = 0.0;
+    
+    // Get neighbor list start and count
+    uint start = offsets[particleIdx];
+    uint count = 0;
+    if (particleIdx + 1 < offsets.length()) {
+        count = offsets[particleIdx + 1] - start;
+    } else {
+        count = neighbors.length() - start;
+    }
+    
+    // Compute density using neighbor list
+    for (uint i = 0; i < count; i++) {
+        uint neighborIdx = neighbors[start + i].particleIndex;
+        if (neighborIdx >= particles.length()) continue;
+        
+        vec3 r = particles[neighborIdx].position - p.position;
+        float distSq = dot(r, r);
+        
+        if (distSq <= SMOOTHING_RADIUS_SQ) {
+            float dist = sqrt(distSq);
+            outP.density += PARTICLE_MASS * poly6(dist, SMOOTHING_RADIUS);
+        }
+    }
+    
+    // Add self density
+    outP.density += PARTICLE_MASS * poly6(0.0, SMOOTHING_RADIUS);
+    
+    // Compute pressure using Tait equation of state
+    if (outP.density > EPSILON) {
+        outP.pressure = GAS_CONSTANT * (outP.density - REST_DENSITY);
+    } else {
+        outP.pressure = 0.0;
+    }
+    
+    outParticles[particleIdx] = outP;
+}
