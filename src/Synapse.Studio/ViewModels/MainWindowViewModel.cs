@@ -11,10 +11,13 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GDNN.Rendering.ArtPipeline;
+using GDNN.Rendering.Bridge;
 using Synapse.Infrastructure;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
+using Synapse.Plugins;
 using Synapse.Runtime;
+using Synapse.Simulation.DigitalTwins;
 using Synapse.Studio.Contracts;
 using EntityType = Synapse.Studio.Contracts.EntityType;
 using SceneEntity = Synapse.Studio.Contracts.SceneEntity;
@@ -31,6 +34,7 @@ namespace Synapse.Studio.ViewModels
         private readonly FrameOrchestrator _orchestrator;
         private readonly ISynapseLogger _logger;
         private readonly SynapseConfig _config;
+        private readonly PluginHost? _pluginHost;
         private readonly DispatcherTimer _uiTimer;
         private readonly MegascansBridge _megascans = new();
         private readonly SculptSession _sculpt = new();
@@ -38,12 +42,13 @@ namespace Synapse.Studio.ViewModels
         private string? _projectPath;
         private bool _disposed;
 
-        public MainWindowViewModel(EngineHost host, FrameOrchestrator orchestrator, ISynapseLogger logger, SynapseConfig config)
+        public MainWindowViewModel(EngineHost host, FrameOrchestrator orchestrator, ISynapseLogger logger, SynapseConfig config, PluginHost? pluginHost = null)
         {
             _host = host;
             _orchestrator = orchestrator;
             _logger = logger;
             _config = config;
+            _pluginHost = pluginHost;
 
             RefreshEntities();
             RefreshLaws();
@@ -53,6 +58,14 @@ namespace Synapse.Studio.ViewModels
             _host.ViewportEditor.ToolMode = ViewportToolMode.Translate;
             _host.ViewportEntitySelected += OnViewportEntitySelected;
             _host.InspectorFeedEntryAdded += OnInspectorFeedEntry;
+            _host.CollaborationPatchApplied += OnCollaborationPatchApplied;
+
+            WanSessionCode = config.WanSessionCode ?? "synapse-room";
+            WanPort = config.WanPort;
+            WanRendezvousPort = config.WanRendezvousPort;
+            VrStatusText = _host.VrStatusText;
+            WanStatusText = _host.WanStatusText;
+            WebStatusText = _host.WebStatusText;
 
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
             _uiTimer.Tick += (_, _) => RefreshStatus();
@@ -62,6 +75,13 @@ namespace Synapse.Studio.ViewModels
             SculptStatus = "Pinceau prêt";
             MegascansStatus = $"Bibliothèque : {_megascans.Config.LibraryRootPath}";
             LlmStatusText = _host.LlmProviderSummary;
+
+            TryLoadMarketplaceCatalog();
+            RefreshMarketplacePackages();
+            RefreshTwins();
+            RefreshPlugins();
+            MarketplaceStatus = _host.MarketplaceStatusText;
+            TwinStatusText = _host.TwinStatusText;
             AboutText =
                 $"{SynapseProduct.Name} {SynapseProduct.Version} — Outil de simulation 3D\n\n" +
                 "Pas un moteur de jeu : un monde numérique que l'on observe, modifie et fait évoluer.\n" +
@@ -81,11 +101,14 @@ namespace Synapse.Studio.ViewModels
         }
 
         public ObservableCollection<SceneEntity> Entities { get; } = new();
-        public ObservableCollection<string> LawIds { get; } = new();
+        public ObservableCollection<LawCatalogEntry> FilteredLawCatalog { get; } = new();
         public ObservableCollection<EntityType> EntityTypes { get; } = new();
         public ObservableCollection<ChatMessageRecord> ChatMessages { get; } = new();
         public ObservableCollection<string> BlueprintNodes { get; } = new();
         public ObservableCollection<LiveInspectorEntry> InspectorFeed { get; } = new();
+        public ObservableCollection<TwinListEntry> Twins { get; } = new();
+        public ObservableCollection<PluginListEntry> Plugins { get; } = new();
+        public ObservableCollection<LawCatalogEntry> MarketplacePackages { get; } = new();
 
         [ObservableProperty] private SceneEntity? selectedEntity;
         [ObservableProperty] private EntityType newEntityType = EntityType.Empty;
@@ -100,6 +123,10 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private bool showAboutText;
         [ObservableProperty] private string aboutText = "";
         [ObservableProperty] private string? selectedLawId;
+        [ObservableProperty] private LawCatalogEntry? selectedLawEntry;
+        [ObservableProperty] private string lawSearchText = "";
+        [ObservableProperty] private string lawCatalogSummary = "";
+        [ObservableProperty] private string selectedLawSummary = "";
         [ObservableProperty] private string lawExpression = "∂T/∂t = α*∇²T";
         [ObservableProperty] private string lawStatus = "Prêt";
         [ObservableProperty] private string chatInput = "";
@@ -113,6 +140,7 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private string evolutionStatus = "Inactif";
         [ObservableProperty] private string viewportHint = "";
         [ObservableProperty] private string blueprintStatus = "Prêt";
+        [ObservableProperty] private bool blueprintLiveEdit = true;
         [ObservableProperty] private string sculptStatus = "";
         [ObservableProperty] private double sculptRadius = 0.5;
         [ObservableProperty] private double sculptStrength = 0.15;
@@ -130,10 +158,58 @@ namespace Synapse.Studio.ViewModels
         [ObservableProperty] private string physicsToolsStatus = "Physique Omnia : mesh · joints · véhicule";
         [ObservableProperty] private bool isInspectorModeEnabled;
         [ObservableProperty] private string inspectorFeedStatus = "Mode inspecteur inactif";
+        [ObservableProperty] private string wanSessionCode = "synapse-room";
+        [ObservableProperty] private int wanPort = 7777;
+        [ObservableProperty] private int wanRendezvousPort;
+        [ObservableProperty] private string vrStatusText = "VR : off";
+        [ObservableProperty] private string wanStatusText = "WAN : off";
+        [ObservableProperty] private string webStatusText = "Web : prêt";
+        [ObservableProperty] private string collaborationStatus = "Collaboration inactive";
+        [ObservableProperty] private string marketplaceStatus = "Marketplace : prêt";
+        [ObservableProperty] private string twinStatusText = "Jumeaux : —";
+        [ObservableProperty] private string pluginStatusText = "Plugins : aucun";
+        [ObservableProperty] private string behaviorTreeText = "";
+        [ObservableProperty] private bool hasAgentSelection;
+        [ObservableProperty] private TwinListEntry? selectedTwin;
         private Guid? _jointPartnerId;
         private const int MaxInspectorFeedEntries = 500;
 
         public BlueprintDocument Blueprint => _blueprint;
+
+        /// <summary>Raised when the active blueprint document instance is replaced (New/Open).</summary>
+        public event EventHandler? BlueprintDocumentReplaced;
+
+        partial void OnBlueprintLiveEditChanged(bool value) => _host.BlueprintLiveEdit = value;
+
+        public void NotifyBlueprintChanged()
+        {
+            RefreshBlueprint();
+            TryLiveReloadBlueprint();
+        }
+
+        private void TryLiveReloadBlueprint()
+        {
+            if (!BlueprintLiveEdit)
+                return;
+            var (ok, msg) = _blueprint.Validate();
+            if (!ok)
+            {
+                BlueprintStatus = $"Live : {msg}";
+                return;
+            }
+
+            try
+            {
+                if (_host.HotReloadBlueprint(_blueprint))
+                    BlueprintStatus = $"Live OK — '{_blueprint.Name}' hot-reload";
+                else
+                    BlueprintStatus = "Live : hot-reload refusé";
+            }
+            catch (Exception ex)
+            {
+                BlueprintStatus = $"Live : {ex.Message}";
+            }
+        }
 
         partial void OnSelectedEntityChanged(SceneEntity? value)
         {
@@ -150,7 +226,20 @@ namespace Synapse.Studio.ViewModels
                 EntityMeshPath = "";
                 EntityIsVehicle = false;
                 EntityBakeNeuralSdf = false;
+                BehaviorTreeText = "";
+                HasAgentSelection = false;
                 return;
+            }
+
+            if (value.Type == EntityType.Agent)
+            {
+                BehaviorTreeText = _host.GetAgentBehaviorTreeText(value.Id) ?? "(aucun arbre de comportement)";
+                HasAgentSelection = true;
+            }
+            else
+            {
+                BehaviorTreeText = "";
+                HasAgentSelection = false;
             }
 
             EntityName = value.Name;
@@ -183,8 +272,6 @@ namespace Synapse.Studio.ViewModels
         {
             _host.ViewportEditor.ToolMode = value;
         }
-
-        public void NotifyBlueprintChanged() => RefreshBlueprint();
 
         public void SelectEntityById(Guid id)
         {
@@ -246,14 +333,54 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private void SetViewportToolSelect() => ViewportTool = ViewportToolMode.Select;
 
+        [RelayCommand]
+        private void SetViewportToolScale() => ViewportTool = ViewportToolMode.Scale;
+
         partial void OnSelectedLawIdChanged(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return;
+            var law = _host.ListLawCatalog().FirstOrDefault(l => l.Id == value);
+            if (string.IsNullOrWhiteSpace(law.Id))
+                return;
+
+            LawExpression = law.Expression;
+            var entry = FindCatalogEntry(value);
+            if (entry != null && !ReferenceEquals(SelectedLawEntry, entry))
+                SelectedLawEntry = entry;
+            UpdateSelectedLawSummary();
+        }
+
+        partial void OnSelectedLawEntryChanged(LawCatalogEntry? value)
         {
             if (value == null)
                 return;
-            var law = _host.ListLaws().FirstOrDefault(l => l.Id == value);
-            if (law.Id != null)
-                LawExpression = law.Expression;
+            if (!string.Equals(SelectedLawId, value.Id, StringComparison.OrdinalIgnoreCase))
+                SelectedLawId = value.Id;
+            LawExpression = value.Expression;
+            UpdateSelectedLawSummary();
         }
+
+        partial void OnLawSearchTextChanged(string value) => ApplyLawCatalogFilter();
+
+        private readonly List<LawCatalogEntry> _allLawCatalog = new();
+
+        private void UpdateSelectedLawSummary()
+        {
+            if (SelectedLawEntry == null)
+            {
+                SelectedLawSummary = "";
+                return;
+            }
+
+            SelectedLawSummary =
+                $"{SelectedLawEntry.Name}\n" +
+                $"Catégorie : {SelectedLawEntry.CategoryLabel}\n" +
+                $"{SelectedLawEntry.Description}";
+        }
+
+        private LawCatalogEntry? FindCatalogEntry(string id) =>
+            _allLawCatalog.FirstOrDefault(l => string.Equals(l.Id, id, StringComparison.OrdinalIgnoreCase));
 
         [RelayCommand]
         private void RefreshEntities()
@@ -288,10 +415,42 @@ namespace Synapse.Studio.ViewModels
 
         private void RefreshLaws()
         {
-            LawIds.Clear();
-            foreach (var law in _host.ListLaws())
-                LawIds.Add(law.Id);
-            SelectedLawId = _host.ActiveLawId ?? LawIds.FirstOrDefault();
+            _allLawCatalog.Clear();
+            foreach (var law in _host.ListLawCatalog())
+            {
+                _allLawCatalog.Add(new LawCatalogEntry
+                {
+                    Id = law.Id,
+                    Name = law.Name,
+                    Category = law.Category,
+                    Description = law.Description,
+                    Expression = law.Expression
+                });
+            }
+
+            LawCatalogSummary = $"{_allLawCatalog.Count} lois dans le catalogue · actif : {_host.ActiveLawId ?? "—"}";
+            ApplyLawCatalogFilter();
+            SelectedLawId = _host.ActiveLawId ?? _allLawCatalog.FirstOrDefault()?.Id;
+            SelectedLawEntry = FindCatalogEntry(SelectedLawId ?? "") ?? _allLawCatalog.FirstOrDefault();
+            UpdateSelectedLawSummary();
+        }
+
+        private void ApplyLawCatalogFilter()
+        {
+            FilteredLawCatalog.Clear();
+            string q = LawSearchText.Trim();
+            IEnumerable<LawCatalogEntry> query = _allLawCatalog;
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                query = _allLawCatalog.Where(l =>
+                    l.Id.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    l.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    l.Category.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    l.Description.Contains(q, StringComparison.OrdinalIgnoreCase));
+            }
+
+            foreach (var entry in query)
+                FilteredLawCatalog.Add(entry);
         }
 
         private void RefreshStatus()
@@ -314,8 +473,43 @@ namespace Synapse.Studio.ViewModels
             else if (!EvolutionStatus.StartsWith("Terminé", StringComparison.Ordinal))
                 EvolutionStatus = "Inactif";
 
-            var giGpu = _host.RenderEngine?.SceneRenderer?.GiUsesGpuReadback ?? false;
-            GiStatus = giGpu ? "GI : lecture G-buffer GPU active" : "GI : constantes de repli";
+            var fillMode = _host.RenderEngine?.SceneRenderer?.LastGiFillMode ?? GiGBufferFillMode.None;
+            GiStatus = fillMode switch
+            {
+                GiGBufferFillMode.GpuReadback => "GI : lecture G-buffer GPU active",
+                GiGBufferFillMode.GpuResident => "GI : G-buffer GPU résident",
+                GiGBufferFillMode.ProceduralPreview => "GI : preview procédurale L-DNN",
+                GiGBufferFillMode.Constants => "GI : constantes de repli",
+                _ => "GI : lecture GPU en attente"
+            };
+
+            VrStatusText = _host.VrStatusText;
+            WanStatusText = _host.WanStatusText;
+            WebStatusText = _host.WebStatusText;
+            CollaborationStatus = _host.IsWanConnected
+                ? $"WAN patches ↑{_host.WanPatchesSent} ↓{_host.WanPatchesReceived} | VR {(_host.IsVrActive ? "on" : "off")}"
+                : (_host.IsVrActive ? $"VR actif ({s.VrMs:F1} ms)" : "Collaboration inactive");
+
+            MarketplaceStatus = _host.MarketplaceStatusText;
+            TwinStatusText = _host.TwinStatusText;
+        }
+
+        private void OnCollaborationPatchApplied(string peerId)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                RefreshEntities();
+                CollaborationStatus = $"Patch reçu de {peerId[..Math.Min(8, peerId.Length)]}…";
+            });
+            var fillMode = _host.RenderEngine?.SceneRenderer?.LastGiFillMode ?? GiGBufferFillMode.None;
+            GiStatus = fillMode switch
+            {
+                GiGBufferFillMode.GpuReadback => "GI : lecture G-buffer GPU active",
+                GiGBufferFillMode.GpuResident => "GI : G-buffer GPU résident",
+                GiGBufferFillMode.ProceduralPreview => "GI : preview procédurale L-DNN",
+                GiGBufferFillMode.Constants => "GI : constantes de repli",
+                _ => "GI : lecture GPU en attente"
+            };
         }
 
         [RelayCommand]
@@ -467,6 +661,21 @@ namespace Synapse.Studio.ViewModels
             LawStatus = result.Success
                 ? $"OK — {result.InstructionCount} ops, {result.CompilationTimeMs} ms"
                 : $"Échec : {result.Message}";
+            LawCatalogSummary = $"{_allLawCatalog.Count} lois · actif : {_host.ActiveLawId ?? id}";
+        }
+
+        [RelayCommand]
+        private void ApplySelectedLaw()
+        {
+            if (SelectedLawEntry == null)
+                return;
+            var result = _host.ApplyLaw(SelectedLawEntry.Id);
+            LawExpression = SelectedLawEntry.Expression;
+            LawStatus = result.Success
+                ? $"Loi active : {SelectedLawEntry.Id} ({result.InstructionCount} ops)"
+                : $"Échec : {result.Message}";
+            LawCatalogSummary = $"{_allLawCatalog.Count} lois · actif : {_host.ActiveLawId ?? SelectedLawEntry.Id}";
+            RefreshStatus();
         }
 
         [RelayCommand]
@@ -478,15 +687,21 @@ namespace Synapse.Studio.ViewModels
             ChatInput = "";
             ChatMessages.Add(new ChatMessageRecord { Role = "Vous", Content = prompt });
 
-            // Steer the model toward structured lighting/SDF JSON when relevant.
+            // Steer the model toward structured industrial world-delta JSON when relevant.
             string routedPrompt = LooksLikeSceneControlPrompt(prompt)
-                ? prompt + "\n\nRespond with a JSON object including any of: " +
-                  "directionalDirection [x,y,z], color (#RRGGBB), intensity, fogDensity, " +
-                  "enableClouds, and/or primitive/center/radius for an SDF hint."
+                ? prompt + "\n\nRespond with a JSON object for the Synapse industrial pipeline " +
+                  "(LLM→Physics→Rendering→Simulation). Include any of: " +
+                  "directionalDirection [x,y,z], color (#RRGGBB), intensity, fogDensity, enableClouds, " +
+                  "primitive/center/radius (SDF), lawId/expression/enableModules (living law), " +
+                  "metallic/roughness (material), impulse/heatDeposit/profile (simulation)."
                 : prompt;
 
             var response = await _host.ChatAsync(routedPrompt);
-            string content = response?.Content ?? "(aucune réponse)";
+            string content = response == null
+                ? "(aucune réponse)"
+                : response.IsError
+                    ? $"(erreur LLM) {response.ErrorMessage ?? "provider indisponible"}"
+                    : response.Content;
             ChatMessages.Add(new ChatMessageRecord
             {
                 Role = "Assistant",
@@ -494,12 +709,12 @@ namespace Synapse.Studio.ViewModels
                 Provider = response?.Provider ?? ""
             });
 
-            // Auto-apply scene or behavior hints when parseable.
-            LlmApplyStatus = _host.ApplyLlmSceneHints(content);
-            if (!LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
-                LlmApplyStatus = _host.ApplyLlmBehaviorHints(content);
-            if (LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
-                LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+            // Auto-apply full industrial cascade: LLM → Physics → Rendering → Simulation.
+            LlmApplyStatus = _host.ApplyLlmWorldDelta(content);
+            if (LlmApplyStatus.Contains("Applied:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("law:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("agent:", StringComparison.Ordinal))
                 RefreshEntities();
         }
 
@@ -514,11 +729,11 @@ namespace Synapse.Studio.ViewModels
                 return;
             }
 
-            LlmApplyStatus = _host.ApplyLlmSceneHints(last.Content);
-            if (!LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
-                LlmApplyStatus = _host.ApplyLlmBehaviorHints(last.Content);
-            if (LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
-                LlmApplyStatus.StartsWith("Applied:", StringComparison.Ordinal))
+            LlmApplyStatus = _host.ApplyLlmWorldDelta(last.Content);
+            if (LlmApplyStatus.Contains("Applied:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("Registered", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("law:", StringComparison.Ordinal) ||
+                LlmApplyStatus.Contains("agent:", StringComparison.Ordinal))
                 RefreshEntities();
         }
 
@@ -548,6 +763,22 @@ namespace Synapse.Studio.ViewModels
         }
 
         [RelayCommand]
+        private void InsertLawPrompt()
+        {
+            ChatInput =
+                "Apply a living physics law as JSON with lawId (e.g. heat_equation), " +
+                "optional expression, and enableModules [\"sph\",\"elasticity\"] if needed.";
+        }
+
+        [RelayCommand]
+        private void InsertWorldDeltaPrompt()
+        {
+            ChatInput =
+                "Create a full Synapse world delta as JSON: warm sunset lighting, " +
+                "a sphere SDF at [0,1,0], lawId heat_equation, and an agent impulse at origin.";
+        }
+
+        [RelayCommand]
         private void AddBlueprintLlmNode()
         {
             _blueprint.Nodes.Add(new BlueprintNode
@@ -560,7 +791,7 @@ namespace Synapse.Studio.ViewModels
                 Inputs = { new BlueprintPin { Name = "Exec", IsInput = true } },
                 Outputs = { new BlueprintPin { Name = "Then", IsInput = false } }
             });
-            RefreshBlueprint();
+            NotifyBlueprintChanged();
         }
 
         private static bool LooksLikeSceneControlPrompt(string prompt)
@@ -570,6 +801,10 @@ namespace Synapse.Studio.ViewModels
                 || prompt.Contains("cloud", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("sdf", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("sun", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("law", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("physics", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("impulse", StringComparison.OrdinalIgnoreCase)
+                || prompt.Contains("world delta", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("éclair", StringComparison.OrdinalIgnoreCase)
                 || prompt.Contains("éclairage", StringComparison.OrdinalIgnoreCase);
         }
@@ -594,12 +829,20 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task StartEvolutionAsync()
         {
-            if (!IsInspectorModeEnabled)
-                IsInspectorModeEnabled = true;
-            EvolutionStatus = "Démarrage…";
-            await Task.Run(async () => await _host.StartEvolutionAsync(20, 5));
-            EvolutionStatus = $"Terminé — gen {_host.EvolutionGeneration} fitness={_host.BestFitness:F3} (volume mis à jour)";
-            RefreshEntities();
+            try
+            {
+                if (!IsInspectorModeEnabled)
+                    IsInspectorModeEnabled = true;
+                EvolutionStatus = "Démarrage…";
+                await Task.Run(async () => await _host.StartEvolutionAsync(20, 5));
+                EvolutionStatus = $"Terminé — gen {_host.EvolutionGeneration} fitness={_host.BestFitness:F3} (volume mis à jour)";
+                RefreshEntities();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Evolution failed", ex);
+                EvolutionStatus = $"Erreur — {ex.Message}";
+            }
         }
 
         [RelayCommand]
@@ -608,74 +851,212 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task NewProjectAsync()
         {
-            await _host.LoadSceneAsync(null);
-            RefreshEntities();
-            RefreshLaws();
-            _projectPath = null;
+            try
+            {
+                await _host.LoadSceneAsync(null);
+                RefreshEntities();
+                RefreshLaws();
+                _projectPath = null;
+                LawStatus = "Nouveau projet";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "New project failed", ex);
+                LawStatus = $"Erreur nouveau projet — {ex.Message}";
+            }
         }
 
         [RelayCommand]
         private async Task OpenProjectAsync()
         {
-            var window = GetMainWindow();
-            if (window?.StorageProvider == null)
-                return;
-            var files = await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+            try
             {
-                Title = "Ouvrir un projet Synapse",
-                AllowMultiple = false,
-                FileTypeFilter = new[]
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var files = await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
                 {
-                    new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
+                    Title = "Ouvrir un projet Synapse",
+                    AllowMultiple = false,
+                    FileTypeFilter = new[]
                     {
-                        Patterns = new[] { "*.synapse", "*.json" }
+                        new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
+                        {
+                            Patterns = new[] { "*.synapse", "*.json" }
+                        }
                     }
-                }
-            });
-            var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
-            if (path == null)
-                return;
-            await _host.LoadSceneAsync(path);
-            GDNN.Streaming.AssetStreamer.AssetRootDirectory = Path.Combine(Path.GetDirectoryName(path)!, "assets");
-            _projectPath = path;
-            RefreshEntities();
-            RefreshLaws();
+                });
+                var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
+                if (path == null)
+                    return;
+                await _host.LoadSceneAsync(path);
+                GDNN.Streaming.AssetStreamer.AssetRootDirectory = Path.Combine(Path.GetDirectoryName(path)!, "assets");
+                _projectPath = path;
+                RefreshEntities();
+                RefreshLaws();
+                LawStatus = $"Ouvert — {Path.GetFileName(path)}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Open project failed", ex);
+                LawStatus = $"Erreur ouverture — {ex.Message}";
+            }
         }
 
         [RelayCommand]
         private async Task SaveProjectAsync()
         {
-            var path = _projectPath;
-            if (string.IsNullOrWhiteSpace(path))
+            try
+            {
+                var path = _projectPath;
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    var window = GetMainWindow();
+                    if (window?.StorageProvider == null)
+                        return;
+                    var file = await window.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+                    {
+                        Title = "Enregistrer le projet Synapse",
+                        DefaultExtension = "synapse",
+                        SuggestedFileName = "project.synapse",
+                        FileTypeChoices = new[]
+                        {
+                            new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
+                            {
+                                Patterns = new[] { "*.synapse" }
+                            }
+                        }
+                    });
+                    path = file?.TryGetLocalPath();
+                }
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                Directory.CreateDirectory(_config.ProjectsDirectory);
+                var assetsDir = Path.Combine(Path.GetDirectoryName(path)!, "assets");
+                Directory.CreateDirectory(assetsDir);
+                GDNN.Streaming.AssetStreamer.AssetRootDirectory = assetsDir;
+                await _host.SaveSceneAsync(path);
+                _projectPath = path;
+                _logger.Info("Studio", $"Saved {path}");
+                LawStatus = $"Enregistré — {Path.GetFileName(path)}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Save project failed", ex);
+                LawStatus = $"Erreur enregistrement — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task EnableVrAsync()
+        {
+            try
+            {
+                CollaborationStatus = "Démarrage OpenXR…";
+                bool ok = await _host.EnableVrAsync();
+                VrStatusText = _host.VrStatusText;
+                CollaborationStatus = ok ? "VR activé" : "VR indisponible";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "VR enable failed", ex);
+                CollaborationStatus = $"Erreur VR — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task DisableVrAsync()
+        {
+            await _host.DisableVrAsync();
+            VrStatusText = _host.VrStatusText;
+            CollaborationStatus = "VR arrêté";
+        }
+
+        [RelayCommand]
+        private async Task StartWanHostAsync()
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(WanSessionCode))
+                {
+                    CollaborationStatus = "Code de session requis";
+                    return;
+                }
+
+                CollaborationStatus = "Hébergement WAN…";
+                await _host.StartWanHostAsync(WanSessionCode.Trim(), WanPort);
+                WanStatusText = _host.WanStatusText;
+                WanRendezvousPort = _host.WanHub?.RendezvousPort ?? 0;
+                CollaborationStatus = $"Hôte prêt — rdv UDP {WanRendezvousPort}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "WAN host failed", ex);
+                CollaborationStatus = $"Erreur WAN host — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task JoinWanAsync()
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(WanSessionCode))
+                {
+                    CollaborationStatus = "Code de session requis";
+                    return;
+                }
+
+                CollaborationStatus = "Connexion WAN…";
+                await _host.JoinWanAsync(WanSessionCode.Trim(), WanRendezvousPort);
+                WanStatusText = _host.WanStatusText;
+                CollaborationStatus = "Connecté au pair WAN";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "WAN join failed", ex);
+                CollaborationStatus = $"Erreur WAN join — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task StopWanAsync()
+        {
+            await _host.StopWanAsync();
+            WanStatusText = _host.WanStatusText;
+            CollaborationStatus = "WAN arrêté";
+        }
+
+        [RelayCommand]
+        private async Task ExportWebStudioAsync()
+        {
+            try
             {
                 var window = GetMainWindow();
                 if (window?.StorageProvider == null)
                     return;
-                var file = await window.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+                var folder = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
                 {
-                    Title = "Enregistrer le projet Synapse",
-                    DefaultExtension = "synapse",
-                    SuggestedFileName = "project.synapse",
-                    FileTypeChoices = new[]
-                    {
-                        new Avalonia.Platform.Storage.FilePickerFileType("Synapse")
-                        {
-                            Patterns = new[] { "*.synapse" }
-                        }
-                    }
+                    Title = "Exporter Synapse Web Studio (WASM)",
+                    AllowMultiple = false
                 });
-                path = file?.TryGetLocalPath();
-            }
-            if (string.IsNullOrWhiteSpace(path))
-                return;
+                var path = folder.Count > 0 ? folder[0].TryGetLocalPath() : null;
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
 
-            Directory.CreateDirectory(_config.ProjectsDirectory);
-            var assetsDir = Path.Combine(Path.GetDirectoryName(path)!, "assets");
-            Directory.CreateDirectory(assetsDir);
-            GDNN.Streaming.AssetStreamer.AssetRootDirectory = assetsDir;
-            await _host.SaveSceneAsync(path);
-            _projectPath = path;
-            _logger.Info("Studio", $"Saved {path}");
+                CollaborationStatus = "Publication Web Studio…";
+                var result = await _host.ExportWebStudioAsync(path);
+                WebStatusText = _host.WebStatusText;
+                CollaborationStatus = result.UsedDotnetPublish
+                    ? $"WASM publié — {result.OutputDirectory}"
+                    : $"Site WebGPU — {result.OutputDirectory}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Web export failed", ex);
+                CollaborationStatus = $"Erreur export web — {ex.Message}";
+            }
         }
 
         [RelayCommand]
@@ -694,7 +1075,8 @@ namespace Synapse.Studio.ViewModels
             foreach (var n in _blueprint.Nodes)
                 BlueprintNodes.Add($"{n.Kind}: {n.Title}");
             var (ok, msg) = _blueprint.Validate();
-            BlueprintStatus = msg;
+            if (!BlueprintLiveEdit || !ok)
+                BlueprintStatus = msg;
         }
 
         [RelayCommand]
@@ -702,6 +1084,8 @@ namespace Synapse.Studio.ViewModels
         {
             _blueprint = BlueprintDocument.CreateDefault();
             RefreshBlueprint();
+            BlueprintDocumentReplaced?.Invoke(this, EventArgs.Empty);
+            BlueprintStatus = "Nouveau blueprint";
         }
 
         [RelayCommand]
@@ -717,7 +1101,7 @@ namespace Synapse.Studio.ViewModels
                 Inputs = { new BlueprintPin { Name = "Exec", IsInput = true } },
                 Outputs = { new BlueprintPin { Name = "Then", IsInput = false } }
             });
-            RefreshBlueprint();
+            NotifyBlueprintChanged();
         }
 
         [RelayCommand]
@@ -727,7 +1111,7 @@ namespace Synapse.Studio.ViewModels
             {
                 _host.CompileAndSpawnBlueprint(_blueprint, Vector3.Zero);
                 RefreshEntities();
-                BlueprintStatus = $"Compilé → arbre '{_blueprint.Name}' enregistré + agent";
+                BlueprintStatus = $"Compilé → arbre '{_blueprint.Name}' enregistré + agent (live)";
             }
             catch (Exception ex)
             {
@@ -738,24 +1122,63 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task SaveBlueprintAsync()
         {
+            try
+            {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Enregistrer le blueprint",
+                    DefaultExtension = "blueprint.json",
+                    SuggestedFileName = "agent.blueprint.json",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("Blueprint") { Patterns = new[] { "*.blueprint.json", "*.json" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (path == null)
+                    return;
+                var (ok, msg) = _blueprint.Validate();
+                if (!ok)
+                {
+                    BlueprintStatus = $"Validation échouée — {msg}";
+                    return;
+                }
+                await _blueprint.SaveAsync(path);
+                BlueprintStatus = $"Enregistré : {path}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Save blueprint failed", ex);
+                BlueprintStatus = $"Erreur enregistrement — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task OpenBlueprintAsync()
+        {
             var window = GetMainWindow();
             if (window?.StorageProvider == null)
                 return;
-            var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
-                Title = "Enregistrer le blueprint",
-                DefaultExtension = "blueprint.json",
-                SuggestedFileName = "agent.blueprint.json",
-                FileTypeChoices = new[]
+                Title = "Ouvrir un blueprint",
+                AllowMultiple = false,
+                FileTypeFilter = new[]
                 {
                     new FilePickerFileType("Blueprint") { Patterns = new[] { "*.blueprint.json", "*.json" } }
                 }
             });
-            var path = file?.TryGetLocalPath();
+            var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
             if (path == null)
                 return;
-            await _blueprint.SaveAsync(path);
-            BlueprintStatus = $"Enregistré : {path}";
+            _blueprint = await BlueprintDocument.LoadAsync(path);
+            RefreshBlueprint();
+            BlueprintDocumentReplaced?.Invoke(this, EventArgs.Empty);
+            TryLiveReloadBlueprint();
+            BlueprintStatus = $"Ouvert : {path}";
         }
 
         [RelayCommand]
@@ -780,34 +1203,379 @@ namespace Synapse.Studio.ViewModels
         [RelayCommand]
         private async Task ImportMegascansAsync()
         {
-            var window = GetMainWindow();
-            if (window?.StorageProvider == null)
-                return;
-
-            string? path = MegascansPath;
-            if (string.IsNullOrWhiteSpace(path))
+            try
             {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+
+                string? path = MegascansPath;
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                    {
+                        Title = "Dossier d'asset Megascans",
+                        AllowMultiple = false
+                    });
+                    path = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+                }
+
+                if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                {
+                    MegascansStatus = "Aucun dossier sélectionné";
+                    return;
+                }
+
+                MegascansPath = path;
+                MegascansStatus = "Import en cours…";
+                var entry = await _megascans.ImportAssetAsync(path);
+                MegascansStatus = entry.ImportSucceeded
+                    ? $"OK — {entry.Asset?.Name} ({entry.ImportDuration.TotalMilliseconds:F0} ms)"
+                    : $"Échec — {string.Join("; ", entry.Warnings)}";
+                _logger.Info("Megascans", MegascansStatus);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Megascans import failed", ex);
+                MegascansStatus = $"Erreur import — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task ImportLawPackageAsync()
+        {
+            try
+            {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+                {
+                    Title = "Importer un package de loi (.synapse-law)",
+                    AllowMultiple = false,
+                    FileTypeFilter = new[]
+                    {
+                        new FilePickerFileType("Synapse Law") { Patterns = new[] { "*.synapse-law" } }
+                    }
+                });
+                var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                var package = await _host.ImportLawPackageAsync(path);
+                MarketplaceStatus = _host.MarketplaceStatusText;
+                RefreshLaws();
+                RefreshMarketplacePackages();
+                _logger.Info("Studio", $"Imported law package {package.Id}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Law import failed", ex);
+                MarketplaceStatus = $"Erreur import loi — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task ExportActiveLawPackageAsync()
+        {
+            try
+            {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Exporter la loi active (.synapse-law)",
+                    DefaultExtension = "synapse-law",
+                    SuggestedFileName = $"{_host.ActiveLawId ?? "law"}.synapse-law",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("Synapse Law") { Patterns = new[] { "*.synapse-law" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                await _host.ExportActiveLawPackageAsync(path);
+                MarketplaceStatus = _host.MarketplaceStatusText;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Law export failed", ex);
+                MarketplaceStatus = $"Erreur export loi — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task ExportSceneGlTFAsync()
+        {
+            try
+            {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Exporter la scène en glTF",
+                    DefaultExtension = "gltf",
+                    SuggestedFileName = "scene.gltf",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("glTF") { Patterns = new[] { "*.gltf" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                var result = await _host.ExportSceneGlTFAsync(path);
+                CollaborationStatus = result.Success
+                    ? $"glTF exporté — {result.EntityCount} entités → {Path.GetFileName(path)}"
+                    : $"Échec export glTF — {result.ErrorMessage}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "glTF export failed", ex);
+                CollaborationStatus = $"Erreur export glTF — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task ExportBestGenomeAsync()
+        {
+            try
+            {
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Exporter le meilleur génome (JSON)",
+                    DefaultExtension = "json",
+                    SuggestedFileName = "best-genome.json",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("JSON") { Patterns = new[] { "*.json" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                await _host.ExportBestGenomeAsync(path);
+                EvolutionStatus = $"Génome exporté → {Path.GetFileName(path)}";
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Genome export failed", ex);
+                EvolutionStatus = $"Erreur export génome — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private void RefreshBehaviorTree()
+        {
+            if (SelectedEntity == null || SelectedEntity.Type != EntityType.Agent)
+            {
+                BehaviorTreeText = "";
+                HasAgentSelection = false;
+                return;
+            }
+
+            BehaviorTreeText = _host.GetAgentBehaviorTreeText(SelectedEntity.Id) ?? "(aucun arbre de comportement)";
+            HasAgentSelection = true;
+        }
+
+        [RelayCommand]
+        private async Task SynchronizeTwinsAsync()
+        {
+            try
+            {
+                await _host.SynchronizeTwinsAsync();
+                TwinStatusText = _host.TwinStatusText;
+                RefreshTwins();
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Twin sync failed", ex);
+                TwinStatusText = $"Erreur sync jumeaux — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private async Task ExportSelectedTwinAsync()
+        {
+            try
+            {
+                if (SelectedTwin == null)
+                {
+                    TwinStatusText = "Sélectionnez un jumeau à exporter.";
+                    return;
+                }
+
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
+                var file = await window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Exporter un snapshot de jumeau (JSON)",
+                    DefaultExtension = "json",
+                    SuggestedFileName = $"twin-{SelectedTwin.DisplayLine}.json",
+                    FileTypeChoices = new[]
+                    {
+                        new FilePickerFileType("JSON") { Patterns = new[] { "*.json" } }
+                    }
+                });
+                var path = file?.TryGetLocalPath();
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
+                await _host.ExportTwinSnapshotAsync(SelectedTwin.Id, path);
+                TwinStatusText = _host.TwinStatusText;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Studio", "Twin export failed", ex);
+                TwinStatusText = $"Erreur export jumeau — {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        private void RegisterSceneTwin()
+        {
+            if (SelectedEntity == null)
+            {
+                TwinStatusText = "Sélectionnez une entité à jumeler.";
+                return;
+            }
+
+            var twin = _host.RegisterTwin(SelectedEntity.Name);
+            TwinStatusText = _host.TwinStatusText;
+            RefreshTwins();
+            _logger.Info("Studio", $"Registered twin {twin.Id} for {SelectedEntity.Name}");
+        }
+
+        [RelayCommand]
+        private async Task LoadPluginsFromDirectoryAsync()
+        {
+            try
+            {
+                if (_pluginHost == null)
+                {
+                    PluginStatusText = "Plugins indisponibles (host non initialisé).";
+                    return;
+                }
+
+                var window = GetMainWindow();
+                if (window?.StorageProvider == null)
+                    return;
                 var folders = await window.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
                 {
-                    Title = "Dossier d'asset Megascans",
+                    Title = "Dossier de plugins Synapse",
                     AllowMultiple = false
                 });
-                path = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
-            }
+                var path = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
 
-            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                int count = _pluginHost.LoadFromDirectory(path, _host);
+                RefreshPlugins();
+                PluginStatusText = $"{count} plugin(s) chargé(s) depuis {Path.GetFileName(path)} · total {_pluginHost.LoadedPlugins.Count}";
+            }
+            catch (Exception ex)
             {
-                MegascansStatus = "Aucun dossier sélectionné";
+                _logger.Error("Studio", "Plugin load failed", ex);
+                PluginStatusText = $"Erreur chargement plugins — {ex.Message}";
+            }
+        }
+
+        private void TryLoadMarketplaceCatalog()
+        {
+            try
+            {
+                var dir = ResolveSampleDirectory(Path.Combine("samples", "laws"));
+                if (dir != null)
+                {
+                    // LoadMarketplaceCatalog is sync-over-async internally; run it off the UI
+                    // SynchronizationContext to avoid a continuation deadlock at construction.
+                    Task.Run(() => _host.LoadMarketplaceCatalog(dir)).GetAwaiter().GetResult();
+                }
+                MarketplaceStatus = _host.MarketplaceStatusText;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("Studio", $"Marketplace catalog load failed: {ex.Message}");
+            }
+        }
+
+        private void RefreshMarketplacePackages()
+        {
+            MarketplacePackages.Clear();
+            foreach (var package in _host.ListMarketplaceLaws())
+            {
+                MarketplacePackages.Add(new LawCatalogEntry
+                {
+                    Id = package.Id,
+                    Name = package.Name,
+                    Category = package.Category,
+                    Description = package.Description,
+                    Expression = package.Expression
+                });
+            }
+        }
+
+        private void RefreshTwins()
+        {
+            var selectedId = SelectedTwin?.Id;
+            Twins.Clear();
+            foreach (var twin in _host.ListTwins())
+            {
+                Twins.Add(new TwinListEntry
+                {
+                    Id = twin.Id,
+                    PhysicalId = twin.PhysicalId,
+                    Status = twin.SynchronizationStatus.ToString()
+                });
+            }
+            if (selectedId.HasValue)
+                SelectedTwin = Twins.FirstOrDefault(t => t.Id == selectedId.Value);
+        }
+
+        private void RefreshPlugins()
+        {
+            Plugins.Clear();
+            if (_pluginHost == null)
+            {
+                PluginStatusText = "Plugins indisponibles (host non initialisé).";
                 return;
             }
 
-            MegascansPath = path;
-            MegascansStatus = "Import en cours…";
-            var entry = await _megascans.ImportAssetAsync(path);
-            MegascansStatus = entry.ImportSucceeded
-                ? $"OK — {entry.Asset?.Name} ({entry.ImportDuration.TotalMilliseconds:F0} ms)"
-                : $"Échec — {string.Join("; ", entry.Warnings)}";
-            _logger.Info("Megascans", MegascansStatus);
+            foreach (var meta in _pluginHost.LoadedPlugins)
+            {
+                Plugins.Add(new PluginListEntry
+                {
+                    Id = meta.Id,
+                    Name = meta.Name,
+                    Version = meta.Version
+                });
+            }
+            PluginStatusText = Plugins.Count == 0
+                ? "Plugins : aucun chargé"
+                : $"Plugins : {Plugins.Count} chargé(s)";
+        }
+
+        private static string? ResolveSampleDirectory(string relative)
+        {
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null)
+            {
+                var candidate = Path.Combine(dir.FullName, relative);
+                if (Directory.Exists(candidate))
+                    return candidate;
+                dir = dir.Parent;
+            }
+            return null;
         }
 
         public void Dispose()
@@ -818,6 +1586,7 @@ namespace Synapse.Studio.ViewModels
             _uiTimer.Stop();
             _host.ViewportEntitySelected -= OnViewportEntitySelected;
             _host.InspectorFeedEntryAdded -= OnInspectorFeedEntry;
+            _host.CollaborationPatchApplied -= OnCollaborationPatchApplied;
             _megascans.Dispose();
             GC.SuppressFinalize(this);
         }

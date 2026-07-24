@@ -25,7 +25,8 @@ flowchart TB
     end
 
     subgraph Rendering["Synapse.Rendering"]
-        GDNN[G-DNN — SDF neuronaux]
+        FG[FrameGraph]
+        GDNN[G-DNN — SDF / LOD / meshlets]
         LDNN[L-DNN — GI neuronale]
         VK[Vulkan RHI]
     end
@@ -42,11 +43,17 @@ flowchart TB
     LLM --> EH
 
     EH --> FO
-    FO --> PHY
-    FO --> AI
-    FO --> SIM
-    FO --> GDNN
-    FO --> LDNN
+    FO --> NFP[NativeFramePipeline]
+    NFP --> PHY
+    NFP --> AI
+    NFP --> SIM
+    NFP --> FG
+    NFP --> QUAL[RuntimeQuality]
+    FG --> GDNN
+    FG --> LDNN
+    QUAL --> FG
+    PHY -->|field temp| LDNN
+    SIM -->|transforms| SD
 
     PHY --> LL[LivingLawCompiler]
     GDNN --> VK
@@ -54,16 +61,151 @@ flowchart TB
     EH --> SD
 ```
 
-## Pipeline par frame
+## Pipeline de rendu — FrameGraph GPU-first
+
+Le present path Vulkan n’est plus une séquence ad-hoc dans `SceneRenderer` :
+il est piloté par un **FrameGraph natif** (`GDNN.Rendering.FrameGraph`) en deux phases
+(`ExecuteCpuProducers` → `cmd.Begin` → `ExecuteGpuPasses`) qui conserve
+G-DNN et L-DNN comme modules de tech. `SceneRenderer.ExecuteFrame` délègue
+entièrement à `RenderFrameGraph` (plus de boucle manuelle parallèle).
+
+```mermaid
+flowchart TB
+  RE[RenderEngine.RenderFrame]
+  FG[RenderFrameGraph]
+  LDNN[LdnnGiPass_CPU]
+  CULL[SceneCullPass_GDNN]
+  ALG[AlgorithmSystemsPass]
+  SH[ShadowCascadesPass]
+  GB[GBufferPass]
+  LIT[DeferredLightingPass]
+  PART[ParticlesComputePass]
+  PP[PostTonemapPass]
+  SW[Swapchain]
+  Q[RuntimeQuality→LOD/shadows/GI]
+  PHY[PhysicsField→fog]
+
+  RE --> FG
+  PHY --> LDNN
+  Q --> FG
+  FG --> LDNN
+  FG --> CULL --> ALG --> SH --> GB --> LIT --> PART --> PP --> SW
+  LDNN -->|GI_AO_Fog textures| LIT
+  GB -->|MRT| LIT
+```
+
+| Pass | Tech |
+|---|---|
+| `LdnnGiPass` | L-DNN Hybrid (SSGI + Radiance Cascades + neural) + upload batché |
+| `SceneCullPass` | G-DNN `LodManager` + swap draw ranges |
+| `AlgorithmSystemsPass` | **G-DNN complet** via `RenderingAlgorithmHub` + world partition / VT |
+| `ShadowCascadesPass` | Shadow map + cascades PSSM (2 extras) + VSM clipmaps |
+| `GBufferPass` | Deferred MRT + **PBR texture sampling** (albedo/normal/ORM) + **real velocity** |
+| `DeferredLightingPass` | GGX + ClearCoat + IBL/SSR + **CSM** + **multi-lights (2–4)** |
+| `ParticlesComputePass` | Particle sim + compute dispatcher (TAA/bloom/particle kernels) |
+| `PostTonemapPass` | Bloom multi-tap + ACES + **GPU TAA** (velocity + history) |
+
+### G-DNN sur le present path (`RenderingAlgorithmHub`)
+
+Tickés chaque frame (ou one-shot résident) depuis `AlgorithmSystemsPass` → `SceneRenderer.OnFrameGraphAlgorithms` → `RenderingAlgorithmHub.TickCull` :
+
+| Domaine | Systèmes | Flux visible / utile |
+|---|---|---|
+| Réseaux SDF | `HashEncodedDeepMLP`, `DeepMicroMLP`, `MicroMLP`, `QuantizedDeepMLP`, `HyperNetwork`→`MicroMLP`, `ISdfNetwork`, `MultiResolutionHashEncoder`, `NeuralLayerWeights` | Batch SDF → **AO contact** ; Hyper sample ; LOD |
+| Trainers / assets | `OnlineSdfTrainer` (via pipeline), `HashEncodedDeepMLPTrainer`, `OfflineHashMeshTrainer`, `MeshToSdfPipeline`, `NeuralAsset`, `ReferenceMeshSdf`, `GDNNValidationProtocol` | One-shot train cube/sphere + validation report |
+| Polygonization | `NeuralGeometryPipeline` (+ `PolygonizationCache` disque), `NeuralPolygonizer`, `NeuralMeshletBuilder`, `NeuralPolygonLodChain`, `NeuralClusterRenderer`, `SoftwareRasterizer`, `MeshletStreamer` | Meshlets → **fog** + **G-buffer inject** |
+| Evaluation | `NeuralLodSelector`, `SceneEvaluator` (+ assets → `AABBTree`/`RayMarcher`), `SurfaceEvaluator`, `HierarchicalSdfCache`, `GradientCalculator`, `StochasticSphereTracer`, `WarpSpace` | Trace ray scène ; Warp skin sample |
+| SIMD | `BatchSdfEvaluator`, `WaveOptimizedBatchEvaluator`, `BatchOps`, `MathFunctions`, `IntrinsicsHelper`, `MatrixOps`, `VectorOps` | Batch distances / normalize |
+| Streaming | `AssetStreamer` (+ `AssetCache`), `AsyncPipeline`, `CompressionUtils`, `MeshletStreamer` | Request `gdnn_live` placeholder LZ4 ; **clusters résidents rasterisés → present path** (`TryRasterizeStreamedClusters`) |
+| Streaming | `AssetStreamer` (+ `AssetCache`), `AsyncPipeline`, `CompressionUtils`, `MeshletStreamer` | Request `gdnn_live` placeholder LZ4 |
+| Threading | `JobSystem`, `ParallelEvaluator`, `SynchronizedBuffer`, `WorkStealingPool` | Parallel SDF reduce + steal jobs |
+| Memory | `StackAllocator`, `ZeroCopyBuffer`, `NativeBuffer`, `MemoryTracker`, `SpanExtensions`, `StreamingBuffer` | Scratch SDF / ring buffers |
+| Spatial | `Octree`, `LooseOctree`, `SpatialHash`, `ConcurrentSpatialHash`, `AABBTree` | Insert cam + QueryAABB |
+| Animation | `AnimationBlender`, `AnimationClip`, `Skeleton`, `JointTransform`, `SkinningWeights` | Idle clip → blend → skin matrices |
+| Math helpers | `VectorMath`, `MatrixMath`, `QuaternionMath`, `TransformUtils` | TRS / slerp used by anim tick |
+| Utilities | `Profiler`, `HashUtils`, `MathHelpers`, `DebugUtils`/`AssertUtils`, `BinaryReaderWriterExtensions` | Hash asset / assert / serialize |
+| GPU | `MeshletRasterizerShaderGenerator`, `NeuralComputeShaderGenerator`, `DeepMicroMLPSpirvEmitter`, `SpirvToolchain`, `ShaderGenerator`, `ShaderCompiler`, `ShaderVariant`/`Manager`, `ConstantBufferLayout(Builder)`, `HLSLCodeGenerator` (via ShaderGen), **`VulkanNeuralSdfDispatcher.Shared`**, **`VulkanMeshletRasterizerDispatcher.Shared`** | SPIR-V / HLSL residency ; 2ᵉ device SDF + meshlets |
+| Present feed | GPU/CPU meshlet vis → **fog** ; polygon mesh → **G-buffer** ; VT atlas → fog ; SDF → **AO** | Peinture live |
+
+Bind-only / optionnel : `BindNeuralGeometry`, `BindMeshletPageFile`.
+
+#### Checklist couverture G-DNN (`src/Synapse.Rendering/G-DNN/`)
+
+| Zone | Statut |
+|---|---|
+| Polygonization/* | **LIVE** — `NeuralGeometry.RenderFrame` (LOD chain) → meshlets → fog/GI/G-buffer ; fallback `Polygonizer.Extract(LivePolygonSdf)` |
+| Evaluation/* | **LIVE** — SceneEvaluator + BatchTrace + GridEvaluator + Warp LBS/DQS ; validation one-shot |
+| Streaming/* | **LIVE** — AssetRoot préservé (scène) ; `BindBakedNeuralAsset` ; MeshletStreamer → present |
+| SIMD/* | **LIVE** — batch/wave sur `LivePolygonSdf` + Intrinsics/Matrix/VectorOps |
+| Memory/* | **LIVE** — Stack/ZeroCopy/Native/Tracker/Span/StreamingBuffer |
+| GPU/* | **LIVE** — codegen + variants + 2× Shared dispatchers (CPU fallback headless) |
+| Animation/* | **LIVE** — BlendTree + layers + AimIK + LBS/DQS + SkinningWeights |
+| Core/NeuralNetwork/* | **LIVE** — MeshToSdf/Offline → `PromoteTrainedSdfToLive` ; Online seed edit ; Hyper → AO |
+| Core/DataStructures/* | **LIVE** — Insert + QueryAABB (octree/loose/AABBTree) chaque cull |
+| Core/Mathematics/* | **LIVE** — tick anim / coverage |
+| Threading/* | **LIVE** — JobSystem + ParallelEvaluator + SynchronizedBuffer + WorkStealingPool |
+| Utilities/* | **LIVE** — Profiler + Hash/Math/Debug bounding boxes + Binary helpers |
+
+**Present path dataflow** : offline/MeshToSdf train → `PromoteTrainedSdfToLive` → `NeuralGeometryPipeline` → `RenderFrame` / MeshletStreamer → `QueuePresentMesh` + GeometryRenderer flush → fog/AO/VSM/G-buffer. `TickPost` est idempotent par tick (plus de double advance particules).
+
+**Device Vulkan optionnel (G-DNN SDF)** : `VulkanNeuralSdfDispatcher.Shared` crée un **2ᵉ `VulkanRhiDevice`** dédié au compute DeepMicroMLP (SPIR-V via glslang/DXC). Le present path Studio garde son device swapchain ; le hub ne dispose pas ce Shared (durée de vie process). Si SPIR-V/Vulkan init échoue (headless Linux sans `vulkan-1.dll`, toolchain absente), le hub retombe sur `HlslCompatibleEvaluator` (CPU). Coût : mémoire/driver d’un second device + `WaitForIdle` sur les dispatches SDF (cadencés ~toutes les 15 frames). Les distances SDF peignent l’AO contact sur le present path.
+
+**Device Vulkan optionnel (G-DNN meshlets GPU)** : `VulkanMeshletRasterizerDispatcher.Shared` crée un **autre 2ᵉ `VulkanRhiDevice`** pour le compute raster Nanite-lite (`MeshletRasterizerShaderGenerator.GenerateGlslR32` → SPIR-V). Upload headers/positions/triangles → `vkCmdDispatch` (1 workgroup / meshlet) → readback visibility R32 → `RasterTarget` → `CompositeMeshletsIntoFog` + inject polygones G-buffer. Si SPIR-V/Vulkan indisponible, fallback **`SoftwareRasterizer`** (CPU Parallel.For). Cadence ~toutes les 8 frames avec le tick polygonization.
+
+`MaterialTextureSystem` : décode les textures Megascans disque via `MegascansImageDecoder` (PNG 8/16-bit, JPEG baseline, BMP, TGA → RGBA8 → Vulkan `R16G16B16A16Sfloat`) pour le sampling G-buffer albedo/normal/ORM ; fallback procédural si fichier absent/corrompu ou format non supporté (EXR/TIFF). Atlas VT uploadé quand des tiles résidentes existent.
+
+`RenderingAlgorithmHub` owns the previously orphaned Rendering algorithms and ticks them each frame into the present path (particles + **GPU/CPU meshlet vis → fog**, VSM clipmaps, VT streaming, world partition, Megascans bridge, compute residency, GPU SDF, **GPU meshlets**, **full G-DNN coverage**).
+
+`SceneRenderer` reste la façade publique (meshes, materials, Studio) et le propriétaire
+des ressources Vulkan ; `RenderEngine` appelle `ExecuteFrame` qui orchestre le graph.
+
+### Cible d’impact Nanite / Lumen (honnête)
+
+| Tech | Barre UE5.8 | Present path Synapse (session) | ~% impact on-screen vs UE5 |
+|---|---|---|---|
+| **G-DNN → Nanite** | Mesh shaders GPU, virtualized micropoly, continuous LOD, depth+material resolve | Dense meshlets (poly grid 20–36) + visibility buffer **256–512²** (GPU prefer / CPU fallback) → **G-buffer inject** + cluster albedo into GI/fog ; **`MeshletStreamer` clusters résidents rasterisés dans le present path** (jusqu’à 48 clusters/tick hors densify) ; LOD neural + frustum/backface | **~22–30%** (streamed clusters now reach the screen; pas de vrai micropoly hardware / streaming pages UE) |
+| **L-DNN → Lumen** | Surface cache + software RT cascades, multi-bounce, specular | Hybrid SSGI (8 rays) + **6** radiance cascades **consommées directement** (`SampleScreenCascade`) + probe cache **semé** depuis les cascades + neural refine + multi-bounce proxy ; **`TemporalStabilizer` filtre le champ GI** frame-to-frame ; GI **domine** l’ambient plat ; AO/fog/GI upload **chaque frame** ; SSR proxy renforcé | **~28–35%** (cascades + probes indirects visibles et temporellement stables ; pas de surface cache UE / RT hardware) |
+
+**Ce qui bloque encore la parité vraie** : pas de mesh-shader primary-device Nanite, pas de visibility-buffer material resolve GPU full-res, pas de Lumen surface cache / hardware ray tracing, Hybrid GI encore CPU-heavy (pas un compute GI resident chaque frame sur le device swapchain), second device optionnel pour meshlets/SDF.
+
+## Pipeline par frame (simulation + rendu)
+### Cible d’impact Nanite Neural 3.0 / Lumen Neural 3.0
+
+| Tech | Present path Synapse (industriel + cinématique) | Capacité |
+|---|---|---|
+| **G-DNN — Nanite Neural 3.0** | Continuous LOD + **MeshletMaterialResolvePass** full-res ; `NaniteCinematicResolve` / `MeshShaderCompatGenerator` ; visibility jusqu’à **2048²** (Cinematic) | Géométrie neuronale dense + material resolve viewport |
+| **L-DNN — Lumen Neural 3.0** | Surface cache + multi-bounce + **`LumenCinematicGi`** (GPU cache 96³ + full path-trace blend) | GI dynamique + mode Cinematic path-trace |
+| **Upscaling** | **`UpscalePass`** après tonemap : FSR spatial / DLSS-compatible / MetalFX-compatible | Render scale &lt; 1 → display |
+| **Continuum GPU-friendly** | **`GpuContinuumScheduler`** SPH+LBM+élasticité (Demo/Industrial/Cinematic) | Fluides / LBM / FEM-grille scène |
+
+Activation native : `EngineHost.EnableCinematicStack()` ou `QualityPreset=Cinematic`.
+
+## Pipeline industriel par frame — LLM → Physics → Rendering → Simulation
 
 ```mermaid
 sequenceDiagram
     participant S as Studio / Boucle
+    participant FO as FrameOrchestrator
+    participant N as NativeFramePipeline
+    participant UI as Studio LLM Console
+    participant Pipe as OmniaIndustrialPipeline
     participant E as EngineHost
     participant P as Multiphysics
     participant Sim as Sentience
     participant R as RenderEngine
+    participant FG as FrameGraph
 
+    S->>FO: TickAsync()
+    FO->>N: ExecuteAsync(dt)
+    N->>P: LivingLaws + Rigid + SPH + Elasticity
+    P-->>N: Transforms + température champ
+    N->>Sim: Behavior trees + perception
+    Sim-->>N: Agents mis à jour
+    N->>N: SyncSimulation→Scene + Field→L-DNN fog
+    N->>R: TickRender (si Vulkan prêt)
+    R->>FG: CpuProducers(L-DNN) puis GpuPasses
+    FG-->>S: Frame présentée (ou tick headless)
+    N->>N: Quality→LOD/shadows/GI
     S->>E: TickPhysics(dt)
     E->>P: RigidWorld.Step + LivingLaw.Apply
     P-->>E: État champ mis à jour
@@ -73,10 +215,25 @@ sequenceDiagram
     Sim-->>E: Entités mises à jour
 
     S->>E: TickRender()
-    E->>R: G-Buffer + G-DNN ray march
-    R->>R: L-DNN GI + SSAO + post-process
-    R-->>S: Frame présentée
+    E->>R: ExecuteFrame
+    R->>FG: L-DNN → Cull → Shadow → GBuffer → Light → Post
+    FG-->>S: Frame présentée
+    UI->>Pipe: ApplyLlmWorldDelta(JSON)
+    Pipe->>E: Law → Lighting/SDF → Material → BT/Impulse
+    Note over Pipe: Ordre déterministe LLM→Physics→Rendering→Simulation
+
+    E->>P: TickPhysics (lois + rigid + continuum opt.)
+    P-->>E: Champ T/ρ + transforms
+    E->>Sim: TickSimulationAsync (BT + perception)
+    Sim-->>P: PhysicsActuator (heat / impulse)
+    E->>Pipe: TickCoupling (field→L-DNN)
+    E->>R: TickRender
+    R->>FG: L-DNN Lumen Neural → Cull G-DNN Nanite Neural → Shadow → GBuffer → Light → Post
+    FG-->>UI: Frame présentée
 ```
+
+La boucle native (`NativeFramePipeline`) avance **Physics + Simulation même si Vulkan échoue**
+(headless / `vulkan-1.dll` absent). Le viewport Studio démarre toujours le timer d’orchestration.
 
 ## Modules et dépendances
 

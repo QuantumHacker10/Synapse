@@ -8,11 +8,11 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.*" />
     <PackageReference Include="xunit" Version="2.*" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.*" />
-    <PackageReference Include="FluentAssertions" Version="6.*" />
-    <PackageReference Include="coverlet.collector" Version="6.*">
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.*" />
+    <PackageReference Include="FluentAssertions" Version="8.*" />
+    <PackageReference Include="coverlet.collector" Version="10.*">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -28,5 +28,10 @@
     <ProjectReference Include="..\..\src\Synapse.Infrastructure\Synapse.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Synapse.Runtime\Synapse.Runtime.csproj" />
     <ProjectReference Include="..\..\src\Synapse.Plugins\Synapse.Plugins.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Rendering\Golden\gi-procedural-32x32.sha256">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

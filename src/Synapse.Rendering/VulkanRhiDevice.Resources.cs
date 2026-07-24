@@ -96,7 +96,7 @@ namespace GDNN.RHI.Vulkan
             {
                 var ptr = _device.GetDeviceProcAddr(name);
                 if (ptr == IntPtr.Zero)
-                    ptr = GetProcAddress("vulkan-1.dll", namePtr);
+                    ptr = GetProcAddress("vulkan-1", namePtr);
                 if (ptr != IntPtr.Zero)
                     return Marshal.GetDelegateForFunctionPointer<T>(ptr);
             }
@@ -378,11 +378,11 @@ namespace GDNN.RHI.Vulkan
             _vkCmdBindDescriptorSets = Marshal.GetDelegateForFunctionPointer<CmdBindDescriptorSetsDel>(load("vkCmdBindDescriptorSets"));
         }
 
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern VulkanResult vkBeginCommandBuffer(IntPtr commandBuffer, ref VkCommandBufferBeginInfo pBeginInfo);
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern VulkanResult vkEndCommandBuffer(IntPtr commandBuffer);
-        [DllImport("vulkan-1.dll")]
+        [DllImport("vulkan-1")]
         private static extern void vkCmdPipelineBarrier(IntPtr cmdBuffer, PipelineStageFlag srcStageMask, PipelineStageFlag dstStageMask, uint dependencyFlags, uint memoryBarrierCount, IntPtr pMemoryBarriers, uint bufferMemoryBarrierCount, IntPtr pBufferMemoryBarriers, uint imageMemoryBarrierCount, IntPtr pImageMemoryBarriers);
 
         [StructLayout(LayoutKind.Sequential)]
@@ -705,15 +705,40 @@ namespace GDNN.RHI.Vulkan
         }
 
         /// <summary>Copies between images</summary>
-        internal void CopyImage(VulkanTexture srcImage, ImageLayout srcLayout, VulkanTexture dstImage, ImageLayout dstLayout, VkImageCopy[] regions)
+        public void CopyImage(VulkanTexture srcImage, ImageLayout srcLayout, VulkanTexture dstImage, ImageLayout dstLayout, ImageCopy[] regions)
         {
             int regionCount = regions?.Length ?? 0;
             if (regionCount == 0)
                 return;
+            var vkRegions = new VkImageCopy[regionCount];
+            for (int i = 0; i < regionCount; i++)
+            {
+                var r = regions[i];
+                vkRegions[i] = new VkImageCopy
+                {
+                    srcSubresource = new VkImageCopy_SrcSubresource
+                    {
+                        aspectMask = (uint)r.SrcSubresource.AspectMask,
+                        mipLevel = r.SrcSubresource.MipLevel,
+                        baseArrayLayer = r.SrcSubresource.BaseArrayLayer,
+                        layerCount = r.SrcSubresource.LayerCount
+                    },
+                    srcOffset = new VkImageCopy_Offset3D { x = r.SrcOffset.X, y = r.SrcOffset.Y, z = r.SrcOffset.Z },
+                    dstSubresource = new VkImageCopy_SrcSubresource
+                    {
+                        aspectMask = (uint)r.DstSubresource.AspectMask,
+                        mipLevel = r.DstSubresource.MipLevel,
+                        baseArrayLayer = r.DstSubresource.BaseArrayLayer,
+                        layerCount = r.DstSubresource.LayerCount
+                    },
+                    dstOffset = new VkImageCopy_Offset3D { x = r.DstOffset.X, y = r.DstOffset.Y, z = r.DstOffset.Z },
+                    extent = new VkImageCopy_Extent3D { width = r.Extent.Width, height = r.Extent.Height, depth = r.Extent.Depth }
+                };
+            }
             int sz = Marshal.SizeOf<VkImageCopy>();
             var regionsPtr = Marshal.AllocHGlobal(regionCount * sz);
             for (int i = 0; i < regionCount; i++)
-                Marshal.StructureToPtr(regions[i], regionsPtr + i * sz, false);
+                Marshal.StructureToPtr(vkRegions[i], regionsPtr + i * sz, false);
             _vkCmdCopyImage(_commandBuffer, srcImage.Handle, (uint)srcLayout, dstImage.Handle, (uint)dstLayout, (uint)regionCount, regionsPtr);
             Marshal.FreeHGlobal(regionsPtr);
         }

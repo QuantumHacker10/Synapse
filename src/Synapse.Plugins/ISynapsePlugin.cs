@@ -2,7 +2,8 @@ using Synapse.Runtime;
 
 namespace Synapse.Plugins;
 
-/// <summary>Contract for sandboxed Synapse extensions (v2 plugin API).</summary>
+/// <summary>Contract for Synapse extensions loaded in an isolated AssemblyLoadContext (v2 plugin API).
+/// Isolation is not a security sandbox — plugins share host privileges.</summary>
 public interface ISynapsePlugin
 {
     PluginMetadata Metadata { get; }

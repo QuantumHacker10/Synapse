@@ -149,6 +149,61 @@ namespace GDNN.Rendering.VirtualTextures
         public VTConfig Config => _config;
         public VTLayer[] Layers => _layers;
         public float[] PhysicalColorData => _physicalColorData;
+        public int PhysicalTextureWidth => _physicalTextureWidth;
+        public int PhysicalTextureHeight => _physicalTextureHeight;
+
+        /// <summary>
+        /// Packs resident tile pages into the physical RGBA atlas so the G-buffer / fog path can sample VT.
+        /// </summary>
+        public void BlitResidentPagesToAtlas()
+        {
+            if (_physicalColorData == null || _physicalPages == null)
+                return;
+
+            Array.Clear(_physicalColorData);
+            int tileSize = _config.PhysicalTileSize;
+            int tilesPerAxis = Math.Max(1, _physicalTextureWidth / tileSize);
+
+            foreach (var page in _physicalPages)
+            {
+                if (!page.IsAllocated || page.ColorData == null)
+                    continue;
+
+                int px = page.PageIndex % tilesPerAxis;
+                int py = page.PageIndex / tilesPerAxis;
+                int baseX = px * tileSize;
+                int baseY = py * tileSize;
+
+                for (int y = 0; y < tileSize; y++)
+                {
+                    for (int x = 0; x < tileSize; x++)
+                    {
+                        int src = (y * tileSize + x) * 4;
+                        int dst = ((baseY + y) * _physicalTextureWidth + (baseX + x)) * 4;
+                        if (src + 3 >= page.ColorData.Length || dst + 3 >= _physicalColorData.Length)
+                            continue;
+                        _physicalColorData[dst] = page.ColorData[src];
+                        _physicalColorData[dst + 1] = page.ColorData[src + 1];
+                        _physicalColorData[dst + 2] = page.ColorData[src + 2];
+                        _physicalColorData[dst + 3] = page.ColorData[src + 3];
+                    }
+                }
+            }
+        }
+
+        /// <summary>Sample atlas color at UV in [0,1] (bilinear nearest for paint path).</summary>
+        public Vector3 SampleAtlas(float u, float v)
+        {
+            if (_physicalColorData == null || _physicalTextureWidth <= 0)
+                return new Vector3(0.35f, 0.32f, 0.28f);
+
+            int x = Math.Clamp((int)(Fract(u) * (_physicalTextureWidth - 1)), 0, _physicalTextureWidth - 1);
+            int y = Math.Clamp((int)(Fract(v) * (_physicalTextureHeight - 1)), 0, _physicalTextureHeight - 1);
+            int i = (y * _physicalTextureWidth + x) * 4;
+            return new Vector3(_physicalColorData[i], _physicalColorData[i + 1], _physicalColorData[i + 2]);
+        }
+
+        private static float Fract(float x) => x - MathF.Floor(x);
 
         public VirtualTextureSystem(VTConfig? config = null)
         {

@@ -1,0 +1,3 @@
+// Synapse sample MDL stub (not evaluated by a full MDL SDK)
+mdl 1.6;
+export material Surface() = material();

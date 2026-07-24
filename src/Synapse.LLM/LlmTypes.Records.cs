@@ -181,6 +181,12 @@ namespace GDNN.Llm
 
         /// <summary>Raw response JSON from the provider, if available.</summary>
         public string? RawResponse { get; init; }
+
+        /// <summary>Provider/transport error details when <see cref="FinishReason"/> is <see cref="FinishReason.Error"/>.</summary>
+        public string? ErrorMessage { get; init; }
+
+        /// <summary>True when the response represents a failed provider call.</summary>
+        public bool IsError => FinishReason == FinishReason.Error || !string.IsNullOrWhiteSpace(ErrorMessage);
     }
 
     /// <summary>

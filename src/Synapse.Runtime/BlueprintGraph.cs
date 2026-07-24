@@ -109,18 +109,58 @@ namespace Synapse.Runtime
                 throw new InvalidDataException($"Blueprint file exceeds {MaxBlueprintBytes} byte limit.");
             await using var stream = File.OpenRead(full);
             return await JsonSerializer.DeserializeAsync(stream, BlueprintJsonContext.Default.BlueprintDocument, cancellationToken)
-                   ?? CreateDefault();
+                   ?? throw new InvalidDataException($"Blueprint file '{full}' is empty or invalid JSON.");
         }
 
         public (bool Ok, string Message) Validate()
         {
-            if (!Nodes.Any(n => n.Kind == BlueprintNodeKind.Entry))
-                return (false, "Missing Entry node");
+            const int maxNodes = 512;
+            const int maxEdges = 2_048;
+            const int maxTitle = 128;
+            const int maxPayload = 4_096;
+
+            if (Nodes.Count == 0)
+                return (false, "Blueprint has no nodes");
+            if (Nodes.Count > maxNodes)
+                return (false, $"Blueprint exceeds {maxNodes} nodes");
+            if (Edges.Count > maxEdges)
+                return (false, $"Blueprint exceeds {maxEdges} edges");
+            if (Nodes.Count(n => n.Kind == BlueprintNodeKind.Entry) != 1)
+                return (false, "Blueprint must have exactly one Entry node");
+            if (!Nodes.Any(n => n.Kind == BlueprintNodeKind.Exit))
+                return (false, "Missing Exit node");
+
+            var ids = new HashSet<Guid>();
+            foreach (var node in Nodes)
+            {
+                if (node.Id == Guid.Empty)
+                    return (false, "Node Id cannot be empty");
+                if (!ids.Add(node.Id))
+                    return (false, $"Duplicate node Id '{node.Id}'");
+                if (string.IsNullOrWhiteSpace(node.Title) || node.Title.Length > maxTitle)
+                    return (false, $"Node '{node.Id}' has invalid Title");
+                if (node.Payload is { Length: > maxPayload })
+                    return (false, $"Node '{node.Title}' Payload exceeds {maxPayload} characters");
+                if (!float.IsFinite(node.X) || !float.IsFinite(node.Y))
+                    return (false, $"Node '{node.Title}' has non-finite coordinates");
+                if (node.Inputs.Count > 32 || node.Outputs.Count > 32)
+                    return (false, $"Node '{node.Title}' has too many pins");
+            }
+
             foreach (var edge in Edges)
             {
-                if (Nodes.All(n => n.Id != edge.FromNodeId) || Nodes.All(n => n.Id != edge.ToNodeId))
+                var from = Nodes.FirstOrDefault(n => n.Id == edge.FromNodeId);
+                var to = Nodes.FirstOrDefault(n => n.Id == edge.ToNodeId);
+                if (from == null || to == null)
                     return (false, $"Dangling edge {edge.Id}");
+                if (edge.FromPin < 0 || edge.FromPin >= Math.Max(1, from.Outputs.Count))
+                    return (false, $"Edge {edge.Id} FromPin out of range");
+                if (edge.ToPin < 0 || edge.ToPin >= Math.Max(1, to.Inputs.Count))
+                    return (false, $"Edge {edge.Id} ToPin out of range");
+                if (edge.FromNodeId == edge.ToNodeId)
+                    return (false, $"Self-loop edge {edge.Id} is not allowed");
             }
+
             return (true, $"OK — {Nodes.Count} nodes, {Edges.Count} edges");
         }
 

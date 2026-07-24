@@ -33,12 +33,12 @@ namespace GDNN.Rendering.Bridge
                 Bloom = new BloomConfig
                 {
                     Enabled = true,
-                    Threshold = 1.0f,
-                    Knee = 0.5f,
-                    Intensity = 0.4f,
-                    Radius = 0.8f,
-                    Quality = BloomQuality.High,
-                    MaxIterations = 6,
+                    Threshold = 0.85f,
+                    Knee = 0.6f,
+                    Intensity = 0.45f,
+                    Radius = 1.0f,
+                    Quality = BloomQuality.Ultra,
+                    MaxIterations = 7,
                     HighPrecision = true
                 },
                 DOF = new DOFConfig
@@ -59,9 +59,24 @@ namespace GDNN.Rendering.Bridge
                 {
                     Enabled = true,
                     Operator = TonemapOperator.ACES,
-                    Exposure = 1.2f,
+                    Exposure = 1.15f,
                     Gamma = 2.2f,
-                    WhitePoint = 4.0f
+                    WhitePoint = 4.0f,
+                    EnableAutoExposure = true,
+                    AutoExposureSpeed = 1.5f,
+                    MinExposure = 0.35f,
+                    MaxExposure = 2.8f
+                },
+                // Velocity is written by the G-buffer; enable GPU TAA on the present path.
+                TAA = new TAAConfig
+                {
+                    Enabled = true,
+                    Mode = TAAResolveMode.Ultra,
+                    BlendFactor = 0.88f,
+                    VarianceClipping = 0.8f,
+                    HistoryLength = 12,
+                    EnableYCoCgColorSpace = true,
+                    EnableMotionBlurReject = true
                 }
             });
 
@@ -84,16 +99,26 @@ namespace GDNN.Rendering.Bridge
 
         public unsafe void UploadHDRFromBuffer(byte* srcData, int srcStride, int width, int height)
         {
+            if (srcData == null)
+                throw new ArgumentNullException(nameof(srcData));
+            if (width <= 0 || height <= 0)
+                throw new ArgumentOutOfRangeException(nameof(width), "Width/height must be positive.");
+            if (srcStride < checked(width * sizeof(Vector4)))
+                throw new ArgumentOutOfRangeException(nameof(srcStride), "Source stride is smaller than row byte width.");
+
             if (width != _width || height != _height)
                 Resize(width, height);
 
             _hdrBuffer.Clear();
             var dst = _hdrBuffer.AsVector4Span();
             int dstIdx = 0;
+            int required = checked(width * height);
+            if (dst.Length < required)
+                throw new InvalidOperationException("HDR destination buffer too small.");
 
             for (int y = 0; y < height; y++)
             {
-                var srcRow = srcData + y * srcStride;
+                var srcRow = srcData + checked(y * srcStride);
                 for (int x = 0; x < width; x++)
                 {
                     var pixel = (Vector4*)(srcRow + x * sizeof(Vector4));
@@ -104,20 +129,33 @@ namespace GDNN.Rendering.Bridge
 
         public unsafe void UploadDepthFromBuffer(float* srcData, int width, int height)
         {
+            if (srcData == null)
+                throw new ArgumentNullException(nameof(srcData));
+            if (width <= 0 || height <= 0)
+                throw new ArgumentOutOfRangeException(nameof(width));
+
             if (width != _width || height != _height)
                 Resize(width, height);
 
             _depthBuffer.Clear();
             var dst = _depthBuffer.Data;
-            int count = width * height;
+            int count = checked(width * height);
+            if (dst.Length < count)
+                throw new InvalidOperationException("Depth destination buffer too small.");
             fixed (float* dstPtr = dst)
             {
-                System.Buffer.MemoryCopy(srcData, dstPtr, count * sizeof(float), count * sizeof(float));
+                System.Buffer.MemoryCopy(srcData, dstPtr, checked(count * sizeof(float)), checked(count * sizeof(float)));
             }
         }
 
         public void UploadHDRFromColor3(Vector3[,] colorData, int width, int height)
         {
+            ArgumentNullException.ThrowIfNull(colorData);
+            if (width <= 0 || height <= 0)
+                throw new ArgumentOutOfRangeException(nameof(width));
+            if (colorData.GetLength(0) < width || colorData.GetLength(1) < height)
+                throw new ArgumentException("colorData dimensions are smaller than width/height.", nameof(colorData));
+
             if (width != _width || height != _height)
                 Resize(width, height);
 
@@ -129,13 +167,19 @@ namespace GDNN.Rendering.Bridge
 
         public void UploadHDRFromFloats(float[] rgbaData, int width, int height)
         {
+            ArgumentNullException.ThrowIfNull(rgbaData);
+            if (width <= 0 || height <= 0)
+                throw new ArgumentOutOfRangeException(nameof(width));
+            int pixelCount = checked(width * height);
+            if (rgbaData.Length < checked(pixelCount * 4))
+                throw new ArgumentException("rgbaData is shorter than width*height*4.", nameof(rgbaData));
+
             if (width != _width || height != _height)
                 Resize(width, height);
 
             _hdrBuffer.Clear();
             var span = _hdrBuffer.AsVector4Span();
-            int pixelCount = width * height;
-            for (int i = 0; i < pixelCount && i * 4 + 3 < rgbaData.Length; i++)
+            for (int i = 0; i < pixelCount; i++)
             {
                 span[i] = new Vector4(rgbaData[i * 4], rgbaData[i * 4 + 1], rgbaData[i * 4 + 2], rgbaData[i * 4 + 3]);
             }
@@ -143,12 +187,18 @@ namespace GDNN.Rendering.Bridge
 
         public void UploadDepth(float[] depthData, int width, int height)
         {
+            ArgumentNullException.ThrowIfNull(depthData);
+            if (width <= 0 || height <= 0)
+                throw new ArgumentOutOfRangeException(nameof(width));
+            int count = checked(width * height);
+            if (depthData.Length < count)
+                throw new ArgumentException("depthData is shorter than width*height.", nameof(depthData));
+
             if (width != _width || height != _height)
                 Resize(width, height);
 
             _depthBuffer.Clear();
             var dst = _depthBuffer.Data;
-            int count = Math.Min(depthData.Length, width * height);
             Array.Copy(depthData, dst, count);
         }
 

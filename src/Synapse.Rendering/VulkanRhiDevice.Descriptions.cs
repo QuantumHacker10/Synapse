@@ -29,7 +29,8 @@ namespace GDNN.RHI.Vulkan
         public uint ApplicationVersion { get; set; } = 1;
         public string EngineName { get; set; } = "GDNN";
         public uint EngineVersion { get; set; } = 1;
-        public uint ApiVersion { get; set; } = VK_API_VERSION_1_4;
+        /// <summary>Requested Vulkan API version. Default 1.2 for mid-range GPU/driver compatibility.</summary>
+        public uint ApiVersion { get; set; } = VK_API_VERSION_1_2;
         public string[] RequiredExtensions { get; set; } = Array.Empty<string>();
         public string[] RequiredLayers { get; set; } = Array.Empty<string>();
         public bool EnableValidation { get; set; } = true;
@@ -512,7 +513,7 @@ namespace GDNN.RHI.Vulkan
             return IntPtr.Zero;
         }
 
-        [DllImport("vulkan-1.dll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("vulkan-1", CallingConvention = CallingConvention.StdCall)]
         private static extern IntPtr vkGetDeviceProcAddr(IntPtr device, IntPtr pName);
     }
 
