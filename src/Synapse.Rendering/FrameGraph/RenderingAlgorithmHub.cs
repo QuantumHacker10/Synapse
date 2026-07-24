@@ -423,8 +423,9 @@ namespace GDNN.Rendering.FrameGraph
 
             try
             {
+                // Live present path: polygonize the trained/streamed SDF when available.
                 NeuralGeometry = new NeuralGeometryPipeline(
-                    DefaultSdfNetwork,
+                    LivePolygonSdf,
                     DefaultBounds,
                     new NeuralGeometryPipelineOptions
                     {
@@ -446,6 +447,7 @@ namespace GDNN.Rendering.FrameGraph
         {
             float dt = ComputeDelta(time);
             _gdnnTick++;
+            BeginGdnnFrame();
             _lastCullWidth = Math.Max(1, width);
             _lastCullHeight = Math.Max(1, height);
 
@@ -457,16 +459,18 @@ namespace GDNN.Rendering.FrameGraph
             if ((_gdnnTick & 7) == 0)
                 VirtualTextures.BlitResidentPagesToAtlas();
 
-            EnsureNeuralGeometry();
+            // Coverage (trainers / streamer) before NeuralGeometry so live SDF drives polygonization.
             EnsureGpuShaderResidency();
             EnsureGdnnFullCoverage();
+            EnsureNeuralGeometry();
 
+            var camRight = SafeRight(cameraForward);
             var camState = new CameraState
             {
                 Position = cameraPos,
                 Forward = cameraForward,
                 Up = Vector3.UnitY,
-                Right = SafeRight(cameraForward),
+                Right = camRight,
                 FieldOfView = MathF.PI / 3f,
                 ScreenWidth = width,
                 ScreenHeight = height,
@@ -476,14 +480,19 @@ namespace GDNN.Rendering.FrameGraph
 
             SceneEvaluator.BeginFrame(viewProj, cameraPos, cameraForward);
             _ = SceneEvaluator.TraceRay(new TracingRay(cameraPos, cameraForward, 40f), cameraPos);
+            Span<TracingRay> batchRays = stackalloc TracingRay[4];
+            Span<SurfaceHit> batchHits = stackalloc SurfaceHit[4];
+            for (int i = 0; i < batchRays.Length; i++)
+                batchRays[i] = new TracingRay(cameraPos, Vector3.Normalize(cameraForward + camRight * ((i - 1.5f) * 0.05f)), 40f);
+            SceneEvaluator.BatchTraceRays(batchRays, batchHits, cameraPos);
             _ = SceneEvaluator.EndFrame(0.01f);
 
-            // SIMD batch SDF + hierarchical cache + wave evaluator (every frame, tiny batch).
+            // SIMD batch SDF on the LIVE polygon SDF + hierarchical cache + wave evaluator.
             Span<Vector3> pts = stackalloc Vector3[8];
             Span<float> dists = stackalloc float[8];
             for (int i = 0; i < pts.Length; i++)
                 pts[i] = cameraPos + cameraForward * (0.5f + i * 0.35f) + new Vector3(0.1f * i, 0, 0);
-            BatchSdfEvaluator.EvaluateBatch(DefaultSdfNetwork, pts, dists);
+            BatchSdfEvaluator.EvaluateBatch(LivePolygonSdf, pts, dists);
             LastBatchSdfMs = (float)BatchSdfEvaluator.LastBatchTimeMs;
             if (LastSdfDistances.Length != dists.Length)
                 LastSdfDistances = new float[dists.Length];
@@ -495,12 +504,13 @@ namespace GDNN.Rendering.FrameGraph
             _ = SdfCache.TryLookupSimple(pts[0], out _);
             _ = Gradients.ComputeCentralDifference(MicroNetwork, pts[0]);
             TickGdnnInfrastructure(pts, dists, cameraPos, dt);
+            TickStreamedNetworkEval(pts);
 
             // Staggered Vulkan SDF compute on the dedicated second device (when available).
             if ((_gdnnTick % 15) == 3)
                 TickGpuSdf(pts);
 
-            // Sphere tracer + surface evaluator (staggered).
+            // Sphere tracer + surface evaluator + GridEvaluator (staggered).
             if ((_gdnnTick & 3) == 0)
             {
                 var ray = new TracingRay(cameraPos, cameraForward, 50f);
@@ -511,6 +521,7 @@ namespace GDNN.Rendering.FrameGraph
                     LastHyperSdfSample = HyperGeneratedMlp.Evaluate(pts[0]);
                 if (ReferenceSphere != null)
                     _ = ReferenceSphere.SignedDistance(pts[0]);
+                TickGridEvaluator(cameraPos, cameraForward, camRight);
             }
 
             // JobSystem + ParallelEvaluator + work-stealing residency.
@@ -528,11 +539,12 @@ namespace GDNN.Rendering.FrameGraph
             }
             StealPool.Submit(() => { _ = IntrinsicsHelper.IsAvx2Supported; });
 
-            // Spatial structures + animation + memory pools.
+            // Spatial structures + queries + animation + memory pools.
             SpatialHash.Insert(0, cameraPos);
             ConcurrentSpatial.Insert(0, cameraPos);
             SpatialOctree.Insert(0, cameraPos);
             LooseSpatial.Insert(0, cameraPos);
+            TickSpatialQueries(cameraPos, cameraForward);
             TickGdnnAnimation(dt);
 
             var view = CameraView.CreatePerspectiveLookAt(
@@ -549,12 +561,14 @@ namespace GDNN.Rendering.FrameGraph
                 var report = NeuralGeometry.Tick(view, trainBudgetMs: 0.25);
                 LastVisibleMeshlets = report.VisibleClusters?.Count ?? 0;
 
+                // Live path: NeuralGeometry.RenderFrame (LOD chain) → G-buffer inject + fog/GI.
                 // Dense Nanite-like meshlets: high poly extract + screen-scale visibility raster.
                 // Prefer GPU dispatcher; fall back to SoftwareRasterizer. Feeds G-buffer inject + GI/fog.
                 if ((_gdnnTick % 3) == 1 && report.VisibleClusters is { Count: > 0 })
                 {
                     try
                     {
+                        PresentFromNeuralGeometry(view, report);
                         // denser grid → many small clusters filling the frame (Nanite-like look)
                         int polyRes = Math.Clamp(Math.Max(_lastCullWidth, _lastCullHeight) / 48, 20, 36);
                 // Dense Nanite Neural 3.0 meshlets: continuous LOD + screen-error density.
@@ -619,6 +633,12 @@ namespace GDNN.Rendering.FrameGraph
 
             if (MeshletStreamer != null)
             {
+                try
+                { PresentFromMeshletStreamer(view); }
+                catch (Exception ex)
+                {
+                    SynapseLogger.Default.Warn("AlgorithmHub", "Meshlet streamer present skipped.", ex);
+                }
                 var keys = MeshletStreamer.QueryVisible(view, level: LastNeuralLod >= 0 ? LastNeuralLod : 0);
                 LastVisibleMeshlets = Math.Max(LastVisibleMeshlets, keys.Count);
                 foreach (var key in keys)
@@ -634,7 +654,8 @@ namespace GDNN.Rendering.FrameGraph
             Geometry.ClearCommands();
             if (_geometryMeshId >= 0)
                 Geometry.SubmitDraw(_geometryMeshId, Matrix4x4.Identity);
-            _ = Geometry.FlushCommands();
+            var batches = Geometry.FlushCommands();
+            LastGeometryBatches = batches?.Count ?? 0;
 
             ProfilerGlobal.Current = GdnnProfiler;
             GdnnProfiler.BeginSection("GdnnCull");
@@ -650,26 +671,6 @@ namespace GDNN.Rendering.FrameGraph
 
         public float SampleVirtualShadow(Vector3 worldPos, Vector3 lightDir)
             => VirtualShadows.SampleShadow(worldPos, lightDir);
-
-        public void TickPost(Vector3 cameraPos, float time)
-        {
-            float dt = ComputeDelta(time);
-            Particles.Update(dt, cameraPos);
-            LastParticleCount = Particles.ActiveParticles;
-
-            try
-            {
-                var empty = Array.Empty<ComputeBuffer>();
-                Compute.Dispatch("particle_update", 1, 1, 1, empty);
-                Compute.Dispatch("taa_resolve", 1, 1, 1, empty);
-                Compute.Dispatch("shadow_filter", 1, 1, 1, empty);
-                Compute.Dispatch("bloom_downsample", 1, 1, 1, empty);
-            }
-            catch (Exception ex)
-            {
-                SynapseLogger.Default.Warn("AlgorithmHub", "Compute tick skipped.", ex);
-            }
-        }
 
         public void CompositeParticlesIntoFog(Vector3[,] fog, Matrix4x4 viewProj, int width, int height)
         {
@@ -873,8 +874,18 @@ namespace GDNN.Rendering.FrameGraph
             for (int i = 0; i < LastSdfDistances.Length; i++)
                 mean += MathF.Abs(LastSdfDistances[i]);
             mean /= LastSdfDistances.Length;
-            // Closer surface → stronger AO (darker).
-            float contact = Math.Clamp(1f - mean * 0.35f, 0.55f, 1f);
+
+            // Fold HyperNetwork / streamed SDF samples into contact AO so those modules paint.
+            float hyper = MathF.Abs(LastHyperSdfSample);
+            float extra = 0f;
+            if (_streamedEvalNetwork != null)
+            {
+                try
+                { extra = MathF.Abs(_streamedEvalNetwork.Evaluate(LastSdfSampleOrigin)); }
+                catch { /* ignore */ }
+            }
+            float blended = mean * 0.7f + hyper * 0.15f + extra * 0.15f;
+            float contact = Math.Clamp(1f - blended * 0.35f, 0.55f, 1f);
 
             // Soft vignette toward screen center along the sample ray.
             for (int y = 0; y < height; y++)

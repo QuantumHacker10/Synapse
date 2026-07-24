@@ -2,6 +2,10 @@ using GDNN.Rendering.FrameGraph.Passes;
 
 namespace GDNN.Rendering.FrameGraph
 {
+    /// <summary>
+    /// Builds the canonical Synapse native present-path FrameGraph.
+    /// Integrates L-DNN (GI), G-DNN (cull + algorithm hub), shadows, deferred, particles, post.
+    /// </summary>
     /// <summary>Builds the canonical Synapse present-path FrameGraph (G-DNN → L-DNN → deferred → post).</summary>
     /// <summary>Builds the canonical Synapse present-path FrameGraph (G-DNN → L-DNN → deferred → post → upscale).</summary>
     public static class FrameGraphFactory
@@ -9,8 +13,9 @@ namespace GDNN.Rendering.FrameGraph
         public static RenderFrameGraph CreateDefault()
         {
             var graph = new RenderFrameGraph();
-            // L-DNN CPU producers run before GPU recording so textures are ready for lighting.
+            // CPU producers (before cmd.Begin)
             graph.AddPass(new LdnnGiPass());
+            // GPU recording (inside command buffer)
             graph.AddPass(new SceneCullPass());
             graph.AddPass(new AlgorithmSystemsPass());
             graph.AddPass(new ShadowCascadesPass());

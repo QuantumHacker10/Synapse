@@ -6,6 +6,7 @@ namespace GDNN.Rendering.FrameGraph.Passes
     public sealed class GBufferPass : IRenderPass
     {
         public string Name => "GBuffer";
+        public RenderPassPhase Phase => RenderPassPhase.Gpu;
 
         public void Setup(FrameGraphBuilder builder)
         {

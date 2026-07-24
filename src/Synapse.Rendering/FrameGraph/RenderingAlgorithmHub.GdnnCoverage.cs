@@ -102,10 +102,13 @@ namespace GDNN.Rendering.FrameGraph
                 LastValidationSummary =
                     $"offline={offlineReport}; valHaus={val.HausdorffError:F4}; benchRms={bench.RmsError:F4}";
 
-                // AssetStreamer: request placeholder → decode NeuralAsset (LZ4 path fixed).
-                _assetStreamRoot = Path.Combine(Path.GetTempPath(), "synapse_gdnn_assets");
-                Directory.CreateDirectory(_assetStreamRoot);
-                GDNN.Streaming.AssetStreamer.AssetRootDirectory = _assetStreamRoot;
+                // AssetStreamer: never clobber a scene-configured asset root (EngineHost / Studio).
+                if (string.IsNullOrEmpty(GDNN.Streaming.AssetStreamer.AssetRootDirectory))
+                {
+                    _assetStreamRoot = Path.Combine(Path.GetTempPath(), "synapse_gdnn_assets");
+                    Directory.CreateDirectory(_assetStreamRoot);
+                    GDNN.Streaming.AssetStreamer.AssetRootDirectory = _assetStreamRoot;
+                }
                 AssetStreamer.RequestAssetAsync("gdnn_live", AssetPriority.High).GetAwaiter().GetResult();
 
                 // AsyncPipeline residency via DelegateStage.
@@ -142,9 +145,14 @@ namespace GDNN.Rendering.FrameGraph
                 _ = MatrixMath.BuildTRS(Vector3.Zero, Quaternion.Identity, Vector3.One);
                 _ = TransformUtils.BuildTRS(Vector3.UnitY * 0.1f, Quaternion.Identity, Vector3.One);
                 _ = JointTransform.Slerp(JointTransform.Identity, JointTransform.Identity, 0.5f);
+                _ = DebugUtils.GenerateBoundingBoxLines(DefaultBounds.Min, DefaultBounds.Max);
+
+                // Invalidate any early NeuralGeometry so the next Ensure rebuilds on LivePolygonSdf.
+                NeuralGeometry = null;
+                PromoteTrainedSdfToLive();
 
                 SynapseLogger.Default.Info("AlgorithmHub",
-                    $"G-DNN full coverage init: {LastValidationSummary}");
+                    $"G-DNN full coverage init: {LastValidationSummary}; liveSdf={LiveSdfPromoted}");
             }
             catch (Exception ex)
             {
@@ -160,13 +168,19 @@ namespace GDNN.Rendering.FrameGraph
             else
                 IdleClip.SampleAtTime(_animTime % Math.Max(0.001f, IdleClip.Duration), AnimSkeleton);
 
+            // BlendTree + layers + state machine + AimIK (full Animation folder).
+            if (Animation.BlendTreeRoot.Root.ChildCount == 0)
+                Animation.AddBlendTreeClip(IdleClip, threshold: 0f);
+            Animation.ConfigureBlendTree(AnimationBlender.BlendTreeBlendMode.Simple1D);
+            Animation.SampleBlendTree(MathF.Sin(_animTime) * 0.5f + 0.5f, AnimSkeleton);
+
             Animation.UpdateLayers(dt);
             Animation.UpdateStateMachine(dt);
             Animation.UpdateCrossfades(dt);
             Animation.UpdateAimIK(dt);
             Animation.BlendAllLayers(AnimSkeleton);
 
-            // WarpSpace skinning sample (bind → world).
+            // WarpSpace LBS + DQS skinning samples (bind → world).
             if (Warp.JointCount > 0)
             {
                 float angle = MathF.Sin(_animTime) * 0.2f;
@@ -174,7 +188,9 @@ namespace GDNN.Rendering.FrameGraph
                 if (Warp.JointCount > 1)
                     Warp.SetJointLocalTransform(1, Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, angle));
                 Warp.UpdateWorldTransforms();
-                _ = Warp.BindToWorldLBS(Vector3.UnitY * 0.25f, BoneWeight.Dual(0, 0.6f, 1, 0.4f));
+                var weight = BoneWeight.Dual(0, 0.6f, 1, 0.4f);
+                _ = Warp.BindToWorldLBS(Vector3.UnitY * 0.25f, weight);
+                _ = Warp.BindToWorldDQS(Vector3.UnitY * 0.25f, weight);
             }
 
             // SkinningWeights + MatrixOps/TransformUtils skinning matrices.
@@ -184,6 +200,8 @@ namespace GDNN.Rendering.FrameGraph
                 var parent = Matrix4x4.Identity;
                 _ = MatrixOps.Multiply4x4(bone, parent);
                 _ = MatrixMath.Lerp(bone, Matrix4x4.Identity, 0.1f);
+                Span<SkinningWeights.Influence> influences = stackalloc SkinningWeights.Influence[4];
+                _ = SkinWeights.GetInfluences(0, influences);
             }
         }
 

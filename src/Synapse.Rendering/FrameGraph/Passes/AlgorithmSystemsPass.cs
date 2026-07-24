@@ -9,6 +9,7 @@ namespace GDNN.Rendering.FrameGraph.Passes
     public sealed class AlgorithmSystemsPass : IRenderPass
     {
         public string Name => "AlgorithmSystems";
+        public RenderPassPhase Phase => RenderPassPhase.Gpu;
 
         public void Setup(FrameGraphBuilder builder)
         {

@@ -13,6 +13,10 @@ namespace Synapse.Runtime
         public float TotalTime { get; set; }
         public float PhysicsMs { get; set; }
         public float SimulationMs { get; set; }
+        public float SyncMs { get; set; }
+        public float RenderMs { get; set; }
+        public float QualityMs { get; set; }
+        public float ContinuumMs { get; set; }
         public float CouplingMs { get; set; }
         public float RenderMs { get; set; }
         public float QualityMs { get; set; }
@@ -21,10 +25,19 @@ namespace Synapse.Runtime
         public bool IsPaused { get; set; }
         public string QualityPreset { get; set; } = "High";
         public int EntityCount { get; set; }
+        public int AgentCount { get; set; }
         public string ActiveLawId { get; set; } = "";
         public float FieldTemperatureAvg { get; set; }
         public int EvolutionGeneration { get; set; }
         public double BestFitness { get; set; }
+        public bool RenderReady { get; set; }
+        public string ContinuumModules { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Studio / engine frame authority. Delegates to <see cref="NativeFramePipeline"/>
+    /// so Physics, Simulation, Rendering and Quality advance as one native loop —
+    /// independent of whether Vulkan init succeeded.
         public string? LastRuntimeError { get; set; }
         public bool VrActive { get; set; }
         public bool WanActive { get; set; }
@@ -42,6 +55,7 @@ namespace Synapse.Runtime
     {
         private readonly EngineHost _host;
         private readonly ISynapseLogger _logger;
+        private readonly NativeFramePipeline _pipeline;
         private readonly Stopwatch _frameTimer = Stopwatch.StartNew();
         private readonly Stopwatch _fpsTimer = Stopwatch.StartNew();
         private readonly SemaphoreSlim _tickGate = new(1, 1);
@@ -55,6 +69,7 @@ namespace Synapse.Runtime
         {
             _host = host;
             _logger = logger;
+            _pipeline = new NativeFramePipeline(host, logger);
         }
 
         public bool IsPaused
@@ -62,6 +77,8 @@ namespace Synapse.Runtime
             get => _paused;
             set => _paused = value;
         }
+
+        public NativeFramePipeline Pipeline => _pipeline;
 
         public FrameStats LastStats { get; private set; } = new();
 
@@ -73,6 +90,7 @@ namespace Synapse.Runtime
                 return LastStats;
             }
 
+            var result = await _pipeline.ExecuteAsync(dt, _paused, cancellationToken).ConfigureAwait(false);
             try
             {
                 float dt = (float)_frameTimer.Elapsed.TotalSeconds;
@@ -201,9 +219,25 @@ namespace Synapse.Runtime
             _tickGate.Dispose();
             LastStats = new FrameStats
             {
-                DeltaTime = dt,
+                DeltaTime = result.DeltaTime,
                 Fps = _fps,
                 TotalTime = _totalTime,
+                PhysicsMs = result.PhysicsMs,
+                SimulationMs = result.SimulationMs,
+                SyncMs = result.SyncMs,
+                RenderMs = result.RenderMs,
+                QualityMs = result.QualityMs,
+                ContinuumMs = result.ContinuumMs,
+                IsPaused = result.IsPaused,
+                QualityPreset = result.QualityPreset,
+                EntityCount = result.EntityCount > 0 ? result.EntityCount : result.AgentCount,
+                AgentCount = result.AgentCount,
+                ActiveLawId = result.ActiveLawId,
+                FieldTemperatureAvg = result.FieldTemperatureAvg,
+                EvolutionGeneration = result.EvolutionGeneration,
+                BestFitness = result.BestFitness,
+                RenderReady = result.RenderReady,
+                ContinuumModules = result.EnabledContinuumModules.ToString()
                 PhysicsMs = physicsMs,
                 SimulationMs = simMs,
                 CouplingMs = couplingMs,

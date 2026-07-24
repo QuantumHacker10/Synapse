@@ -89,6 +89,14 @@ namespace GDNN.Rendering.Engine
         /// <summary>GPU-first FrameGraph owned by the scene renderer (null until init).</summary>
         public GDNN.Rendering.FrameGraph.RenderFrameGraph? FrameGraph => _sceneRenderer?.FrameGraph;
 
+        /// <summary>Pushes adaptive quality into the deferred / L-DNN present path.</summary>
+        public void ApplyRuntimeQuality(GDNN.Rendering.Quality.RuntimeRenderQuality quality)
+            => _sceneRenderer?.ApplyRuntimeQuality(quality);
+
+        /// <summary>Pushes living-law field temperature into volumetric fog / GI warmth.</summary>
+        public void ApplyPhysicsFieldInfluence(float averageTemperatureKelvin)
+            => _sceneRenderer?.ApplyPhysicsFieldInfluence(averageTemperatureKelvin);
+
         public unsafe void Initialize(int width = 1280, int height = 720, bool enableValidation = true)
         {
             NativeLibraryResolver.EnsureRegistered();

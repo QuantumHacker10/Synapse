@@ -43,12 +43,17 @@ flowchart TB
     LLM --> EH
 
     EH --> FO
-    FO --> PHY
-    FO --> AI
-    FO --> SIM
-    FO --> FG
+    FO --> NFP[NativeFramePipeline]
+    NFP --> PHY
+    NFP --> AI
+    NFP --> SIM
+    NFP --> FG
+    NFP --> QUAL[RuntimeQuality]
     FG --> GDNN
     FG --> LDNN
+    QUAL --> FG
+    PHY -->|field temp| LDNN
+    SIM -->|transforms| SD
 
     PHY --> LL[LivingLawCompiler]
     GDNN --> VK
@@ -59,15 +64,17 @@ flowchart TB
 ## Pipeline de rendu — FrameGraph GPU-first
 
 Le present path Vulkan n’est plus une séquence ad-hoc dans `SceneRenderer` :
-il est piloté par un **FrameGraph** (`GDNN.Rendering.FrameGraph`) qui conserve
-G-DNN et L-DNN comme modules de tech.
+il est piloté par un **FrameGraph natif** (`GDNN.Rendering.FrameGraph`) en deux phases
+(`ExecuteCpuProducers` → `cmd.Begin` → `ExecuteGpuPasses`) qui conserve
+G-DNN et L-DNN comme modules de tech. `SceneRenderer.ExecuteFrame` délègue
+entièrement à `RenderFrameGraph` (plus de boucle manuelle parallèle).
 
 ```mermaid
 flowchart TB
-  RE[RenderEngine.ExecuteFrame]
+  RE[RenderEngine.RenderFrame]
   FG[RenderFrameGraph]
-  LDNN[LdnnGiPass_CPU_or_Compute]
-  CULL[SceneCullPass_GDNN_LOD]
+  LDNN[LdnnGiPass_CPU]
+  CULL[SceneCullPass_GDNN]
   ALG[AlgorithmSystemsPass]
   SH[ShadowCascadesPass]
   GB[GBufferPass]
@@ -75,8 +82,12 @@ flowchart TB
   PART[ParticlesComputePass]
   PP[PostTonemapPass]
   SW[Swapchain]
+  Q[RuntimeQuality→LOD/shadows/GI]
+  PHY[PhysicsField→fog]
 
   RE --> FG
+  PHY --> LDNN
+  Q --> FG
   FG --> LDNN
   FG --> CULL --> ALG --> SH --> GB --> LIT --> PART --> PP --> SW
   LDNN -->|GI_AO_Fog textures| LIT
@@ -122,20 +133,20 @@ Bind-only / optionnel : `BindNeuralGeometry`, `BindMeshletPageFile`.
 
 | Zone | Statut |
 |---|---|
-| Polygonization/* | **WIRED** — pipeline + cache + meshlets + raster GPU/CPU → fog/GBuffer |
-| Evaluation/* | **WIRED** — SceneEvaluator assets, tracers, WarpSpace, validation one-shot |
-| Streaming/* | **WIRED** — RequestAsset + AsyncPipeline stage + Compression + MeshletStreamer |
-| SIMD/* | **WIRED** — batch/wave + Intrinsics/Matrix/VectorOps chaque cull |
-| Memory/* | **WIRED** — Stack/ZeroCopy/Native/Tracker/Span/StreamingBuffer |
-| GPU/* | **WIRED** — codegen + compile + variants + CB pack + 2× Shared dispatchers |
-| Animation/* | **WIRED** — clip idle + skeleton + blender + skinning + JointTransform |
-| Core/NeuralNetwork/* | **WIRED** — nets + Hyper + MeshToSdf/Offline/Online trainers + NeuralAsset |
-| Core/DataStructures/* | **WIRED** — Octree/Loose/Spatial/Concurrent/AABBTree/StreamingBuffer |
-| Core/Mathematics/* | **WIRED** — utilisés par tick anim / coverage |
-| Threading/* | **WIRED** — JobSystem + ParallelEvaluator + SynchronizedBuffer + WorkStealingPool |
-| Utilities/* | **WIRED** — Profiler + Hash/Math/Debug/Binary helpers |
+| Polygonization/* | **LIVE** — `NeuralGeometry.RenderFrame` (LOD chain) → meshlets → fog/GI/G-buffer ; fallback `Polygonizer.Extract(LivePolygonSdf)` |
+| Evaluation/* | **LIVE** — SceneEvaluator + BatchTrace + GridEvaluator + Warp LBS/DQS ; validation one-shot |
+| Streaming/* | **LIVE** — AssetRoot préservé (scène) ; `BindBakedNeuralAsset` ; MeshletStreamer → present |
+| SIMD/* | **LIVE** — batch/wave sur `LivePolygonSdf` + Intrinsics/Matrix/VectorOps |
+| Memory/* | **LIVE** — Stack/ZeroCopy/Native/Tracker/Span/StreamingBuffer |
+| GPU/* | **LIVE** — codegen + variants + 2× Shared dispatchers (CPU fallback headless) |
+| Animation/* | **LIVE** — BlendTree + layers + AimIK + LBS/DQS + SkinningWeights |
+| Core/NeuralNetwork/* | **LIVE** — MeshToSdf/Offline → `PromoteTrainedSdfToLive` ; Online seed edit ; Hyper → AO |
+| Core/DataStructures/* | **LIVE** — Insert + QueryAABB (octree/loose/AABBTree) chaque cull |
+| Core/Mathematics/* | **LIVE** — tick anim / coverage |
+| Threading/* | **LIVE** — JobSystem + ParallelEvaluator + SynchronizedBuffer + WorkStealingPool |
+| Utilities/* | **LIVE** — Profiler + Hash/Math/Debug bounding boxes + Binary helpers |
 
-**Ne peint pas pleinement (infra / offline)** : `OfflineHashMeshTrainer` / `MeshToSdfPipeline` / `GDNNValidationProtocol` (one-shot init, pas un pass FrameGraph dédié) ; `ShaderCompiler` simule ou SPIR-V selon toolchain ; `AssetStreamer` sans fichiers `.gnn` génère un placeholder MicroMLP ; GPU 2ᵉ device absent → fallback CPU (`HlslCompatibleEvaluator` / `SoftwareRasterizer`).
+**Present path dataflow** : offline/MeshToSdf train → `PromoteTrainedSdfToLive` → `NeuralGeometryPipeline` → `RenderFrame` / MeshletStreamer → `QueuePresentMesh` + GeometryRenderer flush → fog/AO/VSM/G-buffer. `TickPost` est idempotent par tick (plus de double advance particules).
 
 **Device Vulkan optionnel (G-DNN SDF)** : `VulkanNeuralSdfDispatcher.Shared` crée un **2ᵉ `VulkanRhiDevice`** dédié au compute DeepMicroMLP (SPIR-V via glslang/DXC). Le present path Studio garde son device swapchain ; le hub ne dispose pas ce Shared (durée de vie process). Si SPIR-V/Vulkan init échoue (headless Linux sans `vulkan-1.dll`, toolchain absente), le hub retombe sur `HlslCompatibleEvaluator` (CPU). Coût : mémoire/driver d’un second device + `WaitForIdle` sur les dispatches SDF (cadencés ~toutes les 15 frames). Les distances SDF peignent l’AO contact sur le present path.
 
@@ -173,6 +184,9 @@ Activation native : `EngineHost.EnableCinematicStack()` ou `QualityPreset=Cinema
 
 ```mermaid
 sequenceDiagram
+    participant S as Studio / Boucle
+    participant FO as FrameOrchestrator
+    participant N as NativeFramePipeline
     participant UI as Studio LLM Console
     participant Pipe as OmniaIndustrialPipeline
     participant E as EngineHost
@@ -181,6 +195,17 @@ sequenceDiagram
     participant R as RenderEngine
     participant FG as FrameGraph
 
+    S->>FO: TickAsync()
+    FO->>N: ExecuteAsync(dt)
+    N->>P: LivingLaws + Rigid + SPH + Elasticity
+    P-->>N: Transforms + température champ
+    N->>Sim: Behavior trees + perception
+    Sim-->>N: Agents mis à jour
+    N->>N: SyncSimulation→Scene + Field→L-DNN fog
+    N->>R: TickRender (si Vulkan prêt)
+    R->>FG: CpuProducers(L-DNN) puis GpuPasses
+    FG-->>S: Frame présentée (ou tick headless)
+    N->>N: Quality→LOD/shadows/GI
     S->>E: TickPhysics(dt)
     E->>P: RigidWorld.Step + LivingLaw.Apply
     P-->>E: État champ mis à jour
@@ -206,6 +231,9 @@ sequenceDiagram
     R->>FG: L-DNN Lumen Neural → Cull G-DNN Nanite Neural → Shadow → GBuffer → Light → Post
     FG-->>UI: Frame présentée
 ```
+
+La boucle native (`NativeFramePipeline`) avance **Physics + Simulation même si Vulkan échoue**
+(headless / `vulkan-1.dll` absent). Le viewport Studio démarre toujours le timer d’orchestration.
 
 ## Modules et dépendances
 

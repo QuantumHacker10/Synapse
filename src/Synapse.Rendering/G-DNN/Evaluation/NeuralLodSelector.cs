@@ -201,6 +201,13 @@ public sealed class NeuralLodSelector : IDisposable
         _candidates.Sort((a, b) => a.Level.CompareTo(b.Level));
     }
 
+    /// <summary>Removes all registered LOD candidates (used when swapping the live SDF).</summary>
+    public void Clear()
+    {
+        _candidates.Clear();
+        _objectStates.Clear();
+    }
+
     /// <summary>
     /// Selects the optimal LOD level for an object based on camera state and content analysis.
     /// </summary>

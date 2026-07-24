@@ -6,6 +6,7 @@ namespace GDNN.Rendering.FrameGraph.Passes
     public sealed class SceneCullPass : IRenderPass
     {
         public string Name => "SceneCull_GDNN";
+        public RenderPassPhase Phase => RenderPassPhase.Gpu;
 
         public void Setup(FrameGraphBuilder builder)
         {

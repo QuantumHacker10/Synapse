@@ -13,6 +13,7 @@ using GDNN.Rendering.Compat;
 using GDNN.Rendering.FrameGraph;
 using GDNN.Rendering.FrameGraph.Passes;
 using GDNN.Rendering.LOD;
+using GDNN.Rendering.Quality;
 using GDNN.Rendering.MeshIO;
 using GDNN.Rendering.RayTracing;
 using GDNN.Rendering.Shaders;
@@ -166,6 +167,16 @@ namespace GDNN.Rendering.Engine
         private int _width;
         private int _height;
         private bool _initialized;
+
+        /// <summary>Extra PSSM cascades beyond the primary shadow map (0–2), driven by quality.</summary>
+        private int _extraShadowCascades = 2;
+        private bool _enableGi = true;
+        private bool _enableSsao = true;
+        private bool _enableBloom = true;
+        private bool _enableTaa = true;
+        private int _maxLodBias;
+        private float _physicsFieldTemperature = 293f;
+        private RuntimeRenderQuality? _activeQuality;
 
         public int Width => _width;
         public int Height => _height;
@@ -2391,8 +2402,9 @@ namespace GDNN.Rendering.Engine
         };
 
         /// <summary>
-        /// Executes the full FrameGraph for one frame (L-DNN producers + GPU passes).
-        /// Preferred entry from <see cref="RenderEngine"/>.
+        /// Native FrameGraph present path: CPU producers (L-DNN) then GPU passes
+        /// (G-DNN cull/algorithms → shadows → G-buffer → lighting → particles → post).
+        /// Single executor — no parallel legacy pass loop.
         /// </summary>
         public void ExecuteFrame(
             VulkanCommandBuffer cmd,
@@ -2411,9 +2423,6 @@ namespace GDNN.Rendering.Engine
             UpdateUniforms(frameIndex, view, projection, cameraPos, time);
             _currentViewProjection = view * projection;
 
-            // L-DNN CPU producers + batched GPU upload must complete before cmd recording.
-            RenderGI(view, projection, cameraPos, cameraForward, cameraRight);
-
             var ctx = new FrameGraphContext
             {
                 Rhi = _rhi,
@@ -2430,24 +2439,67 @@ namespace GDNN.Rendering.Engine
                 CameraForward = cameraForward,
                 CameraRight = cameraRight,
                 Time = time,
-                RunLdnnCpuProducers = false
+                RunLdnnCpuProducers = true,
+                PhysicsFieldTemperature = _physicsFieldTemperature,
+                Quality = _activeQuality
             };
             _activeFgContext = ctx;
 
+            // Phase 1 — L-DNN Hybrid producers + texture upload (outside cmd buffer).
+            _frameGraph.ExecuteCpuProducers(ctx);
+
+            // Phase 2 — GPU recording via the same FrameGraph.
+            ctx.RunLdnnCpuProducers = false;
             cmd.Begin(CommandBufferUsageFlag.OneTimeSubmit);
-            var setupBuilder = new FrameGraphBuilder();
-            foreach (var pass in _frameGraph.Passes)
-            {
-                if (pass is LdnnGiPass)
-                    continue;
-                pass.Setup(setupBuilder);
-                pass.Execute(ctx);
-            }
+            _frameGraph.ExecuteGpuPasses(ctx);
             cmd.End();
 
             _prevViewProjection = _currentViewProjection;
             _hasPrevViewProjection = true;
             _activeFgContext = null;
+        }
+
+        /// <summary>
+        /// Applies adaptive quality from Infrastructure into G-DNN LOD, shadows, L-DNN and post.
+        /// </summary>
+        public void ApplyRuntimeQuality(RuntimeRenderQuality quality)
+        {
+            ArgumentNullException.ThrowIfNull(quality);
+            _activeQuality = quality;
+            _enableGi = quality.EnableGlobalIllumination;
+            _enableSsao = quality.EnableSsao;
+            _enableBloom = quality.EnableBloom;
+            _enableTaa = quality.EnableTaa;
+            _extraShadowCascades = Math.Clamp(quality.ShadowCascades - 1, 0, 2);
+            _maxLodBias = Math.Clamp(quality.MaxLodLevel, 0, 8);
+
+            if (_ldnnBridge?.Renderer?.Config is { } cfg)
+            {
+                cfg.QualityMode = quality.ShadowQuality >= 2
+                    ? LDNNQualityMode.HybridRT
+                    : LDNNQualityMode.NeuralOnly;
+                cfg.GIComputationMode = !quality.EnableGlobalIllumination
+                    ? GIComputationMode.SSGI
+                    : quality.EnableScreenSpaceGi
+                        ? GIComputationMode.Hybrid
+                        : GIComputationMode.RadianceCascades;
+            }
+
+            if (_algorithmHub?.NeuralLod?.Config is { } lodCfg)
+                lodCfg.MaxLodLevel = Math.Max(1, 4 - _maxLodBias);
+        }
+
+        /// <summary>
+        /// Feeds living-law / continuum field temperature into volumetric fog warmth.
+        /// Native Physics → Rendering bridge on the present path.
+        /// </summary>
+        public void ApplyPhysicsFieldInfluence(float averageTemperatureKelvin)
+        {
+            if (!float.IsFinite(averageTemperatureKelvin))
+                return;
+
+            _physicsFieldTemperature = averageTemperatureKelvin;
+            _ldnnBridge?.ApplyPhysicsFieldTemperature(averageTemperatureKelvin, _width, _height);
         }
 
         public void OnFrameGraphCull(FrameGraphContext context)
@@ -2550,15 +2602,24 @@ namespace GDNN.Rendering.Engine
 
         public void OnFrameGraphLdnn(FrameGraphContext context)
         {
-            // Prefer compute SSAO when a module is bound; otherwise full Hybrid CPU path.
-            _ = _ldnnCompute?.TryDispatchSsao(context.Cmd, (_width + 7) / 8, (_height + 7) / 8);
-            RenderGI(context.View, context.Projection, context.CameraPos, context.CameraForward, context.CameraRight);
+            if (context.RunLdnnCpuProducers)
+            {
+                if (!_enableGi)
+                    return;
+                RenderGI(context.View, context.Projection, context.CameraPos, context.CameraForward, context.CameraRight);
+                return;
+            }
+
+            // GPU phase: optional resident compute SSAO when SPIR-V is wired.
+            if (_enableSsao)
+                _ = _ldnnCompute?.TryDispatchSsao(context.Cmd, (_width + 7) / 8, (_height + 7) / 8);
         }
 
         public void OnFrameGraphShadow(FrameGraphContext context)
         {
             RenderShadowPass(context.Cmd, context.FrameIndex);
-            RenderShadowCascadesExtra(context.Cmd, context.FrameIndex);
+            if (_extraShadowCascades > 0)
+                RenderShadowCascadesExtra(context.Cmd, context.FrameIndex, _extraShadowCascades);
         }
 
         public void OnFrameGraphGBuffer(FrameGraphContext context)
@@ -3018,7 +3079,7 @@ namespace GDNN.Rendering.Engine
 
         public void RecordCommandBuffer(VulkanCommandBuffer cmd, uint imageIndex, int frameIndex)
         {
-            // Legacy entry: GPU passes only (L-DNN must have been run via RenderGI / ExecuteFrame).
+            // Legacy entry: GPU passes only (L-DNN must have been run via ExecuteFrame / RenderGI).
             var ctx = new FrameGraphContext
             {
                 Rhi = _rhi,
@@ -3034,10 +3095,13 @@ namespace GDNN.Rendering.Engine
                 CameraPos = _cameraPos,
                 CameraForward = -Vector3.UnitZ,
                 CameraRight = Vector3.UnitX,
-                RunLdnnCpuProducers = false
+                RunLdnnCpuProducers = false,
+                PhysicsFieldTemperature = _physicsFieldTemperature,
+                Quality = _activeQuality
             };
             _activeFgContext = ctx;
             cmd.Begin(CommandBufferUsageFlag.OneTimeSubmit);
+            _frameGraph.ExecuteGpuPasses(ctx);
                 View = Matrix4x4.Identity,
                 Projection = Matrix4x4.Identity,
                 CameraPos = _cameraPos,
@@ -3311,17 +3375,18 @@ namespace GDNN.Rendering.Engine
 
         /// <summary>
         /// Extra cascade shadow maps (near/mid/far) for CSM. Cascade 0 is the primary
-        /// <see cref="RenderShadowPass"/>; this records cascade 1–2 into dedicated targets when available.
+        /// <see cref="RenderShadowPass"/>; this records cascade 1–N into dedicated targets when available.
         /// </summary>
-        private void RenderShadowCascadesExtra(VulkanCommandBuffer cmd, int frameIndex)
+        private void RenderShadowCascadesExtra(VulkanCommandBuffer cmd, int frameIndex, int extraCount = 2)
         {
             EnsureShadowCascades();
             if (_shadowCascadeDepth == null || _shadowCascadeFramebuffers == null)
                 return;
 
+            extraCount = Math.Clamp(extraCount, 0, 2);
             // Cascades 1 and 2 use wider orthos centered on the camera (PSSM-style).
             float[] orthoSizes = { 56f, 120f };
-            for (int c = 0; c < 2; c++)
+            for (int c = 0; c < extraCount; c++)
             {
                 int slot = frameIndex * 2 + c;
                 if (slot >= _shadowCascadeFramebuffers.Length)
@@ -3560,7 +3625,12 @@ namespace GDNN.Rendering.Engine
             _lastFogUploadFrame = _auxUploadFrame;
 
             if (aoField != null && _algorithmHub != null)
+            {
                 _algorithmHub.CompositeSdfAo(aoField, _width, _height);
+                // VSM samples darken AO so VirtualShadowMap paints the present path.
+                var fwd = _activeFgContext?.CameraForward ?? -Vector3.UnitZ;
+                _algorithmHub.CompositeVsmIntoAo(aoField, _cameraPos, fwd, _width, _height);
+            }
 
             // Meshlet cluster albedo → irradiance so deferred lighting sees Nanite-like tiles.
             if (_algorithmHub != null)

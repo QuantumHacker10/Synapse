@@ -95,6 +95,12 @@ public class GpuResidentGiTests
         bridge.HasResidentGBuffer.Should().BeTrue();
 
         var gi1 = bridge.RenderGI();
+        // Present path prefers full Hybrid L-DNN (SSGI + cascades + neural); resident
+        // SSGI is only a fallback when the Hybrid field is unavailable.
+        gi1[12, 12].Length().Should().BeGreaterThan(0f);
+        bridge.HasResidentGBuffer.Should().BeTrue();
+
+        // Second frame without new fill still produces irradiance.
         // Full Hybrid L-DNN is preferred over the resident-only SSGI shortcut (visual quality).
         // Resident path is retained as a fallback when the hybrid field is unavailable.
         gi1[12, 12].Length().Should().BeGreaterThan(0f);
