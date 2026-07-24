@@ -1,0 +1,104 @@
+#version 450 core
+// =============================================================================
+// SphForce.comp - SPH Force Calculation Compute Shader
+// Computes pressure, viscosity, and external forces for SPH particles
+// =============================================================================
+
+struct SphParticle {
+    vec3 position;
+    vec3 velocity;
+    float density;
+    float pressure;
+    vec3 force;
+    float mass;
+    uint neighborCount;
+    vec3 padding;
+};
+
+struct Neighbor {
+    uint particleIndex;
+    float distanceSq;
+    vec2 padding;
+};
+
+// Constants
+layout(constant_id = 0) const float PARTICLE_MASS = 0.02;
+layout(constant_id = 1) const float REST_DENSITY = 1000.0;
+layout(constant_id = 2) const float GAS_CONSTANT = 2000.0;
+layout(constant_id = 3) const float VISCOSITY = 0.1;
+layout(constant_id = 4) const float SMOOTHING_RADIUS = 0.1;
+layout(constant_id = 5) const float SMOOTHING_RADIUS_SQ = 0.01;
+layout(constant_id = 6) const float DT = 0.005;
+layout(constant_id = 7) const float EPSILON = 1e-6;
+layout(constant_id = 8) const vec3 GRAVITY = vec3(0.0, -9.8, 0.0);
+
+// Smoothing kernel functions
+vec3 spikyGradient(vec3 r, float h) {
+    float rlen = length(r);
+    if (rlen >= h || rlen < EPSILON) return vec3(0.0);
+    float h2 = h * h;
+    float h3 = h * h * h;
+    float term = h - rlen;
+    return -45.0 / (3.14159265359 * h3 * h) * r * term * term;
+}
+
+float viscosityLaplacian(float r, float h) {
+    if (r >= h) return 0.0;
+    float h3 = h * h * h;
+    float term = h - r;
+    return 45.0 / (3.14159265359 * h3) * term;
+}
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(binding = 0) buffer ParticlesIn { SphParticle particles[]; };
+layout(binding = 1) buffer ParticlesOut { SphParticle outParticles[]; };
+layout(binding = 2) buffer NeighborList { Neighbor neighbors[]; };
+layout(binding = 3) buffer NeighborOffsets { uint offsets[]; };
+
+void main() {
+    uint particleIdx = gl_GlobalInvocationID.x;
+    if (particleIdx >= particles.length()) return;
+    
+    SphParticle p = particles[particleIdx];
+    SphParticle outP = p;
+    
+    // Reset forces
+    outP.force = vec3(0.0);
+    
+    // Get neighbor list
+    uint start = offsets[particleIdx];
+    uint count = 0;
+    if (particleIdx + 1 < offsets.length()) {
+        count = offsets[particleIdx + 1] - start;
+    } else {
+        count = neighbors.length() - start;
+    }
+    
+    // Compute forces from neighbors
+    for (uint i = 0; i < count; i++) {
+        uint neighborIdx = neighbors[start + i].particleIndex;
+        if (neighborIdx >= particles.length()) continue;
+        
+        SphParticle neighbor = particles[neighborIdx];
+        vec3 r = neighbor.position - p.position;
+        float dist = length(r);
+        float distSq = dot(r, r);
+        
+        if (dist >= SMOOTHING_RADIUS || dist < EPSILON) continue;
+        
+        // Pressure force (using Spiky kernel gradient)
+        vec3 pressureGrad = spikyGradient(r, SMOOTHING_RADIUS);
+        float pressureTerm = (p.pressure + neighbor.pressure) / (2.0 * neighbor.density);
+        outP.force += PARTICLE_MASS * pressureTerm * pressureGrad;
+        
+        // Viscosity force
+        vec3 velDiff = neighbor.velocity - p.velocity;
+        float viscoTerm = VISCOSITY * PARTICLE_MASS / neighbor.density * viscosityLaplacian(dist, SMOOTHING_RADIUS);
+        outP.force += viscoTerm * velDiff;
+    }
+    
+    // Add external forces (gravity)
+    outP.force += GRAVITY * p.mass;
+    
+    outParticles[particleIdx] = outP;
+}
