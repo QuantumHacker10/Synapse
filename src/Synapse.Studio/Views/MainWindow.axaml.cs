@@ -16,7 +16,14 @@ namespace Synapse.Studio.Views
         private void OnLoaded(object? sender, RoutedEventArgs e)
         {
             if (DataContext is MainWindowViewModel vm && BlueprintCanvas != null)
+            {
                 BlueprintCanvas.Document = vm.Blueprint;
+                vm.BlueprintDocumentReplaced += (_, _) =>
+                {
+                    if (BlueprintCanvas != null)
+                        BlueprintCanvas.Document = vm.Blueprint;
+                };
+            }
         }
 
         private void OnBlueprintDocumentChanged(object? sender, System.EventArgs e)

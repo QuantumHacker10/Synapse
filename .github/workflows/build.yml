@@ -63,8 +63,24 @@ jobs:
     - name: Test
       run: dotnet test Synapse.slnx --no-build --configuration Release --verbosity normal
 
-  publish-windows:
-    runs-on: windows-latest
+  publish-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: windows-latest
+            rid: win-arm64
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: ubuntu-latest
+            rid: linux-arm64
+          - os: macos-latest
+            rid: osx-arm64
+          - os: macos-13
+            rid: osx-x64
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
 
@@ -73,42 +89,33 @@ jobs:
       with:
         dotnet-version: '10.0.x'
 
-    - name: Build Studio
-      run: dotnet build src/Synapse.Studio/Synapse.Studio.csproj -c Release
-
-    - name: Publish win-x64
+    - name: Publish Studio (${{ matrix.rid }})
       run: >
         dotnet publish src/Synapse.Studio/Synapse.Studio.csproj
-        -c Release -r win-x64 --self-contained true
-        -o artifacts/Synapse-win-x64
+        -c Release -r ${{ matrix.rid }} --self-contained true
+        -p:PublishReadyToRun=true
+        -o artifacts/Synapse-${{ matrix.rid }}
+
+    - name: Smoke entrypoint exists
+      shell: bash
+      run: |
+        set -euo pipefail
+        dest="artifacts/Synapse-${{ matrix.rid }}"
+        if [[ -f "$dest/Synapse.Studio.exe" || -f "$dest/Synapse.Studio" ]]; then
+          echo "OK entrypoint for ${{ matrix.rid }}"
+          # Copy requirements for artifact consumers
+          cp -f docs/REQUIREMENTS.md "$dest/" 2>/dev/null || true
+        else
+          echo "Missing Synapse.Studio entrypoint for ${{ matrix.rid }}"
+          ls -la "$dest" || true
+          exit 1
+        fi
 
     - name: Upload publish artifact
       uses: actions/upload-artifact@v4
       with:
-        name: synapse-win-x64
-        path: artifacts/Synapse-win-x64
-
-  publish-linux:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '10.0.x'
-
-    - name: Publish linux-x64
-      run: >
-        dotnet publish src/Synapse.Studio/Synapse.Studio.csproj
-        -c Release -r linux-x64 --self-contained true
-        -o artifacts/Synapse-linux-x64
-
-    - name: Upload publish artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: synapse-linux-x64
-        path: artifacts/Synapse-linux-x64
+        name: synapse-${{ matrix.rid }}
+        path: artifacts/Synapse-${{ matrix.rid }}
 
   industrial-certification:
     runs-on: ubuntu-latest

@@ -423,6 +423,11 @@ namespace GDNN.Llm
             ArgumentNullException.ThrowIfNull(messages);
             ArgumentNullException.ThrowIfNull(context);
 
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            if (context.MaxLatencyMs is > 0 and int latencyMs)
+                timeoutCts.CancelAfter(latencyMs);
+            cancellationToken = timeoutCts.Token;
+
             var selectedProvider = SelectProvider(context)
                 ?? throw new InvalidOperationException("No available provider matches the routing criteria.");
 

@@ -65,6 +65,27 @@ public sealed class RasterTarget
         }
         return count;
     }
+
+    /// <summary>
+    /// Remplit depuis le chemin GPU R32 (depthKeys + payloads) produit par
+    /// <see cref="GDNN.GPU.VulkanMeshletRasterizerDispatcher"/>.
+    /// </summary>
+    public void ApplyGpuVisibility(ReadOnlySpan<uint> depthKeys, ReadOnlySpan<uint> payloads)
+    {
+        int n = Math.Min(_buffer.Length, Math.Min(depthKeys.Length, payloads.Length));
+        for (int i = 0; i < n; i++)
+        {
+            uint payload = payloads[i];
+            if (payload == 0)
+            {
+                _buffer[i] = 0;
+                continue;
+            }
+            _buffer[i] = ((ulong)depthKeys[i] << 32) | payload;
+        }
+        for (int i = n; i < _buffer.Length; i++)
+            _buffer[i] = 0;
+    }
 }
 
 /// <summary>Statistiques mesurées d'une passe de rasterisation.</summary>

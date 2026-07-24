@@ -1,0 +1,10 @@
+[
+  {
+    "Id": "example.plugin",
+    "Name": "Example Plugin",
+    "Version": "1.0.0",
+    "FileName": "Example.Plugin.dll",
+    "Sha256": "",
+    "Description": "Template entry — set Sha256 after building the plugin DLL."
+  }
+]

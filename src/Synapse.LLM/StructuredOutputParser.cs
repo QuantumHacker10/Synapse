@@ -472,6 +472,206 @@ namespace GDNN.Llm
             hint.Radius.HasValue ||
             hint.Size.HasValue;
 
+        /// <summary>
+        /// Parses a living-law hint (library id and/or expression) from LLM output.
+        /// </summary>
+        public static bool TryParseLivingLawHint(string llmText, out LivingLawHint hint)
+        {
+            hint = new LivingLawHint();
+            if (string.IsNullOrWhiteSpace(llmText))
+                return false;
+
+            var json = ExtractJson(llmText);
+            if (!string.IsNullOrEmpty(json))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    // Nested "law" object preferred; otherwise top-level law fields.
+                    if (root.TryGetProperty("law", out var lawEl) && lawEl.ValueKind == JsonValueKind.Object)
+                        hint = ReadLivingLawFromJson(lawEl);
+                    else
+                        hint = ReadLivingLawFromJson(root);
+
+                    if (HasLawSignal(hint))
+                        return true;
+                }
+                catch (JsonException)
+                {
+                    // Fall through to text heuristics.
+                }
+            }
+
+            hint = ParseLivingLawFromText(llmText);
+            return HasLawSignal(hint);
+        }
+
+        /// <summary>
+        /// Assembles a full industrial world delta (lighting + SDF + law + material + impulse + BT).
+        /// </summary>
+        public static LlmWorldDelta ParseWorldDelta(string llmText)
+        {
+            if (string.IsNullOrWhiteSpace(llmText))
+                return new LlmWorldDelta();
+
+            LightingParams? lighting = null;
+            if (TryParseLightingParams(llmText, out var lp))
+                lighting = lp;
+
+            SdfHint? sdf = null;
+            if (TryParseSdfHint(llmText, out var sh))
+                sdf = sh;
+
+            LivingLawHint? law = null;
+            if (TryParseLivingLawHint(llmText, out var lh))
+                law = lh;
+
+            MaterialHint? material = null;
+            var matExtract = ExtractMaterialProperties(llmText);
+            if (matExtract.Success && matExtract.Data != null &&
+                (matExtract.Data.Metallic != 0 || matExtract.Data.Roughness != 0 ||
+                 !string.IsNullOrWhiteSpace(matExtract.Data.Name)))
+            {
+                material = new MaterialHint
+                {
+                    Name = matExtract.Data.Name,
+                    Metallic = matExtract.Data.Metallic,
+                    Roughness = matExtract.Data.Roughness,
+                    BaseColor = matExtract.Data.BaseColor,
+                    EmissiveStrength = matExtract.Data.EmissionIntensity
+                };
+            }
+
+            SimulationImpulseHint? impulse = null;
+            var json = ExtractJson(llmText);
+            if (!string.IsNullOrEmpty(json))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("impulse", out var imp) ||
+                        doc.RootElement.TryGetProperty("simulation", out imp))
+                    {
+                        impulse = ReadImpulseFromJson(imp);
+                    }
+                }
+                catch (JsonException)
+                {
+                    // ignore
+                }
+            }
+
+            IReadOnlyList<BehaviorTreeNodeHint>? btHints = null;
+            var bt = ExtractBehaviorTree(llmText);
+            if (bt.Success && bt.Data is { Count: > 0 } &&
+                (llmText.Contains("behavior", StringComparison.OrdinalIgnoreCase) ||
+                 llmText.Contains("action:", StringComparison.OrdinalIgnoreCase) ||
+                 llmText.Contains("patrol", StringComparison.OrdinalIgnoreCase)))
+            {
+                btHints = bt.Data.Select(n => new BehaviorTreeNodeHint
+                {
+                    Type = n.NodeType ?? "action",
+                    Name = n.Name,
+                    Action = n.NodeType == "action" ? n.Name : null,
+                    Condition = n.NodeType == "condition" ? n.Name : null
+                }).ToList();
+            }
+
+            return new LlmWorldDelta
+            {
+                Lighting = lighting,
+                Sdf = sdf,
+                Law = law,
+                Material = material,
+                Impulse = impulse,
+                BehaviorNodes = btHints
+            };
+        }
+
+        private static LivingLawHint ReadLivingLawFromJson(JsonElement root)
+        {
+            string? id = TryReadString(root, "lawId", "law_id", "id", "activeLawId");
+            string? name = TryReadString(root, "name", "lawName", "title");
+            string? expression = TryReadString(root, "expression", "lawExpression", "formula", "equation");
+
+            Dictionary<string, float>? parameters = null;
+            if (root.TryGetProperty("parameters", out var pEl) && pEl.ValueKind == JsonValueKind.Object)
+            {
+                parameters = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+                foreach (var prop in pEl.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.Number)
+                        parameters[prop.Name] = (float)prop.Value.GetDouble();
+                }
+            }
+
+            string[]? modules = null;
+            if (root.TryGetProperty("enableModules", out var mEl) && mEl.ValueKind == JsonValueKind.Array)
+            {
+                var list = new List<string>();
+                foreach (var item in mEl.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.String && item.GetString() is { } s)
+                        list.Add(s);
+                }
+                if (list.Count > 0)
+                    modules = list.ToArray();
+            }
+
+            return new LivingLawHint
+            {
+                LawId = id ?? "",
+                Name = name,
+                Expression = expression,
+                Parameters = parameters,
+                EnableModules = modules
+            };
+        }
+
+        private static LivingLawHint ParseLivingLawFromText(string text)
+        {
+            var idMatch = Regex.Match(text,
+                @"(?:lawId|law_id|activeLaw|apply\s+law)[:\s]+[""']?([a-zA-Z0-9_\-]+)",
+                RegexOptions.IgnoreCase);
+            var exprMatch = Regex.Match(text,
+                @"(?:expression|formula|equation)[:\s]+[""']([^""']+)[""']",
+                RegexOptions.IgnoreCase);
+
+            // Common library ids mentioned in free text.
+            string? libraryId = null;
+            foreach (var known in new[] { "heat_equation", "navier_stokes", "wave_equation", "diffusion", "maxwell", "schrodinger" })
+            {
+                if (text.Contains(known, StringComparison.OrdinalIgnoreCase))
+                {
+                    libraryId = known;
+                    break;
+                }
+            }
+
+            return new LivingLawHint
+            {
+                LawId = idMatch.Success ? idMatch.Groups[1].Value : (libraryId ?? ""),
+                Expression = exprMatch.Success ? exprMatch.Groups[1].Value.Trim() : null
+            };
+        }
+
+        private static bool HasLawSignal(LivingLawHint hint) =>
+            !string.IsNullOrWhiteSpace(hint.LawId) ||
+            !string.IsNullOrWhiteSpace(hint.Expression);
+
+        private static SimulationImpulseHint ReadImpulseFromJson(JsonElement root)
+        {
+            return new SimulationImpulseHint
+            {
+                Profile = TryReadString(root, "profile", "behaviorProfile"),
+                Position = TryReadVector3(root, "position", "pos"),
+                Impulse = TryReadVector3(root, "impulse", "force", "velocity"),
+                HeatDeposit = TryReadFloat(root, "heatDeposit", "heat", "temperatureDelta"),
+                BehaviorTreeName = TryReadString(root, "behaviorTree", "tree", "behaviorTreeName")
+            };
+        }
+
         private static (float X, float Y, float Z)? TryParseDirectionVector(string text)
         {
             var bracketMatch = Regex.Match(

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>14</LangVersion>
+    <RootNamespace>Synapse.Plugins</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Synapse.Core\Synapse.Core.csproj" />
+    <ProjectReference Include="..\Synapse.Infrastructure\Synapse.Infrastructure.csproj" />
+    <ProjectReference Include="..\Synapse.Runtime\Synapse.Runtime.csproj" />
+  </ItemGroup>
+</Project>

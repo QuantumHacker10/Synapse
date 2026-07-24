@@ -1,0 +1,66 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+)
+
+def Xform "Root"
+{
+    def Mesh "Geo"
+    {
+        point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+        int[] faceVertexIndices = [0, 1, 2, -1]
+        texCoord2f[] primvars:st = [(0, 0), (1, 0), (0, 1)]
+        rel material:binding = </Looks/PbrMat>
+    }
+
+    def Scope "Looks"
+    {
+        def Material "PbrMat"
+        {
+            def Shader "Preview"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor.connect = </Looks/PbrMat/DiffuseTex.outputs:rgb>
+                normal3f inputs:normal.connect = </Looks/PbrMat/NormalTex.outputs:rgb>
+                float inputs:roughness.connect = </Looks/PbrMat/OrmTex.outputs:g>
+                float inputs:metallic.connect = </Looks/PbrMat/OrmTex.outputs:b>
+                float inputs:occlusion.connect = </Looks/PbrMat/OrmTex.outputs:r>
+                color3f inputs:emissiveColor.connect = </Looks/PbrMat/EmissiveTex.outputs:rgb>
+                float inputs:displacement.connect = </Looks/PbrMat/HeightTex.outputs:r>
+                float inputs:clearcoat = 0.25
+                float inputs:clearcoatRoughness = 0.1
+                float inputs:ior = 1.5
+            }
+
+            def Shader "DiffuseTex"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @./textures/albedo.png@
+            }
+
+            def Shader "NormalTex"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @./textures/normal.png@
+            }
+
+            def Shader "OrmTex"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @./textures/orm.png@
+            }
+
+            def Shader "EmissiveTex"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @./textures/emissive.png@
+            }
+
+            def Shader "HeightTex"
+            {
+                uniform token info:id = "UsdUVTexture"
+                asset inputs:file = @./textures/height.png@
+            }
+        }
+    }
+}

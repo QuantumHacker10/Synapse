@@ -1,40 +1,36 @@
-# Captures d'écran — Synapse Studio
+# Captures d'écran — Synapse Studio v2.2
 
-Visuels représentatifs de l'interface Synapse Studio v1.3.
+Visuels **PNG** représentatifs de l'interface Synapse Studio.
 
-> Les SVG ci-dessous sont des maquettes vectorielles fidèles à la disposition réelle de Studio.
-> Pour des captures PNG depuis votre installation, lancez Studio et utilisez votre outil de capture d'écran.
+## Captures disponibles
 
-## Vue principale
+| Fichier | Source |
+|---|---|
+| `studio-main-view.png` | Script Python (`generate-studio-screenshots.py`) |
+| `studio-rendering.png` | Script Python |
+| `studio-live.png` | Capture live Avalonia headless (`--screenshot`) |
 
-Interface complète : hiérarchie de scène, viewport Vulkan 3D, inspecteur, performance et console LLM.
-
-![Vue principale de Synapse Studio](studio-main-view.svg)
-
-## Rendu G-DNN + L-DNN
-
-Viewport en mode rendu : forme SDF neuronale (G-DNN), illumination globale (L-DNN), SSAO et brouillard.
-
-![Rendu neural temps réel](studio-rendering.svg)
-
-## Capturer vos propres screenshots
+## Capture live (v2.2)
 
 ```bash
-# Lancer Studio avec la scène d'exemple
-dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse
-
-# Windows : Win+Shift+S
-# Linux   : gnome-screenshot ou Flameshot
-# macOS   : Cmd+Shift+4
+dotnet run --project src/Synapse.Studio -- --screenshot docs/screenshots/studio-live.png --headless
 ```
 
-Placez les PNG dans ce dossier et mettez à jour ce README.
+Utilise **Avalonia Headless + Skia** pour produire un PNG fidèle à l'interface Studio (sans fenêtre visible).
+
+## Régénérer les maquettes Python
+
+```bash
+python3 scripts/generate-studio-screenshots.py
+```
 
 ## Éléments visibles
 
 | Zone | Description |
 |---|---|
-| Panneau gauche | Hiérarchie des entités (Mesh, Character, Genome) |
+| Panneau gauche | Hiérarchie des entités (Mesh, Agent, Genome) |
 | Viewport central | Rendu Vulkan embarqué avec grille et gizmos |
 | Panneau droit | Inspecteur (propriétés, loi physique active) |
 | Barre inférieure | IPS, charge physique, preset L-DNN, console LLM |
+
+Les SVG originaux (`studio-main-view.svg`, `studio-rendering.svg`) restent disponibles comme source vectorielle.

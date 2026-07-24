@@ -647,8 +647,30 @@ namespace GDNN.Rendering.ArtPipeline
         {
             var textures = new MegascansTextureSet();
             var files = Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories);
+            if (files.Length > 10_000)
+                throw new InvalidDataException(
+                    $"Megascans asset tree under '{directory}' exceeds 10,000 files.");
+
+            long totalBytes = 0;
+            const long maxTotalBytes = 2L * 1024 * 1024 * 1024; // 2 GiB
             foreach (var file in files)
             {
+                try
+                {
+                    totalBytes += new FileInfo(file).Length;
+                    if (totalBytes > maxTotalBytes)
+                        throw new InvalidDataException(
+                            $"Megascans asset tree under '{directory}' exceeds 2 GiB.");
+                }
+                catch (InvalidDataException)
+                {
+                    throw;
+                }
+                catch
+                {
+                    // Skip unreadable file size probes.
+                }
+
                 string ext = Path.GetExtension(file).ToLowerInvariant();
                 if (ext is not (".png" or ".jpg" or ".jpeg" or ".tga" or ".exr" or ".tif" or ".tiff" or ".bmp"))
                     continue;
@@ -702,8 +724,30 @@ namespace GDNN.Rendering.ArtPipeline
                 else if (filename.Contains("detail_normal") || filename.Contains("detail_nrm"))
                     textures.DetailNormal = file;
             }
+            textures.Format = InferDominantFormat(textures);
             return textures;
         }
+
+        private static string InferDominantFormat(MegascansTextureSet textures)
+        {
+            foreach (var path in new[] { textures.BaseColor, textures.Normal, textures.packed_ORM, textures.Roughness })
+            {
+                if (string.IsNullOrEmpty(path))
+                    continue;
+                if (string.IsNullOrEmpty(path)) continue;
+                var ext = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
+                if (ext is "png" or "jpg" or "jpeg" or "tga" or "bmp" or "exr" or "tif" or "tiff")
+                    return ext == "jpeg" ? "jpg" : ext;
+            }
+            return "png";
+        }
+
+        /// <summary>
+        /// Decodes a Megascans texture file from disk (PNG/JPEG/BMP/TGA) for GPU upload.
+        /// Returns false for missing/corrupt/unsupported formats (caller keeps procedural fallback).
+        /// </summary>
+        public static bool TryDecodeTextureFile(string path, out DecodedImage image)
+            => MegascansImageDecoder.TryDecodeFile(path, out image);
 
         private Megascans3DAssetData Discover3DData(string directory)
         {
@@ -794,8 +838,17 @@ namespace GDNN.Rendering.ArtPipeline
             if (_config.ImportMode == MegascansImportMode.CopyToLibrary || _config.ImportMode == MegascansImportMode.MoveToLibrary)
             {
                 var allFiles = Directory.GetFiles(sourceDirectory, "*.*", SearchOption.AllDirectories);
+                if (allFiles.Length > 10_000)
+                    throw new InvalidDataException("Megascans import exceeds 10,000 files.");
+
+                long totalBytes = 0;
+                const long maxTotalBytes = 2L * 1024 * 1024 * 1024;
                 foreach (var file in allFiles)
                 {
+                    totalBytes += new FileInfo(file).Length;
+                    if (totalBytes > maxTotalBytes)
+                        throw new InvalidDataException("Megascans import exceeds 2 GiB.");
+
                     string relativePath = Path.GetRelativePath(sourceDirectory, file);
                     if (relativePath.Contains("..", StringComparison.Ordinal))
                         continue;

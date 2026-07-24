@@ -52,6 +52,72 @@ namespace GDNN.Lighting.LDNN
         }
 
         /// <summary>
+        /// Inserts or refreshes a valid probe at <paramref name="position"/>, storing
+        /// <paramref name="irradiance"/> in the SH L0 band. Reuses the nearest probe within
+        /// <see cref="_probeSpacing"/>; otherwise adds a new probe while under capacity.
+        /// This is what lets <c>TetrahedralInterpolate</c>/<c>TrilinearInterpolate</c> return
+        /// non-empty results from cascade-seeded probes.
+        /// </summary>
+        public void UpsertProbe(Vector3 position, Vector3 irradiance, Vector3 normal)
+        {
+            if (!_isInitialized || _probes == null)
+                return;
+
+            int nearestIdx = -1;
+            float nearestSq = _probeSpacing * _probeSpacing;
+            for (int i = 0; i < _probes.Count; i++)
+            {
+                float distSq = (_probes[i].Position - position).LengthSquared();
+                if (distSq <= nearestSq)
+                {
+                    nearestSq = distSq;
+                    nearestIdx = i;
+                }
+            }
+
+            if (nearestIdx < 0 && _probes.Count >= _maxProbes)
+                return;
+
+            // Encode irradiance into the SH DC (L0) coefficient so ComputeProbeIrradiance
+            // reconstructs it (result += SH[0] * 0.282095f).
+            Vector3 l0 = irradiance / 0.282095f;
+
+            if (nearestIdx >= 0)
+            {
+                var probe = _probes[nearestIdx];
+                var sh = probe.SHCoefficients;
+                if (sh == null || sh.Length < 9)
+                    sh = new Vector4[9];
+                sh[0] = new Vector4(l0, 0f);
+                _probes[nearestIdx] = probe with
+                {
+                    SHCoefficients = sh,
+                    IsValid = true,
+                    LastUpdateFrame = _frameIndex,
+                    ReferenceNormal = normal,
+                    SampleCount = probe.SampleCount + 1
+                };
+            }
+            else
+            {
+                var sh = new Vector4[9];
+                sh[0] = new Vector4(l0, 0f);
+                _probes.Add(new IrradianceProbe
+                {
+                    Position = position,
+                    SHCoefficients = sh,
+                    IsValid = true,
+                    LastUpdateFrame = _frameIndex,
+                    Importance = 1.0f,
+                    ReferenceDepth = 0,
+                    ReferenceNormal = normal,
+                    Variance = 0,
+                    SampleCount = 1
+                });
+            }
+        }
+
+        /// <summary>
         /// Places probes using octahedral mapping.
         /// </summary>
         public void PlaceOctahedralProbes(Vector3 center, float radius, int probesPerAxis)

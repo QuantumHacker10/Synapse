@@ -1,0 +1,12 @@
+{
+  "id": "custom_heat_wave",
+  "name": "Heat Wave Variant",
+  "version": "1.0",
+  "author": "Synapse Community",
+  "category": "thermodynamics",
+  "expression": "laplacian(T) - 0.1 * dT/dt",
+  "description": "Example marketplace law package for v2.",
+  "parameters": { "alpha": "0.1" },
+  "constants": { "T0": 300.0 },
+  "tags": [ "heat", "wave", "demo" ]
+}

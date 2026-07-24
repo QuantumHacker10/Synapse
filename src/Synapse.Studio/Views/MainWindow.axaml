@@ -18,6 +18,9 @@
         <MenuItem Header="Ouvrir…" Command="{Binding OpenProjectCommand}" />
         <MenuItem Header="Enregistrer" Command="{Binding SaveProjectCommand}" />
         <Separator />
+        <MenuItem Header="Exporter scène glTF…" Command="{Binding ExportSceneGlTFCommand}" />
+        <MenuItem Header="Exporter Web Studio (WASM)…" Command="{Binding ExportWebStudioCommand}" />
+        <Separator />
         <MenuItem Header="Quitter" Command="{Binding ExitCommand}" />
       </MenuItem>
       <MenuItem Header="_Simulation">
@@ -26,6 +29,19 @@
         <Separator />
         <MenuItem Header="Mode inspecteur live" Command="{Binding ToggleInspectorModeCommand}"
                   ToggleType="CheckBox" IsChecked="{Binding IsInspectorModeEnabled}" />
+      </MenuItem>
+      <MenuItem Header="_Outils">
+        <MenuItem Header="Charger plugins…" Command="{Binding LoadPluginsFromDirectoryCommand}" />
+        <MenuItem Header="Synchroniser les jumeaux" Command="{Binding SynchronizeTwinsCommand}" />
+        <MenuItem Header="Exporter génome…" Command="{Binding ExportBestGenomeCommand}" />
+      </MenuItem>
+      <MenuItem Header="_Collaboration">
+        <MenuItem Header="Activer VR OpenXR" Command="{Binding EnableVrCommand}" />
+        <MenuItem Header="Arrêter VR" Command="{Binding DisableVrCommand}" />
+        <Separator />
+        <MenuItem Header="Héberger session WAN" Command="{Binding StartWanHostCommand}" />
+        <MenuItem Header="Rejoindre session WAN" Command="{Binding JoinWanCommand}" />
+        <MenuItem Header="Quitter WAN" Command="{Binding StopWanCommand}" />
       </MenuItem>
       <MenuItem Header="_Aide">
         <MenuItem Header="À propos" Command="{Binding AboutCommand}" />
@@ -39,7 +55,7 @@
         <TextBlock Grid.Column="1" Foreground="#8B9BB4" Text="{Binding StatusPhysics}" />
         <TextBlock Grid.Column="2" Foreground="#8B9BB4" Text="{Binding StatusSimulation}" />
         <TextBlock Grid.Column="3" Foreground="#8B9BB4" Text="{Binding StatusQuality}" />
-        <TextBlock Grid.Column="4" Foreground="#8B9BB4" Text="{Binding LlmStatusText}" TextTrimming="CharacterEllipsis" />
+        <TextBlock Grid.Column="4" Foreground="#8B9BB4" Text="{Binding CollaborationStatus}" TextTrimming="CharacterEllipsis" />
         <TextBlock Grid.Column="5" Foreground="#45E0B8" Text="{Binding StatusLaw}" HorizontalAlignment="Right" />
       </Grid>
     </Border>
@@ -88,14 +104,47 @@
             <TabItem Header="Physique">
               <ScrollViewer>
                 <StackPanel Spacing="10" Margin="4">
-                  <TextBlock Text="Lois vivantes" FontWeight="SemiBold" Foreground="#E8EEF7" />
-                  <TextBlock Text="Choisissez une loi, éditez l'expression, puis compilez sans arrêter la simulation."
-                             Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
-                  <ComboBox ItemsSource="{Binding LawIds}" SelectedItem="{Binding SelectedLawId}" />
-                  <TextBox Text="{Binding LawExpression}" AcceptsReturn="True" Height="90"
+                  <TextBlock Text="Catalogue de lois" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="{Binding LawCatalogSummary}" Foreground="#45E0B8" FontSize="11" TextWrapping="Wrap" />
+                  <TextBox Text="{Binding LawSearchText}" Watermark="Rechercher (id, nom, domaine)…" />
+                  <ListBox ItemsSource="{Binding FilteredLawCatalog}"
+                           SelectedItem="{Binding SelectedLawEntry}"
+                           Background="#0E1218" MaxHeight="220">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate DataType="contracts:LawCatalogEntry">
+                        <StackPanel Spacing="2" Margin="0,2">
+                          <TextBlock Text="{Binding DisplayLine}" Foreground="#E8EEF7" FontSize="12" />
+                          <TextBlock Text="{Binding CategoryLabel}" Foreground="#6B7A94" FontSize="10" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                  <TextBlock Text="{Binding SelectedLawSummary}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" MaxHeight="72" />
+                  <Button Content="Appliquer au monde" Command="{Binding ApplySelectedLawCommand}" HorizontalAlignment="Stretch" />
+                  <TextBlock Text="Expression (hot-reload)" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,4,0,0" />
+                  <TextBox Text="{Binding LawExpression}" AcceptsReturn="True" Height="72"
                            Watermark="Expression de loi…" TextWrapping="Wrap" />
                   <Button Content="Compiler &amp; hot-reload" Command="{Binding CompileLawCommand}" HorizontalAlignment="Stretch" />
                   <TextBlock Text="{Binding LawStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+
+                  <Separator Margin="0,8" />
+
+                  <TextBlock Text="Marketplace de lois" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="{Binding MarketplaceStatus}" Foreground="#45E0B8" FontSize="11" TextWrapping="Wrap" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Importer .synapse-law" Command="{Binding ImportLawPackageCommand}" />
+                    <Button Content="Exporter loi active" Command="{Binding ExportActiveLawPackageCommand}" />
+                  </StackPanel>
+                  <ListBox ItemsSource="{Binding MarketplacePackages}" Background="#0E1218" MaxHeight="140">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate DataType="contracts:LawCatalogEntry">
+                        <StackPanel Spacing="2" Margin="0,2">
+                          <TextBlock Text="{Binding DisplayLine}" Foreground="#E8EEF7" FontSize="12" />
+                          <TextBlock Text="{Binding CategoryLabel}" Foreground="#6B7A94" FontSize="10" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
                 </StackPanel>
               </ScrollViewer>
             </TabItem>
@@ -111,6 +160,7 @@
                     <Button Content="Évoluer" Command="{Binding StartEvolutionCommand}" />
                     <Button Content="Annuler" Command="{Binding CancelEvolutionCommand}" />
                   </StackPanel>
+                  <Button Content="Exporter génome…" Command="{Binding ExportBestGenomeCommand}" HorizontalAlignment="Stretch" />
 
                   <Separator Margin="0,8" />
 
@@ -118,20 +168,31 @@
                   <views:BlueprintGraphCanvas x:Name="BlueprintCanvas" Height="180" DocumentChanged="OnBlueprintDocumentChanged" />
                   <ListBox ItemsSource="{Binding BlueprintNodes}" Height="70" Background="#0E1218" />
                   <TextBlock Text="{Binding BlueprintStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                  <CheckBox Content="Édition live (hot-reload)" IsChecked="{Binding BlueprintLiveEdit}" Foreground="#E8EEF7" />
                   <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Nouveau" Command="{Binding NewBlueprintCommand}" />
                     <Button Content="Nœud" Command="{Binding AddBlueprintNodeCommand}" />
                     <Button Content="LLM" Command="{Binding AddBlueprintLlmNodeCommand}" />
                     <Button Content="Compiler" Command="{Binding CompileBlueprintCommand}" />
+                    <Button Content="Enregistrer" Command="{Binding SaveBlueprintCommand}" />
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Nouveau" Command="{Binding NewBlueprintCommand}" />
+                    <Button Content="Ouvrir" Command="{Binding OpenBlueprintCommand}" />
+                    <Button Content="Enregistrer" Command="{Binding SaveBlueprintCommand}" />
                   </StackPanel>
 
                   <Separator Margin="0,8" />
 
-                  <TextBlock Text="Sculpt (aperçu)" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="Sculpt (session locale)" FontWeight="SemiBold" Foreground="#E8EEF7" />
                   <TextBlock Text="Rayon" Foreground="#8B9BB4" FontSize="11" />
                   <Slider Minimum="0.05" Maximum="3" Value="{Binding SculptRadius}" />
                   <TextBlock Text="Force" Foreground="#8B9BB4" FontSize="11" />
                   <Slider Minimum="0.01" Maximum="1" Value="{Binding SculptStrength}" />
-                  <Button Content="Appliquer sur sélection" Command="{Binding ApplySculptStrokeCommand}" HorizontalAlignment="Stretch" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Appliquer sur sélection" Command="{Binding ApplySculptStrokeCommand}" />
+                    <Button Content="Effacer" Command="{Binding ClearSculptCommand}" />
+                  </StackPanel>
                   <TextBlock Text="{Binding SculptStatus}" Foreground="#8B9BB4" FontSize="11" TextWrapping="Wrap" />
                 </StackPanel>
               </ScrollViewer>
@@ -144,6 +205,94 @@
                   <TextBox Text="{Binding MegascansPath}" Watermark="Dossier d'asset…" />
                   <Button Content="Importer" Command="{Binding ImportMegascansCommand}" HorizontalAlignment="Stretch" />
                   <TextBlock Text="{Binding MegascansStatus}" Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+
+                  <Separator Margin="0,8" />
+
+                  <TextBlock Text="Mesh FBX / USD / glTF / OBJ" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="Liez un mesh (FBX ASCII, USDA, glTF, OBJ) à une entité via le champ « Mesh (chemin) » et « Parcourir mesh… » de l'inspecteur."
+                             Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Collab">
+              <ScrollViewer>
+                <StackPanel Spacing="10" Margin="4">
+                  <TextBlock Text="VR OpenXR" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="Session native Silk.NET lorsque le loader/runtime est présent. Lab : SYNAPSE_VR_SIMULATE=1."
+                             Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                  <TextBlock Text="{Binding VrStatusText}" Foreground="#45E0B8" TextWrapping="Wrap" FontSize="11" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Activer VR" Command="{Binding EnableVrCommand}" />
+                    <Button Content="Arrêter" Command="{Binding DisableVrCommand}" />
+                  </StackPanel>
+
+                  <Separator Margin="0,8" />
+
+                  <TextBlock Text="P2P WAN" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="STUN + hole-punch + AES-GCM. Partagez le code et le port rendez-vous UDP avec le pair."
+                             Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                  <TextBox Text="{Binding WanSessionCode}" Watermark="Code de session…" />
+                  <Grid ColumnDefinitions="*,*">
+                    <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                      <TextBlock Text="Port TCP" Foreground="#8B9BB4" FontSize="11" />
+                      <NumericUpDown Value="{Binding WanPort}" Minimum="1" Maximum="65535" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                      <TextBlock Text="Rendez-vous UDP" Foreground="#8B9BB4" FontSize="11" />
+                      <NumericUpDown Value="{Binding WanRendezvousPort}" Minimum="0" Maximum="65535" />
+                    </StackPanel>
+                  </Grid>
+                  <TextBlock Text="{Binding WanStatusText}" Foreground="#45E0B8" TextWrapping="Wrap" FontSize="11" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Héberger" Command="{Binding StartWanHostCommand}" />
+                    <Button Content="Rejoindre" Command="{Binding JoinWanCommand}" />
+                    <Button Content="Quitter" Command="{Binding StopWanCommand}" />
+                  </StackPanel>
+
+                  <Separator Margin="0,8" />
+
+                  <TextBlock Text="Web Studio WASM" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="Publie le projet Blazor + scene.synapse.json pour édition navigateur / WebGPU."
+                             Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                  <TextBlock Text="{Binding WebStatusText}" Foreground="#45E0B8" TextWrapping="Wrap" FontSize="11" />
+                  <Button Content="Exporter Web Studio…" Command="{Binding ExportWebStudioCommand}" HorizontalAlignment="Stretch" />
+                  <TextBlock Text="{Binding CollaborationStatus}" Foreground="#C5D0E0" TextWrapping="Wrap" FontSize="11" />
+
+                  <Separator Margin="0,8" />
+
+                  <TextBlock Text="Plugins C#" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="ALC isolé (pas un sandbox sécurité). SYNAPSE_PLUGIN_TRUST=require-manifest pour la production."
+                             Foreground="#8B9BB4" TextWrapping="Wrap" FontSize="11" />
+                  <TextBlock Text="{Binding PluginStatusText}" Foreground="#45E0B8" TextWrapping="Wrap" FontSize="11" />
+                  <ListBox ItemsSource="{Binding Plugins}" Background="#0E1218" MaxHeight="120">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate DataType="contracts:PluginListEntry">
+                        <TextBlock Text="{Binding DisplayLine}" Foreground="#E8EEF7" FontSize="12" />
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                  <Button Content="Charger un dossier de plugins…" Command="{Binding LoadPluginsFromDirectoryCommand}" HorizontalAlignment="Stretch" />
+
+                  <Separator Margin="0,8" />
+
+                  <TextBlock Text="Jumeaux numériques" FontWeight="SemiBold" Foreground="#E8EEF7" />
+                  <TextBlock Text="{Binding TwinStatusText}" Foreground="#45E0B8" TextWrapping="Wrap" FontSize="11" />
+                  <ListBox ItemsSource="{Binding Twins}" SelectedItem="{Binding SelectedTwin}" Background="#0E1218" MaxHeight="120">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate DataType="contracts:TwinListEntry">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <TextBlock Text="{Binding DisplayLine}" Foreground="#E8EEF7" FontSize="12" />
+                          <TextBlock Text="{Binding Status}" Foreground="#6B7A94" FontSize="10" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="Jumeler la sélection" Command="{Binding RegisterSceneTwinCommand}" />
+                    <Button Content="Synchroniser" Command="{Binding SynchronizeTwinsCommand}" />
+                    <Button Content="Exporter snapshot" Command="{Binding ExportSelectedTwinCommand}" />
+                  </StackPanel>
                 </StackPanel>
               </ScrollViewer>
             </TabItem>
@@ -160,6 +309,7 @@
             <Button Content="Sélection" Command="{Binding SetViewportToolSelectCommand}" Padding="8,4" />
             <Button Content="Déplacer" Command="{Binding SetViewportToolTranslateCommand}" Padding="8,4" />
             <Button Content="Rotation" Command="{Binding SetViewportToolRotateCommand}" Padding="8,4" />
+            <Button Content="Échelle" Command="{Binding SetViewportToolScaleCommand}" Padding="8,4" />
             <TextBlock Text="{Binding GiStatus}" Foreground="#45E0B8" VerticalAlignment="Center" FontSize="11" />
           </StackPanel>
           <Grid Grid.Row="1">
@@ -209,6 +359,14 @@
                   <Button Content="Resync physique" Command="{Binding ResyncPhysicsCommand}" HorizontalAlignment="Stretch" />
                   <TextBlock Text="{Binding PhysicsToolsStatus}" Foreground="#45E0B8" TextWrapping="Wrap" FontSize="11" />
                   <Button Content="Appliquer les modifications" Command="{Binding ApplyInspectorCommand}" HorizontalAlignment="Stretch" />
+
+                  <StackPanel Spacing="6" IsVisible="{Binding HasAgentSelection}">
+                    <TextBlock Text="Arbre de comportement" FontWeight="SemiBold" Foreground="#E8EEF7" Margin="0,8,0,0" />
+                    <TextBox Text="{Binding BehaviorTreeText}" IsReadOnly="True" AcceptsReturn="True"
+                             Height="160" FontFamily="Cascadia Code, Consolas, monospace" FontSize="11"
+                             TextWrapping="NoWrap" Background="#0E1218" />
+                    <Button Content="Rafraîchir l'arbre" Command="{Binding RefreshBehaviorTreeCommand}" HorizontalAlignment="Stretch" />
+                  </StackPanel>
                 </StackPanel>
               </StackPanel>
             </ScrollViewer>

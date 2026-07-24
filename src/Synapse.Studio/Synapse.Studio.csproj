@@ -15,6 +15,8 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.2.3" />
     <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Headless" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Skia" Version="11.2.3" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
@@ -32,6 +34,7 @@
     <ProjectReference Include="..\Synapse.Simulation\Synapse.Simulation.csproj" />
     <ProjectReference Include="..\Synapse.Genomics\Synapse.Genomics.csproj" />
     <ProjectReference Include="..\Synapse.Infrastructure\Synapse.Infrastructure.csproj" />
+    <ProjectReference Include="..\Synapse.Plugins\Synapse.Plugins.csproj" />
   </ItemGroup>
 
   <ItemGroup>

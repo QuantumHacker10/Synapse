@@ -705,6 +705,109 @@ namespace GDNN.Lighting.LDNN
                 return 0;
             return _resolutionPerLevel[level];
         }
+
+        /// <summary>
+        /// World-space direction of a cascade cube face (the +/-X, +/-Y, +/-Z axis).
+        /// </summary>
+        private static Vector3 FaceCenterDirection(int face) => face switch
+        {
+            0 => Vector3.UnitX,
+            1 => -Vector3.UnitX,
+            2 => Vector3.UnitY,
+            3 => -Vector3.UnitY,
+            4 => Vector3.UnitZ,
+            5 => -Vector3.UnitZ,
+            _ => Vector3.UnitY
+        };
+
+        /// <summary>
+        /// Samples hemisphere irradiance from filled cascade buffers, weighted by surface normal.
+        /// Blends the first few active levels so Hybrid GI actually consumes cascade work.
+        /// </summary>
+        public Vector3 SampleHemisphereIrradiance(Vector3 normal)
+        {
+            if (!_isInitialized || _totalLevels <= 0)
+                return Vector3.Zero;
+
+            float lenSq = normal.LengthSquared();
+            if (lenSq < 1e-8f || float.IsNaN(lenSq))
+                return Vector3.Zero;
+            normal /= MathF.Sqrt(lenSq);
+
+            Vector3 sum = Vector3.Zero;
+            float wSum = 0f;
+            int maxLevel = Math.Min(2, _totalLevels - 1);
+
+            for (int level = 0; level <= maxLevel; level++)
+            {
+                int res = _resolutionPerLevel[level];
+                if (res <= 0)
+                    continue;
+                float levelWeight = 1.0f / (1 + level);
+                int cx = res / 2;
+                int cy = res / 2;
+
+                for (int face = 0; face < 6; face++)
+                {
+                    Vector3 faceDir = FaceCenterDirection(face);
+                    float weight = MathF.Max(0f, Vector3.Dot(normal, faceDir));
+                    if (weight <= 0f)
+                        continue;
+                    int idx = ComputeCascadeIndex(cx, cy, face, res);
+                    Vector3 radiance = _cascadeData[level][idx];
+                    sum += radiance * (weight * levelWeight);
+                    wSum += weight * levelWeight;
+                }
+            }
+
+            return wSum > 0f ? sum / wSum : Vector3.Zero;
+        }
+
+        /// <summary>
+        /// Screen-aware cascade sample: reads a texel at normalized (u, v) per face instead of the
+        /// face center, giving spatial variation. Preferred by the Hybrid GI producer.
+        /// </summary>
+        public Vector3 SampleScreenCascade(float u, float v, Vector3 normal)
+        {
+            if (!_isInitialized || _totalLevels <= 0)
+                return Vector3.Zero;
+
+            float lenSq = normal.LengthSquared();
+            if (lenSq < 1e-8f || float.IsNaN(lenSq))
+                return Vector3.Zero;
+            normal /= MathF.Sqrt(lenSq);
+
+            u = Math.Clamp(u, 0f, 1f);
+            v = Math.Clamp(v, 0f, 1f);
+
+            Vector3 sum = Vector3.Zero;
+            float wSum = 0f;
+            int maxLevel = Math.Min(2, _totalLevels - 1);
+
+            for (int level = 0; level <= maxLevel; level++)
+            {
+                int res = _resolutionPerLevel[level];
+                if (res <= 0)
+                    continue;
+                float levelWeight = 1.0f / (1 + level);
+                int sx = Math.Clamp((int)(u * res), 0, res - 1);
+                int sy = Math.Clamp((int)(v * res), 0, res - 1);
+
+                for (int face = 0; face < 6; face++)
+                {
+                    Vector3 faceDir = FaceCenterDirection(face);
+                    float weight = MathF.Max(0f, Vector3.Dot(normal, faceDir));
+                    if (weight <= 0f)
+                        continue;
+                    int idx = ComputeCascadeIndex(sx, sy, face, res);
+                    Vector3 radiance = _cascadeData[level][idx];
+                    sum += radiance * (weight * levelWeight);
+                    wSum += weight * levelWeight;
+                }
+            }
+
+            return wSum > 0f ? sum / wSum : Vector3.Zero;
+        }
     }
 
     /// <summary>
