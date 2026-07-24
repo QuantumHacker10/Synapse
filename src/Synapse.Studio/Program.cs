@@ -4,6 +4,8 @@ using Avalonia;
 using Synapse.Infrastructure;
 using Synapse.Infrastructure.Configuration;
 using Synapse.Infrastructure.Logging;
+using Synapse.Network;
+using Synapse.Physics;
 using Synapse.Plugins;
 using Synapse.Runtime;
 
@@ -14,9 +16,21 @@ namespace Synapse.Studio
         [STAThread]
         public static void Main(string[] args)
         {
+            if (Array.Exists(args, a => a == "--health"))
+            {
+                RunHealthCheck(args);
+                return;
+            }
+
             if (Array.Exists(args, a => a is "--engine" or "--glfw"))
             {
                 RunEngineOnly(args);
+                return;
+            }
+
+            if (Array.Exists(args, a => a == "--law-benchmark"))
+            {
+                RunLawBenchmark(args);
                 return;
             }
 
@@ -56,6 +70,26 @@ namespace Synapse.Studio
                 .WithInterFont()
                 .LogToTrace();
 
+        private static void RunHealthCheck(string[] args)
+        {
+            var config = SynapseConfig.Load(args: args);
+            using var logger = new SynapseLogger(null, LogLevel.Warning, consoleEnabled: false);
+            var host = new EngineHost(config, logger);
+            try
+            {
+                host.InitializeModules();
+                var report = host.GetProductionHealth();
+                Console.WriteLine(report.ToString());
+                foreach (var note in report.ExperimentalNotes)
+                    Console.WriteLine($"  · {note}");
+                Environment.ExitCode = report.IsCoreReady ? 0 : 2;
+            }
+            finally
+            {
+                host.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            }
+        }
+
         private static void RunBenchmark(string[] args)
         {
             var config = SynapseConfig.Load(args: args);
@@ -83,6 +117,19 @@ namespace Synapse.Studio
             Console.WriteLine($"Benchmark complete: physics={report.PhysicsMsAvg:F2}ms sim={report.SimulationMsAvg:F2}ms -> {outPath}");
         }
 
+        private static void RunLawBenchmark(string[] args)
+        {
+            var config = SynapseConfig.Load(args: args);
+            var report = LawCompilationBenchmarkRunner.Run();
+            var outPath = config.LawBenchmarkOutputPath
+                ?? Path.Combine(Directory.GetCurrentDirectory(), "law-compilation-report.json");
+            LawCompilationBenchmarkExporter.SaveAsync(report, outPath).GetAwaiter().GetResult();
+            Console.WriteLine(
+                $"Law compilation benchmark: total={report.TotalLaws} direct={report.CompiledDirect} " +
+                $"fallback={report.CompiledWithFallback} failed={report.Failed} " +
+                $"rate={report.DirectCompileRate:P1} -> {outPath}");
+        }
+
         private static void RunEngineOnly(string[] args)
         {
             Console.WriteLine("=================================================");
@@ -96,15 +143,66 @@ namespace Synapse.Studio
             using var pluginHost = new PluginHost(logger);
             var host = new EngineHost(config, logger);
             var orchestrator = new FrameOrchestrator(host, logger);
+            WanSimulationPeerHub? wan = null;
 
             try
             {
                 host.InitializeModules();
+                Console.WriteLine($"[Health] {host.GetProductionHealth()}");
 
                 if (!string.IsNullOrWhiteSpace(config.PluginDirectory))
                     pluginHost.LoadFromDirectory(config.PluginDirectory, host);
 
+                // Optional local plugin marketplace catalog (manifest + hashes beside plugin-dir).
+                if (!string.IsNullOrWhiteSpace(config.PluginDirectory))
+                {
+                    if (!string.IsNullOrWhiteSpace(config.PluginMarketplaceUrl))
+                    {
+                        var remote = new RemotePluginMarketplace(logger);
+                        var n = remote.SyncAsync(config.PluginMarketplaceUrl, config.PluginDirectory)
+                            .GetAwaiter().GetResult();
+                        Console.WriteLine($"[Plugins] Remote marketplace sync: {n} installed from {config.PluginMarketplaceUrl}");
+                    }
+
+                    var market = PluginMarketplace.FromDirectory(config.PluginDirectory, logger);
+                    market.VerifyInstalledOrWarn();
+                }
+
                 host.LoadSceneAsync(config.ScenePath).GetAwaiter().GetResult();
+
+                if (!string.IsNullOrWhiteSpace(config.WanSessionCode))
+                {
+                    if (!System.Net.IPAddress.TryParse(config.WanRendezvousHost, out var rvHost))
+                        rvHost = System.Net.IPAddress.Loopback;
+
+                    wan = new WanSimulationPeerHub(
+                        logger,
+                        config.WanSessionCode,
+                        rendezvousAddress: rvHost,
+                        rendezvousPort: config.WanRendezvousPort,
+                        hostRelay: !config.WanJoin,
+                        ice: new NatIceOptions
+                        {
+                            StunServer = config.StunServer,
+                            TurnServer = config.TurnServer,
+                            TurnUsername = config.TurnUsername,
+                            TurnPassword = config.TurnPassword,
+                            PreferTurn = config.WanPreferTurn
+                        });
+
+                    if (config.WanJoin)
+                    {
+                        wan.JoinAsync(rvHost, config.WanRendezvousPort).GetAwaiter().GetResult();
+                        Console.WriteLine($"[WAN] Joined via rendezvous {rvHost}:{config.WanRendezvousPort} mode={wan.TransportMode}");
+                    }
+                    else
+                    {
+                        wan.StartHostAsync(config.WanPort).GetAwaiter().GetResult();
+                        Console.WriteLine(
+                            $"[WAN] Authenticated host on 0.0.0.0:{wan.ListenPort} mode={wan.TransportMode} " +
+                            $"(rendezvous {rvHost}:{config.WanRendezvousPort})");
+                    }
+                }
 
                 if (!string.IsNullOrWhiteSpace(config.ExportScenePath))
                 {
@@ -116,6 +214,22 @@ namespace Synapse.Studio
                     if (config.Headless && string.IsNullOrWhiteSpace(config.ScenePath))
                         return;
                 }
+
+                if (!string.IsNullOrWhiteSpace(config.ExportWebPath))
+                {
+                    var result = host.ExportWebStudioAsync(config.ExportWebPath).GetAwaiter().GetResult();
+                    Console.WriteLine(result.UsedDotnetPublish
+                        ? $"[Export-Web] WASM Studio publié -> {result.OutputDirectory}"
+                        : $"[Export-Web] Fallback WebGPU site -> {result.OutputDirectory}");
+                    if (config.Headless)
+                        return;
+                }
+
+                host.ApplyOptionalCollaborationFromConfigAsync().GetAwaiter().GetResult();
+                if (host.IsWanConnected)
+                    Console.WriteLine($"[WAN] {host.WanStatusText}");
+                if (host.IsVrActive)
+                    Console.WriteLine($"[VR] {host.VrStatusText}");
 
                 if (config.Headless && !string.IsNullOrWhiteSpace(config.BenchmarkConfigPath))
                 {
@@ -147,6 +261,8 @@ namespace Synapse.Studio
             }
             finally
             {
+                if (wan != null)
+                    wan.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 host.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
         }

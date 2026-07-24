@@ -2,6 +2,9 @@
 
 Ce document décrit les points d'entrée principaux pour intégrer ou étendre Synapse. Les types internes et les monolithes de recherche ne sont pas listés ici.
 
+**Maturité :** voir [MATURITY.md](MATURITY.md). Les types marqués `[SynapseExperimental]`
+(VR, P2P WAN, web preview) sont des scaffolds — ne les traitez pas comme des APIs stables production.
+
 ## Synapse.Runtime — Orchestration
 
 ### `EngineHost`
@@ -229,6 +232,18 @@ Types d'entités : `Mesh`, `Character`, `Genome`, `Light`, `Vehicle`.
 
 ---
 
+## Synapse.Core.Maturity — Honnêteté produit
+
+| Type | Description |
+|---|---|
+| `MaturityTier` | `Supported` / `EarlyAccess` / `Experimental` |
+| `FeatureMaturityCatalog` | Liste canonique des surfaces et de leur tier |
+| `SynapseExperimentalAttribute` | Marque un type scaffold (VR, WAN, web, …) |
+
+```csharp
+var experimental = FeatureMaturityCatalog.OfTier(MaturityTier.Experimental);
+```
+
 ## Namespaces
 
 | Namespace | Assembly | Rôle |
@@ -236,9 +251,11 @@ Types d'entités : `Mesh`, `Character`, `Genome`, `Light`, `Vehicle`.
 | `Synapse.Runtime` | Synapse.Runtime | Orchestration, scènes |
 | `Synapse.Physics` | Synapse.Physics | Simulation, lois vivantes |
 | `Synapse.Core` | Synapse.Core | Math, PhysicsState, structures spatiales |
+| `Synapse.Core.Maturity` | Synapse.Core | Matrice de maturité produit |
 | `GDNN.Rendering.Engine` | Synapse.Rendering | Rendu Vulkan |
 | `GDNN.Llm` | Synapse.LLM | Routeur LLM |
 | `GDNN.Scene` | Synapse.Runtime | Modèle de scène |
 | `GDNN.Sentience` | Synapse.Simulation | Entités sentientes |
 | `GDNN.Core.NEAT` | Synapse.AI | Évolution NEAT-G |
 | `Synapse.Infrastructure.*` | Synapse.Infrastructure | Config, logging, qualité |
+| `Synapse.VR` / `Synapse.Network` / `Synapse.Web` | Synapse.Runtime | **Experimental** — scaffolds |

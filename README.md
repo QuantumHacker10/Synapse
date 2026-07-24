@@ -1,4 +1,4 @@
-# SYNAPSE OMNIA — Outil de simulation 3D · v2.2
+# SYNAPSE OMNIA — Outil de simulation 3D · v2.10
 
 [![Build](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/build.yml)
 [![Analysis](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml/badge.svg)](https://github.com/QuantumHacker10/Synapse/actions/workflows/analysis.yml)
@@ -6,7 +6,8 @@
 [![codecov](https://codecov.io/gh/QuantumHacker10/Synapse/graph/badge.svg)](https://codecov.io/gh/QuantumHacker10/Synapse)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](global.json)
-[![Tests](https://img.shields.io/badge/tests-266%20passing-brightgreen)](tests/Synapse.Tests)
+[![Tests](https://img.shields.io/badge/tests-275%20passing-brightgreen)](tests/Synapse.Tests)
+[![Tests](https://img.shields.io/badge/tests-310%20passing-brightgreen)](tests/Synapse.Tests)
 
 **Synapse OMNIA** est un **outil de simulation 3D** : un monde numérique que l'on observe,
 modifie et fait évoluer — pas un moteur de jeu, ni une boîte à monter des niveaux.
@@ -16,12 +17,17 @@ comment formes, lois et agents sentients changent ensemble.
 Là où les outils 3D classiques *figent* des objets et *rejouent* des règles immuables,
 Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 
-> **Produit v2.2** — Synapse Studio + runtime unifié, **plugins C#**, benchmarks headless reproductibles,
-> import FBX/USD, export scène glTF, blueprint runtime, marketplace `.synapse-law`,
-> P2P WAN chiffré, OpenXR swapchain Vulkan, éditeur web glTF interactif, captures Studio live.
-> Builds **Windows x64**, **Linux x64** et **macOS arm64**.
+> **Accès anticipé v2.2** (R&D avancée, pas production-ready) — Synapse Studio + runtime local,
+> plugins C#, benchmarks headless, import/export scènes, living laws, captures Studio.
+> **Experimental uniquement :** P2P WAN (loopback), OpenXR (swapchain synthétique), éditeur web preview.
+> Cible officielle : **Windows x64 + GPU Vulkan** ; builds Linux/macOS disponibles.
+> Matrice : **[docs/MATURITY.md](docs/MATURITY.md)**.
 
-**Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v2.2](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
+**Site vitrine :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger v2.2](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md) · **Maturité :** [docs/MATURITY.md](docs/MATURITY.md)
+> **Produit v2.10 — production-ready** — OpenUSD MeshIO complet (topology DCC, UDIM/MDL/blend shapes), streaming textures,
+> marketplace plugins distant, STUN/TURN, OpenXR — [docs/PRODUCTION.md](docs/PRODUCTION.md).
+
+**Config minimale :** [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **Production :** [docs/PRODUCTION.md](docs/PRODUCTION.md) · **Site :** [quantumhacker10.github.io/Synapse](https://quantumhacker10.github.io/Synapse/) · **Releases :** [Télécharger](https://github.com/QuantumHacker10/Synapse/releases) · **Tutoriels :** [docs/TUTORIALS.md](docs/TUTORIALS.md)
 
 ## Sommaire
 
@@ -30,6 +36,7 @@ Synapse *apprend*, *réécrit* et *cultive* le monde simulé.
 - [Démarrage rapide](#démarrage-rapide) — voir aussi **[GETTING_STARTED.md](GETTING_STARTED.md)**
 - [Configuration](#configuration)
 - [Architecture](#architecture)
+- [Production](#production)
 - [Pipeline G-DNN + L-DNN](#pipeline-g-dnn--l-dnn)
 - [Synapse Studio](#synapse-studio)
 - [Captures d'écran](#captures-décran)
@@ -53,14 +60,17 @@ Six idées rares réunies dans **un seul outil de simulation**, pas comme des pl
 
 ## Prérequis
 
+Voir le détail : **[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)** (matériel milieu de gamme, RID, SIMD).
+
 | Composant | Version / détail |
 |---|---|
 | [.NET SDK](https://dotnet.microsoft.com/download) | **10.0.300** (voir [`global.json`](global.json)) |
-| GPU | Pilote **Vulkan** à jour (NVIDIA, AMD, Intel ; MoltenVK sur macOS) |
-| Windows (publish) | `glfw3.dll` 3.4+ (voir [glfw3.dll](#glfw3dll)) |
+| GPU | **Vulkan 1.1+** (1.2 recommandé) — NVIDIA, AMD, Intel iGPU ; MoltenVK sur macOS |
+| CPU | x64/Arm64 — baseline **AVX2 / NEON** (AVX-512 optionnel) |
+| GLFW | 3.3+ (`glfw3.dll` / `libglfw.so.3` / `libglfw.3.dylib`) |
 | LLM (optionnel) | [Ollama](https://ollama.com/) en local, ou clés API cloud (voir [Configuration](#configuration)) |
 
-**Plateformes cibles :** Windows, Linux et macOS en **natif GLFW + Vulkan** (MoltenVK sur macOS). Publish officiel win-x64 ; Linux/macOS via `dotnet publish -r linux-x64|osx-arm64`. HWND = embed Studio Windows uniquement.
+**Plateformes cibles :** `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-arm64`, `osx-x64` — natif GLFW + Vulkan. HWND = embed Studio Windows uniquement.
 
 ## Démarrage rapide
 
@@ -80,8 +90,9 @@ dotnet run --project src/Synapse.Studio
 # Mode moteur GLFW seul, sans UI (--glfw est un alias)
 dotnet run --project src/Synapse.Studio -- --engine
 
-# Charger la scène d'exemple
+# Charger une scène d'exemple
 dotnet run --project src/Synapse.Studio -- --scene samples/demo.synapse
+dotnet run --project src/Synapse.Studio -- --scene samples/lab-heat-agents.synapse
 
 # Benchmark headless reproductible (v2)
 dotnet run --project src/Synapse.Studio -- --benchmark samples/benchmarks/default.json --seed 42 --headless
@@ -139,17 +150,29 @@ Placez `glfw3.dll` (GLFW 3.4+) à côté de l'exécutable, ou dans
 | Source | Paramètres |
 |---|---|
 | [`src/Synapse.Studio/appsettings.json`](src/Synapse.Studio/appsettings.json) | Résolution, qualité, budgets physique/sim, LLM par défaut |
-| CLI | `--width`, `--height`, `--scene`, `--quality`, `--validation` / `--no-validation`, `--engine` / `--glfw` |
-| Variables d'environnement | `SYNAPSE_WIDTH`, `SYNAPSE_HEIGHT`, `SYNAPSE_SCENE` |
+| CLI | `--width`, `--height`, `--scene`, `--quality`, `--validation` / `--no-validation`, `--engine` / `--glfw`, `--health`, `--plugin-dir`, `--plugin-catalog`, `--plugin-marketplace-url`, `--wan-code`, `--wan-join`, `--wan-rendezvous`, `--stun-server`, `--turn-server` |
+| Variables d'environnement | `SYNAPSE_WIDTH`, `SYNAPSE_HEIGHT`, `SYNAPSE_SCENE`, `SYNAPSE_SIMD_MAX` |
 | LLM (jamais en dur dans le dépôt) | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `AZURE_OPENAI_API_KEY`, `OLLAMA_HOST` |
 
 Le routeur [`HybridLlmRouter`](src/Synapse.LLM/HybridLlmRouter.cs) bascule automatiquement entre ONNX, Ollama, OpenAI, Anthropic, Gemini et Azure selon disponibilité, coût et confidentialité.
 
+## Production
+
+Synapse **2.10** est **production-ready** pour l'outil desktop (OpenUSD MeshIO complet, streaming textures, marketplace plugins distant, WAN+STUN/TURN, OpenXR).
+Matrice détaillée et checklist release :
+
+→ **[docs/PRODUCTION.md](docs/PRODUCTION.md)** · **[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)**
+
+```bash
+dotnet run --project src/Synapse.Studio -- --health
+```
+
 ## Architecture
 
-Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.slnx)), scène d'exemple sous [`samples/`](samples/).
+Dix projets sous `src/`, tests sous `tests/` (solution [`Synapse.slnx`](Synapse.slnx)), scènes sous [`samples/`](samples/).
 
 Documentation complémentaire :
+- **[docs/MATURITY.md](docs/MATURITY.md)** — ce qui est EarlyAccess vs Experimental (source de vérité)
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — diagrammes Mermaid (pipeline, modules, CI)
 - **[docs/API.md](docs/API.md)** — référence des APIs publiques par module
 
@@ -212,13 +235,17 @@ Les agents sentients ne sont pas des PNJ de jeu : ils perçoivent, mémorisent e
 
 Voir [docs/screenshots/README.md](docs/screenshots/README.md) pour capturer vos propres PNG (`--screenshot` ou script Python).
 
-## Publish (Windows x64)
+## Publish (multi-plateforme)
 
 ```bash
-dotnet publish src/Synapse.Studio/Synapse.Studio.csproj -c Release -r win-x64 --self-contained true -o artifacts/Synapse-win-x64
+# Une RID
+dotnet publish src/Synapse.Studio/Synapse.Studio.csproj -c Release -r linux-x64 --self-contained true -o artifacts/Synapse-linux-x64
+
+# Toutes les RID natives (win/linux/osx × x64/arm64)
+bash scripts/publish-all.sh
 ```
 
-Les tags `v*` déclenchent [`.github/workflows/release.yml`](.github/workflows/release.yml) et publient un zip win-x64 sur GitHub Releases.
+Voir [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md). Les tags `v*` déclenchent [`.github/workflows/release.yml`](.github/workflows/release.yml) (6 artefacts).
 
 ## Tests & CI
 
@@ -233,7 +260,7 @@ Suite xUnit + FluentAssertions sous [`tests/Synapse.Tests`](tests/Synapse.Tests)
 | [`build.yml`](.github/workflows/build.yml) | Linux + macOS tests, Coverlet + Codecov, publish win/linux |
 | [`analysis.yml`](.github/workflows/analysis.yml) | Analyseurs Roslyn + `dotnet format --verify-no-changes` |
 | [`codeql.yml`](.github/workflows/codeql.yml) | Analyse de sécurité CodeQL (C#) |
-| [`release.yml`](.github/workflows/release.yml) | Matrix win/linux/osx sur tag `v*` |
+| [`release.yml`](.github/workflows/release.yml) | Matrix 6 RID (win/linux/osx × x64/arm64) sur tag `v*` |
 | [`pages.yml`](.github/workflows/pages.yml) | Déploiement du site vitrine sur GitHub Pages |
 
 Couverture de code : `coverlet.runsettings` + upload Codecov. Audit dépendances : `scripts/verify-licenses.sh`.
@@ -243,6 +270,7 @@ Couverture de code : `coverlet.runsettings` + upload Codecov. Audit dépendances
 Voir **[CONTRIBUTING.md](CONTRIBUTING.md)** pour le flux Git complet et **[COMMUNITY.md](COMMUNITY.md)** pour les canaux de communication.
 
 - **[ROADMAP.md](ROADMAP.md)** — vision et priorités publiques
+- **[docs/MATURITY.md](docs/MATURITY.md)** — tiers Supported / EarlyAccess / Experimental
 - **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — code de conduite
 - **[SECURITY.md](SECURITY.md)** — signalement de vulnérabilités
 

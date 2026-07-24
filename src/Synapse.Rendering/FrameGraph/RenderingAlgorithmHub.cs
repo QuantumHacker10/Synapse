@@ -159,6 +159,65 @@ namespace GDNN.Rendering.FrameGraph
         /// <summary>Last batch SDF distances (used to paint contact AO into the present path).</summary>
         public float[] LastSdfDistances { get; private set; } = Array.Empty<float>();
         public Vector3 LastSdfSampleOrigin { get; private set; }
+        public float LastNaniteLod { get; private set; }
+        public int LastNanitePolyResolution { get; private set; }
+        private Vector3 _sdfHintCenter;
+        private float _sdfHintRadius = 1f;
+        private string _sdfHintPrimitive = "sphere";
+        private bool _sdfHintDirty;
+
+        /// <summary>Notifies G-DNN Nanite Neural 3.0 of an LLM SDF primitive hint.</summary>
+        public void NotifySdfHint(Vector3 center, float radius, string primitive)
+        {
+            _sdfHintCenter = center;
+            _sdfHintRadius = MathF.Max(0.05f, radius);
+            _sdfHintPrimitive = string.IsNullOrWhiteSpace(primitive) ? "sphere" : primitive;
+            _sdfHintDirty = true;
+            LastSdfSampleOrigin = center;
+            // Bias default SDF network sample origin toward the hinted primitive.
+            if (_sdfHintPrimitive.Contains("box", StringComparison.OrdinalIgnoreCase))
+                LastNaniteLod = Math.Max(LastNaniteLod, 0.55f);
+        }
+
+        public bool CinematicNanite { get; set; }
+
+        /// <summary>Active Nanite policy override from quality preset (null = Industrial / Cinematic flag).</summary>
+        public NaniteNeural30.Policy? NanitePolicyOverride { get; set; }
+
+        /// <summary>Applies AAA Nanite density from a quality preset name.</summary>
+        public void ApplyAaaQuality(string presetName)
+        {
+            NanitePolicyOverride = NaniteNeural30.PolicyFromPreset(presetName);
+            CinematicNanite = CinematicNanite
+                || string.Equals(presetName, "Cinematic", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Full-res cinematic material resolve from the last visibility buffer into viewport MRTs.
+        /// </summary>
+        public void ResolveCinematicMaterials(
+            int width,
+            int height,
+            Span<Vector3> albedo,
+            Span<Vector3> normals,
+            Span<float> roughness)
+        {
+            var policy = CinematicNanite ? NaniteCinematicResolve.Cinematic : NaniteNeural30.Industrial;
+            float lod = LastNaniteLod;
+            if (CinematicNanite)
+                lod = Math.Max(lod, 0.75f);
+            NaniteCinematicResolve.ResolveFullResMaterials(
+                _lastRasterTarget,
+                _lastMeshlets,
+                lod,
+                width,
+                height,
+                albedo,
+                normals,
+                roughness,
+                _lastRasterMesh,
+                policy);
+        }
 
         public RenderingAlgorithmHub(VulkanRhiDevice rhi, int width, int height)
         {
@@ -167,9 +226,9 @@ namespace GDNN.Rendering.FrameGraph
 
             VirtualShadows = new VirtualShadowMap(Math.Max(64, width / 8), Math.Max(64, height / 8), new VSMConfig
             {
-                ClipmapLevels = 3,
+                ClipmapLevels = 4,
                 TileSize = 64,
-                VirtualResolution = 512,
+                VirtualResolution = 1024,
                 PhysicalResolution = 512,
                 FilterMode = VSMFilterMode.PCSS,
                 CacheMode = VSMCacheMode.Software
@@ -505,6 +564,51 @@ namespace GDNN.Rendering.FrameGraph
                     try
                     {
                         PresentFromNeuralGeometry(view, report);
+                // Dense Nanite Neural 3.0 meshlets: continuous LOD + screen-error density.
+                // Prefer GPU dispatcher; fall back to SoftwareRasterizer. Feeds G-buffer inject + GI/fog.
+                float projected = NaniteNeural30.ProjectedRadiusPx(
+                    _sdfHintCenter,
+                    _sdfHintRadius,
+                    cameraPos,
+                    MathF.PI / 3f,
+                    Math.Max(1, _lastCullHeight));
+                float lod01 = NaniteNeural30.ContinuousLod(
+                    Vector3.Distance(cameraPos, _sdfHintCenter),
+                    projected);
+                LastNaniteLod = lod01;
+
+                var policy = NanitePolicyOverride
+                    ?? (CinematicNanite ? NaniteCinematicResolve.Cinematic : NaniteNeural30.Industrial);
+                if (NaniteNeural30.ShouldRebuildMeshlets(_gdnnTick, _sdfHintDirty, policy) &&
+                    report.VisibleClusters is { Count: > 0 })
+                {
+                    try
+                    {
+                        int polyRes = NaniteNeural30.PolyResolution(
+                            lod01,
+                            Math.Max(_lastCullWidth, _lastCullHeight),
+                            policy);
+                        LastNanitePolyResolution = polyRes;
+                        var mesh = Polygonizer.Extract(DefaultSdfNetwork, DefaultBounds, resolution: polyRes);
+                        var meshlets = MeshletBuilder.Build(mesh);
+                        LastVisibleMeshlets = Math.Max(LastVisibleMeshlets, meshlets.Count);
+
+                        var (rastW, rastH) = NaniteNeural30.VisibilityBufferSize(
+                            _lastCullWidth, _lastCullHeight, lod01, policy);
+                        if (CinematicNanite)
+                        {
+                            // Full-res cinematic visibility (capped by policy max).
+                            rastW = Math.Clamp(_lastCullWidth, policy.MinVisibilityWidth, policy.MaxVisibilityWidth) & ~1;
+                            rastH = Math.Clamp(_lastCullHeight, policy.MinVisibilityWidth, policy.MaxVisibilityWidth) & ~1;
+                        }
+                        RasterTarget target = RasterizeMeshlets(mesh, meshlets, view, rastW, rastH);
+                        LastRasterCoveredPixels = target.CountCoveredPixels();
+                        _lastRasterTarget = target;
+                        _lastMeshlets = meshlets;
+                        _lastRasterMesh = mesh;
+                        QueuePresentMesh(mesh, report.ExtractedGeometryVersion);
+                        FeedGeometryRenderer(mesh, meshlets);
+                        _sdfHintDirty = false;
                     }
                     catch (Exception ex)
                     {
@@ -696,16 +800,8 @@ namespace GDNN.Rendering.FrameGraph
             if (!target.TryDecode(sx, sy, out int meshletIdx, out int triIdx))
                 return new Vector3(0.55f, 0.58f, 0.62f);
 
-            // Hash meshlet+triangle → distinct tile color (virtualized cluster look).
-            uint h = unchecked((uint)(meshletIdx * 73856093) ^ (uint)(triIdx * 19349663));
-            float r = ((h) & 255) / 255f;
-            float g = ((h >> 8) & 255) / 255f;
-            float b = ((h >> 16) & 255) / 255f;
-            // Keep in a PBR-friendly mid range with slight cool bias for rock/metal feel.
-            return new Vector3(
-                0.28f + r * 0.55f,
-                0.30f + g * 0.50f,
-                0.32f + b * 0.48f);
+            var mat = NaniteNeural30.ResolveClusterMaterial(meshletIdx, triIdx, LastNaniteLod);
+            return new Vector3(mat.X, mat.Y, mat.Z);
         }
 
         /// <summary>

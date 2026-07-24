@@ -31,6 +31,7 @@ namespace GDNN.Platform
         public bool MoltenVkLikely { get; init; }
         public bool HwndEmbedSupported { get; init; }
         public NativeSurfaceBackend PreferredBackend { get; init; }
+        public CpuCapabilities Cpu { get; init; } = null!;
         public string Summary { get; init; } = "";
     }
 
@@ -130,6 +131,7 @@ namespace GDNN.Platform
             bool mac = OperatingSystem.IsMacOS();
             bool win = OperatingSystem.IsWindows();
             bool linux = OperatingSystem.IsLinux();
+            var cpu = CpuCapabilityProbe.Probe();
 
             var caps = new PlatformCapabilities
             {
@@ -144,7 +146,8 @@ namespace GDNN.Platform
                 MoltenVkLikely = mac,
                 HwndEmbedSupported = win,
                 PreferredBackend = glfw ? NativeSurfaceBackend.Glfw : NativeSurfaceBackend.None,
-                Summary = BuildSummary(win, linux, mac, glfw, vulkan)
+                Cpu = cpu,
+                Summary = BuildSummary(win, linux, mac, glfw, vulkan, cpu)
             };
             _cached = caps;
             return caps;
@@ -165,7 +168,11 @@ namespace GDNN.Platform
         public static IVulkanSurfaceFactory CreateHwndSurfaceFactory(IntPtr parentHwnd) =>
             new Win32HwndSurfaceFactory(parentHwnd);
 
-        public static void InvalidateProbeCache() => _cached = null;
+        public static void InvalidateProbeCache()
+        {
+            _cached = null;
+            CpuCapabilityProbe.InvalidateCache();
+        }
 
         private static bool TryProbeGlfw()
         {
@@ -201,10 +208,10 @@ namespace GDNN.Platform
             }
         }
 
-        private static string BuildSummary(bool win, bool linux, bool mac, bool glfw, bool vulkan)
+        private static string BuildSummary(bool win, bool linux, bool mac, bool glfw, bool vulkan, CpuCapabilities cpu)
         {
             string os = win ? "Windows" : mac ? "macOS (MoltenVK)" : linux ? "Linux" : "Unknown";
-            return $"{os}/{RuntimeInformation.RuntimeIdentifier}: GLFW={(glfw ? "ok" : "missing")}, Vulkan={(vulkan ? "ok" : "missing")}, primary=GLFW";
+            return $"{os}/{RuntimeInformation.RuntimeIdentifier}: GLFW={(glfw ? "ok" : "missing")}, Vulkan={(vulkan ? "ok" : "missing")}, SIMD={cpu.BaselineLabel}, primary=GLFW";
         }
     }
 }

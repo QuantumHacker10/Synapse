@@ -31,6 +31,7 @@ namespace GDNN.Platform
                 catch (InvalidOperationException)
                 {
                     // Resolver already installed for this assembly (multi-host / parallel tests).
+                    // Another test / AppDomain path already installed a resolver for this assembly.
                 }
                 _registered = true;
             }

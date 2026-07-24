@@ -117,6 +117,25 @@ namespace Synapse.Studio.Views
             {
                 App.Logger.Error("Viewport", "Failed to start render engine", ex);
                 // Modules remain initialized — native pipeline still ticks Physics/Simulation.
+                ReportViewportFailure(ex.Message);
+            }
+        }
+
+        private static void ReportViewportFailure(string message)
+        {
+            try
+            {
+                if (Avalonia.Application.Current?.ApplicationLifetime is
+                    Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop &&
+                    desktop.MainWindow?.DataContext is Synapse.Studio.ViewModels.MainWindowViewModel vm)
+                {
+                    vm.ViewportHint =
+                        $"Viewport Vulkan indisponible — {message}. L'éditeur reste utilisable (édition scène, lois, LLM).";
+                }
+            }
+            catch
+            {
+                // Best-effort UI notification only.
             }
 
             EnsureFrameTimer();

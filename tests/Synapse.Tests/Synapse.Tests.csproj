@@ -29,4 +29,9 @@
     <ProjectReference Include="..\..\src\Synapse.Runtime\Synapse.Runtime.csproj" />
     <ProjectReference Include="..\..\src\Synapse.Plugins\Synapse.Plugins.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Rendering\Golden\gi-procedural-32x32.sha256">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

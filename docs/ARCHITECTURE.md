@@ -158,22 +158,27 @@ Bind-only / optionnel : `BindNeuralGeometry`, `BindMeshletPageFile`.
 `SceneRenderer` reste la façade publique (meshes, materials, Studio) et le propriétaire
 des ressources Vulkan ; `RenderEngine` appelle `ExecuteFrame` qui orchestre le graph.
 
-### Cible d’impact Nanite / Lumen (honnête)
+### Cible d’impact Nanite Neural 3.0 / Lumen Neural 3.0
 
-| Tech | Barre UE5.8 | Present path Synapse (session) | ~% impact on-screen vs UE5 |
-|---|---|---|---|
-| **G-DNN → Nanite** | Mesh shaders GPU, virtualized micropoly, continuous LOD, depth+material resolve | Dense meshlets (poly grid 20–36) + visibility buffer **256–512²** (GPU prefer / CPU fallback) → **G-buffer inject** + cluster albedo into GI/fog ; LOD neural + frustum/backface | **~18–25%** (lit geometry looks cluster-tiled; pas de vrai micropoly hardware / streaming pages UE) |
-| **L-DNN → Lumen** | Surface cache + software RT cascades, multi-bounce, specular | Hybrid SSGI (8 rays) + **6** radiance cascades + neural refine + multi-bounce proxy ; GI **domine** l’ambient plat ; AO/fog/GI upload **chaque frame** ; SSR proxy renforcé | **~20–28%** (ombres indirectes visibles ; pas de surface cache UE / RT hardware) |
+| Tech | Present path Synapse (industriel + cinématique) | Capacité |
+|---|---|---|
+| **G-DNN — Nanite Neural 3.0** | Continuous LOD + **MeshletMaterialResolvePass** full-res ; `NaniteCinematicResolve` / `MeshShaderCompatGenerator` ; visibility jusqu’à **2048²** (Cinematic) | Géométrie neuronale dense + material resolve viewport |
+| **L-DNN — Lumen Neural 3.0** | Surface cache + multi-bounce + **`LumenCinematicGi`** (GPU cache 96³ + full path-trace blend) | GI dynamique + mode Cinematic path-trace |
+| **Upscaling** | **`UpscalePass`** après tonemap : FSR spatial / DLSS-compatible / MetalFX-compatible | Render scale &lt; 1 → display |
+| **Continuum GPU-friendly** | **`GpuContinuumScheduler`** SPH+LBM+élasticité (Demo/Industrial/Cinematic) | Fluides / LBM / FEM-grille scène |
 
-**Ce qui bloque encore la parité vraie** : pas de mesh-shader primary-device Nanite, pas de visibility-buffer material resolve GPU full-res, pas de Lumen surface cache / hardware ray tracing, Hybrid GI encore CPU-heavy (pas un compute GI resident chaque frame sur le device swapchain), second device optionnel pour meshlets/SDF.
+Activation native : `EngineHost.EnableCinematicStack()` ou `QualityPreset=Cinematic`.
 
-## Pipeline par frame (simulation + rendu)
+## Pipeline industriel par frame — LLM → Physics → Rendering → Simulation
 
 ```mermaid
 sequenceDiagram
     participant S as Studio / Boucle
     participant FO as FrameOrchestrator
     participant N as NativeFramePipeline
+    participant UI as Studio LLM Console
+    participant Pipe as OmniaIndustrialPipeline
+    participant E as EngineHost
     participant P as Multiphysics
     participant Sim as Sentience
     participant R as RenderEngine
@@ -190,6 +195,18 @@ sequenceDiagram
     R->>FG: CpuProducers(L-DNN) puis GpuPasses
     FG-->>S: Frame présentée (ou tick headless)
     N->>N: Quality→LOD/shadows/GI
+    UI->>Pipe: ApplyLlmWorldDelta(JSON)
+    Pipe->>E: Law → Lighting/SDF → Material → BT/Impulse
+    Note over Pipe: Ordre déterministe LLM→Physics→Rendering→Simulation
+
+    E->>P: TickPhysics (lois + rigid + continuum opt.)
+    P-->>E: Champ T/ρ + transforms
+    E->>Sim: TickSimulationAsync (BT + perception)
+    Sim-->>P: PhysicsActuator (heat / impulse)
+    E->>Pipe: TickCoupling (field→L-DNN)
+    E->>R: TickRender
+    R->>FG: L-DNN Lumen Neural → Cull G-DNN Nanite Neural → Shadow → GBuffer → Light → Post
+    FG-->>UI: Frame présentée
 ```
 
 La boucle native (`NativeFramePipeline`) avance **Physics + Simulation même si Vulkan échoue**

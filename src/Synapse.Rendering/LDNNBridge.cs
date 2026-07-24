@@ -8,6 +8,16 @@ using GDNN.Scene;
 
 namespace GDNN.Rendering.Bridge
 {
+    /// <summary>How the L-DNN bridge last populated its G-buffer.</summary>
+    public enum GiGBufferFillMode
+    {
+        None,
+        Constants,
+        ProceduralPreview,
+        GpuResident,
+        GpuReadback
+    }
+
     /// <summary>
     /// Thin integration layer between deferred rendering and <see cref="LDNNRenderer"/>.
     /// Owns G-Buffer proxies, camera/light state, static GI caching, and LLM lighting apply.
@@ -30,6 +40,9 @@ namespace GDNN.Rendering.Bridge
         private int _aoGbufferVersion = -1;
         private readonly GpuResidentGiPipeline _residentGi = new();
         private bool _lastFillWasConstants;
+
+        /// <summary>Tracks the most recent G-buffer population strategy.</summary>
+        public GiGBufferFillMode LastFillMode { get; private set; } = GiGBufferFillMode.None;
 
         /// <summary>Monotonic frame counter from the underlying L-DNN renderer.</summary>
         public int FrameIndex => _ldnn?.FrameIndex ?? 0;
@@ -176,6 +189,128 @@ namespace GDNN.Rendering.Bridge
             _residentGi.UpdateFromGBuffer(_gbuffer);
         }
 
+        private PhysicsFieldGiCoupler? _fieldCoupler;
+        private LumenNeural30.SurfaceRadianceCache _surfaceCache = new(96);
+        private readonly LumenCinematicGi _cinematicGi = new(128);
+        private MaterialHint? _materialHint;
+        private bool _cinematicGiEnabled;
+        private LumenNeural30.Policy _lumenPolicy = LumenNeural30.Aaa;
+        private int _aoKernelSize = 48;
+        private int _fogGridDivisor = 96;
+        private int _refineGridDivisor = 32;
+        private int _pathTraceSpp = 4;
+        private string _qualityPresetName = "High";
+
+        /// <summary>Enables Lumen Neural cinematic refine (GPU surface cache + full path-trace blend).</summary>
+        public void SetCinematicGi(bool enabled) => _cinematicGiEnabled = enabled;
+
+        public LumenCinematicGi.Mode LastCinematicMode => _cinematicGi.LastMode;
+        public int LastCinematicPathTraceSamples => _cinematicGi.LastPathTraceSamples;
+        public bool LastCinematicUsedRealPathTracer => _cinematicGi.UsedRealPathTracer;
+        public LumenNeural30.Policy ActiveLumenPolicy => _lumenPolicy;
+        public int ActiveRefineGridDivisor => _refineGridDivisor;
+        public int ActivePathTraceSpp => _pathTraceSpp;
+        public int SurfaceCacheResolution => _surfaceCache.Resolution;
+
+        /// <summary>
+        /// Pushes AAA quality knobs from <see cref="Synapse.Infrastructure.QualityLevel"/> /
+        /// preset name into Lumen Neural refine, AO, fog, and cinematic SPP.
+        /// </summary>
+        public void ApplyAaaQuality(string presetName, int giMaxBounces = 0, int giCascadeResolution = 0, int ssaoQuality = 0)
+        {
+            _qualityPresetName = presetName ?? "High";
+            _lumenPolicy = LumenNeural30.PolicyFromPreset(_qualityPresetName);
+            if (giMaxBounces > 0)
+            {
+                _lumenPolicy = new LumenNeural30.Policy
+                {
+                    SurfaceCacheResolution = _lumenPolicy.SurfaceCacheResolution,
+                    MaxBounces = Math.Clamp(giMaxBounces, 1, 16),
+                    BounceFalloff = _lumenPolicy.BounceFalloff,
+                    SpecularWeight = _lumenPolicy.SpecularWeight,
+                    DiffuseWeight = _lumenPolicy.DiffuseWeight,
+                    PhysicsFogCoupling = _lumenPolicy.PhysicsFogCoupling,
+                    PhysicsEmissiveCoupling = _lumenPolicy.PhysicsEmissiveCoupling,
+                    AmbientFloor = _lumenPolicy.AmbientFloor,
+                    CascadeDominance = _lumenPolicy.CascadeDominance,
+                    RefineGridDivisor = _lumenPolicy.RefineGridDivisor,
+                    PathTraceSpp = _lumenPolicy.PathTraceSpp,
+                    AoKernelSize = _lumenPolicy.AoKernelSize,
+                    FogGridDivisor = _lumenPolicy.FogGridDivisor
+                };
+            }
+
+            _refineGridDivisor = Math.Max(8, _lumenPolicy.RefineGridDivisor);
+            _pathTraceSpp = Math.Clamp(_lumenPolicy.PathTraceSpp, 1, 16);
+            _aoKernelSize = Math.Clamp(_lumenPolicy.AoKernelSize, 16, 64);
+            if (ssaoQuality >= 3)
+                _aoKernelSize = Math.Max(_aoKernelSize, 56);
+            if (ssaoQuality >= 4)
+                _aoKernelSize = 64;
+            _fogGridDivisor = Math.Max(32, _lumenPolicy.FogGridDivisor);
+
+            if (_surfaceCache.Resolution < _lumenPolicy.SurfaceCacheResolution)
+            {
+                _surfaceCache = new LumenNeural30.SurfaceRadianceCache(
+                    _lumenPolicy.SurfaceCacheResolution,
+                    origin: new Vector3(-20f, -3f, -20f),
+                    cellSize: _lumenPolicy.SurfaceCacheResolution >= 96 ? 0.35f : 0.5f);
+            }
+
+            if (_initialized && _config != null && _ldnn != null)
+            {
+                if (giCascadeResolution >= 256)
+                    _config.CascadeConfig = _config.CascadeConfig with { BaseResolution = CascadeResolution.High256 };
+                _config.MaxPathDepth = Math.Max(_config.MaxPathDepth, _lumenPolicy.MaxBounces);
+                _config.VolumeFogConfig = _config.VolumeFogConfig with
+                {
+                    DepthSlices = Math.Max(_config.VolumeFogConfig.DepthSlices, _qualityPresetName.Equals("Cinematic", StringComparison.OrdinalIgnoreCase) ? 128 : 96),
+                    GridResolutionXY = Math.Max(_config.VolumeFogConfig.GridResolutionXY, _qualityPresetName.Equals("Cinematic", StringComparison.OrdinalIgnoreCase) ? 64 : 48)
+                };
+                _ldnn.Config.VolumeFogConfig = _config.VolumeFogConfig;
+                _ldnn.Config.MaxPathDepth = _config.MaxPathDepth;
+                if (_qualityPresetName.Equals("Cinematic", StringComparison.OrdinalIgnoreCase) ||
+                    _qualityPresetName.Equals("Ultra", StringComparison.OrdinalIgnoreCase))
+                {
+                    _config.TeacherPixelStride = Math.Min(_config.TeacherPixelStride, 8);
+                    _config.TeacherSamplesPerPixel = Math.Max(_config.TeacherSamplesPerPixel, 2);
+                    _ldnn.Config.TeacherPixelStride = _config.TeacherPixelStride;
+                    _ldnn.Config.TeacherSamplesPerPixel = _config.TeacherSamplesPerPixel;
+                }
+            }
+
+            _cinematicGiEnabled = _cinematicGiEnabled
+                || _qualityPresetName.Equals("Cinematic", StringComparison.OrdinalIgnoreCase);
+            InvalidateGICache();
+        }
+
+        /// <summary>Applies LLM material hint as emissive / albedo bias for Lumen Neural 3.0.</summary>
+        public void ApplyMaterialHint(MaterialHint hint)
+        {
+            _materialHint = hint ?? throw new ArgumentNullException(nameof(hint));
+            InvalidateGICache();
+        }
+
+        /// <summary>Physics → L-DNN thermo-volumetric coupling (Lumen Neural 3.0).</summary>
+        public void ApplyPhysicsFieldCoupling(PhysicsFieldGiCoupler coupler)
+        {
+            _fieldCoupler = coupler ?? throw new ArgumentNullException(nameof(coupler));
+            if (!_initialized || _ldnn == null || _config == null)
+                return;
+
+            _config.VolumeFogConfig = coupler.ApplyToFog(_config.VolumeFogConfig);
+            _ldnn.Config.VolumeFogConfig = _config.VolumeFogConfig;
+            _ldnn.Volumetrics?.Initialize(_config.VolumeFogConfig, _width, _height);
+
+            // Seed surface radiance cache from heat (world mid-plane).
+            var (_, emissive, _) = LumenNeural30.CouplePhysicsFields(
+                coupler.LastAverageTemperature,
+                coupler.LastAverageDensity,
+                coupler.LastTemperatureVariance);
+            _surfaceCache.Accumulate(Vector3.Zero, emissive, weight: 1.5f);
+            InvalidateGICache();
+        }
+
         /// <summary>Copies depth/normal/albedo/emissive arrays into the internal G-Buffer.</summary>
         public void FillGBuffer(
             float[] depthData,
@@ -185,6 +320,7 @@ namespace GDNN.Rendering.Bridge
         {
             _gbufferVersion++;
             _lastFillWasConstants = false;
+            LastFillMode = GiGBufferFillMode.GpuReadback;
             if (depthData != null && depthData.Length == _gbuffer.Depth.Length)
                 Array.Copy(depthData, _gbuffer.Depth, depthData.Length);
             if (normalData != null && normalData.Length == _gbuffer.Normals.Length)
@@ -221,6 +357,7 @@ namespace GDNN.Rendering.Bridge
         {
             _gbufferVersion++;
             _lastFillWasConstants = true;
+            LastFillMode = GiGBufferFillMode.Constants;
             int count = _width * _height;
             for (int i = 0; i < count; i++)
             {
@@ -236,6 +373,115 @@ namespace GDNN.Rendering.Bridge
         }
 
         /// <summary>
+        /// Fills the G-buffer with a lightweight procedural preview (ground + sphere)
+        /// so L-DNN can compute spatial GI without a GPU readback path.
+        /// </summary>
+        public void FillGBufferProceduralPreview()
+        {
+            _gbufferVersion++;
+            _lastFillWasConstants = false;
+            LastFillMode = GiGBufferFillMode.ProceduralPreview;
+
+            var forward = _cameraState.Forward;
+            if (forward.LengthSquared() < 1e-6f)
+                forward = Vector3.UnitZ;
+            forward = Vector3.Normalize(forward);
+
+            var right = _cameraState.Right;
+            if (right.LengthSquared() < 1e-6f)
+                right = Vector3.UnitX;
+            right = Vector3.Normalize(right);
+
+            var up = Vector3.Normalize(Vector3.Cross(right, forward));
+            float aspect = _width > 0 ? (float)_width / _height : 16f / 9f;
+            float tanHalfFov = MathF.Tan(_cameraState.FieldOfView * 0.5f);
+
+            var sphereCenter = new Vector3(0f, 0.55f, 0f);
+            const float sphereRadius = 0.45f;
+
+            for (int y = 0; y < _height; y++)
+            {
+                float v = (_height > 1 ? y / (float)(_height - 1) : 0.5f) * 2f - 1f;
+                for (int x = 0; x < _width; x++)
+                {
+                    float u = (_width > 1 ? x / (float)(_width - 1) : 0.5f) * 2f - 1f;
+                    var rayDir = Vector3.Normalize(forward + right * (u * tanHalfFov * aspect) + up * (-v * tanHalfFov));
+                    int idx = y * _width + x;
+
+                    if (TryTracePreviewScene(_cameraState.Position, rayDir, sphereCenter, sphereRadius,
+                            out float depth, out Vector3 normal, out Vector3 albedo))
+                    {
+                        _gbuffer.Depth[idx] = depth;
+                        _gbuffer.Normals[idx] = normal;
+                        _gbuffer.Albedo[idx] = albedo;
+                    }
+                    else
+                    {
+                        _gbuffer.Depth[idx] = _cameraState.FarPlane;
+                        _gbuffer.Normals[idx] = Vector3.UnitY;
+                        _gbuffer.Albedo[idx] = new Vector3(0.02f, 0.025f, 0.03f);
+                    }
+
+                    _gbuffer.Velocity[idx] = Vector2.Zero;
+                    _gbuffer.MaterialProps[idx] = new Vector4(0.35f, 0.08f, 0f, 0f);
+                    _gbuffer.Specular[idx] = new Vector3(0.06f);
+                    _gbuffer.Emissive[idx] = Vector3.Zero;
+                }
+            }
+
+            _residentGi.UpdateFromGBuffer(_gbuffer);
+        }
+
+        private static bool TryTracePreviewScene(
+            Vector3 origin,
+            Vector3 dir,
+            Vector3 sphereCenter,
+            float sphereRadius,
+            out float depth,
+            out Vector3 normal,
+            out Vector3 albedo)
+        {
+            depth = 0f;
+            normal = Vector3.UnitY;
+            albedo = Vector3.One;
+
+            float nearest = float.MaxValue;
+            bool hit = false;
+
+            if (MathF.Abs(dir.Y) > 1e-5f)
+            {
+                float tPlane = -origin.Y / dir.Y;
+                if (tPlane > 0.01f && tPlane < nearest)
+                {
+                    nearest = tPlane;
+                    hit = true;
+                    normal = Vector3.UnitY;
+                    albedo = new Vector3(0.22f, 0.24f, 0.28f);
+                }
+            }
+
+            var oc = origin - sphereCenter;
+            float b = Vector3.Dot(oc, dir);
+            float c = oc.LengthSquared() - sphereRadius * sphereRadius;
+            float disc = b * b - c;
+            if (disc >= 0f)
+            {
+                float t = -b - MathF.Sqrt(disc);
+                if (t > 0.01f && t < nearest)
+                {
+                    nearest = t;
+                    hit = true;
+                    var p = origin + dir * t;
+                    normal = Vector3.Normalize(p - sphereCenter);
+                    albedo = new Vector3(0.72f, 0.45f, 0.38f);
+                }
+            }
+
+            depth = hit ? nearest : 0f;
+            return hit;
+        }
+
+        /// <summary>
         /// Restores the last GPU-origin G-buffer into the bridge without a new Vulkan readback.
         /// Returns false when no resident buffer exists.
         /// </summary>
@@ -246,6 +492,7 @@ namespace GDNN.Rendering.Bridge
             _residentGi.CopyResidentTo(_gbuffer);
             _gbufferVersion++;
             _lastFillWasConstants = false;
+            LastFillMode = GiGBufferFillMode.GpuResident;
             return true;
         }
 
@@ -263,6 +510,7 @@ namespace GDNN.Rendering.Bridge
                 snapshot.Specular);
             _residentGi.UpdateFromSnapshot(snapshot);
             _lastFillWasConstants = false;
+            LastFillMode = GiGBufferFillMode.GpuReadback;
         }
 
         /// <summary>
@@ -347,6 +595,11 @@ namespace GDNN.Rendering.Bridge
                 hash.Add(light.ShadowMethod);
             }
 
+            hash.Add(_qualityPresetName);
+            hash.Add(_refineGridDivisor);
+            hash.Add(_pathTraceSpp);
+            hash.Add(_cinematicGiEnabled);
+            hash.Add(_lumenPolicy.MaxBounces);
             return hash.ToHashCode();
         }
 
@@ -382,21 +635,114 @@ namespace GDNN.Rendering.Bridge
 
             var irradiance = new Vector3[_width, _height];
             var giField = _ldnn.GetLastIrradianceField(_width, _height);
-            if (giField != null && giField.GetLength(0) == _width && giField.GetLength(1) == _height)
+            bool usedHybridField = giField != null
+                && giField.GetLength(0) == _width
+                && giField.GetLength(1) == _height;
+
+            if (usedHybridField)
             {
                 for (int y = 0; y < _height; y++)
                     for (int x = 0; x < _width; x++)
-                        irradiance[x, y] = giField[x, y];
+                        irradiance[x, y] = giField![x, y];
             }
-            else if (!_lastFillWasConstants && _residentGi.HasResidentGBuffer)
+
+            // Resident compute path: always refresh when a non-constant G-buffer is resident
+            // so LastGiPath stays GpuResidentCompute for industrial diagnostics.
+            if (!_lastFillWasConstants && _residentGi.HasResidentGBuffer)
             {
-                irradiance = _residentGi.ComputeResidentIrradiance(_ldnn, _cameraState, _lights);
+                var resident = _residentGi.ComputeResidentIrradiance(_ldnn, _cameraState, _lights);
+                if (usedHybridField)
+                {
+                    for (int y = 0; y < _height; y++)
+                        for (int x = 0; x < _width; x++)
+                            irradiance[x, y] = irradiance[x, y] * 0.65f + resident[x, y] * 0.35f;
+                }
+                else
+                {
+                    irradiance = resident;
+                }
             }
-            else
+            else if (!usedHybridField)
             {
                 for (int y = 0; y < _height; y++)
                     for (int x = 0; x < _width; x++)
                         irradiance[x, y] = _gbuffer.Albedo[y * _width + x] * 0.3f;
+            }
+
+            // Lumen Neural 3.0 AAA: dense multi-bounce refine + filtered surface cache + cascade mix.
+            Vector3 specularHint = Vector3.One * 0.18f;
+            if (_materialHint?.EmissiveStrength is { } em && em > 0f)
+                specularHint += Vector3.One * em;
+
+            int refineDiv = Math.Max(8, _refineGridDivisor);
+            int stepY = Math.Max(1, _height / refineDiv);
+            int stepX = Math.Max(1, _width / refineDiv);
+            // Half-res dense refine for High+; full-res for Cinematic divisor ≤16.
+            bool fullResRefine = refineDiv <= 16;
+            if (fullResRefine)
+            {
+                stepX = 1;
+                stepY = 1;
+            }
+
+            for (int y = 0; y < _height; y += stepY)
+            {
+                for (int x = 0; x < _width; x += stepX)
+                {
+                    int idx = y * _width + x;
+                    Vector3 albedo = _gbuffer.Albedo[idx];
+                    float depth = MathF.Max(0.5f, _gbuffer.Depth[idx]);
+                    Vector3 world = _cameraState.Position + _cameraState.Forward * depth;
+                    Vector3 cacheSample = _surfaceCache.SampleFiltered(world);
+                    // Cascade: lift hybrid + cache feedback (true cascade already baked in Hybrid field).
+                    Vector3 cascade = irradiance[x, y] * 1.12f + cacheSample * 0.22f;
+                    Vector3 spec = _gbuffer.Specular != null && _gbuffer.Specular[idx].LengthSquared() > 1e-6f
+                        ? _gbuffer.Specular[idx] + specularHint * 0.25f
+                        : specularHint;
+                    Vector3 refined = LumenNeural30.MultiBounceRefine(
+                        irradiance[x, y],
+                        cascade,
+                        cacheSample,
+                        albedo,
+                        spec,
+                        _lumenPolicy);
+                    irradiance[x, y] = refined;
+                    _surfaceCache.Accumulate(world, refined, weight: 0.55f);
+
+                    // Bilinear-ish fill of the refine block so sparse grids don't leave tiles.
+                    if (stepX > 1 || stepY > 1)
+                    {
+                        int x1 = Math.Min(_width, x + stepX);
+                        int y1 = Math.Min(_height, y + stepY);
+                        for (int yy = y; yy < y1; yy++)
+                        {
+                            for (int xx = x; xx < x1; xx++)
+                            {
+                                if (xx == x && yy == y)
+                                    continue;
+                                float wx = stepX <= 1 ? 0f : (xx - x) / (float)stepX;
+                                float wy = stepY <= 1 ? 0f : (yy - y) / (float)stepY;
+                                float t = 0.55f + 0.45f * (1f - 0.5f * (wx + wy));
+                                irradiance[xx, yy] = Vector3.Lerp(irradiance[xx, yy], refined, t);
+                            }
+                        }
+                    }
+                }
+            }
+
+            _surfaceCache.TemporalDecay(0.985f);
+            _fieldCoupler?.BoostIrradiance(irradiance);
+
+            if (_cinematicGiEnabled)
+            {
+                irradiance = _cinematicGi.Refine(
+                    irradiance,
+                    _gbuffer,
+                    _cameraState,
+                    _lights,
+                    LumenCinematicGi.Mode.FullPathTrace,
+                    pathTraceSpp: _pathTraceSpp,
+                    policyOverride: _lumenPolicy);
             }
 
             if (_lastFillWasConstants)
@@ -443,8 +789,8 @@ namespace GDNN.Rendering.Bridge
                     {
                         ["gbuffer"] = _gbuffer,
                         ["camera"] = _cameraState,
-                        ["kernelSize"] = 32,
-                        ["radius"] = 0.75f
+                        ["kernelSize"] = _aoKernelSize,
+                        ["radius"] = _cinematicGiEnabled ? 0.95f : 0.75f
                     });
                 _ldnn.DispatchComputeShaders(
                     "blur_ao",
@@ -499,11 +845,18 @@ namespace GDNN.Rendering.Bridge
             if (!_initialized || vol == null || _width <= 0 || _height <= 0)
                 return field;
 
-            int step = Math.Max(2, Math.Max(_width, _height) / 64);
-            for (int y = 0; y < _height; y += step)
+            int divisor = Math.Max(32, _fogGridDivisor);
+            int step = Math.Max(1, Math.Max(_width, _height) / divisor);
+            // Sparse samples on a grid, then bilinear upsample to full res (AAA fog smoothness).
+            int gridW = (_width + step - 1) / step;
+            int gridH = (_height + step - 1) / step;
+            var sparse = new Vector3[gridW, gridH];
+            for (int gy = 0; gy < gridH; gy++)
             {
-                for (int x = 0; x < _width; x += step)
+                int y = Math.Min(_height - 1, gy * step);
+                for (int gx = 0; gx < gridW; gx++)
                 {
+                    int x = Math.Min(_width - 1, gx * step);
                     float u = (x + 0.5f) / _width;
                     float v = (y + 0.5f) / _height;
                     var screen = new Vector2(u, v);
@@ -511,12 +864,27 @@ namespace GDNN.Rendering.Bridge
                         _cameraState.Forward
                         + _cameraState.Right * ((u - 0.5f) * 2f * _cameraState.AspectRatio * MathF.Tan(_cameraState.FieldOfView * 0.5f * MathF.PI / 180f))
                         + _cameraState.Up * ((0.5f - v) * 2f * MathF.Tan(_cameraState.FieldOfView * 0.5f * MathF.PI / 180f)));
-                    var scatter = vol.IntegrateVolumeScattering(_cameraState, screen, viewDir, _lights);
-                    int x1 = Math.Min(_width, x + step);
-                    int y1 = Math.Min(_height, y + step);
-                    for (int yy = y; yy < y1; yy++)
-                        for (int xx = x; xx < x1; xx++)
-                            field[xx, yy] = scatter;
+                    sparse[gx, gy] = vol.IntegrateVolumeScattering(_cameraState, screen, viewDir, _lights);
+                }
+            }
+
+            for (int y = 0; y < _height; y++)
+            {
+                float gy = step <= 1 ? y : y / (float)step;
+                int y0 = Math.Clamp((int)gy, 0, gridH - 1);
+                int y1 = Math.Min(y0 + 1, gridH - 1);
+                float fy = gy - y0;
+                for (int x = 0; x < _width; x++)
+                {
+                    float gx = step <= 1 ? x : x / (float)step;
+                    int x0 = Math.Clamp((int)gx, 0, gridW - 1);
+                    int x1 = Math.Min(x0 + 1, gridW - 1);
+                    float fx = gx - x0;
+                    Vector3 c00 = sparse[x0, y0];
+                    Vector3 c10 = sparse[x1, y0];
+                    Vector3 c01 = sparse[x0, y1];
+                    Vector3 c11 = sparse[x1, y1];
+                    field[x, y] = Vector3.Lerp(Vector3.Lerp(c00, c10, fx), Vector3.Lerp(c01, c11, fx), fy);
                 }
             }
 
@@ -630,8 +998,8 @@ namespace GDNN.Rendering.Bridge
                 NeuralLearningRate = 0.001f,
                 NeuralBatchSize = 32,
                 NeuralNetworkProfile = NeuralNetworkProfile.Full,
-                // Teacher path-trace every frame kills realtime — keep off the present path.
-                EnableOnlineTeacherTraining = false,
+                // Sparse teacher (stride 16) keeps Lumen Neural online learning industrial-viable.
+                EnableOnlineTeacherTraining = true,
                 TeacherPixelStride = 16,
                 TeacherSamplesPerPixel = 1,
                 EnableNeuralSpecular = true

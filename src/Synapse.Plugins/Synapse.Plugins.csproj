@@ -7,6 +7,7 @@
     <RootNamespace>Synapse.Plugins</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Synapse.Core\Synapse.Core.csproj" />
     <ProjectReference Include="..\Synapse.Infrastructure\Synapse.Infrastructure.csproj" />
     <ProjectReference Include="..\Synapse.Runtime\Synapse.Runtime.csproj" />
   </ItemGroup>

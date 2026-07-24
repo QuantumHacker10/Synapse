@@ -28,7 +28,7 @@ namespace GDNN.Rendering.Engine
         private const int MAX_FRAMES_IN_FLIGHT = 2;
         /// <summary>Albedo, normals, depth, material, velocity.</summary>
         private const int GBUFFER_ATTACHMENT_COUNT = 5;
-        private const int SHADOW_MAP_SIZE = 2048;
+        private int _shadowMapSize = 2048;
         /// <summary>Vulkan minUniformBufferOffsetAlignment is typically ≤256.</summary>
         private const int UboAlign = 256;
         private const int MinDrawSlots = 32;
@@ -152,6 +152,16 @@ namespace GDNN.Rendering.Engine
         private VulkanTexture?[]? _drawOrmCache;
         private float[] _extraLightPack = Array.Empty<float>();
         private int _lastVtAtlasUploadFrame = -100;
+
+        // Cinematic native stack
+        private Vector3[]? _naniteAlbedo;
+        private Vector3[]? _naniteNormal;
+        private float[]? _naniteRoughness;
+        private GDNN.Rendering.Upscaling.ITemporalUpscaler? _upscaler;
+        private GDNN.Rendering.Upscaling.UpscalerBackend _upscalerBackend = GDNN.Rendering.Upscaling.UpscalerBackend.Auto;
+        private float _renderScale = 1f;
+        private Vector3[]? _upscaledColor;
+        private bool _cinematicGiEnabled;
 
         private int _width;
         private int _height;
@@ -1285,8 +1295,8 @@ namespace GDNN.Rendering.Engine
             {
                 _shadowDepthImages[i] = _rhi.CreateTexture(new TextureDescription
                 {
-                    Width = (uint)SHADOW_MAP_SIZE,
-                    Height = (uint)SHADOW_MAP_SIZE,
+                    Width = (uint)_shadowMapSize,
+                    Height = (uint)_shadowMapSize,
                     Format = VulkanFormat.D32Sfloat,
                     Usage = ImageUsageFlag.DepthStencilAttachment | ImageUsageFlag.Sampled,
                     Tiling = ImageTiling.Optimal,
@@ -1306,8 +1316,8 @@ namespace GDNN.Rendering.Engine
                 {
                     RenderPass = _shadowRenderPass.Handle,
                     Attachments = new[] { _shadowDepthImages[i].GetImageView() },
-                    Width = (uint)SHADOW_MAP_SIZE,
-                    Height = (uint)SHADOW_MAP_SIZE,
+                    Width = (uint)_shadowMapSize,
+                    Height = (uint)_shadowMapSize,
                     Layers = 1
                 });
             }
@@ -1852,6 +1862,44 @@ namespace GDNN.Rendering.Engine
 
             _ldnnBridge.ApplyLlmLighting(parameters);
             RefreshDynamicLightingFromScene();
+        }
+
+        /// <summary>
+        /// Feeds an LLM SDF hint into G-DNN Nanite Neural 3.0 (continuous LOD + denser meshlets).
+        /// </summary>
+        public void ApplySdfHint(SdfHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            if (!_initialized || _algorithmHub == null)
+                return;
+
+            Vector3 center = hint.Center is { } c
+                ? new Vector3(c.X, c.Y, c.Z)
+                : Vector3.Zero;
+            float radius = hint.Radius ?? (hint.Size is { } s
+                ? MathF.Max(s.X, MathF.Max(s.Y, s.Z))
+                : 1f);
+            _algorithmHub.NotifySdfHint(center, MathF.Max(0.05f, radius), hint.Primitive ?? "sphere");
+        }
+
+        /// <summary>Applies LLM material hint to default PBR UBO + L-DNN emissive bias.</summary>
+        public void ApplyMaterialHint(MaterialHint hint)
+        {
+            ArgumentNullException.ThrowIfNull(hint);
+            if (!_initialized)
+                return;
+            _ldnnBridge?.ApplyMaterialHint(hint);
+        }
+
+        /// <summary>
+        /// Physics → Rendering: thermo-volumetric coupling from living-law fields into L-DNN.
+        /// </summary>
+        public void ApplyPhysicsFieldCoupling(PhysicsFieldGiCoupler coupler)
+        {
+            ArgumentNullException.ThrowIfNull(coupler);
+            if (!_initialized || _ldnnBridge == null)
+                return;
+            _ldnnBridge.ApplyPhysicsFieldCoupling(coupler);
         }
 
         /// <summary>Creates or updates a visible proxy mesh for a scene entity (Genome, Volume, Character, Mesh).</summary>
@@ -2546,6 +2594,43 @@ namespace GDNN.Rendering.Engine
             RecordGBufferPass(context.Cmd, context.ImageIndex, context.FrameIndex);
         }
 
+        public void OnFrameGraphMeshletResolve(FrameGraphContext context)
+        {
+            if (_algorithmHub == null || !_initialized)
+                return;
+
+            int n = Math.Max(1, _width * _height);
+            if (_naniteAlbedo == null || _naniteAlbedo.Length != n)
+            {
+                _naniteAlbedo = new Vector3[n];
+                _naniteNormal = new Vector3[n];
+                _naniteRoughness = new float[n];
+            }
+
+            _algorithmHub.ResolveCinematicMaterials(
+                _width, _height,
+                _naniteAlbedo, _naniteNormal, _naniteRoughness);
+
+            // Inject full-res Nanite materials into L-DNN G-buffer for deferred/GI.
+            if (_ldnnBridge != null && _algorithmHub.LastRasterCoveredPixels > 0)
+            {
+                _ldnnBridge.OverlayMeshletGBuffer((depth, normals, albedo, w, h) =>
+                {
+                    _algorithmHub.CompositeMeshletsIntoLdnnGBuffer(depth, normals, albedo, w, h);
+                    // Prefer full-res cinematic resolve where available.
+                    int count = Math.Min(albedo.Length, _naniteAlbedo.Length);
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (_naniteAlbedo[i].LengthSquared() > 1e-6f)
+                        {
+                            albedo[i] = _naniteAlbedo[i];
+                            normals[i] = _naniteNormal[i];
+                        }
+                    }
+                });
+            }
+        }
+
         public void OnFrameGraphLighting(FrameGraphContext context)
         {
             RecordLightingPass(context.Cmd, context.ImageIndex, context.FrameIndex);
@@ -2554,6 +2639,111 @@ namespace GDNN.Rendering.Engine
         public void OnFrameGraphPost(FrameGraphContext context)
         {
             RecordPostPass(context.Cmd, context.ImageIndex, context.FrameIndex);
+        }
+
+        public void OnFrameGraphUpscale(FrameGraphContext context)
+        {
+            EnsureUpscaler();
+            int rw = Math.Max(1, (int)(_width * _renderScale));
+            int rh = Math.Max(1, (int)(_height * _renderScale));
+            _upscaler!.Configure(rw, rh, _width, _height);
+            LastUpscalerName = _upscaler.Name;
+
+            // Upscale last GI irradiance (CPU staging) to display when render scale < 1.
+            if (_lastGiIrradiance == null || _renderScale >= 0.999f)
+            {
+                LastUpscaleApplied = false;
+                return;
+            }
+
+            int srcW = _lastGiIrradiance.GetLength(0);
+            int srcH = _lastGiIrradiance.GetLength(1);
+            var src = new Vector3[srcW * srcH];
+            for (int y = 0; y < srcH; y++)
+                for (int x = 0; x < srcW; x++)
+                    src[y * srcW + x] = _lastGiIrradiance[x, y];
+
+            if (_upscaledColor == null || _upscaledColor.Length != _width * _height)
+                _upscaledColor = new Vector3[_width * _height];
+
+            _upscaler.Configure(srcW, srcH, _width, _height);
+            _upscaler.Upscale(src, _upscaledColor, ReadOnlySpan<Vector2>.Empty);
+            LastUpscaleApplied = true;
+
+            // Feed upscaled color back into GI texture path for next lighting.
+            var up = new Vector3[_width, _height];
+            for (int y = 0; y < _height; y++)
+                for (int x = 0; x < _width; x++)
+                    up[x, y] = _upscaledColor[y * _width + x];
+            _lastGiIrradiance = up;
+            if (_giIrradianceTexture != null)
+                UploadGiIrradianceTexture(up);
+        }
+
+        private void EnsureUpscaler()
+        {
+            _upscaler ??= GDNN.Rendering.Upscaling.UpscalerFactory.Create(_upscalerBackend);
+        }
+
+        /// <summary>Selects FSR / DLSS-compatible / MetalFX upscaler backend.</summary>
+        public void SetUpscalerBackend(GDNN.Rendering.Upscaling.UpscalerBackend backend)
+        {
+            _upscalerBackend = backend;
+            _upscaler = GDNN.Rendering.Upscaling.UpscalerFactory.Create(backend);
+        }
+
+        /// <summary>Internal render scale (&lt; 1 enables cinematic upscale).</summary>
+        public void SetRenderScale(float scale)
+        {
+            _renderScale = Math.Clamp(scale, 0.5f, 1f);
+        }
+
+        public int ShadowMapSize => _shadowMapSize;
+
+        /// <summary>
+        /// Pushes AAA quality settings into L-DNN, Nanite, shadows, and GI exposure.
+        /// </summary>
+        public void ApplyAaaQuality(
+            string presetName,
+            int shadowResolution = 0,
+            int giMaxBounces = 0,
+            int giCascadeResolution = 0,
+            int ssaoQuality = 0)
+        {
+            if (shadowResolution > 0)
+                _shadowMapSize = Math.Clamp(shadowResolution, 512, 8192);
+
+            _ldnnBridge?.ApplyAaaQuality(presetName, giMaxBounces, giCascadeResolution, ssaoQuality);
+            _algorithmHub?.ApplyAaaQuality(presetName);
+
+            bool cinematic = string.Equals(presetName, "Cinematic", StringComparison.OrdinalIgnoreCase);
+            bool ultra = string.Equals(presetName, "Ultra", StringComparison.OrdinalIgnoreCase)
+                         || string.Equals(presetName, "Aaa", StringComparison.OrdinalIgnoreCase);
+            if (cinematic || ultra)
+            {
+                CinematicGiEnabled = true;
+                if (_algorithmHub != null)
+                    _algorithmHub.CinematicNanite = true;
+            }
+
+            if (cinematic)
+            {
+                // Prefer full internal res for AAA reference; FSR Quality only if already scaled.
+                if (_renderScale < 0.85f)
+                    _renderScale = 0.85f;
+            }
+        }
+
+        public string LastUpscalerName { get; private set; } = "none";
+        public bool LastUpscaleApplied { get; private set; }
+        public bool CinematicGiEnabled
+        {
+            get => _cinematicGiEnabled;
+            set
+            {
+                _cinematicGiEnabled = value;
+                _ldnnBridge?.SetCinematicGi(value);
+            }
         }
 
         public void RecordCommandBuffer(VulkanCommandBuffer cmd, uint imageIndex, int frameIndex)
@@ -2801,7 +2991,7 @@ namespace GDNN.Rendering.Engine
 
         public void RenderShadowPass(VulkanCommandBuffer cmd, int frameIndex)
         {
-            var shadowSize = new Extent2D((uint)SHADOW_MAP_SIZE, (uint)SHADOW_MAP_SIZE);
+            var shadowSize = new Extent2D((uint)_shadowMapSize, (uint)_shadowMapSize);
 
             var shadowClear = new ClearValue[]
             {
@@ -2856,7 +3046,7 @@ namespace GDNN.Rendering.Engine
 
                 UpdateCascadeShadowDraws(frameIndex, orthoSizes[c]);
 
-                var shadowSize = new Extent2D((uint)SHADOW_MAP_SIZE, (uint)SHADOW_MAP_SIZE);
+                var shadowSize = new Extent2D((uint)_shadowMapSize, (uint)_shadowMapSize);
                 cmd.BeginRenderPass(_shadowRenderPass, _shadowCascadeFramebuffers[slot], new[]
                 {
                     ClearValue.DepthStencilClear(1.0f, 0)
@@ -2903,8 +3093,8 @@ namespace GDNN.Rendering.Engine
             {
                 _shadowCascadeDepth[i] = _rhi.CreateTexture(new TextureDescription
                 {
-                    Width = (uint)SHADOW_MAP_SIZE,
-                    Height = (uint)SHADOW_MAP_SIZE,
+                    Width = (uint)_shadowMapSize,
+                    Height = (uint)_shadowMapSize,
                     Format = VulkanFormat.D32Sfloat,
                     Usage = ImageUsageFlag.DepthStencilAttachment | ImageUsageFlag.Sampled,
                     Tiling = ImageTiling.Optimal,
@@ -2915,8 +3105,8 @@ namespace GDNN.Rendering.Engine
                 {
                     RenderPass = _shadowRenderPass.Handle,
                     Attachments = new[] { _shadowCascadeDepth[i].GetImageView() },
-                    Width = (uint)SHADOW_MAP_SIZE,
-                    Height = (uint)SHADOW_MAP_SIZE,
+                    Width = (uint)_shadowMapSize,
+                    Height = (uint)_shadowMapSize,
                     Layers = 1
                 });
             }
@@ -3011,7 +3201,7 @@ namespace GDNN.Rendering.Engine
             if (!_giUsesGpuReadback)
             {
                 if (!_ldnnBridge.TryRestoreResidentGBuffer())
-                    _ldnnBridge.FillGBufferFromConstants(10.0f, Vector3.UnitY, new Vector3(0.5f, 0.5f, 0.5f));
+                    _ldnnBridge.FillGBufferProceduralPreview();
             }
             _giUsesGpuReadback = false;
 
@@ -3030,6 +3220,9 @@ namespace GDNN.Rendering.Engine
 
         /// <summary>Last industrial GI path used by the L-DNN bridge.</summary>
         public GiComputePath LastGiPath => _ldnnBridge?.LastGiPath ?? GiComputePath.None;
+
+        /// <summary>How the global-illumination bridge last populated its G-buffer.</summary>
+        public GiGBufferFillMode LastGiFillMode => _ldnnBridge?.LastFillMode ?? GiGBufferFillMode.None;
 
         private void ApplyGiBoostFromIrradiance(Vector3[,] irradiance)
         {
@@ -3054,10 +3247,11 @@ namespace GDNN.Rendering.Engine
                 return;
 
             float mean = (float)(sum / samples);
-            // GI drives exposure; flat ambient stays low so L-DNN dominates shadowed areas.
-            _giBoost = Math.Clamp(mean * 0.28f, 0.05f, 0.72f);
-            _dynamicAmbient = Math.Clamp(0.035f - mean * 0.01f, 0.02f, 0.05f);
-            float targetExposure = Math.Clamp(1.35f / MathF.Max(0.35f, mean * 2.5f + 0.4f), 0.7f, 1.6f);
+            // AAA: keep scalar boost modest so full-res L-DNN GI texture dominates lighting.
+            float boostCap = _cinematicGiEnabled ? 0.48f : 0.72f;
+            _giBoost = Math.Clamp(mean * (_cinematicGiEnabled ? 0.18f : 0.28f), 0.04f, boostCap);
+            _dynamicAmbient = Math.Clamp(0.032f - mean * 0.01f, 0.018f, 0.045f);
+            float targetExposure = Math.Clamp(1.28f / MathF.Max(0.35f, mean * 2.35f + 0.4f), 0.72f, 1.55f);
             _smoothedExposure = _smoothedExposure * 0.92f + targetExposure * 0.08f;
 
             _auxUploadFrame++;
